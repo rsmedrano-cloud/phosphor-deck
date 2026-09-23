@@ -11,16 +11,20 @@ before it updates.
   "Status" section that actually says 0.3.0 and public instead of the stale "not published yet".
 
 - A mark: `doc/img/logo/logo.svg` (and rasters at a few sizes) -- the deck's own tab layout, one
-  pane lit, in p31 green. In the README header, and `doc/site/build.py` now drops it as the GitHub
-  Pages site's favicon/apple-touch-icon too (site root, no theme change needed: every browser
-  looks for one there by convention).
+  pane lit, in p31 green. In the README header, and as the manual site's own favicon and nav logo.
 
-- The manual is now also a website: `doc/site/build.py` turns doc/manual/*.md -- the same single
-  source `phosphor help` and `phosphor docs` (AGENTS.md) already read -- into `docs/`, a GitHub
-  Pages site (theme: jekyll-theme-hacker, one of GitHub's own built-in themes; no Gemfile, no
-  Node, no Actions workflow needed to build it). Never edited by hand: `tests/site-check.py`
-  fails the same way `phosphor docs --check` does when someone edits the manual and forgets to
-  rebuild it.
+- The manual is now also a website, rebuilt: `site/` (Astro + Starlight) replaces the earlier
+  Jekyll `docs/` -- full-text search, a real sidebar and next/previous links, and code blocks
+  framed like a terminal, all from the exact same doc/manual/*.md `phosphor help` and
+  `phosphor docs` (AGENTS.md) already read. `doc/site/build.py` turns each manual page into
+  `site/src/content/docs/manual/*.md` (never edited by hand: `tests/site-check.py` fails the
+  same way `phosphor docs --check` does when someone edits the manual and forgets to rebuild
+  it) and copies doc/img into `site/src/assets/img`. `.github/workflows/pages.yml` builds and
+  publishes it on every push to main that touches the manual, the images or the site itself;
+  CI's own `site` job (`.gitlab-ci.yml`) runs that same build on every push, so a broken one
+  is caught before it ever reaches that workflow. Needs Node 22+ to build (`cd site && npm
+  install && npm run build`) -- nothing else in Phosphor does, and the deck itself still
+  doesn't.
 
 ## 0.3.0 — screens, faster updates, and Rust underneath
 

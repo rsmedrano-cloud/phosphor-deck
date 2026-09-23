@@ -1,11 +1,7 @@
 ---
-layout: default
 title: Patterns
-permalink: /patterns/
----
-
-[Home](/) · [Concepts](/concepts/) · [Install](/install/) · **Patterns** · [The profile](/profile/) · [Commands](/commands/) · [Keys](/keys/) · [Screens](/phones/) · [Workspaces](/workspaces/) · [Mentions](/mentions/) · [The deck in a browser](/web/) · [Tunnels](/tunnels/) · [Clipboard](/clipboard/) · [Privacy](/privacy/) · [Troubleshooting](/troubleshooting/)
-
+sidebar:
+  order: 3
 ---
 
 

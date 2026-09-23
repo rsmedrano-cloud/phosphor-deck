@@ -1,11 +1,7 @@
 ---
-layout: default
 title: Workspaces
-permalink: /workspaces/
----
-
-[Home](/) · [Concepts](/concepts/) · [Install](/install/) · [Patterns](/patterns/) · [The profile](/profile/) · [Commands](/commands/) · [Keys](/keys/) · [Screens](/phones/) · **Workspaces** · [Mentions](/mentions/) · [The deck in a browser](/web/) · [Tunnels](/tunnels/) · [Clipboard](/clipboard/) · [Privacy](/privacy/) · [Troubleshooting](/troubleshooting/)
-
+sidebar:
+  order: 8
 ---
 
 
@@ -36,7 +32,7 @@ The same thing, without a note: the tab bar's `+` → **workspace**, or
 | two | two assistants side by side, each in its own part (`frontend/`, `backend/` or any two names) |
 | shell | an assistant and a shell next to it |
 
-![A two-part workspace: yazi on the folder, BRIEF.md and both parts' AGENTS.md on the right](/img/workspaces/workspace-folder.png)
+![A two-part workspace: yazi on the folder, BRIEF.md and both parts' AGENTS.md on the right](../../../assets/img/workspaces/workspace-folder.png)
 
 The tab is kept in your profile like any other, so it comes back after
 `phosphor restart`. What "comes back" means depends on the assistant:

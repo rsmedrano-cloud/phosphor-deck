@@ -1,11 +1,7 @@
 ---
-layout: default
 title: Mentions
-permalink: /mentions/
----
-
-[Home](/) · [Concepts](/concepts/) · [Install](/install/) · [Patterns](/patterns/) · [The profile](/profile/) · [Commands](/commands/) · [Keys](/keys/) · [Screens](/phones/) · [Workspaces](/workspaces/) · **Mentions** · [The deck in a browser](/web/) · [Tunnels](/tunnels/) · [Clipboard](/clipboard/) · [Privacy](/privacy/) · [Troubleshooting](/troubleshooting/)
-
+sidebar:
+  order: 9
 ---
 
 
@@ -32,7 +28,7 @@ reply from here, on purpose.
    and renames the COMMS tab (or whichever tab is named `COMMS` or runs
    matterhorn, iamb or gomuks) to **COMMS ●N**.
 
-![The COMMS tab's unread count](/img/mentions/comms-unread.png)
+![The COMMS tab's unread count](../../../assets/img/mentions/comms-unread.png)
 
 5. Tapping that tab, or the marker loop simply seeing a client has arrived
    there, clears the count -- there's nothing to mark "read" by hand.
@@ -53,7 +49,7 @@ anything per-message.
 
 `phosphor mentions` (or `+` → mentions) lists what came in, newest first:
 
-![phosphor mentions: two notifications, one of them a real @-mention](/img/mentions/mentions-feed.png)
+![phosphor mentions: two notifications, one of them a real @-mention](../../../assets/img/mentions/mentions-feed.png)
 
 A notification doesn't carry which channel it came from -- your chat
 client still owns that; this feed only tells you *that* something arrived

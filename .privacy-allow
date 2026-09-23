@@ -1,6 +1,6 @@
 # Host names that appear on purpose, and the only files they may appear in.
 # phosphor privacy still warns about them anywhere else. IPs, users, emails
 # and servers can't be allowed.
-homelab  profiles/example.toml README.md AGENTS.md doc/manual/web.md lib/web.py lib/privacy.py .gitlab-ci.yml doc/manual/commands.md doc/manual/install.md lib/init.py lib/panel.py phosphor recipes/homelab.toml tests/recipe-check.py CHANGELOG.md doc/manual/patterns.md doc/manual/profile.md lib/services.py tests/bench.py docs/commands.md docs/install.md docs/patterns.md docs/profile.md docs/web.md
+homelab  profiles/example.toml README.md AGENTS.md doc/manual/web.md lib/web.py lib/privacy.py .gitlab-ci.yml doc/manual/commands.md doc/manual/install.md lib/init.py lib/panel.py phosphor recipes/homelab.toml tests/recipe-check.py CHANGELOG.md doc/manual/patterns.md doc/manual/profile.md lib/services.py tests/bench.py site/src/content/docs/manual/commands.md site/src/content/docs/manual/install.md site/src/content/docs/manual/patterns.md site/src/content/docs/manual/profile.md site/src/content/docs/manual/web.md
 fedora   README.md .gitlab-ci.yml CHANGELOG.md CONTRIBUTING.md tests/distros/fedora.Containerfile tests/from-zero.sh
 lucius   tests/reap-check.py

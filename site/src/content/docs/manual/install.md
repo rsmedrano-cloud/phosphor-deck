@@ -1,11 +1,7 @@
 ---
-layout: default
 title: Install
-permalink: /install/
----
-
-[Home](/) · [Concepts](/concepts/) · **Install** · [Patterns](/patterns/) · [The profile](/profile/) · [Commands](/commands/) · [Keys](/keys/) · [Screens](/phones/) · [Workspaces](/workspaces/) · [Mentions](/mentions/) · [The deck in a browser](/web/) · [Tunnels](/tunnels/) · [Clipboard](/clipboard/) · [Privacy](/privacy/) · [Troubleshooting](/troubleshooting/)
-
+sidebar:
+  order: 2
 ---
 
 

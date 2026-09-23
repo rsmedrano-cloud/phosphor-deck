@@ -38,7 +38,11 @@ found by hand becomes a failing test before it's fixed. The rest of the list:
   and AGENTS.md is rebuilt with `phosphor docs`; a manual page edit also
   needs `python3 doc/site/build.py` (`tests/site-check.py`, in check.sh,
   catches a forgotten one) -- it's the same source rendered a third way,
-  as the GitHub Pages site;
+  as the manual site (`site/`, Astro + Starlight). That script needs only
+  the standard library; actually building the site (what CI's `site` job
+  and `.github/workflows/pages.yml` do) needs Node 22+ -- `cd site && npm
+  install && npm run build` -- nothing else in Phosphor does, so this is
+  the one exception to "no dependencies beyond a POSIX shell";
 - CHANGELOG.md says what users get, under `## Unreleased` (the pipeline's docs
   job fails code without it; `[no-changelog]` in the commit for a refactor);
 - `phosphor privacy` is clean;

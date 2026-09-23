@@ -1,17 +1,20 @@
 #!/usr/bin/env python3
-"""Builds docs/ (a GitHub Pages site) from doc/manual/*.md -- the exact same
-single source `phosphor help` (in the deck) and `phosphor docs` (AGENTS.md,
-for AI assistants) already read. A third reader, not a second copy: never
-edit docs/ by hand, edit the manual and run this again.
+"""Builds site/src/content/docs/ (an Astro + Starlight site, published to
+GitHub Pages) from doc/manual/*.md -- the exact same single source `phosphor
+help` (in the deck) and `phosphor docs` (AGENTS.md, for AI assistants)
+already read. A third reader, not a second copy: never edit the generated
+pages by hand, edit the manual and run this again.
 
     python3 doc/site/build.py
 
-Needs nothing beyond the standard library: GitHub Pages' own Jekyll build
-does the actual rendering (theme: jekyll-theme-hacker, in docs/_config.yml,
-one of GitHub's built-in supported themes -- no Gemfile, no Node, no
-Actions workflow to build it). This script only turns each manual page
-into a page Jekyll understands (front matter, image paths rewritten to be
-site-root-relative) and copies doc/img alongside it.
+This script only turns each manual page into a page Starlight understands
+(front matter, image paths rewritten to be site-root-relative) and copies
+doc/img alongside it as a public asset. The actual site (nav, search, theme,
+the terminal-framed code blocks) is site/'s own Astro + Starlight build:
+
+    cd site && npm install && npm run build
+
+CI runs both steps (see .github/workflows/pages.yml).
 """
 import os, re, shutil, sys
 
@@ -20,7 +23,18 @@ REPO = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, os.path.join(REPO, "lib"))
 import docs  # noqa: E402  (ORDER, page(): the same manual reader phosphor docs uses)
 
-OUT = os.path.join(REPO, "docs")
+SITE = os.path.join(REPO, "site")
+# doc/img is copied into site/src/assets/img (not public/img): a path
+# relative to a content file there, not a site-root-absolute one, is what
+# lets Astro's own image pipeline find, optimize and correctly base-prefix
+# it (astro.config.mjs sets `base: '/phosphor-deck'`; a literal `/img/...`
+# in markdown skips that prefix -- only Vite-processed asset imports get
+# it -- and 404s once deployed; a *relative* path with no leading "/",
+# on the other hand, only resolves if Astro can actually locate a real
+# file there, which public/ assets aren't). A manual page's source sits at
+# src/content/docs/manual/NAME.md, three levels above src/ -- so
+# `../img/x.png` (doc/manual's own path, one level up to doc/) becomes
+# `../../../assets/img/x.png` here.
 IMG_LINK = re.compile(r"\(\.\./img/")
 
 TOPIC_TITLES = {
@@ -32,21 +46,15 @@ TOPIC_TITLES = {
 }
 
 
-def front_matter(title, permalink=""):
-    return "---\nlayout: default\ntitle: %s\npermalink: /%s\n---\n\n" % (title, permalink)
+def front_matter(title, order):
+    return "---\ntitle: %s\nsidebar:\n  order: %d\n---\n\n" % (title, order)
 
 
 def convert_body(md):
-    """../img/x.png (doc/manual's own relative path) -> /img/x.png (site-root
-    relative: doc/img is copied to docs/img by main() below)."""
-    return IMG_LINK.sub("(/img/", md)
-
-
-def nav_line(current):
-    def one(name):
-        return ("**%s**" % TOPIC_TITLES[name]) if name == current else \
-               ("[%s](/%s/)" % (TOPIC_TITLES[name], name))
-    return "[Home](/) · " + " · ".join(one(name) for name in docs.ORDER) + "\n\n---\n\n"
+    """../img/x.png (doc/manual's own relative path) -> a path relative to
+    site/src/content/docs/manual/, where Astro's image pipeline can find
+    what copy_images() below puts at site/src/assets/img/ (see IMG_LINK)."""
+    return IMG_LINK.sub("(../../../assets/img/", md)
 
 
 def write(path, text):
@@ -62,64 +70,81 @@ def build_index():
     table = readme.split("| topic | what it covers |", 1)[1]
     table = "| topic | what it covers |" + table.split("\n\n", 1)[0]
     topic_alt = "|".join(re.escape(n) for n in docs.ORDER)
+    # Relative, not site-root-absolute (this page is the site root itself):
+    # see the note on IMG_LINK above -- a literal leading "/" here would
+    # skip astro.config.mjs's `base` and 404 once deployed.
     table = re.sub(r"^\| (%s) \|" % topic_alt,
-                    lambda m: "| [%s](/%s/) |" % (m.group(1), m.group(1)), table, flags=re.M)
+                    lambda m: "| [%s](manual/%s/) |" % (m.group(1), m.group(1)), table, flags=re.M)
     body = (
-        "Phosphor Deck: one terminal session (zellij) as your whole command "
-        "room -- your machines, your notebook, your chat, from any screen. "
-        "[Source and README](https://github.com/rsmedrano-cloud/phosphor-deck).\n\n"
+        "---\n"
+        "title: Phosphor Deck\n"
+        "description: One terminal session as your whole command room.\n"
+        "template: splash\n"
+        "hero:\n"
+        "  tagline: One terminal session (zellij) as your whole command room --\n"
+        "    your machines, your notebook, your chat, from any screen.\n"
+        "  image:\n"
+        "    file: ../../assets/logo.svg\n"
+        "  actions:\n"
+        "    - text: Read the manual\n"
+        "      link: manual/concepts/\n"
+        "      icon: right-arrow\n"
+        "    - text: GitHub\n"
+        "      link: https://github.com/rsmedrano-cloud/phosphor-deck\n"
+        "      icon: external\n"
+        "      variant: minimal\n"
+        "---\n\n"
+        "## Install\n\n"
+        "On the machine that will be the brain:\n\n"
+        "```sh\n"
+        "sh install.sh\n"
+        "```\n\n"
+        "No root, no dependencies beyond a POSIX shell: it downloads zellij,\n"
+        "yazi, btop, gping, ctop and rclone into `~/.local/bin` and asks\n"
+        '"set it up now?" -- see [install](manual/install/) for what it does by hand.\n\n'
         "## Manual\n\n" + table + "\n"
     )
-    write(os.path.join(OUT, "index.md"), front_matter("Phosphor Deck") + body)
+    write(os.path.join(SITE, "src", "content", "docs", "index.md"), body)
 
 
 def build_pages():
-    for name in docs.ORDER:
+    out = os.path.join(SITE, "src", "content", "docs", "manual")
+    for i, name in enumerate(docs.ORDER, start=1):
         md = docs.page(name)
         md = re.sub(r"^# .+\n", "", md, count=1)  # the title becomes front matter's title instead
-        body = nav_line(name) + convert_body(md)
-        write(os.path.join(OUT, name + ".md"), front_matter(TOPIC_TITLES[name], name + "/") + body)
-
-
-def build_config():
-    write(os.path.join(OUT, "_config.yml"),
-          'theme: jekyll-theme-hacker\n'
-          'title: Phosphor Deck\n'
-          'description: "One terminal session as your whole command room"\n'
-          'show_downloads: false\n')
+        body = convert_body(md)
+        write(os.path.join(out, name + ".md"), front_matter(TOPIC_TITLES[name], i) + body)
 
 
 def copy_images():
     src = os.path.join(REPO, "doc", "img")
-    dst = os.path.join(OUT, "img")
+    dst = os.path.join(SITE, "src", "assets", "img")
     if os.path.exists(dst):
         shutil.rmtree(dst)
     if os.path.exists(src):
         shutil.copytree(src, dst)
 
 
-def copy_static():
-    """favicon.ico, apple-touch-icon.png: dropped at the site root, where
-    every browser looks for them by convention -- jekyll-theme-hacker has
-    no head-injection point to <link> them explicitly, so this is simpler
-    and just as reliable."""
-    src = os.path.join(HERE, "static")
-    if not os.path.isdir(src):
-        return
-    for name in os.listdir(src):
-        shutil.copy(os.path.join(src, name), os.path.join(OUT, name))
+def copy_logo():
+    """The hero image and the sidebar/nav logo Starlight's own config
+    (site/astro.config.mjs) points at -- copied, not symlinked, so `npm run
+    build` needs nothing outside site/ once this script has run."""
+    src = os.path.join(REPO, "doc", "img", "logo", "logo.svg")
+    dst = os.path.join(SITE, "src", "assets", "logo.svg")
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    shutil.copy(src, dst)
 
 
 def main():
-    if os.path.exists(OUT):
-        shutil.rmtree(OUT)
-    os.makedirs(OUT)
-    build_config()
+    docs_dir = os.path.join(SITE, "src", "content", "docs")
+    if os.path.exists(docs_dir):
+        shutil.rmtree(docs_dir)
+    os.makedirs(docs_dir)
     build_index()
     build_pages()
     copy_images()
-    copy_static()
-    print("docs/ built: %d pages + index" % len(docs.ORDER))
+    copy_logo()
+    print("site/src/content/docs/ built: %d manual pages + index" % len(docs.ORDER))
 
 
 if __name__ == "__main__":

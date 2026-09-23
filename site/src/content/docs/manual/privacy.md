@@ -1,11 +1,7 @@
 ---
-layout: default
 title: Privacy
-permalink: /privacy/
----
-
-[Home](/) · [Concepts](/concepts/) · [Install](/install/) · [Patterns](/patterns/) · [The profile](/profile/) · [Commands](/commands/) · [Keys](/keys/) · [Screens](/phones/) · [Workspaces](/workspaces/) · [Mentions](/mentions/) · [The deck in a browser](/web/) · [Tunnels](/tunnels/) · [Clipboard](/clipboard/) · **Privacy** · [Troubleshooting](/troubleshooting/)
-
+sidebar:
+  order: 13
 ---
 
 

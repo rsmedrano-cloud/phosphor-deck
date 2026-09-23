@@ -1,11 +1,7 @@
 ---
-layout: default
 title: The profile
-permalink: /profile/
----
-
-[Home](/) · [Concepts](/concepts/) · [Install](/install/) · [Patterns](/patterns/) · **The profile** · [Commands](/commands/) · [Keys](/keys/) · [Screens](/phones/) · [Workspaces](/workspaces/) · [Mentions](/mentions/) · [The deck in a browser](/web/) · [Tunnels](/tunnels/) · [Clipboard](/clipboard/) · [Privacy](/privacy/) · [Troubleshooting](/troubleshooting/)
-
+sidebar:
+  order: 4
 ---
 
 
@@ -195,7 +191,7 @@ query fails, shows under it.
 A query answers with its first series. Without gauges it shows Prometheus
 watching itself:
 
-![phosphor prom with no gauges configured: Prometheus watching itself -- up, TSDB head series, memory, a request-rate sparkline](/img/profile/prometheus-panel.png)
+![phosphor prom with no gauges configured: Prometheus watching itself -- up, TSDB head series, memory, a request-rate sparkline](../../../assets/img/profile/prometheus-panel.png)
 
 ## [ci]
 

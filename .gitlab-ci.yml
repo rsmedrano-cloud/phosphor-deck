@@ -46,6 +46,21 @@ docs:
   script:
     - python3 tests/docs-check.py "$CI_COMMIT_BEFORE_SHA" "$CI_COMMIT_SHA"
 
+# site: doc/manual/* -> site/src/content/docs/* (tests/site-check.py, in
+# check.sh, already catches a stale one) actually builds -- the same
+# Astro + Starlight build .github/workflows/pages.yml runs to publish it,
+# so a broken build is caught here, not after it reaches the mirror.
+site:
+  tags: [homelab]
+  rules:
+    - if: $CI_COMMIT_REF_PROTECTED == "true"
+  image: node:22-bookworm-slim
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq python3 >/dev/null
+  script:
+    - python3 doc/site/build.py
+    - cd site && npm ci && npm run build
+
 install:
   tags: [homelab]
   # docker CLI talking to the brain's docker through its socket: the test
@@ -105,7 +120,7 @@ release:
   image: registry.gitlab.com/gitlab-org/release-cli:latest
   rules:
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/ && $CI_COMMIT_REF_PROTECTED == "true"
-  needs: [release-notes, check, docs, zellij, install]
+  needs: [release-notes, check, docs, site, zellij, install]
   script:
     - echo "releasing $RELEASE_NAME"
   release:

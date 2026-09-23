@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""docs/ (the GitHub Pages site, github.com/rsmedrano-cloud/phosphor-deck)
-is generated from doc/manual/*.md by doc/site/build.py -- this fails when
-it's stale, the same way `phosphor docs --check` catches an AGENTS.md
-nobody rebuilt after editing the manual.
+"""site/ (the Astro + Starlight docs site, published to
+rsmedrano-cloud.github.io/phosphor-deck by .github/workflows/pages.yml) has
+its content and images generated from doc/manual/*.md and doc/img by
+doc/site/build.py -- this fails when they're stale, the same way `phosphor
+docs --check` catches an AGENTS.md nobody rebuilt after editing the manual.
 
     python3 tests/site-check.py
 """
@@ -17,16 +18,13 @@ def check(what, ok):
     if not ok:
         fails.append(what)
 
-real_out = build.OUT
+real_site = build.SITE
 tmp = tempfile.mkdtemp()
-build.OUT = tmp
+build.SITE = tmp
 try:
     build.main()
 finally:
-    build.OUT = real_out
-
-live = os.path.join(ROOT, "docs")
-check("docs/ exists (run python3 doc/site/build.py once)", os.path.isdir(live))
+    build.SITE = real_site
 
 def files_under(root):
     out = set()
@@ -35,16 +33,24 @@ def files_under(root):
             out.add(os.path.relpath(os.path.join(dirpath, n), root))
     return out
 
-if os.path.isdir(live):
-    fresh, committed = files_under(tmp), files_under(live)
+def compare(label, fresh_root, live_root):
+    check("%s exists (run python3 doc/site/build.py once)" % label, os.path.isdir(live_root))
+    if not os.path.isdir(live_root):
+        return
+    fresh, committed = files_under(fresh_root), files_under(live_root)
     for f in sorted(committed - fresh):
-        fails.append("docs/%s is stale (build.py doesn't generate this anymore)" % f)
+        fails.append("%s/%s is stale (build.py doesn't generate this anymore)" % (label, f))
     for f in sorted(fresh - committed):
-        fails.append("docs/%s is missing" % f)
+        fails.append("%s/%s is missing" % (label, f))
     for f in sorted(fresh & committed):
-        with open(os.path.join(tmp, f), "rb") as a, open(os.path.join(live, f), "rb") as b:
+        with open(os.path.join(fresh_root, f), "rb") as a, open(os.path.join(live_root, f), "rb") as b:
             if a.read() != b.read():
-                fails.append("docs/%s differs from a fresh build" % f)
+                fails.append("%s/%s differs from a fresh build" % (label, f))
+
+compare("site/src/content/docs", os.path.join(tmp, "src", "content", "docs"),
+        os.path.join(real_site, "src", "content", "docs"))
+compare("site/src/assets", os.path.join(tmp, "src", "assets"),
+        os.path.join(real_site, "src", "assets"))
 
 if fails:
     print("FAILED (run: python3 doc/site/build.py):\n  " + "\n  ".join(fails))

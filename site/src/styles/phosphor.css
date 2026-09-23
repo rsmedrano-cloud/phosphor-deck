@@ -1,0 +1,78 @@
+/* Phosphor's own p31 palette (rust/run/src/theme.rs, share/themes): a green
+   phosphor screen, the same family the deck itself, the logo and the social
+   preview use. One world, not a light/dark pair -- like the logo, this site
+   commits to the CRT look rather than inverting it for a "light mode". */
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+
+:root,
+:root[data-theme='light'] {
+	--sl-color-bg: #050b06;
+	--sl-color-bg-nav: #081109;
+	--sl-color-bg-sidebar: #081109;
+	--sl-color-bg-inline-code: #0d1a0f;
+	--sl-color-black: #050b06;
+	--sl-color-gray-1: #e4f5e6;
+	--sl-color-gray-2: #b9d9bd;
+	--sl-color-gray-3: #7fa686;
+	--sl-color-gray-4: #4a6e53;
+	--sl-color-gray-5: #2c4a32;
+	--sl-color-gray-6: #16311c;
+	--sl-color-gray-7: #0d1f11;
+	--sl-color-white: #f2fbf3;
+	--sl-color-text: #cdeed1;
+	--sl-color-text-accent: #33ff44;
+	--sl-color-accent-low: #133018;
+	--sl-color-accent: #1f8f2e;
+	--sl-color-accent-high: #8be89a;
+	--sl-color-hairline-light: #2c4a32;
+	--sl-color-hairline: #1c3320;
+	--sl-color-hairline-shade: #0d1a0f;
+	--sl-color-backdrop-overlay: rgba(5, 11, 6, 0.8);
+}
+
+/* Same palette under an explicit dark toggle, so it doesn't drift from
+   :root above if a future Starlight release stops treating :root as light
+   by default. */
+:root[data-theme='dark'] {
+	--sl-color-bg: #050b06;
+	--sl-color-bg-nav: #081109;
+	--sl-color-bg-sidebar: #081109;
+	--sl-color-bg-inline-code: #0d1a0f;
+	--sl-color-white: #f2fbf3;
+	--sl-color-text: #cdeed1;
+	--sl-color-text-accent: #33ff44;
+	--sl-color-accent-low: #133018;
+	--sl-color-accent: #33ff44;
+	--sl-color-accent-high: #8be89a;
+	--sl-color-hairline-light: #2c4a32;
+	--sl-color-hairline: #1c3320;
+	--sl-color-hairline-shade: #0d1a0f;
+}
+
+:root {
+	--sl-font: 'IBM Plex Sans', system-ui, sans-serif;
+	--sl-font-mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Code', Menlo, monospace;
+}
+
+a {
+	text-decoration-thickness: 1px;
+}
+
+/* The hero image (the logo, a rounded square) shouldn't stretch to the
+   splash template's default width -- it's a mark, not a screenshot. */
+.hero img {
+	max-width: 220px;
+}
+
+/* A faint scanline texture on the page background only -- subtle at reading
+   contrast, not on nav/sidebar surfaces where it would fight the text. */
+main {
+	background-image: repeating-linear-gradient(
+		to bottom,
+		rgba(51, 255, 68, 0.015),
+		rgba(51, 255, 68, 0.015) 1px,
+		transparent 1px,
+		transparent 2px
+	);
+}
