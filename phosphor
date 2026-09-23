@@ -211,11 +211,18 @@ def main():
         R = lambda *a: _sp.run(list(a), capture_output=True, text=True, timeout=30)
 
         def procs():
-            out = R("ps", "-eo", "pid,args", "--no-headers").stdout
+            # /proc directly, not `ps`: it isn't installed everywhere the
+            # deck (or its CI) runs, and /proc/PID/stat is already how the
+            # parent-chain walk above reads it.
             r = []
-            for l in out.splitlines():
-                q = l.split(None, 1)
-                if len(q) == 2: r.append((int(q[0]), q[1]))
+            for pid in os.listdir("/proc"):
+                if not pid.isdigit(): continue
+                try:
+                    with open("/proc/%s/cmdline" % pid, "rb") as f:
+                        args = f.read().replace(b"\0", b" ").strip().decode("utf-8", "replace")
+                except OSError:
+                    continue
+                if args: r.append((int(pid), args))
             return r
 
         if cmd == "restart":
@@ -230,7 +237,7 @@ def main():
             R(zj, "kill-session", sess)
             poll_until(lambda: not session_live(zj, sess), 2)
             R(zj, "delete-session", sess)
-            poll_until(lambda: session_gone(zj, sess), 1)
+            gone = poll_until(lambda: session_gone(zj, sess), 5)
             # This process and its whole parent chain match the patterns too.
             protect, cur = set(), os.getpid()
             while cur and cur != 1:
@@ -246,11 +253,25 @@ def main():
                     try: os.kill(pid, sg)
                     except Exception: pass
                 poll_until(lambda: not reap.targets(procs(), sess, protect), 2)
-            left = [a for _pid, a in reap.targets(procs(), sess, protect)]
-            print("  session down · leftovers: %d" % len(left))
+            left = reap.targets(procs(), sess, protect)
+            # Proof that the old deck is really gone before a new one starts:
+            # otherwise new code on disk runs next to old panes still alive.
+            svc = R("systemctl", "--user", "is-active", "%s.service" % sess).stdout.strip()
+            problems = reap.down_problems(gone, svc, left, sess)
+            import dlog
+            if problems:
+                print("  the old deck isn't fully down: %s" % (
+                    "no new one started" if cmd == "restart" else "check it before phosphor up"))
+                for p in problems:
+                    print("    " + p)
+                print("  " + DIM_ + "the watchdog stays off. Once they're gone: phosphor %s" % cmd + RST_)
+                dlog.event("deck", "%s-stopped" % cmd, "problems=%d leftovers=%d" % (len(problems), len(left)))
+                try: os.remove(RESTARTING)
+                except OSError: pass
+                return 1
+            print("  session down · leftovers: 0")
             if cmd == "down":
-                import dlog
-                dlog.event("deck", "down", "leftovers=%d" % len(left))
+                dlog.event("deck", "down", "leftovers=0")
                 print("  " + DIM_ + "the timer is stopped: phosphor up brings it back" + RST_)
                 return 0
 

@@ -6,6 +6,24 @@ before it updates.
 
 ## Unreleased
 
+## 0.3.3 — notes search, and a restart that waits for proof
+
+- `phosphor notes`: `/` searches title, body, author and tab at once (case-insensitive) over
+  what's already loaded -- no new file reads. Enter applies it, Esc cancels, an empty query
+  clears it; the header shows the active search and the entry count updates as you'd expect.
+
+- `phosphor restart` (and so `phosphor update`) no longer starts the new deck until the old one
+  is proven gone: zellij no longer lists the session, `deck.service` isn't still active, and no
+  process of it survived the reaper. If any of that fails it stops there, names what's still
+  alive, leaves the watchdog off and exits non-zero -- before, it only printed how many processes
+  were left over and started the new deck anyway, so new code on disk could run next to old
+  panes. `phosphor down` checks the same and exits non-zero too. Reads `/proc` directly for
+  this, not `ps` -- not every minimal install has `procps`, CI's own slim image included.
+- `phosphor update` now exits non-zero when the install fails (and then doesn't restart the
+  deck at all) or when the restart doesn't finish cleanly, instead of always reporting success:
+  an unattended update (cron, a timer) can tell. Run from a pane inside the deck, the restart
+  still detaches, so there the exit status only covers the install.
+
 ## 0.3.2 — phosphor notify marks the tab it came from
 
 - `phosphor notify` now marks the tab it came from (`--tab`, or SYS with none) with "`<TAB> ●N`"

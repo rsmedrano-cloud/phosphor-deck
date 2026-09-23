@@ -38,3 +38,21 @@ def targets(procs, session, protect=(), environ=env_of):
         if server.search(args) or client.search(args) or mark in environ(pid):
             out.append((pid, args))
     return out
+
+
+BUSY = ("active", "activating", "deactivating", "reloading", "refreshing")
+
+def down_problems(gone, service, left, session="deck"):
+    """What still stands between `phosphor down` and a clean slate: [] means
+    the old deck is gone and a new one may start. `gone` is whether zellij
+    no longer lists the session (a dead entry would be resurrected with the
+    old layout), `service` what `systemctl is-active` says about its unit,
+    `left` the reap targets that outlived SIGKILL."""
+    out = []
+    if not gone:
+        out.append("zellij still lists the session '%s'" % session)
+    if service in BUSY:
+        out.append("%s.service is still %s" % (session, service))
+    for pid, args in left:
+        out.append("pid %d still running: %s" % (pid, args[:70]))
+    return out

@@ -18,6 +18,10 @@ sidebar:
   after boot or `phosphor up`) and waits for it, up to a minute and a half.
 - **The deck is gone**: the watchdog brings it back within a minute; `phosphor
   up` if you ran `phosphor down`.
+- **"the old deck isn't fully down"**: a restart (or an update's restart)
+  found part of the old deck still alive and started nothing new. It lists
+  what: kill those pids, or wait for the service to stop, then `phosphor
+  restart`. The watchdog stays off until then, on purpose.
 - **A change to the profile doesn't show**: `phosphor gen && phosphor restart`.
 - **A new version doesn't show**: the panes run the code they started with.
   `phosphor update` restarts the deck for you; after updating any other way,

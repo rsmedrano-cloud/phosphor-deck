@@ -136,12 +136,21 @@ def main():
     inst = os.path.join(REPO, "install.sh")
     if os.path.exists(inst):
         # the installer is idempotent: it only fetches what's missing
-        subprocess.run(["sh", inst], env=dict(os.environ, PHOSPHOR_NO_WIZARD="1", PHOSPHOR_DEST=REPO))
+        r = subprocess.run(["sh", inst], env=dict(os.environ, PHOSPHOR_NO_WIZARD="1", PHOSPHOR_DEST=REPO))
+        if r.returncode != 0:
+            # a half-done install is no base to restart the deck on: the panes keep the old code
+            print(row(BAD, "install", "failed (exit %d)" % r.returncode, note="the deck wasn't touched"))
+            return 1
     # (install.sh regenerates from the profile: layouts, units, rclone.conf)
     if restart:
         print()
         if refresh(before_files, full):
-            subprocess.run([sys.executable, os.path.join(REPO, "phosphor"), "restart"])
+            # unattended updates need to know: a restart that stopped short
+            # (old deck not fully down, a missing pane) fails the update too
+            rc = subprocess.run([sys.executable, os.path.join(REPO, "phosphor"), "restart"]).returncode
+            if rc != 0:
+                print(row(BAD, "restart", "didn't finish cleanly", note="see above; phosphor logs"))
+            return rc
     else:
         print("  " + DIM + "the panes keep the old code until: phosphor restart" + RST)
     return 0

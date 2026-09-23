@@ -139,6 +139,16 @@ generator, a shortcut zellij itself needs to reread, anything outside
 judgement call is conservative on purpose: `--full` skips it and always
 restarts, if you'd rather not think about it.
 
+A real restart only starts the new deck once the old one is proven gone:
+zellij no longer lists the session, its service has stopped, and none of its
+processes outlived the reaper. If anything is still alive, it stops right
+there, says what, and leaves the watchdog off instead of starting new code
+next to old panes; once those are gone, `phosphor restart` again. `phosphor
+update` exits non-zero when that happens, and when the install itself fails
+(then it doesn't restart at all), so an unattended update (cron, a timer)
+knows it didn't land. Run from a pane inside the deck, the restart detaches
+itself, so there the exit status only covers the install.
+
 Two channels: **stable** follows main, which only moves when a minor version
 is done (0.3.0, 0.4.0...), and the notice shows up only for a new version;
 **nightly** follows dev, every patch release and what's done but not released

@@ -74,13 +74,16 @@ not in any one assistant's memory.
   first. A bug that hurts stable users before then is cherry-picked onto
   `main` by hand and released as a patch of that minor. It never touches the
   live deck's checkout: the brain takes the release with `phosphor update`
-  (`--channel nightly` for a dev one). Every release also reaches the public
-  GitHub mirror (github.com/rsmedrano-cloud/phosphor-deck): a squashed single
-  commit, never GitLab's real history -- onto GitHub's own `main` at a minor,
-  onto GitHub's own `dev` at a patch, each commit titled after the release and
-  authored as the maintainer, no AI co-author. A scratch clone, `git archive`
-  of the tag/branch being released (only tracked files, nothing local or
-  gitignored), an orphan branch, one commit, `git push`. Announcing it
+  (`--channel nightly` for a dev one). `tests/release.py` also syncs the
+  public GitHub mirror (github.com/rsmedrano-cloud/phosphor-deck) as its
+  last step: a squashed commit onto GitHub's own `main` at a minor, onto
+  GitHub's own `dev` at a patch -- building on that branch's previous sync
+  there (a real, if squashed, history on GitHub), never GitLab's granular
+  one. Titled after the release, authored as the maintainer, no AI
+  co-author. Best-effort on purpose: a GitHub hiccup there is printed, not
+  fatal -- it never undoes a GitLab release that already shipped; fix by
+  hand (`tests/release.py`'s own `sync_github()`, called standalone, does
+  the same sync again). Announcing it
   anywhere beyond the repo itself (Hacker News, Reddit...) stays the
   maintainer's call.
 - **The deck is someone's live session:** anything that restarts it, rewrites
@@ -249,6 +252,16 @@ generator, a shortcut zellij itself needs to reread, anything outside
 `lib/`) still gets a real `phosphor restart`, same as always -- that
 judgement call is conservative on purpose: `--full` skips it and always
 restarts, if you'd rather not think about it.
+
+A real restart only starts the new deck once the old one is proven gone:
+zellij no longer lists the session, its service has stopped, and none of its
+processes outlived the reaper. If anything is still alive, it stops right
+there, says what, and leaves the watchdog off instead of starting new code
+next to old panes; once those are gone, `phosphor restart` again. `phosphor
+update` exits non-zero when that happens, and when the install itself fails
+(then it doesn't restart at all), so an unattended update (cron, a timer)
+knows it didn't land. Run from a pane inside the deck, the restart detaches
+itself, so there the exit status only covers the install.
 
 Two channels: **stable** follows main, which only moves when a minor version
 is done (0.3.0, 0.4.0...), and the notice shows up only for a new version;
@@ -699,9 +712,12 @@ and in the `+` menu, and open in a tab of their own.
   `--notes` shows what this version brought, `--new` what a newer one brings (from CHANGELOG.md).
 
 ### Session
-- `phosphor restart` — down, reap leftover processes, up. From inside the deck it detaches itself.
+- `phosphor restart` — down, reap leftover processes, up. Up only runs once down is proven clean
+  (session gone from zellij, service stopped, nothing of it left alive); otherwise it names what's
+  left, leaves the watchdog off and exits non-zero. From inside the deck it detaches itself.
   Every screen that came in with `deck` (this machine, other computers, phones) waits and goes back in by itself.
-- `phosphor down` — bring it down and stop the watchdog timer (`phosphor up` to return).
+- `phosphor down` — bring it down and stop the watchdog timer (`phosphor up` to return); exits non-zero
+  if anything of the old deck is still alive.
 
 ### Workspaces
 - `phosphor workspace new|open|list` — a tab per idea with its own folder and assistants; see workspaces.
@@ -718,7 +734,8 @@ and in the `+` menu, and open in a tab of their own.
   `c` opens a CHAT tab where an assistant (claude, gemini, codex or opencode) starts from it,
   `w` opens a workspace from it (see workspaces).
   A note taken from a tab says so (`from SYS`); `f` goes through those tabs, showing one tab's notes at a time.
-  `u` brings back the last archived note. Every key shows at the bottom from the start (dimmed
+  `u` brings back the last archived note. `/` searches title, body, author and tab at once (case-insensitive);
+  Enter applies it, Esc cancels, an empty query clears it. Every key shows at the bottom from the start (dimmed
   until it applies), and tapping one works.
 - Archived notes live in `notes-archive.md` next to the notebook; `phosphor notes --archive`
   shows them: `r` restores one, `D` deletes it for good (asks first).
@@ -1307,6 +1324,10 @@ From yazi, `c` `s` does the same to the hovered file.
   after boot or `phosphor up`) and waits for it, up to a minute and a half.
 - **The deck is gone**: the watchdog brings it back within a minute; `phosphor
   up` if you ran `phosphor down`.
+- **"the old deck isn't fully down"**: a restart (or an update's restart)
+  found part of the old deck still alive and started nothing new. It lists
+  what: kill those pids, or wait for the service to stop, then `phosphor
+  restart`. The watchdog stays off until then, on purpose.
 - **A change to the profile doesn't show**: `phosphor gen && phosphor restart`.
 - **A new version doesn't show**: the panes run the code they started with.
   `phosphor update` restarts the deck for you; after updating any other way,

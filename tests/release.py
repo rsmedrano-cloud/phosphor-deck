@@ -17,13 +17,30 @@ Which releases go to main is the maintainer's policy: while a minor version is
 being built (0.2.x) every release stays on dev, which is the nightly channel;
 main, the stable one, only moves when a minor is done (--main, 0.3.0).
 
+5. The public GitHub mirror (github.com/rsmedrano-cloud/phosphor-deck): a
+   squashed commit onto its own dev (or main, with --main), never GitLab's
+   real history -- building on that branch's previous sync there, same as a
+   normal commit, just never carrying GitLab's granular one. Best-effort:
+   a GitHub hiccup here doesn't undo an already-shipped GitLab release, it
+   just prints what to fix by hand.
+
 It never touches the checkout the live deck runs from: the brain gets the
 release like anyone else, with `phosphor update` (the DECK tab offers it).
 """
-import os, re, subprocess, sys
+import os, re, shutil, subprocess, sys, tempfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ROOT)
+
+GITHUB = "https://github.com/rsmedrano-cloud/phosphor-deck.git"
+
+def gh_identity():
+    """This checkout's own git identity -- already the maintainer's noreply
+    address (see privacy), never hardcoded here: phosphor privacy blocks a
+    real email or username in tracked source, on purpose, no exceptions."""
+    name = subprocess.run(["git", "config", "user.name"], capture_output=True, text=True).stdout.strip()
+    email = subprocess.run(["git", "config", "user.email"], capture_output=True, text=True).stdout.strip()
+    return name, email
 
 def sh(*a, check=True, quiet=True):
     r = subprocess.run(list(a), capture_output=quiet, text=True)
@@ -36,6 +53,46 @@ def stop(why):
 
 def vtuple(v):
     return tuple(int(x) for x in v.split("."))
+
+def sync_github(branch, v, title):
+    """Squash HEAD onto GitHub's own `branch` as one commit, building on
+    that branch's previous sync there (a real, if squashed, history on
+    GitHub -- never GitLab's granular one). Best-effort on purpose: prints
+    what to fix by hand instead of raising, so a GitHub hiccup never undoes
+    a GitLab release that already shipped."""
+    tmp = tempfile.mkdtemp(prefix="phosphor-ghmirror-")
+    try:
+        c = subprocess.run(["git", "clone", "-q", GITHUB, tmp], capture_output=True, text=True)
+        if c.returncode != 0:
+            print("release: GitHub mirror sync skipped (clone failed): " + c.stderr.strip()); return
+        has = subprocess.run(["git", "-C", tmp, "rev-parse", "-q", "--verify", "origin/" + branch],
+                             capture_output=True).returncode == 0
+        if has:
+            subprocess.run(["git", "-C", tmp, "checkout", "-q", "-B", branch, "origin/" + branch])
+            subprocess.run(["git", "-C", tmp, "rm", "-rq", "."], capture_output=True)
+        else:
+            subprocess.run(["git", "-C", tmp, "checkout", "-q", "--orphan", branch])
+        arc = subprocess.run(["git", "archive", "--format=tar", "HEAD"], cwd=ROOT, capture_output=True).stdout
+        t = subprocess.run(["tar", "-xf", "-"], input=arc, cwd=tmp, capture_output=True)
+        if t.returncode != 0:
+            print("release: GitHub mirror sync skipped (couldn't lay down the tree): " + t.stderr.decode()); return
+        subprocess.run(["git", "-C", tmp, "add", "-A"], capture_output=True)
+        name, email = gh_identity()
+        env = dict(os.environ, GIT_AUTHOR_NAME=name, GIT_AUTHOR_EMAIL=email,
+                   GIT_COMMITTER_NAME=name, GIT_COMMITTER_EMAIL=email)
+        cm = subprocess.run(["git", "-C", tmp, "commit", "-q", "-m", "%s — %s" % (v, title)],
+                            capture_output=True, text=True, env=env)
+        if cm.returncode != 0:
+            print("release: GitHub mirror sync skipped (nothing changed since its last sync)"); return
+        p = subprocess.run(["git", "-C", tmp, "push", "-q", "-u", "origin", branch],
+                           capture_output=True, text=True)
+        if p.returncode != 0:
+            print("release: GitHub mirror push failed, fix by hand: " + p.stderr.strip()); return
+        print("release: GitHub mirror's %s updated too (github.com/rsmedrano-cloud/phosphor-deck)" % branch)
+    except Exception as e:
+        print("release: GitHub mirror sync skipped (%s)" % e)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
 
 def main():
     args = [a for a in sys.argv[1:] if a != "--main"]
@@ -110,6 +167,10 @@ def main():
     if failed:
         stop("%s is tagged and its notes are up, but a pipeline failed after it went out: "
              "fix on dev and cut the next patch" % v)
+
+    # 5. the public GitHub mirror -- best-effort, see sync_github's own docstring
+    sync_github("main" if to_main else "dev", v, title)
+
     print("release: %s — %s is out, on %s. The brain gets it with phosphor update%s." %
           (v, title, "main and dev" if to_main else "dev (nightly)", "" if to_main else " --channel nightly"))
     return 0

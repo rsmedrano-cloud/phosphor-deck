@@ -136,6 +136,9 @@ out=$(python3 tests/hotswap-check.py 2>&1) && ok || bad "$out"
 step "restart: poll instead of blind sleeps, same worst case"
 out=$(python3 tests/restart-check.py 2>&1) && ok || bad "$out"
 
+step "restart: nothing new until the old deck is gone"
+out=$(python3 tests/down-gate-check.py 2>&1) && ok || bad "$out"
+
 step "site/ (GitHub Pages) matches the manual"
 out=$(python3 tests/site-check.py 2>&1) && ok || bad "$out"
 

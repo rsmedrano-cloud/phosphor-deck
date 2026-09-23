@@ -91,13 +91,16 @@ not in any one assistant's memory.
   first. A bug that hurts stable users before then is cherry-picked onto
   `main` by hand and released as a patch of that minor. It never touches the
   live deck's checkout: the brain takes the release with `phosphor update`
-  (`--channel nightly` for a dev one). Every release also reaches the public
-  GitHub mirror (github.com/rsmedrano-cloud/phosphor-deck): a squashed single
-  commit, never GitLab's real history -- onto GitHub's own `main` at a minor,
-  onto GitHub's own `dev` at a patch, each commit titled after the release and
-  authored as the maintainer, no AI co-author. A scratch clone, `git archive`
-  of the tag/branch being released (only tracked files, nothing local or
-  gitignored), an orphan branch, one commit, `git push`. Announcing it
+  (`--channel nightly` for a dev one). `tests/release.py` also syncs the
+  public GitHub mirror (github.com/rsmedrano-cloud/phosphor-deck) as its
+  last step: a squashed commit onto GitHub's own `main` at a minor, onto
+  GitHub's own `dev` at a patch -- building on that branch's previous sync
+  there (a real, if squashed, history on GitHub), never GitLab's granular
+  one. Titled after the release, authored as the maintainer, no AI
+  co-author. Best-effort on purpose: a GitHub hiccup there is printed, not
+  fatal -- it never undoes a GitLab release that already shipped; fix by
+  hand (`tests/release.py`'s own `sync_github()`, called standalone, does
+  the same sync again). Announcing it
   anywhere beyond the repo itself (Hacker News, Reddit...) stays the
   maintainer's call.
 - **The deck is someone's live session:** anything that restarts it, rewrites
