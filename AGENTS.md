@@ -74,9 +74,15 @@ not in any one assistant's memory.
   first. A bug that hurts stable users before then is cherry-picked onto
   `main` by hand and released as a patch of that minor. It never touches the
   live deck's checkout: the brain takes the release with `phosphor update`
-  (`--channel nightly` for a dev one). Going public (a public repo, a
-  GitHub mirror, an announcement) stays the maintainer's call: the project
-  is private and lives on GitLab.
+  (`--channel nightly` for a dev one). Every release also reaches the public
+  GitHub mirror (github.com/rsmedrano-cloud/phosphor-deck): a squashed single
+  commit, never GitLab's real history -- onto GitHub's own `main` at a minor,
+  onto GitHub's own `dev` at a patch, each commit titled after the release and
+  authored as the maintainer, no AI co-author. A scratch clone, `git archive`
+  of the tag/branch being released (only tracked files, nothing local or
+  gitignored), an orphan branch, one commit, `git push`. Announcing it
+  anywhere beyond the repo itself (Hacker News, Reddit...) stays the
+  maintainer's call.
 - **The deck is someone's live session:** anything that restarts it, rewrites
   the profile or touches mounts gets checked before and after.
 
@@ -393,6 +399,11 @@ bare `show-floating-panes`, with no tab named, can itself answer "Tab not
 found" when called from outside the client -- naming the tab fixes that
 too) and to hide it again. If you turn `notifier` on, this is lower-risk
 than before, not risk-free.
+
+With `notifier` off (the default) a notification still isn't silent: the
+tab `phosphor notify` names (`--tab`, or SYS with none) reads "`<TAB> ●N`"
+until you look, the same mechanism mentions.py uses for "COMMS ●2" (see
+mentions) -- no floating panes, so none of the risk above.
 
 `theme` recolors more than zellij and the web client: `phosphor gen` also
 writes it into yazi's `theme.toml`, btop's own `phosphor` theme (set as
@@ -721,7 +732,7 @@ and in the `+` menu, and open in a tab of their own.
 - `phosphor glance [--once]` — read-only: the fleet's problem hosts (or "all N ok"), unread
   mentions, open todos. For a small screen: `ssh -t you@brain ~/.local/bin/phosphor glance` needs no zellij
   attach at all (see screens); refreshes every 5s, Ctrl-C to leave.
-- `phosphor notify [--tab TAB] [--voice VOICE] [--tts|--no-tts] [--push|--no-push] MESSAGE` — the adjutant announces it, speaks it if TTS is enabled, and pushes it to your phone if `[push]` is on.
+- `phosphor notify [--tab TAB] [--voice VOICE] [--tts|--no-tts] [--push|--no-push] MESSAGE` — the adjutant announces it, speaks it if TTS is enabled, and pushes it to your phone if `[push]` is on. The tab it names (or SYS with no `--tab`) also reads "`<TAB> ●N`" until you look, whether or not `[deck] notifier` is on (see profile).
 - `phosphor tts [MESSAGE]` — speak a message aloud with selectable voices (glados, adjutant, hal, synth, system); `phosphor tts install glados` assists with installing GLaDOS-TTS.
 - `phosphor push [--qr]` — `[push]`'s status (on/off, server, topic); `--qr` prints the subscribe
   link as a QR (also onto every screen's clipboard) so the phone's ntfy app can scan it instead of

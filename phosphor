@@ -420,12 +420,22 @@ def main():
         zj = os.path.expanduser("~/.local/bin/zellij")
         if not os.path.exists(zj): zj = _sh.which("zellij")
         prof, _ = load_profile()
+        sess = ((prof or {}).get("deck") or {}).get("session", "deck")
         flot = ((prof or {}).get("deck") or {}).get("notifier", False)
-        # Without floating panes zellij isn't touched at all: the event is
-        # already written and the SYS adjutant shows it. Showing/hiding
-        # floats is the path that wedged zellij 0.45.
+        # No floating panes needed for this part: a "<TAB> ●N" on the tab
+        # it came from (or SYS with no --tab), same mechanism mentions.py
+        # already uses for COMMS -- see tabmark.py. Runs whether or not
+        # notifier is on: with notifier=false (the default), it's the only
+        # on-screen trace a notification leaves.
+        if zj:
+            try:
+                import tabmark
+                tabmark.bump(sess, tab)
+            except Exception:
+                pass
+        # Floating panes only with notifier = true: showing/hiding them is
+        # the path that wedged zellij 0.45.
         if zj and flot:
-            sess = ((prof or {}).get("deck") or {}).get("session", "deck")
             # The active tab, by id: `show-floating-panes` with no -t asks
             # zellij to resolve "the active tab" for this one-shot CLI call,
             # and that resolution isn't reliable (it can answer "Tab not

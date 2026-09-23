@@ -91,9 +91,15 @@ not in any one assistant's memory.
   first. A bug that hurts stable users before then is cherry-picked onto
   `main` by hand and released as a patch of that minor. It never touches the
   live deck's checkout: the brain takes the release with `phosphor update`
-  (`--channel nightly` for a dev one). Going public (a public repo, a
-  GitHub mirror, an announcement) stays the maintainer's call: the project
-  is private and lives on GitLab.
+  (`--channel nightly` for a dev one). Every release also reaches the public
+  GitHub mirror (github.com/rsmedrano-cloud/phosphor-deck): a squashed single
+  commit, never GitLab's real history -- onto GitHub's own `main` at a minor,
+  onto GitHub's own `dev` at a patch, each commit titled after the release and
+  authored as the maintainer, no AI co-author. A scratch clone, `git archive`
+  of the tag/branch being released (only tracked files, nothing local or
+  gitignored), an orphan branch, one commit, `git push`. Announcing it
+  anywhere beyond the repo itself (Hacker News, Reddit...) stays the
+  maintainer's call.
 - **The deck is someone's live session:** anything that restarts it, rewrites
   the profile or touches mounts gets checked before and after.
 """

@@ -61,7 +61,7 @@
 - `phosphor glance [--once]` — read-only: the fleet's problem hosts (or "all N ok"), unread
   mentions, open todos. For a small screen: `ssh -t you@brain ~/.local/bin/phosphor glance` needs no zellij
   attach at all (see screens); refreshes every 5s, Ctrl-C to leave.
-- `phosphor notify [--tab TAB] [--voice VOICE] [--tts|--no-tts] [--push|--no-push] MESSAGE` — the adjutant announces it, speaks it if TTS is enabled, and pushes it to your phone if `[push]` is on.
+- `phosphor notify [--tab TAB] [--voice VOICE] [--tts|--no-tts] [--push|--no-push] MESSAGE` — the adjutant announces it, speaks it if TTS is enabled, and pushes it to your phone if `[push]` is on. The tab it names (or SYS with no `--tab`) also reads "`<TAB> ●N`" until you look, whether or not `[deck] notifier` is on (see profile).
 - `phosphor tts [MESSAGE]` — speak a message aloud with selectable voices (glados, adjutant, hal, synth, system); `phosphor tts install glados` assists with installing GLaDOS-TTS.
 - `phosphor push [--qr]` — `[push]`'s status (on/off, server, topic); `--qr` prints the subscribe
   link as a QR (also onto every screen's clipboard) so the phone's ntfy app can scan it instead of

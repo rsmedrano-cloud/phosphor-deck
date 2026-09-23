@@ -6,6 +6,13 @@ before it updates.
 
 ## Unreleased
 
+## 0.3.2 — phosphor notify marks the tab it came from
+
+- `phosphor notify` now marks the tab it came from (`--tab`, or SYS with none) with "`<TAB> ●N`"
+  even with `[deck] notifier = false` (the default, no floating panes) -- the same mechanism
+  mentions.py already used for "COMMS ●2", generalized so a notification never leaves you with
+  nothing on screen. Cleared the moment you actually look at that tab.
+
 ## 0.3.1 — install.sh finishes the job on a clean machine
 
 - Fixed: `install.sh` on a genuinely clean machine (`curl -fsSL .../install.sh | sh`,

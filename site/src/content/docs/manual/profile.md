@@ -47,6 +47,11 @@ found" when called from outside the client -- naming the tab fixes that
 too) and to hide it again. If you turn `notifier` on, this is lower-risk
 than before, not risk-free.
 
+With `notifier` off (the default) a notification still isn't silent: the
+tab `phosphor notify` names (`--tab`, or SYS with none) reads "`<TAB> ●N`"
+until you look, the same mechanism mentions.py uses for "COMMS ●2" (see
+mentions) -- no floating panes, so none of the risk above.
+
 `theme` recolors more than zellij and the web client: `phosphor gen` also
 writes it into yazi's `theme.toml`, btop's own `phosphor` theme (set as
 `color_theme` in `btop.conf`), and passes it to gping and ctop on their

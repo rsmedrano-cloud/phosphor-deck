@@ -166,13 +166,20 @@ def mark_once(sess, before):
     return now_on
 
 def marker(sess):
-    """Runs inside fleet, the deck's always-on worker."""
+    """Runs inside fleet, the deck's always-on worker. Also clears any
+    generic tab mark `phosphor notify` set (see tabmark.py) -- same loop,
+    same cadence, one thread doing both jobs."""
     on = set()
+    import tabmark
     while True:
         try: on = mark_once(sess, on)
         except Exception:
             import dlog
             dlog.event_throttled("MENTIONS", "mark-failed")
+        try: tabmark.tick(sess)
+        except Exception:
+            import dlog
+            dlog.event_throttled("TABMARK", "tick-failed")
         time.sleep(3)
 
 # ── setup ────────────────────────────────────────────────────
