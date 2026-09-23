@@ -35,7 +35,10 @@ only what matters: a line per job, and the end of a failed job's log. A bug
 found by hand becomes a failing test before it's fixed. The rest of the list:
 
 - `phosphor docs --check` passes: a change in behavior updates doc/manual/,
-  and AGENTS.md is rebuilt with `phosphor docs`;
+  and AGENTS.md is rebuilt with `phosphor docs`; a manual page edit also
+  needs `python3 doc/site/build.py` (`tests/site-check.py`, in check.sh,
+  catches a forgotten one) -- it's the same source rendered a third way,
+  as the GitHub Pages site;
 - CHANGELOG.md says what users get, under `## Unreleased` (the pipeline's docs
   job fails code without it; `[no-changelog]` in the commit for a refactor);
 - `phosphor privacy` is clean;

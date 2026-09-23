@@ -1,3 +1,6 @@
+<p align="center"><img src="doc/img/logo/logo-512.png" width="96" alt="Phosphor Deck"></p>
+<p align="center"><a href="https://rsmedrano-cloud.github.io/phosphor-deck/">Manual, online</a></p>
+
 # Phosphor Deck
 
 One always-on brain, many faces.
@@ -287,9 +290,11 @@ Change it, run `phosphor gen`, and the deck rebuilds itself.
 
 ## The manual
 
-Everything below, in depth, lives in [doc/manual](doc/manual/README.md):
-`phosphor help TOPIC` shows it inside the deck, and [AGENTS.md](AGENTS.md), built from
-the same pages, is what AI assistants should read. Contributing: [CONTRIBUTING.md](CONTRIBUTING.md).
+Everything below, in depth, lives in [doc/manual](doc/manual/README.md) --
+also **[online](https://rsmedrano-cloud.github.io/phosphor-deck/)**, one
+page per topic. `phosphor help TOPIC` shows it inside the deck, and
+[AGENTS.md](AGENTS.md), built from the same pages, is what AI assistants
+should read. Contributing: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Commands
 
@@ -412,12 +417,28 @@ untouched-background run would give a tighter number.
 ## Status
 
 0.3.0, and public. Day-to-day development happens on a private GitLab
-(issues, merge requests, CI) -- this repository is where releases land,
-starting from this one snapshot instead of that private history. That's
-a choice about what's public, not a sign this showed up overnight: see
-CHANGELOG.md for the pace of actual releases, and CONTRIBUTING.md for how
-a change gets from an idea to a tag. Bug reports and feature requests are
-welcome here.
+(issues, merge requests, CI) -- [GitHub](https://github.com/rsmedrano-cloud/phosphor-deck)
+is where releases land, starting from a single snapshot instead of that
+private history. That's a choice about what's public, not a sign this
+showed up overnight: see CHANGELOG.md for the pace of actual releases, and
+CONTRIBUTING.md for how a change gets from an idea to a tag. Bug reports
+and feature requests are welcome there.
+
+## Built on
+
+Phosphor is glue, and glad to be: everything it actually shows you is one
+of these, each a static binary `install.sh` fetches from its own upstream
+release, invoked exactly as anyone else invokes it, never bundled or
+modified. Full credit and thanks to their authors and every contributor.
+
+| | |
+|---|---|
+| [zellij](https://github.com/zellij-org/zellij) | the terminal multiplexer the whole deck runs inside |
+| [yazi](https://github.com/sxyazi/yazi) | the file manager behind the CLOUD tab |
+| [btop](https://github.com/aristocratos/btop) | the system monitor in every SYS/CLOUD tab |
+| [gping](https://github.com/orf/gping) | the fleet's ping graphs |
+| [ctop](https://github.com/bcicen/ctop) | container stats, where docker/podman is running |
+| [rclone](https://github.com/rclone/rclone) | the sftp mounts behind `~/fleet` |
 
 ## License
 

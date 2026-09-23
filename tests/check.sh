@@ -136,6 +136,9 @@ out=$(python3 tests/hotswap-check.py 2>&1) && ok || bad "$out"
 step "restart: poll instead of blind sleeps, same worst case"
 out=$(python3 tests/restart-check.py 2>&1) && ok || bad "$out"
 
+step "docs/ (GitHub Pages) matches the manual"
+out=$(python3 tests/site-check.py 2>&1) && ok || bad "$out"
+
 step "VERSION has release notes"
 v=$(cat VERSION)
 grep -q "^## $v" CHANGELOG.md && ok || bad "CHANGELOG.md has no '## $v' entry"

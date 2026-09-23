@@ -6,6 +6,22 @@ before it updates.
 
 ## Unreleased
 
+- README: links to the manual's own GitHub Pages site (next to the logo, and again in "The
+  manual"), a "Built on" section crediting zellij/yazi/btop/gping/ctop/rclone by name, and a
+  "Status" section that actually says 0.3.0 and public instead of the stale "not published yet".
+
+- A mark: `doc/img/logo/logo.svg` (and rasters at a few sizes) -- the deck's own tab layout, one
+  pane lit, in p31 green. In the README header, and `doc/site/build.py` now drops it as the GitHub
+  Pages site's favicon/apple-touch-icon too (site root, no theme change needed: every browser
+  looks for one there by convention).
+
+- The manual is now also a website: `doc/site/build.py` turns doc/manual/*.md -- the same single
+  source `phosphor help` and `phosphor docs` (AGENTS.md) already read -- into `docs/`, a GitHub
+  Pages site (theme: jekyll-theme-hacker, one of GitHub's own built-in themes; no Gemfile, no
+  Node, no Actions workflow needed to build it). Never edited by hand: `tests/site-check.py`
+  fails the same way `phosphor docs --check` does when someone edits the manual and forgets to
+  rebuild it.
+
 ## 0.3.0 — screens, faster updates, and Rust underneath
 
 - Fleet: a host that's missed a couple of polls in a row (still gets the full 6s connect / 25s

@@ -11,11 +11,15 @@ Not in tests/check.sh: CI's images have no Rust toolchain (see
 CONTRIBUTING.md and rust/run/README.md). Run this by hand after touching
 rust/run.
 """
-import fcntl, os, pty, select, shutil, struct, subprocess, sys, termios, time
+import fcntl, os, pty, select, shutil, struct, subprocess, sys, tempfile, termios, time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CRATE = os.path.join(ROOT, "rust", "run")
 BIN = os.path.join(CRATE, "target", "debug", "phosphor-run")
+# Every case below makes phosphor-run log real events (a hang, a crash, a
+# dropped link) -- point PHOSPHOR_CACHE at a throwaway dir for the whole
+# run, never the real ~/.cache/phosphor/deck.log.
+CACHE = tempfile.mkdtemp(prefix="run-rust-check-")
 
 if not shutil.which("cargo") and not os.path.exists(BIN):
     print("no cargo and no build yet: skipping (see rust/run/README.md)")
@@ -33,7 +37,7 @@ def check(what, ok):
 
 def run(args, env_extra=None, cwd=None):
     """A real pty around the binary; returns (pid, fd) to drive."""
-    env = dict(os.environ, **(env_extra or {}))
+    env = dict(os.environ, PHOSPHOR_CACHE=CACHE, **(env_extra or {}))
     pid, fd = pty.fork()
     if pid == 0:
         if cwd: os.chdir(cwd)

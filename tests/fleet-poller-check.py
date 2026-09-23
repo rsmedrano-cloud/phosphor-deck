@@ -14,7 +14,14 @@ never guessed.
 import os, stat, sys, tempfile, time
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "lib"))
+import dlog
 import fleet
+
+# RustPoller._spawn() logs through dlog on every real spawn below (section
+# 2 deliberately drives it into a crash loop) -- point it at a throwaway
+# file for the whole run, never the real ~/.cache/phosphor/deck.log.
+dlog.DIR = tempfile.mkdtemp()
+dlog.LOG = os.path.join(dlog.DIR, "deck.log")
 
 fails = []
 def check(what, ok):
