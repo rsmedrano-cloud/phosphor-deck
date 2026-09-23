@@ -1,0 +1,19 @@
+# Recipe: assistant workbench -- four AI CLIs side by side, for comparing
+# answers or splitting a task across them.
+#
+#   phosphor recipe workbench   drops this into ~/.config/phosphor/tabs.d/,
+#                                then `phosphor gen`
+
+[[tabs]]
+name  = "WORKBENCH"
+split = "cols"
+panes = [
+  { split = "rows", panes = [
+      { cmd = "claude" },
+      { cmd = "gemini" },
+  ]},
+  { split = "rows", panes = [
+      { cmd = "codex" },
+      { cmd = "opencode" },
+  ]},
+]

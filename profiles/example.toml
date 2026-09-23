@@ -1,0 +1,172 @@
+# ─────────────────────────────────────────────────────────────
+#  Phosphor Deck · example profile
+#
+#  Your real one lives in ~/.config/phosphor/deck.toml and is the
+#  ONLY source of truth: the zellij layout, the mount units, the
+#  fleet panel's host list and the path map are generated from it.
+#
+#    phosphor init     builds yours by asking a few questions
+#    phosphor setup    add/remove machines, pick the color
+#    phosphor gen      regenerate everything after an edit
+# ─────────────────────────────────────────────────────────────
+
+[deck]
+session = "deck"
+theme   = "p31"          # p31 green | p3 amber | p4 white | paper (e-ink)
+mount_root = "~/fleet"   # where the fleet's file tree is assembled
+mesh    = "auto"         # tailscale | headscale | none (plain ssh) | auto: detect
+bar     = "tabs"         # tabs (with the + menu) | compact | full (adds key hints)
+# graphs  = "blocks"     # if your font lacks Braille and graphs look like hex boxes
+# editor  = "nano"       # what panes open files with; default: your $EDITOR, else nano
+# connect = "ssh"        # how other computers attach: ssh (mouse, touch) | mosh
+# web     = false        # the deck in a browser, tailnet only: phosphor web on
+
+# The notebook: private by default (~/.local/share/phosphor/notes.md). Point
+# it at a folder you already sync -- Obsidian, Syncthing, git -- and it moves
+# there (phosphor init and phosphor setup do this for you; never overwrites
+# one that's already there if you edit this by hand).
+# [notes]
+# folder = "~/Obsidian/Deck"
+
+# ── THE FLEET ───────────────────────────────────────────────
+# role: brain    holds the session (exactly one, and it's local)
+#       work     your projects live here
+#       desktop  a desk machine
+#       storage  disks only
+#       node     small always-on box: a Pi, a NAS
+#       viewer   only looks at the deck: never polled or mounted
+
+[[hosts]]
+name   = "homelab"
+role   = "brain"
+local  = true
+mounts = ["/", "~", "/mnt/media"]
+
+[[hosts]]
+name  = "workbox"
+role  = "work"
+ssh   = "workbox"          # an ~/.ssh/config alias or a tailscale name
+mount = "/"
+# ip   = "100.x.y.z"       # optional: gping pings it if present
+# user = "someone"         # only if your user there is different
+
+[[hosts]]
+name  = "desk"
+role  = "desktop"
+ssh   = "desk"
+mount = "/home"
+
+[[hosts]]
+name  = "pi"
+role  = "node"
+ssh   = "pi"
+# fleet = false            # keep it in the deck but off the fleet panel
+
+# ── TUNNELS ─────────────────────────────────────────────────
+# Hosts from ~/.ssh/config whose LocalForward tunnels the deck keeps up
+# (phosphor tunnel on HOST). They listen on this machine's 127.0.0.1.
+# [[tunnels]]
+# host = "db-box"
+
+# Prometheus gauges (phosphor prom, and "prometheus" in the + menu). Without
+# [[prometheus.gauges]] it shows Prometheus watching itself.
+# [prometheus]
+# url      = "http://localhost:9090"
+# interval = 5
+# [[prometheus.gauges]]
+# name  = "Memory alloc"
+# type  = "gauge"            # gauge (a bar), arc, sparkline
+# query = "go_memstats_alloc_bytes / 1024 / 1024"
+# min = 0
+# max = 256
+# warn = 128
+# crit = 200
+# unit = "MB"
+
+# CI / CD pipelines status (phosphor ci, and "ci" in the + menu).
+# [ci]
+# interval = 10
+# [[ci.pipelines]]
+# name     = "Phosphor Deck (GitLab)"
+# provider = "gitlab"
+# repo     = "rsmedranojobs/phosphor-deck"
+# url      = "https://gitlab.com"
+# [[ci.pipelines]]
+# name     = "Frontend (GitHub)"
+# provider = "github"
+# repo     = "owner/repo"
+# branch   = "main"
+
+# ── TABS ────────────────────────────────────────────────────
+# Move between them with Alt-1..9 or by tapping the bar.
+
+# A chat tab, if you use a terminal chat client (phosphor init offers
+# matterhorn, iamb and gomuks; any other works the same way):
+# [[tabs]]
+# name  = "COMMS"
+# panes = [ { cmd = "iamb" } ]
+
+[[tabs]]
+name  = "WORK"
+panes = [ { ssh = "@work", reconnect = true } ]
+
+[[tabs]]
+name  = "SYS"
+split = "rows"
+panes = [
+  { cmd = "phosphor pulse", size = 9 },
+  { cmd = "phosphor fleet", size = "50%" },
+  { cmd = "gping", alt = true, args = ["@hosts"], size = "25%" },
+  { cmd = "phosphor services" },
+]
+
+[[tabs]]
+name  = "CLOUD"
+split = "cols"
+panes = [
+  { cmd = "yazi", args = ["@mount_root"], size = "64%", needs_size = true },
+  { split = "rows", panes = [
+      { cmd = "btop", args = ["-p", "1"], size = "55%" },
+      { cmd = "ctop", alt = true, args = ["-s", "cpu"], size = "45%", needs_size = true },
+  ]},
+]
+
+[[tabs]]
+name  = "DECK"
+split = "cols"
+panes = [
+  { cmd = "phosphor panel", size = "50%" },
+  { cmd = "phosphor keys" },
+]
+
+[[tabs]]
+name  = "NOTES"
+panes = [ { cmd = "phosphor notes" } ]
+
+# A [[tabs]] block dropped into ~/.config/phosphor/tabs.d/ANYTHING.toml (same
+# shape as above) shows up here too, phosphor gen away, without touching this
+# file -- pass someone the file, they drop it in. Read-only from Alt-r, keep
+# and tabs: edit that file by hand instead.
+
+# ── MENTIONS ────────────────────────────────────────────────
+# `phosphor mentions --setup` hooks matterhorn. Optional: an assistant that
+# writes briefing notes when you press "prepare notes" on a notification.
+# The notification arrives on stdin as a prompt; what it prints goes to
+# WORK NOTES. Keep it read-only: it prepares notes, it never replies.
+# [mentions]
+# by      = "claude"
+# prepare = 'cd ~/work-docs && claude -p --disallowedTools Bash Edit Write NotebookEdit WebFetch WebSearch'
+
+# ── PUSH TO YOUR PHONE ──────────────────────────────────────
+# `phosphor notify` also reaches a phone that isn't attached (ntfy app). The
+# message text leaves the machine, so it's off until you enable it.
+# [push]
+# enabled = true
+# topic   = "deck-change-me-to-something-long-and-random"
+
+# ── TEXT-TO-SPEECH NOTIFICATIONS ────────────────────────────
+# Speak notifications aloud when received. Voices: glados, adjutant, hal, synth, system.
+# Install GLaDOS neural models with: phosphor tts install glados
+# [tts]
+# enabled = true
+# voice   = "glados"

@@ -1,0 +1,72 @@
+// ── PHOSPHOR DECK ─────────────────────────────────────────
+// Installed by `phosphor gen` when you had no config.kdl of your own.
+// The theme lives in themes/phosphor.kdl: gen writes it from `theme`
+// in the profile (p31 green, p3 amber, p4 white, paper).
+
+theme "phosphor"
+default_layout "deck"
+pane_frames true
+session_serialization true
+mouse_mode true
+
+ui {
+    pane_frames {
+        rounded_corners false
+    }
+}
+
+// ── LOCKED MODE ───────────────────────────────────────────
+// matterhorn collides with zellij on 10 Ctrl keys (b c f g n o p q s t)
+// and uses 12 Alt keys; no one-off remap fixes that. In locked mode zellij
+// intercepts NOTHING: every key goes straight to the tool inside. Only the
+// bindings below stay live, by default among keys matterhorn doesn't use.
+default_mode "locked"
+
+keybinds {
+    // Ctrl-g is off in every mode: it's matterhorn's jump-to-channel.
+    unbind "Ctrl g"
+
+    locked clear-defaults=true {
+        // Ctrl-q is what people press to leave: it detaches, never kills the deck
+        bind "Ctrl q" { Detach; }
+    }
+
+    shared_except "locked" {
+        // Alt-f shows/hides floating panes: the path that wedged zellij 0.45
+        // in this deck. Off until it's reproduced in isolation.
+        unbind "Alt f"
+        bind "Ctrl q" { Detach; }
+    }
+
+    // The deck's own keys (Alt-r edits a tab, Alt-n opens one, Alt-1..9,
+    // Alt-arrows, Alt-z, Alt-x, Alt-g). Change them with `phosphor shortcuts`
+    // or [keys] in your profile: gen rewrites only the part between the
+    // markers, so an update never resets them.
+    // ── PHOSPHOR KEYS: phosphor gen writes from here to END PHOSPHOR KEYS, from [keys] in your profile.
+    // ── Binds of your own go anywhere else in this file: gen never touches them.
+    locked {
+        bind "Alt r" { Run "sh" "-c" "exec \"$HOME/.local/bin/phosphor\" edit" { in_place true; close_on_exit true; name "EDIT"; }; }
+        bind "Alt n" { Run "sh" "-c" "exec \"$HOME/.local/bin/phosphor\" new --here" { in_place true; close_on_exit true; name "NEW"; }; }
+        bind "Alt g" { SwitchToMode "Normal"; }
+        bind "Alt 1" { GoToTab 1; }
+        bind "Alt 2" { GoToTab 2; }
+        bind "Alt 3" { GoToTab 3; }
+        bind "Alt 4" { GoToTab 4; }
+        bind "Alt 5" { GoToTab 5; }
+        bind "Alt 6" { GoToTab 6; }
+        bind "Alt 7" { GoToTab 7; }
+        bind "Alt 8" { GoToTab 8; }
+        bind "Alt 9" { GoToTab 9; }
+        bind "Alt Left"  { MoveFocusOrTab "Left"; }
+        bind "Alt Right" { MoveFocusOrTab "Right"; }
+        bind "Alt Up"    { MoveFocus "Up"; }
+        bind "Alt Down"  { MoveFocus "Down"; }
+        bind "Alt z" { ToggleFocusFullscreen; }
+        bind "Alt x" { Detach; }
+    }
+    shared_except "locked" {
+        bind "Alt r" { SwitchToMode "Locked"; Run "sh" "-c" "exec \"$HOME/.local/bin/phosphor\" edit" { in_place true; close_on_exit true; name "EDIT"; }; }
+        bind "Alt g" { SwitchToMode "Locked"; }
+    }
+    // ── END PHOSPHOR KEYS
+}

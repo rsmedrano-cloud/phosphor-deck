@@ -1,0 +1,35 @@
+# Phosphor P31 — Project Phosphor Deck
+[mgr]
+cwd = { fg = "#66FF77" }
+hovered = { fg = "#050B06", bg = "#33FF44" }
+preview_hovered = { underline = true }
+find_keyword  = { fg = "#FFB000", bold = true }
+find_position = { fg = "#FF3344", bold = true }
+marker_copied   = { fg = "#33FF44", bg = "#33FF44" }
+marker_cut      = { fg = "#FF3344", bg = "#FF3344" }
+marker_marked   = { fg = "#FFB000", bg = "#FFB000" }
+marker_selected = { fg = "#66FF77", bg = "#66FF77" }
+tab_active   = { fg = "#050B06", bg = "#33FF44" }
+tab_inactive = { fg = "#A8E5B0", bg = "#0A1410" }
+border_symbol = "│"
+border_style  = { fg = "#1B3226" }
+
+[status]
+separator_open  = ""
+separator_close = ""
+mode_normal = { fg = "#050B06", bg = "#33FF44", bold = true }
+mode_select = { fg = "#050B06", bg = "#FFB000", bold = true }
+mode_unset  = { fg = "#050B06", bg = "#FF3344", bold = true }
+progress_label  = { fg = "#A8E5B0", bold = true }
+progress_normal = { fg = "#33FF44", bg = "#122419" }
+progress_error  = { fg = "#FF3344", bg = "#122419" }
+
+[filetype]
+rules = [
+  { mime = "image/*", fg = "#66FF77" },
+  { mime = "video/*", fg = "#FFB000" },
+  { mime = "audio/*", fg = "#FFB000" },
+  { mime = "application/zip", fg = "#FF3344" },
+  { url  = "*/", fg = "#33FF44" },
+  { url  = "*",  fg = "#A8E5B0" },
+]

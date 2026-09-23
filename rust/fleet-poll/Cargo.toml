@@ -1,0 +1,18 @@
+[package]
+name = "phosphor-fleet-poll"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "phosphor-fleet-poll"
+path = "src/main.rs"
+
+[dependencies]
+serde_json = "1"
+toml = "0.8"
+
+[profile.release]
+opt-level = "z"
+lto = true
+strip = true
+panic = "abort"

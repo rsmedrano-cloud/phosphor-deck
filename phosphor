@@ -1,0 +1,500 @@
+#!/usr/bin/env python3
+"""phosphor — the Phosphor Deck command line."""
+import os, sys
+
+HERE = os.path.dirname(os.path.abspath(os.path.realpath(__file__)))
+RESTARTING = os.path.expanduser("~/.cache/phosphor/restarting")
+sys.path.insert(0, os.path.join(HERE, "lib"))
+import deckconf
+from ui import DIM as DIM_, RST as RST_
+CONF = deckconf.CONF
+
+def load_profile():
+    prof, p = deckconf.load()
+    if prof is None:
+        print("can't read the profile (%s): %s" % (p, deckconf.ERR))
+    return prof, p
+
+def session_live(zj, sess):
+    """The session exists and isn't a dead one left in zellij's cache."""
+    import subprocess
+    try:
+        out = subprocess.run([zj, "list-sessions", "-n"], capture_output=True, text=True, timeout=30).stdout
+    except (subprocess.TimeoutExpired, OSError):
+        return False
+    return any(l.split()[:1] == [sess] and "EXITED" not in l for l in out.splitlines())
+
+def session_gone(zj, sess):
+    """Not just not-live: not even a dead entry left in zellij's cache."""
+    import subprocess
+    try:
+        out = subprocess.run([zj, "list-sessions", "-n"], capture_output=True, text=True, timeout=30).stdout
+    except (subprocess.TimeoutExpired, OSError):
+        return True                          # can't tell either way: don't block on it
+    return not any(l.split()[:1] == [sess] for l in out.splitlines())
+
+def poll_until(check, timeout, interval=0.15):
+    """True as soon as `check()` is, sleeping `interval` between tries --
+    same worst case as a blind `sleep(timeout)`, usually a lot less: down
+    and up used to spend a fixed handful of seconds waiting on things that
+    are almost always already done well before the deadline."""
+    import time
+    end = time.time() + timeout
+    while time.time() < end:
+        if check():
+            return True
+        time.sleep(interval)
+    return check()
+
+USAGE = """phosphor - Phosphor Deck
+
+  getting started
+    phosphor doctor     check that this machine can run the deck
+    phosphor init       wizard: builds your profile with a few questions
+    phosphor setup      add/remove machines, pick the color (also: m in DECK)
+    phosphor panel      the DECK tab: the deck's state, next steps, every action
+    phosphor phone      add a screen: a phone, another computer, anything with ssh
+    phosphor screen     the same kit for a computer without Termux
+    phosphor web on     the deck in a browser, only inside your tailnet (optional)
+    phosphor gen        regenerate layouts, units and mounts
+    phosphor up         start the deck (and enable it at boot)
+    phosphor attach     get into it from this machine (also: phosphor deck, or just `deck`)
+    phosphor new        the new-tab menu (what the tab bar's + opens)
+    phosphor keep [TAB] keep a tab you arranged by hand in your profile
+    phosphor edit       Alt-r: unlock the tab, change it, then save it or put it back
+    phosphor shortcuts  the deck's keys, yours to change ([keys] in the profile)
+    phosphor tabs       the tabs your profile brings back: forget, reorder, reopen
+    phosphor recipe [NAME]  starter tab bundles (homelab, dev, bubble, workbench)
+    phosphor demo       a throwaway session, made-up machines: safe for a screenshot
+
+  session
+    phosphor restart    bring the session down, reap orphans, bring it back
+    phosphor down       bring it down and clean up
+
+  workspaces
+    phosphor workspace new   a project folder, git and a tab with its assistants
+    phosphor workspace open  its tab again (list: the ones you have)
+
+  notes
+    phosphor note T     add a note to the shared notebook
+    phosphor notes      read it (newest first, reloads live); pick one to edit, archive, chat
+
+  in the deck
+    phosphor fleet      fleet panel
+    phosphor pulse      the fleet's heartbeat
+    phosphor glance     read-only summary for a small screen: fleet, mentions, todos
+    phosphor prom       prometheus gauge dashboard
+    phosphor ci         GitLab/GitHub pipeline status
+    phosphor services   phosphor's own systemd units, and any you add
+    phosphor screens    who's attached (phone, PC...); kick one loose
+    phosphor review     merge/pull requests: diff, CI, conflicts, try the branch
+    phosphor adjutant   the face that announces events
+    phosphor notify M   send the adjutant a message (and your phone, with [push])
+    phosphor tts [M]    speak a message aloud (glados, adjutant, hal, synth, system)
+    phosphor push       [push] status; --qr: a subscribe link/QR for the phone's ntfy app
+    phosphor face IMG   turn an image into an adjutant face
+    phosphor keys       key guide, updates itself
+    phosphor store      install TUIs, no sudo
+    phosphor path P     turn a fleet path into host:/path
+    phosphor tunnel     keep the LocalForward tunnels of your ssh config up (on/off HOST)
+    phosphor clip F     a file or a pipe onto your device's clipboard
+    phosphor send F     one real file, as a one-time link and QR (any size)
+    phosphor mentions   read-only feed of chat notifications (--setup: hook matterhorn)
+    phosphor logs [T]   the deck's own log: crashes, hangs, exits, restarts (-f follows)
+    phosphor trace T    verbose logging for one tool, for about 30 minutes
+
+    phosphor completion bash|zsh   tab completion for your shell
+
+    phosphor update [DIR]         newer version: get it, install it, restart
+    phosphor update --channel nightly|stable   follow dev (nightly) or releases
+    phosphor version              this version, and whether there's a newer one (--check)
+
+  before you push
+    phosphor privacy    finds your own data (IPs, users, servers) in the repo
+"""
+
+TOOLS = ("fleet", "pulse", "keys", "store", "adjutant", "notes", "privacy", "phone", "newtab", "clip", "send",
+         "mentions", "run", "web", "tunnels", "completion", "update", "panel", "version",
+         "keep", "workspace", "edit", "shortcuts", "tabs", "prom", "logs", "trace", "ci", "recipe", "tts", "demo",
+         "services", "glance", "review", "push", "screens")
+
+def main():
+    cmd = sys.argv[1] if len(sys.argv) > 1 else "help"
+
+    if cmd in ("-V", "--version"):
+        cmd = "version"
+
+    if cmd in ("-h", "--help", "help"):
+        if len(sys.argv) > 2 and cmd == "help":
+            import docs
+            return docs.help(sys.argv[2])
+        print(USAGE)
+        import completion, textwrap
+        print(textwrap.fill("the manual:  phosphor help " + " | ".join(completion.TOPICS.split()),
+                            width=90, initial_indent="  ", subsequent_indent=" " * 29))
+        return 0
+
+    import deckconf
+    if deckconf.example() and cmd not in ("init", "docs", "doctor", "completion", "version", "privacy",
+                                          "run", "mention-hook", "update", "demo"):
+        print("  (no profile yet: this uses the example's made-up machines; phosphor init writes yours)",
+              file=sys.stderr)
+
+    if cmd == "docs":
+        import docs
+        return docs.docs(check="--check" in sys.argv)
+
+    if cmd == "doctor":
+        import doctor
+        # Before init there is no profile: checking the example's made-up
+        # hosts would report problems that aren't yours.
+        mine = os.path.exists(CONF) or os.environ.get("PHOSPHOR_PROFILE")
+        prof = load_profile()[0] if mine else None
+        return doctor.run(prof)
+
+    if cmd == "init":
+        import init
+        return init.run()
+
+    if cmd == "setup":
+        import deck_setup
+        return deck_setup.run()
+
+    if cmd == "gen":
+        import gen
+        prof, path = load_profile()
+        return gen.run(prof, path, dry=("--dry-run" in sys.argv or "-n" in sys.argv))
+
+    if cmd == "face":
+        import face
+        return face.run(sys.argv[2:])
+
+    if cmd in ("restart", "up", "down", "attach", "deck"):
+        # A viewer holds no session: these belong to the brain. attach just
+        # runs this machine's connect command instead.
+        prof, _ = load_profile()
+        loc = next((h for h in (prof or {}).get("hosts", []) if h.get("local")), None)
+        if loc and loc.get("role") != "brain":
+            brain = next((h["name"] for h in prof.get("hosts", []) if h.get("role") == "brain"), "the brain")
+            launcher = os.path.expanduser("~/.local/bin/%s" % ((prof.get("deck") or {}).get("command", "deck")))
+            if cmd in ("attach", "deck") and os.path.exists(launcher):
+                os.execv(launcher, [launcher])
+            print("  this machine is a viewer: the deck lives on %s." % brain)
+            print("  get in with: %s   (%s runs over there)" % (os.path.basename(launcher), cmd))
+            return 1
+
+    if cmd in ("restart", "up", "down"):
+        import subprocess as _sp, shutil as _sh, time as _t, signal as _sig, re as _re
+        prof, _ = load_profile()
+        sess = ((prof or {}).get("deck") or {}).get("session", "deck")
+        # Run from a pane of the deck itself (a shell, an assistant), killing
+        # the session would kill this command halfway, after it stopped the
+        # watchdog: the deck would stay down. Detach and let it finish.
+        if cmd in ("restart", "down") and os.environ.get("ZELLIJ_SESSION_NAME") == sess \
+                and not os.environ.get("PHOSPHOR_DETACHED"):
+            logp = os.path.expanduser("~/.cache/phosphor/%s.log" % cmd)
+            os.makedirs(os.path.dirname(logp), exist_ok=True)
+            env = dict(os.environ, PHOSPHOR_DETACHED="1")
+            env.pop("ZELLIJ", None); env.pop("ZELLIJ_SESSION_NAME", None); env.pop("ZELLIJ_PANE_ID", None)
+            _sp.Popen([sys.executable, os.path.abspath(__file__), cmd], start_new_session=True,
+                      env=env, stdin=_sp.DEVNULL, stdout=open(logp, "w"), stderr=_sp.STDOUT)
+            print("  inside the deck: %s runs detached, this pane will close." % cmd)
+            if cmd == "restart":
+                print("  every screen goes back in by itself when the deck is up again.")
+            print("  " + DIM_ + "log: " + logp + RST_)
+            return 0
+        zj = os.path.expanduser("~/.local/bin/zellij")
+        if not os.path.exists(zj): zj = _sh.which("zellij")
+        if not zj:
+            print("  zellij isn't installed: run install.sh again (it fetches it)")
+            return 1
+        R = lambda *a: _sp.run(list(a), capture_output=True, text=True, timeout=30)
+
+        def procs():
+            out = R("ps", "-eo", "pid,args", "--no-headers").stdout
+            r = []
+            for l in out.splitlines():
+                q = l.split(None, 1)
+                if len(q) == 2: r.append((int(q[0]), q[1]))
+            return r
+
+        if cmd == "restart":
+            # Every screen gets kicked out; this tells their `deck` to wait
+            # for the new session and go back in (see attach).
+            os.makedirs(os.path.dirname(RESTARTING), exist_ok=True)
+            open(RESTARTING, "w").close()
+        if cmd in ("restart", "down"):
+            # The timer first: otherwise it recreates the session mid-cleanup
+            # and you end up with two of everything.
+            R("systemctl", "--user", "stop", "%s.timer" % sess, "%s.service" % sess)
+            R(zj, "kill-session", sess)
+            poll_until(lambda: not session_live(zj, sess), 2)
+            R(zj, "delete-session", sess)
+            poll_until(lambda: session_gone(zj, sess), 1)
+            # This process and its whole parent chain match the patterns too.
+            protect, cur = set(), os.getpid()
+            while cur and cur != 1:
+                protect.add(cur)
+                try:
+                    cur = int(open("/proc/%d/stat" % cur).read().split()[3])
+                except Exception:
+                    break
+            import reap
+            for sg in (_sig.SIGTERM, _sig.SIGKILL):
+                tgt = [pid for pid, _a in reap.targets(procs(), sess, protect)]
+                for pid in tgt:
+                    try: os.kill(pid, sg)
+                    except Exception: pass
+                poll_until(lambda: not reap.targets(procs(), sess, protect), 2)
+            left = [a for _pid, a in reap.targets(procs(), sess, protect)]
+            print("  session down · leftovers: %d" % len(left))
+            if cmd == "down":
+                import dlog
+                dlog.event("deck", "down", "leftovers=%d" % len(left))
+                print("  " + DIM_ + "the timer is stopped: phosphor up brings it back" + RST_)
+                return 0
+
+        R("systemctl", "--user", "daemon-reload")
+        # enabled, so it comes back after a reboot (with linger)
+        R("systemctl", "--user", "enable", "%s.service" % sess, "%s.timer" % sess)
+        udir = os.path.expanduser("~/.config/systemd/user")
+        mounts = [u for u in (os.listdir(udir) if os.path.isdir(udir) else [])
+                  if u.startswith(("fleet-", "tunnel-")) and u.endswith(".service")]
+        if mounts:
+            R("systemctl", "--user", "enable", "--now", *mounts)
+        R("systemctl", "--user", "start", "%s.service" % sess)
+        # A loaded or slow machine can take a while to lay the deck out:
+        # wait for its tabs, not just for the session's name, up to a minute.
+        tabs, t0 = 0, _t.time()
+        while _t.time() - t0 < 60:
+            if session_live(zj, sess):
+                try: tabs = R(zj, "-s", sess, "action", "dump-layout").stdout.count("    tab name=")
+                except _sp.TimeoutExpired: tabs = 0
+                if tabs: break
+            _t.sleep(0.3)
+        _t.sleep(2)
+        R("systemctl", "--user", "start", "%s.timer" % sess)
+        print("  session up: %d tabs · timer: %s"
+              % (tabs, R("systemctl", "--user", "is-active", "%s.timer" % sess).stdout.strip()))
+        try: os.remove(RESTARTING)
+        except OSError: pass
+        # Compare with what the layout actually launches (the new-tab menu
+        # template aside): a missing pane and a duplicated one both matter.
+        bad = False
+        try:
+            lay = open(os.path.expanduser("~/.config/zellij/layouts/%s.kdl" % sess)).read()
+            lay = _re.sub(r"(?s)new_tab_template \{.*?\n    \}\n", "", lay)
+        except OSError:
+            lay = ""
+        for name in ("adjutant", "pulse", "fleet", "keys", "store", "notes", "mentions", "panel"):
+            want = len(_re.findall(r'phosphor" "%s"' % name, lay))
+            if not want: continue
+            # the program, not the `phosphor run` watching over it
+            n = sum(1 for _, a in procs() if ("phosphor %s" % name) in a and " run " not in a)
+            note = "" if n == want else ("   <- missing" if n < want else "   <- duplicate")
+            if note: bad = True
+            print("    %-10s %d%s" % (name, n, note))
+        for name in ("matterhorn", "yazi", "btop", "ctop", "gping"):
+            n = sum(1 for _, a in procs() if os.path.basename(a.split()[0]) == name)
+            if n > 1:
+                bad = True; print("    %-10s %d   <- duplicate" % (name, n))
+        import dlog
+        dlog.event("deck", cmd, "tabs=%d bad=%s" % (tabs, bad))
+        if not os.environ.get("ZELLIJ"):
+            print("  " + DIM_ + "get in: " + RST_ + ((prof or {}).get("deck") or {}).get("command", "deck"))
+        return 1 if bad else 0
+
+    if cmd in ("attach", "deck"):
+        if os.environ.get("ZELLIJ"):
+            print("  you're already inside a zellij session (the deck?): no need to attach")
+            return 1
+        import shutil as _sh
+        prof, _ = load_profile()
+        sess = ((prof or {}).get("deck") or {}).get("session", "deck")
+        zj = os.path.expanduser("~/.local/bin/zellij")
+        if not os.path.exists(zj): zj = _sh.which("zellij")
+        if not zj:
+            print("  zellij isn't installed: run install.sh again (it fetches it)")
+            return 1
+        # First time in: thirty seconds of orientation, then never again.
+        mark = os.path.expanduser("~/.local/share/phosphor/.welcomed")
+        if os.path.exists(mark):
+            import panel; panel.mark("returned")
+        elif sys.stdin.isatty():
+            import welcome
+            for l in welcome.lines(prof): print(l)
+            try: input(welcome.PROMPT)
+            except (EOFError, KeyboardInterrupt): print(); return 1
+            os.makedirs(os.path.dirname(mark), exist_ok=True); open(mark, "w").close()
+        import subprocess as _sp, time as _t
+        # Terminals name the tab after the foreground program (Konsole: %n),
+        # and that's this process: python3. Call it what you typed instead.
+        word = ((prof or {}).get("deck") or {}).get("command", "deck")
+        try:
+            import ctypes
+            ctypes.CDLL(None).prctl(15, word.encode()[:15], 0, 0, 0)     # PR_SET_NAME
+        except Exception:
+            pass
+        if sys.stdout.isatty():
+            sys.stdout.write("\x1b]0;%s\x07" % word); sys.stdout.flush()
+        def restarting():
+            try: return _t.time() - os.path.getmtime(RESTARTING) < 180
+            except OSError: return False
+        # Right after boot, `phosphor up` or the watchdog, the session may
+        # not exist yet: wait for it instead of zellij's "No session found".
+        if not session_live(zj, sess) and _sp.run(
+                ["systemctl", "--user", "is-active", "-q", "%s.service" % sess, "%s.timer" % sess]).returncode == 0:
+            print("  the deck is starting...")
+            poll_until(lambda: session_live(zj, sess), 90)
+        while True:
+            rc = _sp.call([zj, "attach", sess])
+            if not restarting():
+                return rc
+            # kicked out by `phosphor restart`: wait for the new deck, go back in
+            print("\n  the deck is restarting: you'll be back in by yourself...")
+            if not poll_until(lambda: session_live(zj, sess) and not restarting(), 180):
+                print("  it isn't back yet: try deck again in a minute")
+                return 1
+
+    if cmd == "note":
+        import notes
+        return notes.add(sys.argv[2:])
+
+    if cmd == "notify":
+        import shutil as _sh, subprocess as _sp
+        argv = sys.argv[2:]
+        tab = ""
+        voice_opt = None
+        tts_opt = None
+        push_opt = None
+        # Internal, for fleet and mentions (which already write their own
+        # event line, and mark a fleet health blip so TTS can gate it
+        # separately) -- not in the usage string, same as mentions --prepare.
+        no_event = "--no-event" in argv
+        if no_event: argv.remove("--no-event")
+        fleet_alert = "--fleet-alert" in argv
+        if fleet_alert: argv.remove("--fleet-alert")
+        if "--push" in argv:
+            push_opt = True
+            argv.remove("--push")
+        elif "--no-push" in argv:
+            push_opt = False
+            argv.remove("--no-push")
+        if "--voice" in argv:
+            i = argv.index("--voice")
+            voice_opt = argv[i + 1] if i + 1 < len(argv) else None
+            del argv[i:i + 2]
+        if "--tts" in argv:
+            tts_opt = True
+            argv.remove("--tts")
+        elif "--no-tts" in argv:
+            tts_opt = False
+            argv.remove("--no-tts")
+        if "--tab" in argv:
+            i = argv.index("--tab")
+            tab = argv[i + 1] if i + 1 < len(argv) else ""
+            del argv[i:i + 2]
+        txt = " ".join(argv).strip()
+        if not txt:
+            print("usage: phosphor notify [--tab TAB] [--voice VOICE] [--tts|--no-tts] [--push|--no-push] \"message\""); return 1
+        d = deckconf.cache_dir()   # PHOSPHOR_CACHE-aware: phosphor demo isolates this
+        os.makedirs(d, exist_ok=True)
+        if not no_event:
+            with open(os.path.join(d, "events"), "a") as f:
+                f.write("%s\t%s\n" % (tab, txt))
+        if push_opt is not False:
+            try:
+                import push
+                ok, why = push.notify_hook(txt, tab=tab, force=bool(push_opt))
+                if push_opt and not ok:
+                    print("push failed: %s" % why, file=sys.stderr)
+            except Exception as e:
+                if push_opt:
+                    print("push failed: %s" % e, file=sys.stderr)
+        if tts_opt is not False:
+            try:
+                import tts
+                tts.notify_hook(txt, tab=tab, voice=voice_opt, force=bool(tts_opt or voice_opt), fleet=fleet_alert)
+            except Exception:
+                pass
+        zj = os.path.expanduser("~/.local/bin/zellij")
+        if not os.path.exists(zj): zj = _sh.which("zellij")
+        prof, _ = load_profile()
+        flot = ((prof or {}).get("deck") or {}).get("notifier", False)
+        # Without floating panes zellij isn't touched at all: the event is
+        # already written and the SYS adjutant shows it. Showing/hiding
+        # floats is the path that wedged zellij 0.45.
+        if zj and flot:
+            sess = ((prof or {}).get("deck") or {}).get("session", "deck")
+            # The active tab, by id: `show-floating-panes` with no -t asks
+            # zellij to resolve "the active tab" for this one-shot CLI call,
+            # and that resolution isn't reliable (it can answer "Tab not
+            # found" even though a tab plainly is active) -- an explicit -t
+            # is the only way this has been seen to work every time.
+            try:
+                lt = _sp.run([zj, "-s", sess, "action", "list-tabs", "--state"],
+                             capture_output=True, text=True, timeout=10).stdout
+                active_id = next((ln.split()[0] for ln in lt.splitlines()[1:]
+                                  if len(ln.split()) > 3 and ln.split()[3] == "true"), None)
+            except (OSError, _sp.SubprocessError):
+                active_id = None
+            show = [zj, "-s", sess, "action", "show-floating-panes"] + (["-t", active_id] if active_id else [])
+            _sp.run(show, capture_output=True, timeout=10)
+            # Remember exactly which tab this showed on -- almost always the
+            # one the hider below will need to hide again. Looping
+            # hide-floating-panes -t over every tab (shown or not) used to be
+            # the only clue behind zellij 0.45's screen-thread freeze (see
+            # DECK_UP in gen.py): touching tabs nothing was ever shown on was
+            # pure risk for no reason, so the hider now only touches tabs
+            # this file actually names.
+            shown = os.path.join(d, "notify-shown-tabs")
+            if active_id is not None:
+                with open(shown, "a") as f:
+                    f.write(active_id + "\n")
+            # A toast: it hides itself after a few seconds, unless a newer
+            # event arrived meanwhile (the events file's mtime moved) -- only
+            # the hider spawned by the latest notify actually runs.
+            import shlex as _q
+            ev = os.path.join(d, "events")
+            secs = int(((prof or {}).get("deck") or {}).get("notify_seconds", 8))
+            stamp = int(os.path.getmtime(ev))
+            Z, S, SH = _q.quote(zj), _q.quote(sess), _q.quote(shown)
+            hider = ("sleep %d; [ \"$(stat -c %%Y %s)\" = \"%d\" ] || exit 0; "
+                     "if [ -f %s ]; then for id in $(sort -u %s); do "
+                     "%s -s %s action hide-floating-panes -t \"$id\"; done; rm -f %s; "
+                     "else %s -s %s action hide-floating-panes; fi"
+                     % (secs, _q.quote(ev), stamp, SH, SH, Z, S, SH, Z, S))
+            _sp.Popen(["/bin/sh", "-c", hider], start_new_session=True,
+                      stdin=_sp.DEVNULL, stdout=_sp.DEVNULL, stderr=_sp.DEVNULL)
+        return 0
+
+    if cmd == "path":
+        import path as pathmod
+        args = sys.argv[2:] or [os.getcwd()]
+        for a in args:
+            print(pathmod.translate(a))
+        return 0
+
+    if cmd == "new":
+        cmd = "newtab"
+    if cmd == "tunnel":
+        cmd = "tunnels"
+    if cmd == "screen":               # the same kit, for a computer without Termux
+        cmd = "phone"
+        sys.argv.insert(2, "--screen")
+
+    if cmd == "mention-hook":          # called by matterhorn: never print
+        import mentions
+        return mentions.hook()
+
+    if cmd in TOOLS:
+        mod = __import__(cmd)
+        sys.argv = ["phosphor-" + cmd] + sys.argv[2:]
+        return mod.main() or 0
+
+    print("unknown command: %s\n" % cmd)
+    print(USAGE)
+    return 1
+
+if __name__ == "__main__":
+    sys.exit(main() or 0)

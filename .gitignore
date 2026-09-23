@@ -1,0 +1,24 @@
+__pycache__/
+*.pyc
+# editor leftovers (vi swap files, backups)
+.*.sw?
+*~
+# secrets: never in the repo
+secrets/
+*.secret
+rclone.conf
+matterhorn-config.ini
+# personal profiles: host names, IPs, users. Only the example and the
+# made-up demo one (phosphor demo) are public.
+profiles/*.toml
+!profiles/example.toml
+!profiles/demo.toml
+.phosphor-source
+# local env files, logs and editor/OS leftovers
+.env
+*.log
+.DS_Store
+.idea/
+.vscode/
+# Rust build output: Cargo.lock is committed (a binary crate), target/ isn't.
+rust/*/target/

@@ -1,0 +1,31 @@
+layout {
+    cwd "/home/someone"
+    tab name="WORK" focus=true hide_floating_panes=true {
+        pane size=1 borderless=true {
+            plugin location="zellij:tab-bar"
+        }
+        pane command="python3" focus=true {
+            args "/home/someone/.phosphor/phosphor" "run" "--name" "WORKBOX" "--reconnect" "--" "ssh" "-t" "workbox"
+            start_suspended true
+        }
+    }
+    tab name="MIX" hide_floating_panes=true {
+        pane size=1 borderless=true {
+            plugin location="zellij:tab-bar"
+        }
+        pane split_direction="vertical" {
+            pane command="python3" size="70%" {
+                args "/home/someone/.phosphor/phosphor" "run" "--name" "FILES" "--wait" "1" "--" "/home/someone/.local/bin/yazi" "/home/someone/fleet"
+                start_suspended true
+            }
+            pane size="30%" {
+                pane command="python3" size=12 {
+                    args "/home/someone/.phosphor/phosphor" "run" "--name" "PING" "--alt" "--" "/home/someone/.local/bin/gping" "10.0.0.1" "10.0.0.2"
+                    start_suspended true
+                }
+                pane cwd="projects/api" {
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,231 @@
+{
+"_deck": {
+"t": "DECK · zellij in locked mode",
+"always": true,
+"k": [
+["Alt-n", "new tab (the + menu) in the folder of the pane you're in"],
+["Alt-r", "edit this tab: unlock, change, then save or put it back"],
+["Alt-j", "a note or todo from here: NOTES shows which tab it came from"],
+["Alt-g", "take and give back zellij's controls (same key)"],
+["Alt-1 … Alt-9", "go to a tab, in the order of your profile"],
+["tap", "a tab to switch, a pane to focus it"],
+["+ (tab bar)", "new tab: a shell here or on a machine, an assistant, files..."],
+["select (drag)", "copies to the clipboard of every device on the deck"],
+["phosphor clip F", "a file or a pipe onto that clipboard (up to ~70 KB)"],
+["Alt-← ↑ ↓ →", "move between panes; left/right past the edge: the next tab"],
+["Alt-z", "zoom — the focused pane takes the whole tab"],
+["Alt-x · Ctrl-q", "leave the deck — the session keeps running"],
+["exit · q", "a tab asks before closing: Enter opens it again, x closes it"],
+["Ctrl-z", "harmless: a pane it stops wakes up by itself in a few seconds"],
+["Alt-f", "disabled (floating panes wedge zellij)"],
+["", "In locked mode only these are live. Everything else,"],
+["", "Ctrl-g included, goes straight to the tool inside."],
+["", "--- with the controls taken (Alt-g) ---"],
+["Ctrl-p n / x", "new pane / close it"],
+["Ctrl-t n / r", "new tab / rename it"],
+["Ctrl-n", "resize (hjkl)"]
+]
+},
+"matterhorn": {
+"t": "MATTERHORN · Mattermost",
+"k": [
+["Ctrl-n / Ctrl-p", "next / previous channel"],
+["Ctrl-g", "jump to a channel by name"],
+["Ctrl-o", "pick a URL from the message"],
+["Ctrl-r", "reply to the message"],
+["Ctrl-s", "select a message (message mode)"],
+["Esc", "cancel / leave the current mode"],
+["/help", "full help inside the app"],
+["COMMS ●N", "N notifications you haven't looked at: tap the tab"],
+["", "read-only: phosphor mentions lists them, nothing is sent"],
+["p (in mentions)", "an assistant prepares notes on it: WORK NOTES"]
+]
+},
+"yazi": {
+"t": "YAZI · files (the fleet tree in CLOUD)",
+"k": [
+["h j k l", "move around, vim style"],
+["space", "mark a file"],
+["y / x / p", "copy / cut / paste"],
+["d / D", "to trash / delete for good"],
+["a / r", "create / rename"],
+["/ / n", "search / next"],
+[": ", "run a shell command"],
+["g g / G", "first / last"],
+["q", "quit"]
+]
+},
+"btop": {
+"t": "BTOP · system",
+"k": [
+["Esc or m", "options menu"],
+["1 2 3 4", "show/hide cpu, mem, net, processes"],
+["p / P", "next / previous preset (or tap 'preset')"],
+["f", "filter processes"],
+["+ / -", "graph zoom"],
+["q", "quit"]
+]
+},
+"ctop": {
+"t": "CTOP · containers",
+"k": [
+["a", "show stopped ones too"],
+["s / r", "sort / reverse order"],
+["f", "filter"],
+["enter", "open a container (logs, shell, stop)"],
+["h", "help"],
+["q", "quit"]
+]
+},
+"gping": {
+"t": "GPING · latency",
+"k": [
+["q", "quit"]
+]
+},
+"lazygit": {
+"t": "LAZYGIT · git",
+"k": [
+["1..5", "panels: status, files, branches, commits, stash"],
+["space", "stage / unstage"],
+["c", "commit"],
+["P / p", "push / pull"],
+["x", "the panel's options menu"],
+["?", "help"]
+]
+},
+"helix": {
+"t": "HELIX · editor",
+"k": [
+["space", "main menu (files, search, LSP)"],
+["g d", "go to definition"],
+[": w / : q", "save / quit"],
+["m i w", "select inside word"]
+]
+},
+"broot": {
+"t": "BROOT · big trees",
+"k": [
+["type", "fuzzy-filters as you type"],
+["enter", "enter / open"],
+["alt-enter", "cd there and quit"],
+[":q", "quit"]
+]
+},
+"lazydocker": {
+"t": "LAZYDOCKER · docker",
+"k": [
+["1..5", "containers, images, volumes, networks"],
+["d / r / s", "remove / restart / stop"],
+["enter", "the container's logs"],
+["x", "menu"]
+]
+},
+"k9s": {
+"t": "K9S · kubernetes",
+"k": [
+[": ", "command (pods, svc, deploy)"],
+["/ ", "filter"],
+["l / d", "logs / describe"],
+["ctrl-d", "delete the resource"]
+]
+},
+"btm": {
+"t": "BOTTOM · system",
+"k": [
+["? ", "help"],
+["/ ", "search processes"],
+["dd", "kill the process"],
+["e", "expand the widget"]
+]
+},
+"gdu": {
+"t": "GDU · disk usage",
+"k": [
+["enter", "enter the directory"],
+["d", "delete"],
+["s / c", "sort by size / count"],
+["q", "quit"]
+]
+},
+"jless": {
+"t": "JLESS · browse JSON",
+"k": [
+["j k", "move"],
+["space", "fold / unfold"],
+["/ ", "search"],
+["y y", "copy the value"]
+]
+},
+"atuin": {
+"t": "ATUIN · shell history",
+"k": [
+["Ctrl-r", "search the history"],
+["up", "contextual history"]
+]
+},
+"tv": {
+"t": "TELEVISION · fuzzy finder",
+"k": [
+["type", "filters"],
+["Ctrl-t", "switch channel (files, git, env)"],
+["enter", "select"]
+]
+},
+"glow": {
+"t": "GLOW · read markdown",
+"k": [
+["j k", "scroll"],
+["e", "open in an editor"],
+["q", "quit"]
+]
+},
+"phosphor-store": {
+"t": "PHOSPHOR STORE",
+"always": true,
+"k": [
+["j k", "move"],
+["enter", "install, or open in a new tab if you have it"],
+["i", "only what's installed"],
+["d", "remove (only what Phosphor installed, never what the deck uses)"],
+["/ ", "filter"],
+["q", "quit"]
+]
+},
+"phosphor-pulse": {
+"t": "PULSE · the fleet's heartbeat",
+"always": true,
+"k": [
+["", "The wave follows the fleet's real average load."],
+["green", "NOMINAL"],
+["amber", "ELEVATED — disk >85% or stale data"],
+["red", "ALERT — a host down or disk >92%"]
+]
+},
+"_adjutant": {
+"t": "ADJUTANT · the face that announces",
+"always": true,
+"k": [
+["", "Lives in SYS. It idles; when something happens it breaks"],
+["", "up into static and leaves the message behind."],
+["phosphor notify M", "send it a message"],
+["automatic", "a host down (2 polls in a row), disk >92%"],
+["", "Floating copies on every tab: off. zellij 0.45 wedged with"],
+["", "them (cause unproven). notifier = true at your own risk."]
+]
+},
+"_notes": {
+"t": "NOTES · shared notebook",
+"always": true,
+"k": [
+["tap / j k", "pick a note · two fingers scroll"],
+["e d x c w", "edit · archive · todo done · chat · workspace"],
+["u", "bring back the last archived note"],
+["a t i", "write a note · a todo · an idea"],
+["phosphor note \"...\"", "add a note (from anywhere)"],
+["--kind", "note · idea · decision · todo · summary"],
+["", "Your assistants write here too. Plain Markdown,"],
+["", "yours: ~/.local/share/phosphor/notes.md"]
+]
+}
+}
