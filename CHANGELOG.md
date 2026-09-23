@@ -24,7 +24,12 @@ before it updates.
   CI's own `site` job (`.gitlab-ci.yml`) runs that same build on every push, so a broken one
   is caught before it ever reaches that workflow. Needs Node 22+ to build (`cd site && npm
   install && npm run build`) -- nothing else in Phosphor does, and the deck itself still
-  doesn't.
+  doesn't. The site itself picks up Phosphor's own screen colors: a select in the nav (gear
+  icon) switches between p31 green, p3 amber, p4 white and paper, the same four the profile's
+  `theme` key offers, remembered per visitor. Content also stretches to a real monitor's width
+  instead of a phone-width column, and the page leans into the CRT it's named after -- faint
+  scanlines, a soft vignette, and a phosphor glow on the site title, the hero and the current
+  page in the sidebar (paper skips all of it: paper doesn't glow).
 
 ## 0.3.0 — screens, faster updates, and Rust underneath
 

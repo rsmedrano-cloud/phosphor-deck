@@ -19,6 +19,21 @@ export default defineConfig({
 				{ icon: 'github', label: 'GitHub', href: 'https://github.com/rsmedrano-cloud/phosphor-deck' },
 			],
 			customCss: ['./src/styles/phosphor.css'],
+			components: {
+				ThemeSelect: './src/components/PhosphorThemeSelect.astro',
+			},
+			// Applies the saved screen color before first paint, so there's no
+			// flash of p31 green before switching to whatever was picked last
+			// time (PhosphorThemeSelect.astro is the picker itself).
+			head: [
+				{
+					tag: 'script',
+					content:
+						"(()=>{try{var t=localStorage.getItem('phosphor-theme');" +
+						"if(['p31','p3','p4','paper'].includes(t))" +
+						"document.documentElement.dataset.phosphorTheme=t;}catch(e){}})();",
+				},
+			],
 			sidebar: [
 				{ label: 'Manual', items: [{ autogenerate: { directory: 'manual' } }] },
 			],
