@@ -315,8 +315,15 @@ def main():
             note = "" if n == want else ("   <- missing" if n < want else "   <- duplicate")
             if note: bad = True
             print("    %-10s %d%s" % (name, n, note))
+        # By name alone, not scoped to sess: on a machine that's also running
+        # a real deck (this checkout's own tests, run on the brain, always
+        # are) every one of these matches twice and falsely calls it a
+        # duplicate. ZELLIJ_SESSION_NAME is the same mark reap.targets() uses.
+        import reap
+        mark = ("ZELLIJ_SESSION_NAME=%s" % sess).encode()
         for name in ("matterhorn", "yazi", "btop", "ctop", "gping"):
-            n = sum(1 for _, a in procs() if os.path.basename(a.split()[0]) == name)
+            n = sum(1 for pid, a in procs()
+                    if os.path.basename(a.split()[0]) == name and mark in reap.env_of(pid))
             if n > 1:
                 bad = True; print("    %-10s %d   <- duplicate" % (name, n))
         import dlog

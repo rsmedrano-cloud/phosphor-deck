@@ -363,11 +363,13 @@ keep, or someone else's to drop in.
 ### Backing out
 
 Every write phosphor's tools make to your profile keeps a `deck.toml.bak`
-first (the *previous* version -- only one deep, not a history). `phosphor
-gen --dry-run` shows what a change would write without writing it. Nothing
-here replaces real version control: a profile is one text file, so `git
-init ~/.config/phosphor` (kept out of any repo you publish, see privacy) is
-a real history if you want one.
+first (the version just before it), rotating up to two older ones behind it
+(`deck.toml.bak.2`, `deck.toml.bak.3`) instead of losing them -- `phosphor
+setup` then a recipe, back to back, still keeps both. `phosphor gen --dry-run`
+shows what a change would write without writing it. Nothing here replaces
+real version control: a profile is one text file, so `git init
+~/.config/phosphor` (kept out of any repo you publish, see privacy) is a
+real history if you want one.
 
 ## The profile
 

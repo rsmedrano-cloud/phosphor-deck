@@ -6,6 +6,24 @@ before it updates.
 
 ## Unreleased
 
+## 0.3.4 — ssh multiplexing, and a real undo depth for the profile
+
+- A profile write (`phosphor setup`, `keep`, `tabs`, `shortcuts`, a new tab from `+`, a tunnel,
+  `web on/off`, `init` over an existing one) now keeps up to three backups (`deck.toml.bak`,
+  `.bak.2`, `.bak.3`), rotating the oldest out, instead of one slot every write overwrote --
+  `phosphor setup` then a recipe, back to back, used to lose the setup-time backup.
+
+- Fleet: ssh multiplexing (`ControlMaster=auto`, `ControlPersist=60s`) -- a full handshake on the
+  first poll of each host, every poll after that rides the same connection instead of opening a
+  fresh one every 15s. Cuts both the CPU cost of repeated key exchange and the login-every-15s
+  noise a polled host's own auth log used to get.
+
+- Fixed: `phosphor restart`/`down`'s new duplicate-process check (0.3.3) counted matterhorn,
+  yazi, btop, ctop and gping by name alone, machine-wide -- on the same machine the tests were
+  run from (the brain itself, running a real deck) it always found the live deck's own panes
+  too and called them duplicates. Scoped to the session just restarted, the same
+  `ZELLIJ_SESSION_NAME` mark `reap.targets()` already uses.
+
 ## 0.3.3 — notes search, and a restart that waits for proof
 
 - `phosphor notes`: `/` searches title, body, author and tab at once (case-insensitive) over

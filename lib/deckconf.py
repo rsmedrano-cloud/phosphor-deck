@@ -4,7 +4,7 @@ Everything that needs to know which machines exist (fleet, path, gen, setup)
 asks here: the profile is the only source of truth, and no host list is
 written into the code.
 """
-import os
+import os, shutil
 
 # tomllib is 3.11+. Ubuntu 22.04, Debian 11 and older Raspberry Pi OS ship
 # 3.9/3.10, and that's exactly the hardware this project wants to reuse.
@@ -30,6 +30,17 @@ def path():
 def example():
     """True while there's no profile and the repo's example stands in for it."""
     return path() == EXAMPLE
+
+def backup(p, old_text):
+    """Write `old_text` (the profile as it was, before the write that's
+    about to happen) to p.bak, rotating what's already there down to
+    .bak.2 and .bak.3 first (oldest dropped) instead of overwriting the
+    only undo depth a profile write had -- `phosphor setup` then a recipe,
+    back to back, used to lose the setup-time backup."""
+    b1, b2, b3 = p + ".bak", p + ".bak.2", p + ".bak.3"
+    if os.path.exists(b2): shutil.move(b2, b3)
+    if os.path.exists(b1): shutil.move(b1, b2)
+    open(b1, "w").write(old_text)
 
 def load():
     """(profile, path). profile is None when there's no parser or it can't be read."""

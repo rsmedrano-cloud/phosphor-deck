@@ -82,6 +82,10 @@ finally:
 (cmd0, t0), (cmd1, t1) = calls
 check("a normal poll gets the full patience window", "ConnectTimeout=6" in cmd0 and t0 == 25)
 check("a known-down host gets a short probe instead", "ConnectTimeout=2" in cmd1 and t1 == 5)
+check("multiplexed: one real handshake reused across polls, not one per poll",
+      "ControlMaster=auto" in cmd0 and any(c.startswith("ControlPersist=") for c in cmd0))
+check("the control socket is keyed per host (ssh's own %C), not shared across them",
+      any(c.startswith("ControlPath=") and c.endswith("%C") for c in cmd0))
 
 # poller() only asks for the short probe once a host has really missed
 # DOWN_AFTER polls in a row -- a fresh miss (or two) still gets the benefit

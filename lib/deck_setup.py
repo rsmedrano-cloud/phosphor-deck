@@ -6,7 +6,7 @@ machine is one [[hosts]] block, the color is one line. Every change is
 parsed back before it touches the real file, and the first one of a run
 leaves deck.toml.bak behind.
 """
-import os, re, shutil, subprocess, sys, time
+import os, re, subprocess, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
 import deckconf, mesh
@@ -110,7 +110,7 @@ def save(text, check):
         print(row(BAD, "not saved", "the result doesn't look right")); return False
     p = deckconf.path()
     if not _backed[0]:
-        shutil.copy(p, p + ".bak"); _backed[0] = True
+        deckconf.backup(p, open(p).read()); _backed[0] = True
     open(p, "w").write(text)
     print(row(OK, "saved", p, note="backup: deck.toml.bak"))
     return True

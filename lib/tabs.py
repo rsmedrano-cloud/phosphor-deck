@@ -76,7 +76,7 @@ def write(new, check):
     if not check(prof):
         return "the result didn't look right: nothing written"
     old = open(p).read()
-    open(p + ".bak", "w").write(old)
+    deckconf.backup(p, old)
     open(p, "w").write(new)
     subprocess.run([sys.executable, PHOSPHOR, "gen"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return None

@@ -58,6 +58,9 @@ out=$(python3 tests/tabs-check.py 2>&1) && ok || bad "$out"
 step "your keys, and what gen may touch"
 out=$(python3 tests/keys-check.py 2>&1) && ok || bad "$out"
 
+step "a profile write's undo depth: .bak, .bak.2, .bak.3"
+out=$(python3 tests/backup-check.py 2>&1) && ok || bad "$out"
+
 step "the reaper takes only the deck"
 out=$(python3 tests/reap-check.py 2>&1) && ok || bad "$out"
 

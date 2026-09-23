@@ -152,7 +152,7 @@ def keep_tab(name, spec):
         ok = False
     if not ok:
         return "the profile wouldn't parse, left it alone"
-    open(p + ".bak", "w").write(text)
+    deckconf.backup(p, text)
     open(p, "w").write(new)
     subprocess.run([sys.executable, PHOSPHOR, "gen"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return None

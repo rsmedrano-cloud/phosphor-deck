@@ -72,6 +72,19 @@ def pctc(p): return tone(p) + ("%3d%%" % p) + RST
 
 SLOW_POLL_MS = 3000   # worth calling out: a healthy LAN/tailnet round trip is well under this
 DOWN_AFTER = 2        # this many misses in a row: stop giving it the full patience window
+CONTROL_PERSIST = "60s"   # outlives one poll (INTERVAL) so the next reuses the same connection
+
+def ssh_cmd(ssh, connect_t):
+    """A fresh ssh connection every INTERVAL used to mean a fresh login on
+    every host's auth log every 15s. ControlMaster reuses one real
+    handshake instead: the master from the first poll stays up (per host,
+    %C keys the socket by host+port+user) and every poll after that rides
+    it, only reconnecting if it actually dropped."""
+    ctrl = os.path.join(deckconf.cache_dir(), "ssh")
+    os.makedirs(ctrl, exist_ok=True)
+    return ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=%d" % connect_t,
+             "-o", "ControlMaster=auto", "-o", "ControlPersist=" + CONTROL_PERSIST,
+             "-o", "ControlPath=" + os.path.join(ctrl, "%C"), ssh, "sh -s"]
 
 def collect(name, ssh, known_down=False):
     """`name` never goes past this function into a log: deck.log is meant
@@ -92,8 +105,7 @@ def collect(name, ssh, known_down=False):
     connect_t, poll_t = (2, 5) if known_down else (6, 25)
     try:
         script = open(COLLECT).read()
-        cmd = ["sh","-s"] if ssh is None else \
-              ["ssh","-o","BatchMode=yes","-o","ConnectTimeout=%d" % connect_t,ssh,"sh -s"]
+        cmd = ["sh","-s"] if ssh is None else ssh_cmd(ssh, connect_t)
         r = subprocess.run(cmd, input=script, capture_output=True, text=True, timeout=poll_t)
         if not r.stdout.strip():
             e = (r.stderr or "no answer").strip().splitlines()
