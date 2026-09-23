@@ -1,0 +1,17 @@
+# Recipe: homelab -- your dashboards, past the fleet panel.
+#
+# Two tabs that show off `phosphor prom` and `phosphor ci`. Both draw
+# something useful even before you touch [prometheus] or [ci] in your
+# profile (Prometheus watching itself; the example pipelines) -- add your
+# own queries and repos there when you're ready.
+#
+#   phosphor recipe homelab   drops this into ~/.config/phosphor/tabs.d/,
+#                              then `phosphor gen`
+
+[[tabs]]
+name  = "PROM"
+panes = [ { cmd = "phosphor prom" } ]
+
+[[tabs]]
+name  = "CI"
+panes = [ { cmd = "phosphor ci" } ]

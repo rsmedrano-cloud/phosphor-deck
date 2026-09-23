@@ -1,0 +1,129 @@
+# Every job runs on the brain's own runner (tag homelab, docker executor with
+# the docker socket), and only for protected refs (main, dev, v* tags): the
+# runner takes nothing else, so code from a merge request never runs on
+# anyone's machine. The project is private, so GitLab's shared runners would
+# spend its CI minutes.
+#
+# check: the fast checks. Seconds; no network.
+#
+# install: a clean install in a systemd container, then a first-time user
+# driving it on a real terminal, on the brain's docker.
+check:
+  tags: [homelab]
+  rules:
+    - if: $CI_COMMIT_REF_PROTECTED == "true"
+  image: python:3.12-slim
+  script:
+    - sh tests/check.sh
+
+# zellij: the deck's keys in a real zellij (the latest release, as installs
+# get), with a client attached in a pty: Alt-r edits, saves, puts back and
+# swaps a pane. A throwaway session in its own HOME.
+zellij:
+  tags: [homelab]
+  rules:
+    - if: $CI_COMMIT_REF_PROTECTED == "true"
+  image: python:3.12-slim
+  script:
+    - python3 tests/fetch-zellij.py /usr/local/bin
+    - zellij --version
+    - python3 tests/edit-check.py
+    - python3 tests/notify-floats-check.py
+    - python3 tests/hotswap-live-check.py
+
+# docs: a push that changes code (lib/, phosphor, share/, install.sh) also
+# changes CHANGELOG.md, and the docs name every command. [no-changelog] in a
+# commit message waives the first for a refactor users never see.
+docs:
+  tags: [homelab]
+  rules:
+    - if: $CI_COMMIT_REF_PROTECTED == "true"
+  image: alpine:3.20
+  variables:
+    GIT_DEPTH: "200"
+  before_script:
+    - apk add --no-cache git python3 >/dev/null
+  script:
+    - python3 tests/docs-check.py "$CI_COMMIT_BEFORE_SHA" "$CI_COMMIT_SHA"
+
+# site: doc/manual/* -> site/src/content/docs/* (tests/site-check.py, in
+# check.sh, already catches a stale one) actually builds -- the same
+# Astro + Starlight build .github/workflows/pages.yml runs to publish it,
+# so a broken build is caught here, not after it reaches the mirror.
+site:
+  tags: [homelab]
+  rules:
+    - if: $CI_COMMIT_REF_PROTECTED == "true"
+  image: node:22-bookworm-slim
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq python3 >/dev/null
+  script:
+    - python3 doc/site/build.py
+    - cd site && npm ci && npm run build
+
+install:
+  tags: [homelab]
+  # docker CLI talking to the brain's docker through its socket: the test
+  # containers (privileged, with systemd) run on the brain, this one doesn't
+  image: docker:27-cli
+  rules:
+    - if: $CI_COMMIT_REF_PROTECTED == "true"
+  timeout: 30m
+  before_script:
+    - apk add --no-cache python3 git
+  script:
+    - python3 tests/update-check.py
+    - sh tests/from-zero.sh
+    - python3 tests/tester-sim.py
+
+# distros: the same install from zero (tests/from-zero.sh) on the other
+# distros the brain is meant to run on, one job each, in a systemd container.
+distros:
+  tags: [homelab]
+  image: docker:27-cli
+  rules:
+    - if: $CI_COMMIT_REF_PROTECTED == "true"
+  timeout: 30m
+  parallel:
+    matrix:
+      - DISTRO: [ubuntu, fedora, arch]
+  before_script:
+    - apk add --no-cache git
+  script:
+    - sh tests/from-zero.sh
+
+# A tag vX.Y.Z publishes its release notes, once every test above passed on
+# it: the tag must match VERSION, and CHANGELOG.md's "## X.Y.Z — title" section
+# becomes the release (tests/release.py cuts the whole thing).
+release-notes:
+  tags: [homelab]
+  image: alpine:3.20
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/ && $CI_COMMIT_REF_PROTECTED == "true"
+  script:
+    # a literal block: in plain YAML " ##" would start a comment
+    - |
+      V="${CI_COMMIT_TAG#v}"
+      test "$(cat VERSION)" = "$V" || { echo "tag $CI_COMMIT_TAG but VERSION says $(cat VERSION)"; exit 1; }
+      awk -v v="$V" 'index($0, "## " v " ")==1 || $0 == "## " v {f=1; next} /^## /{f=0} f' CHANGELOG.md > notes.md
+      grep -q '[^[:space:]]' notes.md || { echo "CHANGELOG.md has no notes under ## $V"; exit 1; }
+      echo "RELEASE_NAME=$(grep -m1 "^## $V" CHANGELOG.md | sed 's/^## //')" > release.env
+      cat release.env
+  artifacts:
+    paths: [notes.md]
+    reports:
+      dotenv: release.env
+
+release:
+  stage: deploy
+  tags: [homelab]
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/ && $CI_COMMIT_REF_PROTECTED == "true"
+  needs: [release-notes, check, docs, site, zellij, install]
+  script:
+    - echo "releasing $RELEASE_NAME"
+  release:
+    tag_name: $CI_COMMIT_TAG
+    name: $RELEASE_NAME
+    description: ./notes.md

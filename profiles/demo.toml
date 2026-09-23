@@ -1,0 +1,59 @@
+# ─────────────────────────────────────────────────────────────
+#  Phosphor Deck · demo profile
+#
+#  Fake machines, fake stats: `phosphor demo` runs a throwaway session
+#  from this file so a screenshot or a recording never shows a real IP,
+#  hostname or disk. It never touches your real profile or session.
+# ─────────────────────────────────────────────────────────────
+
+[deck]
+session = "phosphor-demo"
+theme   = "p31"
+demo    = true            # fleet fakes its readings instead of polling over ssh
+
+[[hosts]]
+name   = "nebula"
+role   = "brain"
+local  = true
+mounts = ["/", "~"]
+
+[[hosts]]
+name = "forge"
+role = "work"
+
+[[hosts]]
+name = "atlas"
+role = "desktop"
+
+[[hosts]]
+name = "vault"
+role = "storage"
+
+[[hosts]]
+name = "relay"
+role = "node"
+
+# A fixed, made-up notebook instead of your real one: `phosphor demo` seeds
+# it from profiles/demo-notes.md the first time.
+[notes]
+folder = "~/.cache/phosphor/demo"
+
+[[tabs]]
+name  = "SYS"
+split = "rows"
+panes = [
+  { cmd = "phosphor pulse", size = 9 },
+  { cmd = "phosphor fleet", size = "91%" },
+]
+
+[[tabs]]
+name  = "DECK"
+split = "cols"
+panes = [
+  { cmd = "phosphor panel", size = "50%" },
+  { cmd = "phosphor keys" },
+]
+
+[[tabs]]
+name  = "NOTES"
+panes = [ { cmd = "phosphor notes" } ]

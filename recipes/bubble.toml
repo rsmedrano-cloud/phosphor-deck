@@ -1,0 +1,25 @@
+# Recipe: the bubble -- mail, RSS, Mastodon and Matrix in one tab, so
+# checking in on all of them is one Alt-key away instead of four.
+#
+# Needs whichever of these you actually use, installed and configured on
+# their own terms (Phosphor doesn't touch their accounts or credentials):
+# neomutt (mail), newsboat (RSS), toot (Mastodon), gomuks (Matrix -- also
+# in `phosphor store`). Swap any of them with Alt-r if you use something
+# else; a program that isn't installed just says so in its pane.
+#
+#   phosphor recipe bubble   drops this into ~/.config/phosphor/tabs.d/,
+#                             then `phosphor gen`
+
+[[tabs]]
+name  = "BUBBLE"
+split = "cols"
+panes = [
+  { split = "rows", panes = [
+      { cmd = "neomutt" },
+      { cmd = "newsboat" },
+  ]},
+  { split = "rows", panes = [
+      { cmd = "toot" },
+      { cmd = "gomuks" },
+  ]},
+]

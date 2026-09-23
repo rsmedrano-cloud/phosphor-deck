@@ -1,0 +1,16 @@
+# Recipe: dev -- a two-assistant tab, on demand.
+#
+# The same shape `phosphor init`'s "dev" answer starts you with, as a
+# recipe you can add to a deck that already exists. Swap either program
+# for your own with Alt-r once it's in.
+#
+#   phosphor recipe dev   drops this into ~/.config/phosphor/tabs.d/,
+#                          then `phosphor gen`
+
+[[tabs]]
+name  = "DEV"
+split = "cols"
+panes = [
+  { cmd = "claude" },
+  { cmd = "codex" },
+]

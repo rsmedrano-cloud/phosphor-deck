@@ -1,0 +1,18 @@
+[package]
+name = "phosphor-run"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "phosphor-run"
+path = "src/main.rs"
+
+[dependencies]
+libc = "0.2"
+serde_json = "1"
+toml = "0.8"
+
+[profile.release]
+opt-level = "z"
+lto = true
+strip = true

@@ -1,0 +1,201 @@
+/* Phosphor's own screen colors (rust/run/src/theme.rs, share/themes; the
+   [deck] theme setting in the profile) -- p31 green, p3 amber, p4 white,
+   paper e-ink. Picked with the theme select in the nav (top right, gear
+   icon): PhosphorThemeSelect.astro sets data-phosphor-theme on <html> and
+   remembers it in localStorage, the same idea as `phosphor gen` recoloring
+   yazi/btop/gping/ctop from one setting. p31 (below, on bare :root) is the
+   default -- the same screen the deck itself opens on. */
+
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+
+:root {
+	--sl-font: 'IBM Plex Sans', system-ui, sans-serif;
+	--sl-font-mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Code', Menlo, monospace;
+
+	/* Starlight's own default (45rem) reads like a phone-width column on a
+	   real monitor -- widened so the manual actually uses the screen. */
+	--sl-content-width: 68rem;
+}
+
+/* p31 -- green phosphor, the deck's own default. */
+:root,
+:root[data-phosphor-theme='p31'] {
+	--sl-color-bg: #050b06;
+	--sl-color-bg-nav: #081109;
+	--sl-color-bg-sidebar: #081109;
+	--sl-color-bg-inline-code: #0d1a0f;
+	--sl-color-black: #050b06;
+	--sl-color-gray-1: #e4f5e6;
+	--sl-color-gray-2: #b9d9bd;
+	--sl-color-gray-3: #7fa686;
+	--sl-color-gray-4: #4a6e53;
+	--sl-color-gray-5: #2c4a32;
+	--sl-color-gray-6: #16311c;
+	--sl-color-gray-7: #0d1f11;
+	--sl-color-white: #f2fbf3;
+	--sl-color-text: #cdeed1;
+	--sl-color-text-accent: #33ff44;
+	--sl-color-accent-low: #133018;
+	--sl-color-accent: #33ff44;
+	--sl-color-accent-high: #8be89a;
+	--sl-color-hairline-light: #2c4a32;
+	--sl-color-hairline: #1c3320;
+	--sl-color-hairline-shade: #0d1a0f;
+	--sl-color-backdrop-overlay: rgba(5, 11, 6, 0.8);
+	--phosphor-glow-rgb: 51, 255, 68;
+	--phosphor-scan-opacity: 0.05;
+	--phosphor-vignette-opacity: 0.55;
+}
+
+/* p3 -- amber phosphor. */
+:root[data-phosphor-theme='p3'] {
+	--sl-color-bg: #0d0803;
+	--sl-color-bg-nav: #120a04;
+	--sl-color-bg-sidebar: #120a04;
+	--sl-color-bg-inline-code: #1a0f05;
+	--sl-color-black: #0d0803;
+	--sl-color-gray-1: #f6e2c0;
+	--sl-color-gray-2: #ddb87f;
+	--sl-color-gray-3: #b98d4c;
+	--sl-color-gray-4: #7a5326;
+	--sl-color-gray-5: #4a3018;
+	--sl-color-gray-6: #2e1c0c;
+	--sl-color-gray-7: #1a0f05;
+	--sl-color-white: #fff3e0;
+	--sl-color-text: #f0c88c;
+	--sl-color-text-accent: #ffaa33;
+	--sl-color-accent-low: #3a2308;
+	--sl-color-accent: #ffaa33;
+	--sl-color-accent-high: #ffcf8a;
+	--sl-color-hairline-light: #4a3018;
+	--sl-color-hairline: #2e1c0c;
+	--sl-color-hairline-shade: #1a0f05;
+	--sl-color-backdrop-overlay: rgba(13, 8, 3, 0.8);
+	--phosphor-glow-rgb: 255, 170, 51;
+	--phosphor-scan-opacity: 0.05;
+	--phosphor-vignette-opacity: 0.55;
+}
+
+/* p4 -- white phosphor: a monochrome CRT, cool grey rather than warm. */
+:root[data-phosphor-theme='p4'] {
+	--sl-color-bg: #0a0b0c;
+	--sl-color-bg-nav: #101214;
+	--sl-color-bg-sidebar: #101214;
+	--sl-color-bg-inline-code: #16181b;
+	--sl-color-black: #0a0b0c;
+	--sl-color-gray-1: #eef1f3;
+	--sl-color-gray-2: #c7ced3;
+	--sl-color-gray-3: #97a1a8;
+	--sl-color-gray-4: #626a70;
+	--sl-color-gray-5: #3a4045;
+	--sl-color-gray-6: #24282b;
+	--sl-color-gray-7: #16181b;
+	--sl-color-white: #ffffff;
+	--sl-color-text: #dfe3e6;
+	--sl-color-text-accent: #f5f8fa;
+	--sl-color-accent-low: #23272b;
+	--sl-color-accent: #b9c4cc;
+	--sl-color-accent-high: #eef2f5;
+	--sl-color-hairline-light: #3a4045;
+	--sl-color-hairline: #24282b;
+	--sl-color-hairline-shade: #16181b;
+	--sl-color-backdrop-overlay: rgba(10, 11, 12, 0.8);
+	--phosphor-glow-rgb: 245, 248, 250;
+	--phosphor-scan-opacity: 0.04;
+	--phosphor-vignette-opacity: 0.5;
+}
+
+/* paper -- e-ink: the one theme that's light, like the reader it names.
+   No glow, no scanlines: paper doesn't emit light. */
+:root[data-phosphor-theme='paper'] {
+	--sl-color-bg: #f2ede1;
+	--sl-color-bg-nav: #ece5d4;
+	--sl-color-bg-sidebar: #ece5d4;
+	--sl-color-bg-inline-code: #e6ddc8;
+	--sl-color-black: #f2ede1;
+	--sl-color-gray-1: #2a2415;
+	--sl-color-gray-2: #4a4128;
+	--sl-color-gray-3: #6b5f3d;
+	--sl-color-gray-4: #93875f;
+	--sl-color-gray-5: #bcae8a;
+	--sl-color-gray-6: #d8cdb0;
+	--sl-color-gray-7: #e6ddc8;
+	--sl-color-white: #14100a;
+	--sl-color-text: #1a1a1a;
+	--sl-color-text-accent: #14100a;
+	--sl-color-accent-low: #e3dac2;
+	--sl-color-accent: #6b4a00;
+	--sl-color-accent-high: #402e00;
+	--sl-color-hairline-light: #d8cdb0;
+	--sl-color-hairline: #cabe9d;
+	--sl-color-hairline-shade: #bcae8a;
+	--sl-color-backdrop-overlay: rgba(242, 237, 225, 0.8);
+	--phosphor-glow-rgb: 20, 16, 10;
+	--phosphor-scan-opacity: 0;
+	--phosphor-vignette-opacity: 0;
+}
+
+a {
+	text-decoration-thickness: 1px;
+}
+
+/* The hero image (the logo, a rounded square) shouldn't stretch to the
+   splash template's default width -- it's a mark, not a screenshot. */
+.hero img {
+	max-width: 220px;
+	filter: drop-shadow(0 0 28px rgba(var(--phosphor-glow-rgb), 0.35));
+}
+
+.hero h1 {
+	text-shadow: 0 0 18px rgba(var(--phosphor-glow-rgb), 0.4);
+}
+
+/* A phosphor CRT screen, not a flat rectangle: scanlines across the whole
+   viewport (nav and sidebar included, so it reads as one screen, not a
+   green column in a grey chrome), a soft vignette darkening the corners,
+   and a little glow on the things that would glow on a real tube -- the
+   active nav link, the site title, focus rings. Static, not animated: a
+   CRT doesn't flicker on a good day, and prefers-reduced-motion is moot
+   when nothing moves. */
+body {
+	position: relative;
+	background-image:
+		repeating-linear-gradient(
+			to bottom,
+			rgba(var(--phosphor-glow-rgb), var(--phosphor-scan-opacity)),
+			rgba(var(--phosphor-glow-rgb), var(--phosphor-scan-opacity)) 1px,
+			transparent 1px,
+			transparent 3px
+		),
+		radial-gradient(
+			ellipse at center,
+			transparent 55%,
+			rgba(0, 0, 0, var(--phosphor-vignette-opacity)) 150%
+		);
+	background-attachment: fixed;
+}
+
+.site-title {
+	text-shadow: 0 0 10px rgba(var(--phosphor-glow-rgb), 0.5);
+}
+
+/* The current page's sidebar link: an underlit tab, like the deck's own
+   active-tab highlight in the tab bar. */
+[aria-current='page'] {
+	box-shadow: inset 3px 0 0 0 var(--sl-color-text-accent), 0 0 12px rgba(var(--phosphor-glow-rgb), 0.25);
+}
+
+:focus-visible {
+	outline-color: var(--sl-color-text-accent);
+	box-shadow: 0 0 0 4px rgba(var(--phosphor-glow-rgb), 0.25);
+}
+
+/* Screenshots framed like a terminal window, not bare rectangles floating
+   in the page -- a thin glowing edge instead of a flat drop shadow. */
+.sl-markdown-content img {
+	display: block;
+	margin-inline: auto;
+	border-radius: 0.375rem;
+	border: 1px solid var(--sl-color-hairline);
+	box-shadow: 0 0 0 1px rgba(var(--phosphor-glow-rgb), 0.15), 0 12px 32px rgba(0, 0, 0, 0.45);
+}
