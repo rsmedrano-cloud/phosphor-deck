@@ -3,7 +3,7 @@
 
     python3 tests/glance-check.py
 """
-import json, os, re, subprocess, sys, tempfile
+import json, os, re, shutil, subprocess, sys, tempfile
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "lib"))
 fails = []
@@ -25,6 +25,7 @@ lines = [strip(l) for l in glance.frame(40, 40)]
 need("empty fleet says so", any("no fleet data" in l for l in lines))
 need("empty mentions says so", any("nothing unread" in l for l in lines))
 need("empty todos says so", any("nothing pending" in l for l in lines))
+need("no workspaces yet says so", any("nothing dirty or unpushed" in l for l in lines))
 
 json.dump({"t": 9999999999, "hosts": {
     "nova": {"ok": True, "CPU": 10, "MEMU": 100, "MEMT": 1000, "mnt": []},
@@ -41,6 +42,17 @@ need("ok host doesn't clutter the list", not any(l.strip().startswith("✗ nova"
 need("unread mention shows up", any("1 unread" in l for l in lines))
 need("mention sender/text shows up", any("sam" in l for l in lines))
 need("todo shows up", any("1 open todo" in l for l in lines) and any("tailnet" in l for l in lines))
+
+# a dirty workspace (#36): "one device, then another" makes it easy to
+# forget which machine has uncommitted changes.
+if shutil.which("git"):
+    ws = os.path.join(home, "projects", "shop")
+    os.makedirs(ws)
+    open(os.path.join(ws, "NOTES.md"), "w").write("# shop notes\n")
+    subprocess.run(["git", "init", "-q", ws])
+    open(os.path.join(ws, "x.txt"), "w").write("wip\n")
+    lines = [strip(l) for l in glance.frame(80, 40)]
+    need("a dirty workspace shows up", any("shop" in l and "uncommitted" in l for l in lines))
 
 # narrow: must not blow up or produce lines with stray raw escape fragments
 narrow = glance.frame(20, 40)

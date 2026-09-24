@@ -82,6 +82,15 @@ You don't have to go polling it to find out: the moment a workspace's
 COMMS (`<TAB> ●N`, no floating panes -- see mentions), cleared the moment
 you actually look at that tab.
 
+"One device, then another" also makes it easy to leave a workspace with
+uncommitted changes (or committed, but never pushed) and forget which
+machine has them. `phosphor glance` and the DECK tab's own status line
+both call out any workspace that's dirty or ahead/behind its upstream --
+`git init` runs for you when a workspace is created (with a first commit
+of its own scaffold, so a fresh workspace starts clean, not flagged from
+day one), but nothing pushes or pulls for you: that stays yours to do by
+hand, same as any other git repo.
+
 ## Commands
 
 - `phosphor workspace new [NAME] [--shape one|two|shell] [--parts "a b"] [--assistant claude|gemini|codex|opencode|aider]`

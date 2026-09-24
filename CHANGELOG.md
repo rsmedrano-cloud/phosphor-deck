@@ -6,6 +6,27 @@ before it updates.
 
 ## Unreleased
 
+## 0.4.1 — phosphor ask, and a manifest of what's safe to automate
+
+- New: `share/commands.json` -- a machine-readable manifest of every `phosphor` subcommand,
+  saying whether it mutates live state (the session, a systemd unit, the profile, or a
+  generated file) and whether it needs the deck already running, with a note where a flag or
+  an interactive key changes the plain answer. For a CI job, a cron, an external policy/guard
+  tool, or another assistant working in this repo -- the classification AGENTS.md's own rules
+  already implied, now written down instead of left to prose and judgment calls. (#37)
+- New: `phosphor ask "question"` -- a one-shot question, no tab. Shells out to whichever
+  assistant CLI is already installed (claude, gemini, codex, opencode, aider -- the same list
+  `phosphor workspace` knows) in its own headless, single-answer mode and prints the reply.
+  `--assistant NAME` picks one instead of the first installed. (#35)
+
+## 0.4.0 — the deck that tells you: tab marks, dirty workspaces, self-healing mounts
+
+- `phosphor glance` and the DECK tab's status line now call out a workspace with uncommitted
+  changes, or commits ahead/behind its upstream -- "one device, then another" makes those easy to
+  forget which machine has. A fresh workspace's own scaffold (`AGENTS.md`, `NOTES.md`...) gets
+  committed when it's created, so a brand new workspace starts clean instead of showing up dirty
+  from day one.
+
 ## 0.3.5 — self-healing fleet mounts, real Rust binaries, and aider
 
 - Fixed: a `~/fleet/<host>` mount (rclone sftp) whose transport died -- a remote sleeping or

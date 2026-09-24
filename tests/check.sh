@@ -79,6 +79,12 @@ out=$(python3 tests/workspace-check.py 2>&1) && ok || bad "$out"
 step "a workspace's tab marks when NOTES.md changes"
 out=$(python3 tests/workspace-notes-watch-check.py 2>&1) && ok || bad "$out"
 
+step "ask picks an assistant, no tab"
+out=$(python3 tests/ask-check.py 2>&1) && ok || bad "$out"
+
+step "commands.json matches phosphor's own command list"
+out=$(python3 tests/commands-manifest-check.py 2>&1) && ok || bad "$out"
+
 step "prometheus gauges, fake server"
 out=$(python3 tests/prom-check.py 2>&1) && ok || bad "$out"
 

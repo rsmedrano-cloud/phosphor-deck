@@ -42,6 +42,12 @@ sidebar:
 
 ## Workspaces
 - `phosphor workspace new|open|list` — a tab per idea with its own folder and assistants; see workspaces.
+- `phosphor ask [--assistant NAME] QUESTION` — a one-shot question, no tab: shells out to whichever
+  assistant CLI is already installed (claude, gemini, codex, opencode, aider -- the same list
+  `phosphor workspace` knows, tried in that order) with a headless, single-answer flag of its own
+  (`claude -p`, `gemini -p`, `codex exec`, `opencode run`, `aider --message`) and prints the answer.
+  `--assistant` picks one by name instead of the first installed. For "what was that command
+  again" -- not a replacement for a workspace or a chat tab.
 
 ## Notes
 - `phosphor note [--kind note|idea|decision|todo|summary] [--by NAME] [--book NAME] [--tab TAB] TEXT` (`-` reads stdin).
@@ -68,8 +74,10 @@ sidebar:
   services lists systemd units and their state (see `[prometheus]`, `[ci]` and `[services]` in profile; `--once` prints one frame).
   `fleet` also calls `phosphor notify` itself when a host's ok/not-ok flips (down, or back) -- at most once a minute per host even if the link flaps.
 - `phosphor glance [--once]` — read-only: the fleet's problem hosts (or "all N ok"), unread
-  mentions, open todos. For a small screen: `ssh -t you@brain ~/.local/bin/phosphor glance` needs no zellij
-  attach at all (see screens); refreshes every 5s, Ctrl-C to leave.
+  mentions, open todos, and any workspace with uncommitted changes or commits ahead/behind its
+  upstream ("one device, then another" makes those easy to forget). For a small screen:
+  `ssh -t you@brain ~/.local/bin/phosphor glance` needs no zellij attach at all (see screens);
+  refreshes every 5s, Ctrl-C to leave.
 - `phosphor notify [--tab TAB] [--voice VOICE] [--tts|--no-tts] [--push|--no-push] MESSAGE` — the adjutant announces it, speaks it if TTS is enabled, and pushes it to your phone if `[push]` is on. The tab it names (or SYS with no `--tab`) also reads "`<TAB> ●N`" until you look, whether or not `[deck] notifier` is on (see profile).
 - `phosphor tts [MESSAGE]` — speak a message aloud with selectable voices (glados, adjutant, hal, synth, system); `phosphor tts install glados` assists with installing GLaDOS-TTS.
 - `phosphor push [--qr]` — `[push]`'s status (on/off, server, topic); `--qr` prints the subscribe
@@ -141,3 +149,10 @@ sidebar:
 
 ## Help
 - `phosphor help [TOPIC]` — this manual. `phosphor docs [--check]` — rebuild AGENTS.md.
+- `share/commands.json` — a machine-readable manifest, one entry per command above, saying
+  whether it mutates live state (the session, a systemd unit, the profile, or any file phosphor
+  generates) and whether it needs the deck already running to do anything -- with a one-line
+  note for the ones where a flag or an interactive key changes the plain answer. Not a command
+  of its own: for a CI job, a cron/timer, an external policy tool, or another assistant working
+  in this repo that wants to know what needs a human before it runs unattended, without parsing
+  this page's prose. `tests/commands-manifest-check.py` keeps it matching the list above.

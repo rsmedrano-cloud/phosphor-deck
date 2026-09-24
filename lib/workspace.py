@@ -147,6 +147,15 @@ def write_files(base, files):
         written.append(rel)
     if not os.path.isdir(os.path.join(base, ".git")) and shutil.which("git"):
         subprocess.run(["git", "init", "-q", base], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # A first commit for the scaffold itself (AGENTS.md, NOTES.md...):
+        # without one, dirty_workspaces() (#36) would flag every workspace
+        # as dirty from the moment it's created, before anyone's actually
+        # changed anything. -c user.*, not the global config: this must
+        # work even where nobody's ever set a git identity.
+        subprocess.run(["git", "-C", base, "add", "-A"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(["git", "-C", base, "-c", "user.name=phosphor", "-c", "user.email=phosphor@localhost",
+                        "commit", "-q", "-m", "workspace scaffold"],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return written, kept
 
 def installed():
@@ -323,6 +332,41 @@ def listing():
     for n in ns:
         print("  %-24s %s" % (n, tilde(os.path.join(r, n))))
     return 0
+
+def git_status(base):
+    """(dirty, ahead, behind) for a workspace's own git repo (write_files()
+    always `git init`s one), or None if it somehow isn't one. ahead/behind
+    are 0 without an upstream -- phosphor never adds one itself, so most
+    workspaces won't have one until you set one up by hand."""
+    if not os.path.isdir(os.path.join(base, ".git")):
+        return None
+    def sh(*a):
+        try:
+            return subprocess.run(["git", "-C", base] + list(a),
+                                  capture_output=True, text=True, timeout=5).stdout
+        except (OSError, subprocess.TimeoutExpired):
+            return ""
+    dirty = bool(sh("status", "--porcelain").strip())
+    ahead = behind = 0
+    if sh("rev-parse", "--abbrev-ref", "@{u}").strip():
+        counts = sh("rev-list", "--left-right", "--count", "HEAD...@{u}").split()
+        if len(counts) == 2:
+            ahead, behind = int(counts[0]), int(counts[1])
+    return dirty, ahead, behind
+
+def dirty_workspaces():
+    """[(name, dirty, ahead, behind)] for every workspace with something
+    worth a look: uncommitted changes, or commits ahead/behind an upstream
+    -- "one device, then another" makes it easy to leave one dirty and
+    forget which machine has the changes (#36). Empty when every workspace
+    is clean and, if it has an upstream at all, pushed."""
+    out = []
+    r = root()
+    for name in names():
+        st = git_status(os.path.join(r, name))
+        if st and any(st):
+            out.append((name,) + st)
+    return out
 
 NOTES_SEEN = os.path.join(deckconf.cache_dir(), "workspace-notes-seen.json")
 

@@ -128,6 +128,10 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
 - **A tab per idea.** `phosphor workspace new` (or `w` on a note) makes a
   project folder with git and a tab with one or two AI assistants, each
   knowing its part and handing off through the workspace's own notebook.
+- **A quick question, no tab.** `phosphor ask "..."` shells out to whichever
+  assistant CLI is already installed (claude, gemini, codex, opencode, aider)
+  in headless mode and prints the answer inline -- for "what was that command
+  again", not a whole workspace or a chat tab.
 - **Tabs that stay put.** Tabs are locked; Alt-r unlocks the one you're in,
   lets you resize, split or swap what runs in a pane, and then asks: save it
   into your profile, or put it back.
@@ -295,7 +299,10 @@ Everything below, in depth, lives in [doc/manual](doc/manual/README.md) --
 also **[online](https://rsmedrano-cloud.github.io/phosphor-deck/)**, one
 page per topic. `phosphor help TOPIC` shows it inside the deck, and
 [AGENTS.md](AGENTS.md), built from the same pages, is what AI assistants
-should read. Contributing: [CONTRIBUTING.md](CONTRIBUTING.md).
+should read. [`share/commands.json`](share/commands.json) is the same
+classification in JSON -- which commands mutate live state, which need the
+deck running -- for a CI job, a cron, or a policy tool that wants to know
+without parsing prose. Contributing: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Commands
 
@@ -314,6 +321,7 @@ should read. Contributing: [CONTRIBUTING.md](CONTRIBUTING.md).
 | `phosphor restart` | bring the session down cleanly and back up (never the new one before the old one is gone); every screen goes back in by itself |
 | `phosphor note` / `notes` | write to / read the shared notebook |
 | `phosphor workspace` | a tab per idea: folder, git, its assistants |
+| `phosphor ask Q` | a one-shot question to whichever assistant CLI is installed, no tab |
 | `phosphor new` | the + menu (also Alt-n): a shell, a machine, an assistant, your apps, a layout |
 | `phosphor keep` | write a tab you arranged by hand into your profile |
 | `phosphor edit` | what Alt-r runs: unlock a tab, change it, save it or put it back |

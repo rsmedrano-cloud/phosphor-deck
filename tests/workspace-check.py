@@ -83,6 +83,54 @@ r = run("new", "shop", "--shape", "one", "--assistant", "claude")
 check("a tab name that isn't this workspace stops", r.returncode == 1 and "already has" in r.stdout)
 check("list", "un-indice-de-charlas" in run("list").stdout)
 
+# git_status()/dirty_workspaces() (#36): dirty and ahead/behind, against a
+# real git repo and a real upstream -- not mocked, this is exactly the
+# kind of thing a mock could get subtly wrong.
+if shutil.which("git"):
+    gbase = os.path.join(d, "gitws")
+    os.makedirs(gbase)
+    def g(*a):
+        subprocess.run(["git", "-C", gbase] + list(a), capture_output=True)
+    g("init", "-q")
+    g("config", "user.email", "t@example.com")
+    g("config", "user.name", "t")
+    open(os.path.join(gbase, "f.txt"), "w").write("1\n")
+    g("add", "f.txt"); g("commit", "-q", "-m", "one")
+    check("git_status: clean, no upstream", ws.git_status(gbase) == (False, 0, 0))
+
+    origin = os.path.join(d, "origin.git")
+    subprocess.run(["git", "init", "-q", "--bare", origin], capture_output=True)
+    g("remote", "add", "origin", origin)
+    g("push", "-q", "-u", "origin", "HEAD:main")
+    check("git_status: clean, pushed, up to date with its upstream", ws.git_status(gbase) == (False, 0, 0))
+
+    open(os.path.join(gbase, "f.txt"), "w").write("2\n")
+    g("commit", "-q", "-am", "two")
+    check("git_status: one local commit ahead, not yet pushed", ws.git_status(gbase) == (False, 1, 0))
+
+    open(os.path.join(gbase, "f.txt"), "w").write("3\n")
+    check("git_status: dirty on top of ahead", ws.git_status(gbase) == (True, 1, 0))
+
+    check("git_status: not a git repo at all", ws.git_status(d) is None)
+
+    dws = os.path.join(d, "dirty-workspaces-root")
+    shop = os.path.join(dws, "shop")
+    os.makedirs(shop)
+    files = {"NOTES.md": "# shop notes\n", "AGENTS.md": "# shop\n"}
+    real_root = ws.root
+    ws.root = lambda prof=None: dws
+    try:
+        written, kept = ws.write_files(shop, files)
+        check("write_files() commits the scaffold itself: not one of the checks a dirty git repo would be otherwise",
+              ws.git_status(shop) == (False, 0, 0))
+        check("dirty_workspaces: a freshly created workspace is clean, not flagged from day one",
+              ws.dirty_workspaces() == [])
+        open(os.path.join(shop, "x.txt"), "w").write("wip\n")
+        check("dirty_workspaces: an untracked file made afterward makes it show up",
+              ws.dirty_workspaces() == [("shop", True, 0, 0)])
+    finally:
+        ws.root = real_root
+
 if fail:
     print("FAIL: " + "; ".join(fail)); sys.exit(1)
 print("ok")

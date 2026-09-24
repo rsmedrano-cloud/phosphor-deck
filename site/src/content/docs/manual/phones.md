@@ -81,6 +81,6 @@ Some screens are too small for a full attach: a Pi with a small display
 sitting on a shelf, an old e-reader, anything you'd rather glance at than
 drive. `ssh -t you@brain ~/.local/bin/phosphor glance` skips zellij entirely and prints a
 read-only summary that refreshes on its own -- the fleet's problem hosts (or
-"all N ok"), unread mentions, open todos -- until Ctrl-C. Nothing to attach,
+"all N ok"), unread mentions, open todos, any workspace dirty or unpushed -- until Ctrl-C. Nothing to attach,
 nothing to detach: it's just a command, so any cron job or kiosk script that
 can run one over ssh can drive that little screen.

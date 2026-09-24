@@ -74,6 +74,8 @@ USAGE = """phosphor - Phosphor Deck
   workspaces
     phosphor workspace new   a project folder, git and a tab with its assistants
     phosphor workspace open  its tab again (list: the ones you have)
+    phosphor ask Q      a one-shot question to whichever assistant CLI is
+                        installed, no tab (--assistant NAME to pick one)
 
   notes
     phosphor note T     add a note to the shared notebook
@@ -116,7 +118,7 @@ USAGE = """phosphor - Phosphor Deck
 TOOLS = ("fleet", "pulse", "keys", "store", "adjutant", "notes", "privacy", "phone", "newtab", "clip", "send",
          "mentions", "run", "web", "tunnels", "completion", "update", "panel", "version",
          "keep", "workspace", "edit", "shortcuts", "tabs", "prom", "logs", "trace", "ci", "recipe", "tts", "demo",
-         "services", "glance", "review", "push", "screens")
+         "services", "glance", "review", "push", "screens", "ask")
 
 def main():
     cmd = sys.argv[1] if len(sys.argv) > 1 else "help"
