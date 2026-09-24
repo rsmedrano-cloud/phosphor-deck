@@ -6,10 +6,15 @@ zellij's own web client listens on 127.0.0.1 and asks for a login token;
 of its own so it doesn't touch anything you already serve there. Never
 funnel (that would be the internet). Two locks: the tailnet and the token.
 
-    phosphor web on       publish it, print the address and a login token
-    phosphor web off      unpublish it and stop the web server
-    phosphor web status   what's running and where
-    phosphor web token    a new login token (shown once, revocable)
+    phosphor web on [--yes]   publish it, print the address and a login token
+    phosphor web off         unpublish it and stop the web server
+    phosphor web status      what's running and where
+    phosphor web token       a new login token (shown once, revocable)
+
+`on` restarts the deck so the browser can share its session: with a tty it
+pauses for Enter, so you can copy the token first; without one (a script, a
+cron, an automation tool) it does NOT restart on its own -- `--yes` is the
+explicit opt-in for that.
 """
 import json, os, re, shutil, subprocess, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -127,7 +132,7 @@ def local_help(why):
           " (needs an ssh server here), then http://localhost:8082 there." + RST)
     print("  " + DIM + "Across your tailnet it isn't offered: " + why + RST)
 
-def on(restart=True):
+def on(restart=True, yes=False):
     prof, _ = deckconf.load()
     tail, why = usable(prof)
     set_flag(True)
@@ -151,6 +156,10 @@ def on(restart=True):
         if sys.stdin.isatty():
             try: input("  " + FG + "Copy the token first (it's on your clipboard too): Enter restarts " + RST)
             except (EOFError, KeyboardInterrupt): print()
+        elif not yes:
+            print("  " + WARN + " no tty: not restarting on its own -- " + RST +
+                  PH + "phosphor restart" + RST + DIM + " when you're ready (or pass --yes)." + RST)
+            return 0
         subprocess.run([sys.executable, os.path.join(REPO, "phosphor"), "restart"])
     return 0
 
@@ -216,11 +225,16 @@ def on_brain(args):
     return subprocess.run(["ssh", "-t", tgt, "~/.local/bin/phosphor web " + " ".join(args)]).returncode
 
 def main():
-    r = on_brain(sys.argv[1:] or ["status"])
+    args = sys.argv[1:] or ["status"]
+    r = on_brain(args)
     if r is not None:
         return r
-    cmd = (sys.argv[1:] or ["status"])[0]
-    return {"on": on, "off": off, "status": status, "token": token}.get(cmd, status)()
+    yes = "--yes" in args or "-y" in args
+    args = [a for a in args if a not in ("--yes", "-y")]
+    cmd = (args or ["status"])[0]
+    if cmd == "on":
+        return on(yes=yes)
+    return {"off": off, "status": status, "token": token}.get(cmd, status)()
 
 if __name__ == "__main__":
     sys.exit(main() or 0)

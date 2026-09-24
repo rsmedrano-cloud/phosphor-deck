@@ -85,6 +85,12 @@ out=$(python3 tests/ask-check.py 2>&1) && ok || bad "$out"
 step "commands.json matches phosphor's own command list"
 out=$(python3 tests/commands-manifest-check.py 2>&1) && ok || bad "$out"
 
+step "web on: never restarts unattended without --yes"
+out=$(python3 tests/web-check.py 2>&1) && ok || bad "$out"
+
+step "new --here: refuses with nobody attached"
+out=$(python3 tests/newtab-attach-check.py 2>&1) && ok || bad "$out"
+
 step "prometheus gauges, fake server"
 out=$(python3 tests/prom-check.py 2>&1) && ok || bad "$out"
 

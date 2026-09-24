@@ -43,7 +43,7 @@
   "mentions": {"mutates": false, "needs_deck": false,
     "note": "the plain feed is read-only; `--setup` unconditionally writes a hook script and rewrites Mattermost's config.ini; the interactive viewer mutates (marks seen, runs `prepare`) on a keypress."},
   "new": {"mutates": false, "needs_deck": true,
-    "note": "with no `--here`: lists (non-tty) or opens a picker that adds a tab on selection; `--here` (what Alt-n and the + menu actually run) calls `zellij new-tab` unconditionally, with no check that a client is attached."},
+    "note": "with no `--here`: lists (non-tty) or opens a picker that adds a tab on selection; `--here` (what Alt-n and the + menu actually run) refuses instead of adding a tab if nobody's attached to the session (zellij action list-clients names none)."},
   "note": {"mutates": true, "needs_deck": false,
     "note": "appends to the shared notebook on every invocation, no confirmation."},
   "notes": {"mutates": false, "needs_deck": false,
@@ -99,7 +99,7 @@
   "version": {"mutates": false, "needs_deck": false,
     "note": "reads a small local cache; --check also does a `git fetch` (network only, no local mutation)."},
   "web": {"mutates": false, "needs_deck": false,
-    "note": "status (the default) is read-only; `on` writes [deck].web, regenerates, and publishes a tailnet HTTPS endpoint, then by default restarts the live session -- without a tty it skips its own confirmation pause and restarts immediately; `off`/`token` also mutate unconditionally."},
+    "note": "status (the default) is read-only; `on` writes [deck].web, regenerates, and publishes a tailnet HTTPS endpoint, then pauses for Enter and restarts the live session -- without a tty it publishes but does NOT restart unless --yes is also given; `off`/`token` mutate unconditionally."},
   "workspace": {"mutates": false, "needs_deck": false,
     "note": "`list` (the default) is read-only; `open` needs the deck ($ZELLIJ) to actually switch tabs, otherwise it just prints; `new` creates the folder, commits it, adds the tab to the profile and regenerates -- non-interactively it also skips the 'folder already has stuff in it' check."}
 }

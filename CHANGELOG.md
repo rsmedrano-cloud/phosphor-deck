@@ -6,6 +6,22 @@ before it updates.
 
 ## Unreleased
 
+## 0.4.2 — don't act unattended without a real client
+
+- Fixed: `phosphor web on` used to restart the live deck unconditionally once its own
+  confirmation pause was skipped -- which happens automatically without a tty (a script, a
+  cron, a policy tool), not just when a human presses Enter. It now only restarts on its own
+  with a tty, or with the new explicit `--yes` flag; without either, it still publishes and
+  prints the token, but leaves the restart to you. (#38)
+- Fixed: `phosphor new --here` (what Alt-n and the tab bar's + actually run) called `zellij
+  action new-tab` with no check that a client was attached to the session -- exactly the
+  pattern AGENTS.md warns assistants never to do by hand. A real keypress always has a client
+  attached by construction, so this only ever mattered for something driving the deck out of
+  band; it now refuses instead of adding a tab when `zellij action list-clients` names none.
+  It also now requires an actual pane context (`$ZELLIJ`) before even asking that: with none at
+  all, zellij falls back to "the only session running" on its own, which on a real box is
+  someone's live deck -- caught this the hard way while testing the fix itself. (#39)
+
 ## 0.4.1 — phosphor ask, and a manifest of what's safe to automate
 
 - New: `share/commands.json` -- a machine-readable manifest of every `phosphor` subcommand,

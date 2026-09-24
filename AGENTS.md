@@ -1208,16 +1208,22 @@ any other call you make to it.
 
 Optional, off by default, and only inside your tailnet — never the internet.
 
-    phosphor web on       # publish, show the address (and a QR) and a login token
-    phosphor web off      # unpublish and stop the web server, checking each step
-    phosphor web status   # what really runs, not just what the profile says
-    phosphor web token    # a new login token (shown once)
+    phosphor web on [--yes]   # publish, show the address (and a QR) and a login token
+    phosphor web off         # unpublish and stop the web server, checking each step
+    phosphor web status      # what really runs, not just what the profile says
+    phosphor web token       # a new login token (shown once)
 
 Or `w` in the DECK tab: when it's on, `t` makes a new login token right there
 and `o` turns it off; when it's off, turning it on needs a `y` (the deck
 restarts, after you've copied the token). On a machine that only looks at the
 deck, `phosphor web ...` runs on the brain over ssh: that's where the web server
 and its tokens live.
+
+`on` restarts the deck so the browser can share its session: with a tty (you,
+or the DECK tab) it pauses for Enter first, so you can copy the token. Without
+one -- a script, a cron, a policy tool driving phosphor -- it publishes and
+prints the token but does **not** restart on its own; `--yes` is the explicit
+opt-in for an unattended restart.
 
 zellij's own web client listens on 127.0.0.1:8082 and asks for a login token;
 `tailscale serve` publishes it over HTTPS at `https://<brain>.<tailnet>.ts.net:8443`
