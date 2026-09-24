@@ -6,6 +6,31 @@ before it updates.
 
 ## Unreleased
 
+## 0.3.5 — self-healing fleet mounts, real Rust binaries, and aider
+
+- Fixed: a `~/fleet/<host>` mount (rclone sftp) whose transport died -- a remote sleeping or
+  changing IP over Tailscale, most often -- used to stay broken forever: the kernel still lists
+  it as mounted, so nothing noticed, and a fresh rclone can't mount over a mountpoint it still
+  considers busy from the dead one. `phosphor fleet` now sweeps for it in the background (every
+  20s) and self-heals it (`fusermount -uz` then a unit restart); `phosphor doctor` calls out a
+  zombie mount by name instead of reporting it as healthy.
+
+- `install.sh` now fetches the optional Rust rewrites (`rust/fleet-poll`, `rust/run`) on
+  x86_64/aarch64, same as zellij/yazi/btop: a new `rust-release` CI job cross-compiles both for
+  both architectures at every tag, and a minor release (`tests/release.py --main`) attaches them
+  to a real GitHub Release for `install.sh`'s fetch to find. Still entirely optional -- missing,
+  or on 32-bit ARM, both tools fall back to Python exactly as before.
+
+- `phosphor workspace` (and the notebook's `c`) can now start a workspace with **aider**, alongside
+  claude, gemini, codex and opencode. It resumes across restarts like claude does
+  (`--restore-chat-history`), and gets its own onboarding message on first launch too, even though
+  aider's `--message` normally answers once and exits: it answers that one message non-interactively,
+  then hands off to a normal interactive aider that reloads the exchange from its chat history.
+
+- A workspace's tab now marks itself (`<TAB> ●N`, same mechanism as a chat mention) the moment its
+  `NOTES.md` changes -- the only channel a workspace's assistants have to hand off work, and until
+  now nothing signalled a new entry landed there short of polling it by hand.
+
 ## 0.3.4 — ssh multiplexing, and a real undo depth for the profile
 
 - A profile write (`phosphor setup`, `keep`, `tabs`, `shortcuts`, a new tab from `+`, a tunnel,

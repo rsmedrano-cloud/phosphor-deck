@@ -62,6 +62,12 @@ not in any one assistant's memory.
   then the fast checks against the result -- so a conflict or a test that
   only breaks once it's merged shows up before it's dev's problem.
   `tests/release.py` runs it too, as a heads-up, not a blocker.
+- **Open GitHub issues and PRs, same moment:** `python3 tests/github-check.py`
+  (also run by `tests/release.py`, same heads-up spirit). Nothing else polls
+  the public mirror -- real dev happens on GitLab, but a bug report or
+  feature request only ever lands on GitHub, so this is the one place it
+  gets looked at. A PR there can't be merged as-is (main is squashed and
+  force-pushed at every sync): point the author at an issue instead.
 - **Releases** come as topics close, without waiting to be asked: a patch
   version (0.2.26, 0.2.27...) for each closed topic or batch of fixes, and the
   next minor (0.3.0) when its roadmap milestone is covered and its bugs are
@@ -83,9 +89,16 @@ not in any one assistant's memory.
   co-author. Best-effort on purpose: a GitHub hiccup there is printed, not
   fatal -- it never undoes a GitLab release that already shipped; fix by
   hand (`tests/release.py`'s own `sync_github()`, called standalone, does
-  the same sync again). Announcing it
-  anywhere beyond the repo itself (Hacker News, Reddit...) stays the
-  maintainer's call.
+  the same sync again). At a minor only, also a real GitHub Release for
+  that tag, with the cross-compiled Rust binaries (`rust/fleet-poll`,
+  `rust/run`; the tag's own `rust-release` CI job cross-compiles them,
+  x86_64 and aarch64, with plain rustup targets) attached -- `install.sh`'s
+  `fetch()` reads `releases/latest` there, and it always installs from
+  `main`, so shipping this at every dev patch too would make
+  `releases/latest` drift ahead of what a plain clone of `main` actually
+  checks out. Same best-effort spirit (`sync_github_binaries()`), same
+  standalone-rerun escape hatch. Announcing it anywhere beyond the repo
+  itself (Hacker News, Reddit...) stays the maintainer's call.
 - **The deck is someone's live session:** anything that restarts it, rewrites
   the profile or touches mounts gets checked before and after.
 
@@ -124,6 +137,11 @@ It downloads zellij, yazi, btop, gping, ctop and rclone into `~/.local/bin`
 already exists keeps its folder), writes the `deck` command, and asks
 "set it up now?". Yes runs the wizard, which ends with "build the deck and
 start it now?" and "get in now?": you finish inside the deck.
+
+On x86_64/aarch64 it also fetches `phosphor-fleet-poll` and `phosphor-run`,
+the two optional Rust rewrites (see CONTRIBUTING.md) -- best-effort, same as
+the rest: missing one, or a 32-bit ARM install, just means the Python
+fallback runs, same as before either existed.
 
 The same steps by hand:
 
@@ -1034,10 +1052,11 @@ The same thing, without a note: the tab bar's `+` → **workspace**, or
 The tab is kept in your profile like any other, so it comes back after
 `phosphor restart`. What "comes back" means depends on the assistant:
 **claude** resumes its last conversation there (`claude --continue`, or a
-fresh one if there wasn't one yet); every other assistant (gemini, codex,
-opencode) just starts over -- there's no `--continue` for them yet, so
-whatever context it had lives only in that session and in what got written
-to the notebook before it ended.
+fresh one if there wasn't one yet), and so does **aider**
+(`--restore-chat-history`); **gemini**, **codex** and **opencode** just
+start over -- there's no equivalent for them yet, so whatever context they
+had lives only in that session and in what got written to the notebook
+before it ended.
 
 The first time a pane starts, that assistant is asked to read its own
 `AGENTS.md` and `BRIEF.md` and say where things stand -- so arriving at a
@@ -1073,9 +1092,14 @@ knows to leave a note before it stops rather than let context evaporate
 when the pane restarts. Nobody types into another assistant's pane --
 the notebook is the only channel between them.
 
+You don't have to go polling it to find out: the moment a workspace's
+`NOTES.md` changes, its tab gets marked the same way a chat mention marks
+COMMS (`<TAB> ●N`, no floating panes -- see mentions), cleared the moment
+you actually look at that tab.
+
 ### Commands
 
-- `phosphor workspace new [NAME] [--shape one|two|shell] [--parts "a b"] [--assistant claude|gemini|codex|opencode]`
+- `phosphor workspace new [NAME] [--shape one|two|shell] [--parts "a b"] [--assistant claude|gemini|codex|opencode|aider]`
   `[--brief FILE | --note TEXT] [--folder-only]` — `--note` takes the note whose title contains TEXT;
   `--folder-only` writes the folder and leaves the profile and tabs alone (an assistant can use it).
 - `phosphor workspace open NAME` — go to its tab, or open it (inside the deck).
@@ -1355,6 +1379,15 @@ From yazi, `c` `s` does the same to the hovered file.
   `phosphor doctor` checks that too; `systemctl --user import-environment
   SSH_AUTH_SOCK` (then `phosphor gen`) gives the service your agent, or use a
   key without a passphrase for the deck.
+- **A folder in `~/fleet` errors instead** ("Transport endpoint is not
+  connected"): the remote slept or changed IP (common over Tailscale) and
+  the sftp transport died, but the kernel still lists the mount as up, so
+  `os.path.ismount()` alone can't tell the two apart. `phosphor fleet`
+  sweeps for exactly this in the background and self-heals it within 20s
+  (`fusermount -uz` then a restart of that host's `fleet-NAME.service`);
+  `phosphor doctor` calls it "zombie" instead of "mounted" while that's
+  still pending. Still broken after that: the remote itself is down, same
+  as the empty-folder case above.
 - **A frozen pane**: Ctrl-Z in a pane without a shell stops the program; the
   deck resumes it within seconds. A program stuck on its last frame (it
   doesn't redraw when you resize) is closed after 20 seconds and says

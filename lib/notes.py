@@ -494,7 +494,7 @@ def edit(e):
 
 # Assistants that take a first message and stay open: the same ones a
 # workspace starts (aichat answers once and exits, so it isn't one of them).
-from workspace import FIRST
+from workspace import FIRST, assistant_first_cmd
 CHATS = list(FIRST.items())
 
 def chat(e):
@@ -502,10 +502,9 @@ def chat(e):
     import newtab
     if not os.environ.get("ZELLIJ"):
         return "chat opens a tab: only inside the deck"
-    found = next(((b, pre) for b, pre in CHATS if newtab.have(b)), None)
+    found = next((b for b, _ in CHATS if newtab.have(b)), None)
     if not found:
         return "no assistant installed: " + ", ".join(b for b, _ in CHATS)
-    b, pre = found
     d = os.path.expanduser("~/.cache/phosphor/chat")
     os.makedirs(d, exist_ok=True)
     stamp = time.strftime("%Y%m%d-%H%M%S")
@@ -515,7 +514,7 @@ def chat(e):
                 "before doing anything: don't change files yet.\n\n%s\n" % (PATH, e["raw"]))
     import deckconf, gen
     prof, _ = deckconf.load()
-    line = "exec %s \"$(cat %s)\"" % (" ".join([b] + pre), shlex.quote(brief))
+    line = assistant_first_cmd(found, "\"$(cat %s)\"" % shlex.quote(brief))
     tab = {"name": "CHAT", "panes": [{"cmd": "bash", "args": ["-lc", line]}]}
     lay = os.path.join(d, stamp + ".kdl")
     with open(lay, "w") as f:

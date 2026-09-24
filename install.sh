@@ -146,6 +146,20 @@ fetch gping  "$(d64 $GH/orf/gping/releases/latest/download/gping-Linux-musl-$GP.
 fetch btop   "$GH/aristocratos/btop/releases/latest/download/btop-$BT.tar.gz" aristocratos/btop "" || true
 fetch ctop   "" bcicen/ctop "ctop-.*-linux-$GO\"" || true
 
+# The optional Rust rewrites (rust/fleet-poll, rust/run; see #32): bare
+# static binaries, not archives, on our own GitHub mirror's latest release
+# -- x86_64 and aarch64 only, and never released to begin with on 32-bit
+# ARM (see tests/release.py's sync_github_binaries()). Nothing here fails
+# the install: both tools fall back to their own Python/shell versions
+# (deckconf.exe() first checks ~/.local/bin, same as everything else) when
+# the binary just isn't there.
+if [ "$A" != arm ]; then
+  fetch phosphor-fleet-poll "$GH/rsmedrano-cloud/phosphor-deck/releases/latest/download/phosphor-fleet-poll-$M-unknown-linux-musl" \
+        rsmedrano-cloud/phosphor-deck "phosphor-fleet-poll-$M-unknown-linux-musl\$" || true
+  fetch phosphor-run "$GH/rsmedrano-cloud/phosphor-deck/releases/latest/download/phosphor-run-$M-unknown-linux-musl" \
+        rsmedrano-cloud/phosphor-deck "phosphor-run-$M-unknown-linux-musl\$" || true
+fi
+
 if [ ! -x "$BIN/zellij" ]; then
   r "  ! zellij couldn't be installed and the deck can't run without it."
   say "    Usually GitHub being busy: run install.sh again in a minute."

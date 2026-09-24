@@ -48,6 +48,23 @@ for shape, parts, n in (("one", [], 1), ("two", ["frontend", "backend"], 2), ("s
 check("resumes on restart", "--continue" in ws.tab_spec("s", base, "one", [], "claude")["panes"][0]["args"][1])
 check("first message quoted", "'it'\"'\"'s'" in ws.assistant_line("claude", "it's"))
 
+# aider (#33): a real --assistant choice, its own --restore-chat-history
+# resume, and --message answering once then handing off to a normal
+# interactive aider (it has no flag for "first message, stay open").
+check("aider is a known assistant", "aider" in ws.FIRST)
+check("aider resumes with its own flag, not --continue",
+      "--restore-chat-history" in ws.tab_spec("s", base, "one", [], "aider")["panes"][0]["args"][1])
+first = ws.assistant_line("aider", "it's")
+check("aider's first message: one-shot --message, --yes-always so it never waits on a prompt",
+      "aider --message 'it'\"'\"'s' --yes-always" in first)
+check("...then hands off to a normal interactive aider restoring that exchange",
+      first.endswith("; exec aider --restore-chat-history"))
+import newtab
+check("aider is in the + menu's assistant list too", "aider" in dict(newtab.ASSISTANTS))
+chat_line = notes.assistant_first_cmd("aider", '"$(cat /tmp/x.md)"')
+check("notes.py's chat() builds the same one-shot-then-handoff line for aider",
+      chat_line == 'aider --message "$(cat /tmp/x.md)" --yes-always; exec aider --restore-chat-history')
+
 prof = os.path.join(d, "deck.toml")
 open(prof, "w").write('[deck]\nprojects = "%s"\n\n[[tabs]]\nname = "SHOP"\npanes = [ {} ]\n' % d)
 env = dict(os.environ, PHOSPHOR_PROFILE=prof, PHOSPHOR_NOTES=os.path.join(d, "n.md"))

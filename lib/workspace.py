@@ -16,7 +16,7 @@ folder gets an AGENTS.md saying what it owns; the workspace keeps its own
 NOTES.md, where the assistants hand work to each other. Existing files are
 never overwritten: pointing it at a folder you have adds only what's missing.
 """
-import os, re, shlex, shutil, subprocess, sys, time, unicodedata
+import json, os, re, shlex, shutil, subprocess, sys, time, unicodedata
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
 import deckconf
@@ -28,10 +28,13 @@ SHAPES = [("one", "one assistant"), ("two", "two assistants side by side (fronte
 # What each assistant reads by itself, besides AGENTS.md, and how it picks up
 # where it left after a restart.
 CONTEXT = {"claude": "CLAUDE.md", "gemini": "GEMINI.md"}
-RESUME = {"claude": "claude --continue || exec claude"}
+RESUME = {"claude": "claude --continue || exec claude",
+          "aider": "aider --restore-chat-history || exec aider"}
 # (binary, flags before a first message): assistants that start from a message
-# and stay open. notes.py's c uses the same list.
-FIRST = {"claude": [], "gemini": ["-i"], "codex": [], "opencode": ["--prompt"]}
+# and stay open. notes.py's c uses the same list. aider can't really do this
+# (its --message "disables chat mode": answers once, exits) -- assistant_first_cmd()
+# fakes it for aider specifically, so it's still in this list.
+FIRST = {"claude": [], "gemini": ["-i"], "codex": [], "opencode": ["--prompt"], "aider": ["--message"]}
 
 def root(prof=None):
     if prof is None:
@@ -47,10 +50,25 @@ def slug(text, words=5):
 def tilde(p):
     return p.replace(HOME, "~", 1) if p == HOME or p.startswith(HOME + "/") else p
 
+def assistant_first_cmd(a, msg_expr):
+    """The shell command that starts assistant `a` with `msg_expr` -- already
+    a shell expression for the message (a quoted literal, or notes.py's
+    chat()'s `"$(cat FILE)"`, read at run time instead of embedded) -- as
+    its first message, staying interactive after. The one exception is
+    aider: --message answers once and exits (its own "disables chat mode"),
+    so there's no flag that both gives it a first message and stays
+    interactive -- this answers once non-interactively instead, then hands
+    off to a normal interactive aider that reloads that exchange from its
+    own chat-history file."""
+    if a == "aider":
+        return "aider %s %s --yes-always; exec aider --restore-chat-history" % (
+            " ".join(FIRST["aider"]), msg_expr)
+    return "exec %s %s" % (" ".join([a] + FIRST.get(a, [])), msg_expr)
+
 def assistant_line(a, first=None):
     """The shell line a pane runs: resume if it can, a first message if given."""
     if first:
-        return "exec %s %s" % (" ".join([a] + FIRST.get(a, [])), shlex.quote(first))
+        return assistant_first_cmd(a, shlex.quote(first))
     return RESUME.get(a, "exec " + a)
 
 def folders(name, shape, parts):
@@ -290,17 +308,58 @@ def mark_note(note, name, base):
     body = note["body"] + ([""] if note["body"] else []) + [line]
     notes.replace(notes.PATH, note["raw"], notes.rekind(note["raw"], body=body))
 
+def names():
+    """Every workspace under root() (it has a NOTES.md), sorted."""
+    try:
+        return sorted(n for n in os.listdir(root()) if os.path.isfile(os.path.join(root(), n, "NOTES.md")))
+    except FileNotFoundError:
+        return []
+
 def listing():
     r = root()
-    try:
-        names = sorted(n for n in os.listdir(r) if os.path.isfile(os.path.join(r, n, "NOTES.md")))
-    except FileNotFoundError:
-        names = []
-    if not names:
+    ns = names()
+    if not ns:
         print("  no workspaces in %s yet: phosphor workspace new" % tilde(r)); return 0
-    for n in names:
+    for n in ns:
         print("  %-24s %s" % (n, tilde(os.path.join(r, n))))
     return 0
+
+NOTES_SEEN = os.path.join(deckconf.cache_dir(), "workspace-notes-seen.json")
+
+def watch_notes(sess):
+    """Mark a workspace's tab (tabmark.bump -- the same mechanism #26 built
+    for `phosphor notify` and mentions) the moment its NOTES.md's mtime
+    moves: the notebook is the only channel a workspace's assistants (or a
+    human) have to hand work to each other, and until now nothing signalled
+    a new entry landed there -- you only found out by polling it by hand.
+    Runs from mentions.marker()'s always-on loop, same 3s cadence as its
+    other tab-marking work. First sight of a workspace just remembers its
+    current mtime as the baseline: a fresh deck (or a workspace nobody's
+    watched yet) never floods every tab with history that predates it."""
+    seen = {}
+    try:
+        with open(NOTES_SEEN) as f:
+            seen = json.load(f)
+        if not isinstance(seen, dict): seen = {}
+    except (OSError, ValueError):
+        pass
+    import tabmark
+    r, changed = root(), False
+    for name in names():
+        try:
+            mtime = os.path.getmtime(os.path.join(r, name, "NOTES.md"))
+        except OSError:
+            continue
+        prev = seen.get(name)
+        seen[name] = mtime
+        if prev is None:
+            changed = True; continue
+        if mtime > prev:
+            tabmark.bump(sess, name.upper())
+            changed = True
+    if changed:
+        os.makedirs(os.path.dirname(NOTES_SEEN), exist_ok=True)
+        open(NOTES_SEEN, "w").write(json.dumps(seen))
 
 def main():
     argv = sys.argv[1:]

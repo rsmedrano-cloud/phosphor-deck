@@ -9,10 +9,11 @@ every host in the profile, debounce a blip into a real down/back transition
 **Optional, and additive.** `phosphor fleet` looks for this binary
 (`deckconf.exe("phosphor-fleet-poll")`, so `~/.local/bin` first) and only
 falls back to its own Python poller thread if it isn't there, isn't
-executable, or fails to start. Nothing in `install.sh` builds or fetches it
-yet -- there's no release binary to distribute, on purpose, until this has
-had more real use. Until then it only runs where someone built it by hand
-and put it in `~/.local/bin/phosphor-fleet-poll` themselves.
+executable, or fails to start. On x86_64/aarch64, `install.sh` now fetches
+a static musl build of it from the GitHub mirror's latest release (#32),
+same best-effort spirit as zellij/yazi/rclone -- missing it, or a 32-bit
+ARM install, just means the Python thread runs, same as always. Built by
+hand and dropped into `~/.local/bin/phosphor-fleet-poll` still works too.
 
 ## Building it, and updating it live
 
@@ -60,6 +61,7 @@ crash loop.
   issue (see troubleshooting.md); this writes the same first-poll/slow-round
   lines `lib/fleet.py` does, host-name free, in the exact format
   `dlog.tail_for()` expects.
-- **Its own release binary.** Static musl builds (matching how `install.sh`
-  already fetches zellij/yazi/rclone) and a CI job to build+test this crate
-  are both explicitly out of scope for its first pass.
+- **`cargo test` in CI.** A build+test job for this crate is still out of
+  scope (see CONTRIBUTING.md) -- separate from the `rust-release` job that
+  now cross-compiles it for distribution (#32), which only builds, never
+  runs its tests.

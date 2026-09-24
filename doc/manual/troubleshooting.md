@@ -42,6 +42,15 @@
   `phosphor doctor` checks that too; `systemctl --user import-environment
   SSH_AUTH_SOCK` (then `phosphor gen`) gives the service your agent, or use a
   key without a passphrase for the deck.
+- **A folder in `~/fleet` errors instead** ("Transport endpoint is not
+  connected"): the remote slept or changed IP (common over Tailscale) and
+  the sftp transport died, but the kernel still lists the mount as up, so
+  `os.path.ismount()` alone can't tell the two apart. `phosphor fleet`
+  sweeps for exactly this in the background and self-heals it within 20s
+  (`fusermount -uz` then a restart of that host's `fleet-NAME.service`);
+  `phosphor doctor` calls it "zombie" instead of "mounted" while that's
+  still pending. Still broken after that: the remote itself is down, same
+  as the empty-folder case above.
 - **A frozen pane**: Ctrl-Z in a pane without a shell stops the program; the
   deck resumes it within seconds. A program stuck on its last frame (it
   doesn't redraw when you resize) is closed after 20 seconds and says
