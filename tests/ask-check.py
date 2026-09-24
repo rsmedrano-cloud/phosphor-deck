@@ -22,6 +22,13 @@ check("opencode run", ask.command("opencode", "hi") == ["opencode", "run", "hi"]
 check("aider --message", ask.command("aider", "hi") ==
       ["aider", "--yes-always", "--message", "hi"])
 
+# prompt(): piped text as context, the question, or both together
+check("just a question", ask.prompt(["hi", "there"], "") == "hi there")
+check("just piped text (no question)", ask.prompt([], "the diff") == "the diff")
+check("both: piped first, then the question",
+      ask.prompt(["what", "changed"], "the diff") == "the diff\n\nwhat changed")
+check("neither: empty", ask.prompt([], "") == "")
+
 # pick(): first installed in ORDER, or the named one if it's installed and known
 real_have = ask.newtab.have
 try:
@@ -36,17 +43,29 @@ try:
 finally:
     ask.newtab.have = real_have
 
-# main(): CLI parsing, never shells out to a real assistant in this test
+# main(): CLI parsing, never shells out to a real assistant in this test.
+# Every call pins down stdin explicitly (a tty with nothing piped, by
+# default) -- main() reads stdin whenever isatty() is false, and this
+# process's own real stdin, inherited from whatever ran the test, must never
+# be the thing it reads: piped or not, closed or not, is not ours to assume.
 import contextlib, io
-def run(argv):
-    saved = sys.argv
+class FakeStdin(io.StringIO):
+    def __init__(self, text="", tty=True):
+        super().__init__(text)
+        self._tty = tty
+    def isatty(self):
+        return self._tty
+
+def run(argv, piped=None):
+    saved_argv, saved_stdin = sys.argv, sys.stdin
     sys.argv = ["phosphor-ask"] + argv
+    sys.stdin = FakeStdin(piped, tty=False) if piped is not None else FakeStdin(tty=True)
     out = io.StringIO()
     try:
         with contextlib.redirect_stdout(out):
             rc = ask.main()
     finally:
-        sys.argv = saved
+        sys.argv, sys.stdin = saved_argv, saved_stdin
     return rc, out.getvalue()
 
 real_have = ask.newtab.have
@@ -74,6 +93,21 @@ try:
     rc, out = run(["what", "was", "that", "command"])
     check("runs the picked assistant", rc == 0)
     check("joins the question", seen and seen[-1] == ["claude", "-p", "what was that command"])
+
+    seen.clear()
+    rc, out = run(["what", "changed"], piped="the diff")
+    check("piped + question: combined, runs", rc == 0)
+    check("piped text comes first", seen and seen[-1] == ["claude", "-p", "the diff\n\nwhat changed"])
+
+    seen.clear()
+    rc, out = run([], piped="just the piped text")
+    check("piped only, no question: still runs", rc == 0)
+    check("piped text alone is the prompt", seen and seen[-1] == ["claude", "-p", "just the piped text"])
+
+    seen.clear()
+    rc, out = run([], piped="")
+    check("piped but empty, no question: still refuses", rc == 1 and "usage" in out)
+    check("empty pipe: never runs anything", not seen)
 finally:
     ask.newtab.have = real_have
     ask.subprocess.run = real_run

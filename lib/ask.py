@@ -1,6 +1,7 @@
 """phosphor ask - a one-shot question, no tab.
 
     phosphor ask [--assistant NAME] QUESTION
+    cmd | phosphor ask [QUESTION]
 
 Shells out to whichever assistant CLI is already installed and prints its
 answer inline: no tab, no context switch, for the "what was that command
@@ -8,6 +9,10 @@ again" class of question. Same assistants `phosphor workspace` already
 knows (claude, gemini, codex, opencode, aider), tried in that order unless
 --assistant names one. Nothing new to install: if none of them are on this
 machine, it says so instead of reaching for a dependency of its own.
+
+Piped input is context, not a replacement for the question: `git diff |
+phosphor ask "what changed here"` sends the diff and the question together.
+With no question at all, the piped text alone is the prompt.
 """
 import os, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -40,6 +45,16 @@ def command(assistant, question):
     return ONESHOT[assistant] + [question]
 
 
+def prompt(argv, piped):
+    """The words on the command line, piped input if there was any, and both
+    together when there's both -- piped text first, as context, then the
+    question, the way you'd hand someone a diff before asking about it."""
+    question = " ".join(argv).strip()
+    if piped and question:
+        return piped + "\n\n" + question
+    return question or piped
+
+
 def main():
     a = sys.argv[1:]
     assistant = None
@@ -47,9 +62,10 @@ def main():
         if len(a) < 2:
             print(BAD + " --assistant needs a name" + RST); return 1
         assistant, a = a[1], a[2:]
-    question = " ".join(a).strip()
+    piped = sys.stdin.read().strip() if not sys.stdin.isatty() else ""
+    question = prompt(a, piped)
     if not question:
-        print(BAD + " usage: phosphor ask [--assistant NAME] \"question\"" + RST); return 1
+        print(BAD + " usage: phosphor ask [--assistant NAME] \"question\"   (or pipe one in)" + RST); return 1
     chosen = pick(assistant)
     if chosen is None:
         if assistant:

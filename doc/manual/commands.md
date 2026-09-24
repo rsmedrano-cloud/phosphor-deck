@@ -42,7 +42,9 @@
   `phosphor workspace` knows, tried in that order) with a headless, single-answer flag of its own
   (`claude -p`, `gemini -p`, `codex exec`, `opencode run`, `aider --message`) and prints the answer.
   `--assistant` picks one by name instead of the first installed. For "what was that command
-  again" -- not a replacement for a workspace or a chat tab.
+  again" -- not a replacement for a workspace or a chat tab. Piped input is context, not a
+  replacement for the question: `git diff | phosphor ask "what changed here"` sends both
+  together (the pipe first); with no question at all, the piped text alone is the prompt.
 
 ## Notes
 - `phosphor note [--kind note|idea|decision|todo|summary] [--by NAME] [--book NAME] [--tab TAB] TEXT` (`-` reads stdin).

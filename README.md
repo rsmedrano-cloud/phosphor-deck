@@ -131,7 +131,8 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
 - **A quick question, no tab.** `phosphor ask "..."` shells out to whichever
   assistant CLI is already installed (claude, gemini, codex, opencode, aider)
   in headless mode and prints the answer inline -- for "what was that command
-  again", not a whole workspace or a chat tab.
+  again", not a whole workspace or a chat tab. `git diff | phosphor ask "what
+  changed here"` sends the pipe as context, question and all.
 - **Tabs that stay put.** Tabs are locked; Alt-r unlocks the one you're in,
   lets you resize, split or swap what runs in a pane, and then asks: save it
   into your profile, or put it back.
@@ -306,28 +307,48 @@ without parsing prose. Contributing: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Commands
 
+The same categories as [the manual](doc/manual/commands.md), which goes into
+more depth on every one of these.
+
+### Getting started
+
 | | |
 |---|---|
 | `phosphor doctor` | preflight: locales, FUSE, systemd, PATH, fleet reach |
 | `deck` | get in, from any machine (on the brain: `phosphor attach`) |
 | `phosphor init` | profile wizard |
-| `phosphor up` / `down` | start the deck (and at every boot) / stop it |
-| `phosphor update` | a newer version: pull or copy, install, restart; `--channel nightly` or `stable` |
-| `phosphor version` | this version, whether there's a newer one, and what it brings ([CHANGELOG](CHANGELOG.md)) |
 | `phosphor setup` | add/remove machines, color, editor and shell, phone, browser access, tunnels, notebook |
 | `phosphor panel` | the DECK tab: state, next steps, every action one key away |
 | `phosphor phone` | put a phone or tablet one tap away from the deck |
 | `phosphor gen` | generate layouts, units and mounts |
+| `phosphor up` | start the deck (and at every boot) |
+| `phosphor update` | a newer version: pull or copy, install, restart; `--channel nightly` or `stable` |
+| `phosphor version` | this version, whether there's a newer one, and what it brings ([CHANGELOG](CHANGELOG.md)) |
+
+### Session
+
+| | |
+|---|---|
 | `phosphor restart` | bring the session down cleanly and back up (never the new one before the old one is gone); every screen goes back in by itself |
-| `phosphor note` / `notes` | write to / read the shared notebook |
+| `phosphor down` | stop it (and the watchdog timer) |
+
+### Workspaces
+
+| | |
+|---|---|
 | `phosphor workspace` | a tab per idea: folder, git, its assistants |
 | `phosphor ask Q` | a one-shot question to whichever assistant CLI is installed, no tab |
-| `phosphor new` | the + menu (also Alt-n): a shell, a machine, an assistant, your apps, a layout |
-| `phosphor keep` | write a tab you arranged by hand into your profile |
-| `phosphor edit` | what Alt-r runs: unlock a tab, change it, save it or put it back |
-| `phosphor shortcuts` | the deck's keys, yours to change; updates never reset them |
-| `phosphor tabs` | the tabs your profile brings back: forget one, reorder, reopen |
-| `phosphor recipe [NAME]` | starter tab bundles: homelab, dev, bubble, workbench |
+
+### Notes
+
+| | |
+|---|---|
+| `phosphor note` / `notes` | write to / read the shared notebook |
+
+### In the deck
+
+| | |
+|---|---|
 | `phosphor fleet` | fleet panel |
 | `phosphor pulse` | the heartbeat: a wave tied to real load |
 | `phosphor glance` | read-only: fleet, unread mentions, open todos -- for a small screen, no zellij needed |
@@ -339,21 +360,42 @@ without parsing prose. Contributing: [CONTRIBUTING.md](CONTRIBUTING.md).
 | `phosphor services` | systemd units and their state: Phosphor's own, plus any you add (see `[services]` in the profile) |
 | `phosphor review` | open merge/pull requests: CI, conflicts, diff, try the branch in its own worktree |
 | `phosphor screens` | who's attached (phone, tablet, another computer); `x` twice kicks one loose |
-| `phosphor face` | turn an image into the adjutant's face |
 | `phosphor keys` | key guide, updates itself when you install a tool |
 | `phosphor store` | install TUIs from their releases, no sudo; open what you have, and your own apps |
-| `phosphor path` | turns `~/fleet/x/y` into `host:/y` |
+| `phosphor new` | the + menu (also Alt-n): a shell, a machine, an assistant, your apps, a layout |
+| `phosphor keep` | write a tab you arranged by hand into your profile |
+| `phosphor tabs` | the tabs your profile brings back: forget one, reorder, reopen |
+| `phosphor recipe [NAME]` | starter tab bundles: homelab, dev, bubble, workbench |
+| `phosphor shortcuts` | the deck's keys, yours to change; updates never reset them |
+| `phosphor edit` | what Alt-r runs: unlock a tab, change it, save it or put it back |
 | `phosphor mentions` | read-only feed of chat notifications; `--setup` hooks matterhorn |
-| `phosphor web` | on / off / status / token: the deck in a browser, tailnet only |
-| `phosphor tunnel` | keep your ssh config's LocalForward tunnels up |
 | `phosphor clip` | a file or a pipe onto your device's clipboard; `--save` the other way |
 | `phosphor send` | one real file, as a one-time link and QR; any size, gone once it's downloaded |
+| `phosphor web` | on / off / status / token: the deck in a browser, tailnet only |
+| `phosphor path` | turns `~/fleet/x/y` into `host:/y` |
+| `phosphor tunnel` | keep your ssh config's LocalForward tunnels up |
+| `phosphor face` | turn an image into the adjutant's face |
 | `phosphor logs` | the deck's own log: crashes with traceback, hangs, exits, restarts; `-f` follows |
 | `phosphor trace` | verbose logging for one tool, for about 30 minutes, then it turns itself off |
-| `phosphor help` | the manual, by topic; `phosphor docs` rebuilds AGENTS.md |
-| `phosphor completion` | tab completion for bash or zsh (the installer adds it) |
+
+### Before you push a fork
+
+| | |
+|---|---|
 | `phosphor demo` | a throwaway session over made-up machines, for a screenshot or a recording |
 | `phosphor privacy` | before you push a fork: finds your own data in it |
+
+### Shell
+
+| | |
+|---|---|
+| `phosphor completion` | tab completion for bash or zsh (the installer adds it) |
+
+### Help
+
+| | |
+|---|---|
+| `phosphor help` | the manual, by topic; `phosphor docs` rebuilds AGENTS.md |
 
 ## Your data
 

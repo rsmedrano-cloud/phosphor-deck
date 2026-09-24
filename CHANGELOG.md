@@ -6,6 +6,15 @@ before it updates.
 
 ## Unreleased
 
+## 0.4.4 — ask reads a pipe, README finds its categories
+
+- Docs: README's command table was one long undifferentiated list of ~45 rows -- split into
+  the same categories the manual already uses (Getting started, Session, Workspaces, Notes, In
+  the deck...), so skimming it for the first time doesn't read as a wall.
+- New: `phosphor ask` reads a pipe. `git diff | phosphor ask "what changed here"` sends the
+  diff and the question together (the pipe first, as context); with no question at all, the
+  piped text alone is the prompt.
+
 ## 0.4.3 — middle-click paste, documented not built
 
 - Docs: why middle-click paste (X11/Wayland primary selection) doesn't come from a plain
