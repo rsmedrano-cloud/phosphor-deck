@@ -17,6 +17,20 @@ Ctrl+Shift+V).
 Up to ~70 KB: Termux drops more than ~100 KB (Android's limit). Move bigger
 things through `~/fleet`. Some desktop terminals don't support OSC 52.
 
+**Middle-click paste (X11/Wayland primary selection) doesn't come from this:**
+`mouse_mode` (zellij's own setting, on by default so drag-select and pane
+resizing work) means your terminal hands every mouse event to zellij instead
+of handling selection itself -- the same reason vim or tmux with their own
+mouse mode on don't feed your desktop's primary selection either. Your
+terminal emulator's own bypass still works underneath zellij: hold **Shift**
+while you drag (Alacritty, kitty, foot, GNOME Terminal, xterm, Windows
+Terminal...; **Option** in iTerm2) to make a plain selection your terminal
+handles itself, which does land in the primary selection -- middle-click
+pastes it, same as any other program. Nothing to turn on, and nothing
+Phosphor could add on top: primary selection lives in your desktop's X11 or
+Wayland session, one machine at a time, independent of the clipboard OSC 52
+already bridges across every screen looking at the deck.
+
 **From yazi:** `c` already opens a chord that copies the path, the URL, the
 filename... two more join it, on the hovered file, no shell tab needed:
 `c` `t` for `phosphor clip` (its contents, onto every screen's clipboard)

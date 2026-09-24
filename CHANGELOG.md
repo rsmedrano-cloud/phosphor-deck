@@ -6,6 +6,13 @@ before it updates.
 
 ## Unreleased
 
+## 0.4.3 — middle-click paste, documented not built
+
+- Docs: why middle-click paste (X11/Wayland primary selection) doesn't come from a plain
+  drag-select in the deck, and the fix that needs no code -- hold Shift (Option in iTerm2)
+  while selecting to bypass zellij's `mouse_mode` and use your terminal's own selection, which
+  does feed the primary selection. No behavior changed; see doc/manual/clipboard.md. (#24)
+
 ## 0.4.2 — don't act unattended without a real client
 
 - Fixed: `phosphor web on` used to restart the live deck unconditionally once its own
