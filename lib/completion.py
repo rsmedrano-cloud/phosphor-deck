@@ -9,8 +9,8 @@ import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import REPO
 
-CMDS = ("doctor init setup panel phone screen gen up attach deck restart down update version note notes fleet "
-        "edit shortcuts tabs keep workspace pulse adjutant notify face keys store new mentions clip send web tunnel path privacy run "
+CMDS = ("doctor init setup panel commands phone screen gen up attach deck restart down update version note notes fleet "
+        "edit shortcuts tabs keep workspace ask pulse adjutant notify face keys store new mentions clip send receive web tunnel path privacy run "
         "help docs prom logs trace ci recipe tts demo services glance review push screens")
 # the manual's pages, so a new one completes without touching this file
 TOPICS = " ".join(sorted(f[:-3] for f in os.listdir(os.path.join(REPO, "doc/manual"))

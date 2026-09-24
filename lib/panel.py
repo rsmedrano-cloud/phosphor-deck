@@ -14,7 +14,8 @@ PHOSPHOR = os.path.join(REPO, "phosphor")
 STEPS = os.path.join(deckconf.data_dir(), "steps")
 STOCK_TABS = {"COMMS", "WORK", "SYS", "CLOUD", "DECK", "HELP", "NOTES"}
 
-ACTIONS = [("v", "screens",          "who's attached; kick one loose"),
+ACTIONS = [("e", "explore commands",  "every phosphor command, by category"),
+           ("v", "screens",          "who's attached; kick one loose"),
            ("p", "add a screen",     "a phone, a tablet, another computer"),
            ("m", "machines & color", "add or remove machines, pick the phosphor"),
            ("w", "browser access",   "the deck in a browser, tailnet only"),
@@ -136,7 +137,9 @@ def act(k, st):
     sys.stdout.write("\x1b[?1006l\x1b[?1000l\x1b[?25h\x1b[2J\x1b[H"); sys.stdout.flush()
     P = lambda *a: subprocess.run([sys.executable, PHOSPHOR] + list(a))
     try:
-        if k == "v":
+        if k == "e":
+            P("commands")
+        elif k == "v":
             P("screens")
         elif k == "p":
             P("phone"); pause()

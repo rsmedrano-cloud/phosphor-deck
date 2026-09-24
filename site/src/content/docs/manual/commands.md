@@ -13,6 +13,10 @@ sidebar:
 - `phosphor panel` — the DECK tab: the deck's state, the next steps while you set up, and every
   action one key or tap away (add a screen, machines, web, tunnels, tools, keep a tab, tabs, shortcuts,
   a shell here, doctor, logs, update, restart, manual). Actions run in the same pane and come back.
+- `phosphor commands` — every phosphor command, browsable by category (also: `e` in the DECK
+  tab). Pick a category, then a command: a read-only one runs right there when you pick it,
+  anything else shows its usage and copies the invocation to every screen's clipboard instead
+  of guessing at missing arguments (a file, a host, a message) for you.
 - `phosphor phone` — how to add a screen (phone, another computer, anything with ssh), with the
   phone's line as a QR; piped (`ssh … phosphor phone | sh`) it is the Termux kit. `--qr` prints only the code.
 - `phosphor screen` — the same kit for a computer without Termux: a key and a `deck` in ~/.local/bin.
@@ -42,6 +46,14 @@ sidebar:
 
 ## Workspaces
 - `phosphor workspace new|open|list` — a tab per idea with its own folder and assistants; see workspaces.
+- `phosphor ask [--assistant NAME] QUESTION` — a one-shot question, no tab: shells out to whichever
+  assistant CLI is already installed (claude, gemini, codex, opencode, aider -- the same list
+  `phosphor workspace` knows, tried in that order) with a headless, single-answer flag of its own
+  (`claude -p`, `gemini -p`, `codex exec`, `opencode run`, `aider --message`) and prints the answer.
+  `--assistant` picks one by name instead of the first installed. For "what was that command
+  again" -- not a replacement for a workspace or a chat tab. Piped input is context, not a
+  replacement for the question: `git diff | phosphor ask "what changed here"` sends both
+  together (the pipe first); with no question at all, the piped text alone is the prompt.
 
 ## Notes
 - `phosphor note [--kind note|idea|decision|todo|summary] [--by NAME] [--book NAME] [--tab TAB] TEXT` (`-` reads stdin).
@@ -115,6 +127,12 @@ sidebar:
 - `phosphor send FILE [--timeout SECONDS]` — one real file (any size or type), as a one-time
   link and QR on your tailnet (or LAN without one). Gone the moment it's downloaded, or after
   the timeout (default 180s) if nobody comes for it. See clipboard.
+- `phosphor receive [--dir FOLDER] [--timeout SECONDS]` — the other way: a one-time upload
+  link and QR, same tailnet-or-LAN reach as `send`. The file lands in `~/received` (or `--dir`),
+  never overwriting one that's already there, and the link is gone the moment it's used or
+  after the timeout. For getting a real file (a photo, a screenshot) from whatever device
+  you're actually holding onto this machine -- an AI assistant running in a pane here can then
+  read it directly. See clipboard.
 - `phosphor web on|off|status|token` — browser access, tailnet only.
 - `phosphor path PATH` — `~/fleet/x/y` → `host:/y`.
 - `phosphor tunnel [on|off HOST]` — keep your ssh config's LocalForward tunnels up.
@@ -143,3 +161,10 @@ sidebar:
 
 ## Help
 - `phosphor help [TOPIC]` — this manual. `phosphor docs [--check]` — rebuild AGENTS.md.
+- `share/commands.json` — a machine-readable manifest, one entry per command above, saying
+  whether it mutates live state (the session, a systemd unit, the profile, or any file phosphor
+  generates) and whether it needs the deck already running to do anything -- with a one-line
+  note for the ones where a flag or an interactive key changes the plain answer. Not a command
+  of its own: for a CI job, a cron/timer, an external policy tool, or another assistant working
+  in this repo that wants to know what needs a human before it runs unattended, without parsing
+  this page's prose. `tests/commands-manifest-check.py` keeps it matching the list above.

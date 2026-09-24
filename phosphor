@@ -53,6 +53,7 @@ USAGE = """phosphor - Phosphor Deck
     phosphor init       wizard: builds your profile with a few questions
     phosphor setup      add/remove machines, pick the color (also: m in DECK)
     phosphor panel      the DECK tab: the deck's state, next steps, every action
+    phosphor commands   browse every phosphor command, by category (also: e in DECK)
     phosphor phone      add a screen: a phone, another computer, anything with ssh
     phosphor screen     the same kit for a computer without Termux
     phosphor web on     the deck in a browser, only inside your tailnet (optional)
@@ -74,6 +75,8 @@ USAGE = """phosphor - Phosphor Deck
   workspaces
     phosphor workspace new   a project folder, git and a tab with its assistants
     phosphor workspace open  its tab again (list: the ones you have)
+    phosphor ask Q      a one-shot question to whichever assistant CLI is
+                        installed, no tab (--assistant NAME to pick one)
 
   notes
     phosphor note T     add a note to the shared notebook
@@ -99,6 +102,7 @@ USAGE = """phosphor - Phosphor Deck
     phosphor tunnel     keep the LocalForward tunnels of your ssh config up (on/off HOST)
     phosphor clip F     a file or a pipe onto your device's clipboard
     phosphor send F     one real file, as a one-time link and QR (any size)
+    phosphor receive    the other way: a one-time upload link, into ~/received
     phosphor mentions   read-only feed of chat notifications (--setup: hook matterhorn)
     phosphor logs [T]   the deck's own log: crashes, hangs, exits, restarts (-f follows)
     phosphor trace T    verbose logging for one tool, for about 30 minutes
@@ -116,7 +120,7 @@ USAGE = """phosphor - Phosphor Deck
 TOOLS = ("fleet", "pulse", "keys", "store", "adjutant", "notes", "privacy", "phone", "newtab", "clip", "send",
          "mentions", "run", "web", "tunnels", "completion", "update", "panel", "version",
          "keep", "workspace", "edit", "shortcuts", "tabs", "prom", "logs", "trace", "ci", "recipe", "tts", "demo",
-         "services", "glance", "review", "push", "screens")
+         "services", "glance", "review", "push", "screens", "ask", "commands", "receive")
 
 def main():
     cmd = sys.argv[1] if len(sys.argv) > 1 else "help"

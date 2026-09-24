@@ -6,6 +6,66 @@ before it updates.
 
 ## Unreleased
 
+## 1.0.0 — phosphor commands, and the other direction: phosphor receive
+
+- New: `phosphor commands` (also `e` in the DECK tab) -- a categorized, drill-down index of
+  every phosphor subcommand: pick a category, then a command, the same categories the manual
+  and README already use. A read-only one (`share/commands.json` says `mutates: false`) runs
+  right there when you pick it; anything else shows its usage and copies the invocation to
+  every screen's clipboard instead of guessing at missing arguments (a file, a host, a message)
+  for you.
+- New: `phosphor receive [--dir FOLDER] [--timeout SECONDS]` -- the upload-direction mirror of
+  `phosphor send`: a one-time link and QR, same tailnet-or-LAN reach, but a form to send a file
+  in instead of a link to download one. It lands in `~/received` (or `--dir`), never overwriting
+  one that's already there. For getting a real file (a photo, a screenshot) from whatever
+  device you're actually holding onto this machine -- an AI assistant running in a pane here
+  can then read it directly, no detour through copying it by hand and typing "I left it in ~/x".
+
+## 0.4.4 — ask reads a pipe, README finds its categories
+
+- Docs: README's command table was one long undifferentiated list of ~45 rows -- split into
+  the same categories the manual already uses (Getting started, Session, Workspaces, Notes, In
+  the deck...), so skimming it for the first time doesn't read as a wall.
+- New: `phosphor ask` reads a pipe. `git diff | phosphor ask "what changed here"` sends the
+  diff and the question together (the pipe first, as context); with no question at all, the
+  piped text alone is the prompt.
+
+## 0.4.3 — middle-click paste, documented not built
+
+- Docs: why middle-click paste (X11/Wayland primary selection) doesn't come from a plain
+  drag-select in the deck, and the fix that needs no code -- hold Shift (Option in iTerm2)
+  while selecting to bypass zellij's `mouse_mode` and use your terminal's own selection, which
+  does feed the primary selection. No behavior changed; see doc/manual/clipboard.md. (#24)
+
+## 0.4.2 — don't act unattended without a real client
+
+- Fixed: `phosphor web on` used to restart the live deck unconditionally once its own
+  confirmation pause was skipped -- which happens automatically without a tty (a script, a
+  cron, a policy tool), not just when a human presses Enter. It now only restarts on its own
+  with a tty, or with the new explicit `--yes` flag; without either, it still publishes and
+  prints the token, but leaves the restart to you. (#38)
+- Fixed: `phosphor new --here` (what Alt-n and the tab bar's + actually run) called `zellij
+  action new-tab` with no check that a client was attached to the session -- exactly the
+  pattern AGENTS.md warns assistants never to do by hand. A real keypress always has a client
+  attached by construction, so this only ever mattered for something driving the deck out of
+  band; it now refuses instead of adding a tab when `zellij action list-clients` names none.
+  It also now requires an actual pane context (`$ZELLIJ`) before even asking that: with none at
+  all, zellij falls back to "the only session running" on its own, which on a real box is
+  someone's live deck -- caught this the hard way while testing the fix itself. (#39)
+
+## 0.4.1 — phosphor ask, and a manifest of what's safe to automate
+
+- New: `share/commands.json` -- a machine-readable manifest of every `phosphor` subcommand,
+  saying whether it mutates live state (the session, a systemd unit, the profile, or a
+  generated file) and whether it needs the deck already running, with a note where a flag or
+  an interactive key changes the plain answer. For a CI job, a cron, an external policy/guard
+  tool, or another assistant working in this repo -- the classification AGENTS.md's own rules
+  already implied, now written down instead of left to prose and judgment calls. (#37)
+- New: `phosphor ask "question"` -- a one-shot question, no tab. Shells out to whichever
+  assistant CLI is already installed (claude, gemini, codex, opencode, aider -- the same list
+  `phosphor workspace` knows) in its own headless, single-answer mode and prints the reply.
+  `--assistant NAME` picks one instead of the first installed. (#35)
+
 ## 0.4.0 — the deck that tells you: tab marks, dirty workspaces, self-healing mounts
 
 - `phosphor glance` and the DECK tab's status line now call out a workspace with uncommitted

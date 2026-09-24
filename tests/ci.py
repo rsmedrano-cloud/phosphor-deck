@@ -11,7 +11,12 @@ Exit 0 only when every pipeline passed. Needs glab, logged in.
 import json, subprocess, sys, time
 
 TAIL = 40
-WAIT = 1500          # seconds: the install job alone can take minutes
+# seconds: the install job alone can take minutes, and a minor release queues
+# TWO full pipelines (main and the tag) back to back on the one runner --
+# confirmed against a real 0.4.0 release: main and v0.4.0 started a second
+# apart, and only one of them could actually run at a time, pushing the
+# combined wait past the old 1500s even though neither pipeline was stuck.
+WAIT = 2700
 
 def sh(*a):
     return subprocess.run(list(a), capture_output=True, text=True)

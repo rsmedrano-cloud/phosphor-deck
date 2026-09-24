@@ -220,10 +220,35 @@ def layout(prof, keep):
     zj("new-tab", "--layout", lay, "--name", name)
     return name
 
+def attached():
+    """False only when we can positively confirm nobody's attached to this
+    session (list-clients ran fine and named none): if the check itself
+    fails, don't block a real Alt-n press on it. A real keypress -- Alt-n,
+    or a tap on the tab bar's + -- already proves a client is attached; this
+    guards the one path that doesn't, `--here` called out of band (a script,
+    an assistant), which is exactly the "zellij action new-tab with no
+    client attached" case AGENTS.md warns against."""
+    try:
+        r = subprocess.run([ZJ, "action", "list-clients"], capture_output=True, text=True, timeout=8)
+    except Exception:
+        return True
+    if r.returncode != 0:
+        return True
+    return len([l for l in r.stdout.splitlines() if l.strip()]) > 1     # header + at least one client
+
 def here():
     """Alt-n: a new tab in the folder of the pane you're in. It runs in place
     over that pane for a moment, reads where its foreground program is (your
     shell after a cd) and opens the menu there."""
+    if not os.environ.get("ZELLIJ"):
+        # No pane context at all: without $ZELLIJ_SESSION_NAME to pin it down,
+        # `zellij action` falls back to "the only session running" -- which,
+        # on a real box, is someone's live deck. Refuse outright rather than
+        # let that implicit default decide.
+        print("  --here only makes sense run from inside a pane of the deck"); return 1
+    if not attached():
+        print("phosphor new --here: nobody's attached to this session, refusing to add a tab.")
+        return 1
     import edit
     at = edit.where_am_i()
     cwd = None

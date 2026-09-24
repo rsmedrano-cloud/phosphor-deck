@@ -79,6 +79,21 @@ out=$(python3 tests/workspace-check.py 2>&1) && ok || bad "$out"
 step "a workspace's tab marks when NOTES.md changes"
 out=$(python3 tests/workspace-notes-watch-check.py 2>&1) && ok || bad "$out"
 
+step "ask picks an assistant, no tab"
+out=$(python3 tests/ask-check.py 2>&1) && ok || bad "$out"
+
+step "commands.json matches phosphor's own command list"
+out=$(python3 tests/commands-manifest-check.py 2>&1) && ok || bad "$out"
+
+step "web on: never restarts unattended without --yes"
+out=$(python3 tests/web-check.py 2>&1) && ok || bad "$out"
+
+step "new --here: refuses with nobody attached"
+out=$(python3 tests/newtab-attach-check.py 2>&1) && ok || bad "$out"
+
+step "commands: category/leaf picker, only safe ones auto-run"
+out=$(python3 tests/commands-menu-check.py 2>&1) && ok || bad "$out"
+
 step "prometheus gauges, fake server"
 out=$(python3 tests/prom-check.py 2>&1) && ok || bad "$out"
 
@@ -117,6 +132,9 @@ out=$(python3 tests/yazi-keymap-check.py 2>&1) && ok || bad "$out"
 
 step "send: one file, one link, gone"
 out=$(python3 tests/send-check.py 2>&1) && ok || bad "$out"
+
+step "receive: the other way, one upload, gone"
+out=$(python3 tests/receive-check.py 2>&1) && ok || bad "$out"
 
 step "services: units match what gen writes"
 out=$(python3 tests/services-check.py 2>&1) && ok || bad "$out"
