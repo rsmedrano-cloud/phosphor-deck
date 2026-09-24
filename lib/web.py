@@ -94,7 +94,7 @@ def set_flag(on):
     new = pat.sub(line, text, count=1) if pat.search(text) else \
         re.sub(r"^\[deck\]\s*$", "[deck]\n" + line, text, count=1, flags=re.M)
     deckconf.tomllib.loads(new)                 # never write a profile that doesn't parse
-    open(p + ".bak", "w").write(text)
+    deckconf.backup(p, text)
     open(p, "w").write(new)
 
 def token():

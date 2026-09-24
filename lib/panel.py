@@ -61,11 +61,13 @@ def state(prof):
     import web
     w = web.live(prof)
     running = w["published"] or w["server"]
+    import workspace
     s = {"session": sess, "web": running, "web_local": running and not w["published"],
          "web_mismatch": w["flag"] != running,
          "screens": None,
          "timer": out("systemctl", "--user", "is-active", sess + ".timer").strip() == "active",
          "tunnels": [tunnels.active(t["host"]) for t in deckconf.tunnels(prof)],
+         "dirty_workspaces": len(workspace.dirty_workspaces()),
          "version": version.current()["version"], "channel": version.current()["channel"],
          "news": version.news()}
     version.check_later()
@@ -97,6 +99,9 @@ def draw(prof, st, w, rows, with_steps=True):
                  "web " + (("local" if st.get("web_local") else "on") if st["web"] else "off"))
     tu = st["tunnels"]
     parts.append("tunnels %d/%d up" % (sum(tu), len(tu)) if tu else "no tunnels")
+    if st.get("dirty_workspaces"):
+        n = st["dirty_workspaces"]
+        parts.append(AMB + "%d workspace%s dirty" % (n, "" if n == 1 else "s") + RST + FG)
     # one line, always: a wrapped line would shift every tap target below it
     while len(parts) > 1 and vlen(" " + " · ".join(parts)) > w:
         parts.pop()

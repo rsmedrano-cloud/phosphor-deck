@@ -61,6 +61,15 @@ toolchain. Two so far, each with its own README for how it's wired in
 fleet`'s `fleet.json`, picked up automatically when it's installed) and
 `rust/run` (`lib/run.py`'s watcher, every pane -- not picked up automatically
 yet; try it on one tab by pointing that pane's `cmd` at the built binary).
+On x86_64/aarch64, `install.sh` now fetches both from the GitHub mirror's
+latest release (#32): the `rust-release` CI job cross-compiles them with
+plain rustup targets (a musl.cc toolchain for aarch64's linker -- see its
+own comment in `.gitlab-ci.yml` for why not the more common `cross`/docker
+route), only at a tag, and `tests/release.py --main` attaches them to a
+real GitHub Release (never a dev/nightly one -- see its own
+`sync_github_binaries()` for why). Missing or the wrong architecture still
+just falls back silently: fetching them is best-effort, same as the other
+bundled binaries.
 Neither's `cargo test` is in `tests/check.sh` yet -- CI's images
 (`python:3.12-slim`, `alpine`) don't carry a Rust toolchain, and adding one
 is its own topic, not bundled into a module's first pass. Run them by hand

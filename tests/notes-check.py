@@ -58,7 +58,7 @@ on = {k for k, _, ok in notes.actions(notes.entries(p)[1]) if ok}
 check("todo offers done", "x" in on and "e" in on and "w" in on)
 check("same keys with or without a note", [a[0] for a in notes.actions(None)]
       == [a[0] for a in notes.actions(notes.entries(p)[1])])
-check("nothing picked: only what needs no note", {k for k, _, ok in notes.actions(None) if ok} == set("atiuf"))
+check("nothing picked: only what needs no note", {k for k, _, ok in notes.actions(None) if ok} == set("atiuf/"))
 lines, spots = notes.footer(notes.actions(None), 20)
 check("footer wraps to the width", all(notes.vlen(l) <= 20 for l in lines) and len(lines) > 1)
 
@@ -74,6 +74,15 @@ moved = notes.edited(sys_note["raw"], "Disk almost full on nas", "claude")
 check("an edit keeps the tab", (notes.parse(moved)["tab"], notes.parse(moved)["by"]) == ("SYS", "me, edited by claude"))
 check("done keeps the tab", notes.parse(notes.rekind(sys_note["raw"], kind="done"))["tab"] == "SYS")
 check("a tab name can't break the header", notes.parse(notes.header("2026-09-16 10:00", "note", "me", "t", "A · B @C"))["tab"] == "A   B  C")
+
+# search (/): a filter over what entries() already parsed, no new I/O
+e = {"title": "Buy cables", "body": "for the rack", "by": "me", "tab": "SYS"}
+check("matches the title", notes.matches(e, "cables"))
+check("matches the body", notes.matches(e, "the rack"))
+check("matches the author, case-insensitive", notes.matches(e, "ME"))
+check("matches the tab", notes.matches(e, "sys"))
+check("no match", not notes.matches(e, "nope"))
+check("always in the key guide, even with nothing picked", "/" in {k for k, _, ok in notes.actions(None) if ok})
 
 # writing a note: what a phone keyboard and a narrow screen send
 def type_in(*chunks):

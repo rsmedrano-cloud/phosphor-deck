@@ -88,6 +88,41 @@ try:
 finally:
     reset()
 
+# main(): its exit status is the whole answer for an unattended update. A
+# failed install never restarts the deck; a restart that stopped short (the
+# old deck not fully down, see tests/down-gate-check.py) fails the update.
+repo = tempfile.mkdtemp(prefix="update-main-")
+real = (update.REPO, update.from_git, update.refresh, update.hotswap.snapshot, os.environ.get("HOME"))
+try:
+    os.environ["HOME"] = repo                  # version.forget() drops a cache under it
+    open(os.path.join(repo, "install.sh"), "w").write('exit "${FAKE_INSTALL_RC:-0}"\n')
+    open(os.path.join(repo, "phosphor"), "w").write(
+        'import os, sys\nopen(os.environ["FAKE_LOG"], "a").write(" ".join(sys.argv[1:]) + "\\n")\n'
+        'sys.exit(int(os.environ.get("FAKE_RESTART_RC", "0")))\n')
+    log = os.path.join(repo, "log")
+    os.environ["FAKE_LOG"] = log
+    update.REPO, update.from_git = repo, lambda: True
+    update.refresh = lambda before, full: True       # a real restart is needed
+    update.hotswap.snapshot = lambda: {}
+    def main(install_rc, restart_rc):
+        os.environ["FAKE_INSTALL_RC"], os.environ["FAKE_RESTART_RC"] = str(install_rc), str(restart_rc)
+        try: os.remove(log)
+        except OSError: pass
+        argv, sys.argv = sys.argv, ["phosphor-update"]
+        try: rc = update.main()
+        finally: sys.argv = argv
+        return rc, os.path.exists(log) and "restart" in open(log).read()
+    rc, restarted = main(0, 0)
+    need("install and restart fine: exit 0", rc == 0 and restarted)
+    rc, restarted = main(0, 1)
+    need("a restart that stopped short fails the update", rc == 1 and restarted)
+    rc, restarted = main(1, 0)
+    need("a failed install fails the update and never restarts the deck", rc == 1 and not restarted)
+finally:
+    update.REPO, update.from_git, update.refresh, update.hotswap.snapshot, home = real
+    if home is not None: os.environ["HOME"] = home
+    shutil.rmtree(repo, ignore_errors=True)
+
 if fails:
     print("failed: " + "; ".join(fails)); sys.exit(1)
 print("ok")

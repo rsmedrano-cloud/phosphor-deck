@@ -1,5 +1,5 @@
 """phosphor init - builds the profile, detecting a lot and asking little."""
-import os, re, shutil, subprocess, sys
+import os, re, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
 import mesh, deckconf
@@ -342,7 +342,8 @@ def run():
     body = render(hosts, theme, comms, net, web, tun, editor_pick, shell_pick, notes_folder, shape)
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     if os.path.exists(OUT):
-        shutil.copy(OUT, OUT + ".bak")
+        import deckconf
+        deckconf.backup(OUT, open(OUT).read())
         print(row(AMB, "backup", OUT + ".bak"))
     open(OUT, "w").write(body)
     print(row(OK, "profile", OUT))

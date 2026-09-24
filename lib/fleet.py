@@ -72,6 +72,19 @@ def pctc(p): return tone(p) + ("%3d%%" % p) + RST
 
 SLOW_POLL_MS = 3000   # worth calling out: a healthy LAN/tailnet round trip is well under this
 DOWN_AFTER = 2        # this many misses in a row: stop giving it the full patience window
+CONTROL_PERSIST = "60s"   # outlives one poll (INTERVAL) so the next reuses the same connection
+
+def ssh_cmd(ssh, connect_t):
+    """A fresh ssh connection every INTERVAL used to mean a fresh login on
+    every host's auth log every 15s. ControlMaster reuses one real
+    handshake instead: the master from the first poll stays up (per host,
+    %C keys the socket by host+port+user) and every poll after that rides
+    it, only reconnecting if it actually dropped."""
+    ctrl = os.path.join(deckconf.cache_dir(), "ssh")
+    os.makedirs(ctrl, exist_ok=True)
+    return ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=%d" % connect_t,
+             "-o", "ControlMaster=auto", "-o", "ControlPersist=" + CONTROL_PERSIST,
+             "-o", "ControlPath=" + os.path.join(ctrl, "%C"), ssh, "sh -s"]
 
 def collect(name, ssh, known_down=False):
     """`name` never goes past this function into a log: deck.log is meant
@@ -92,8 +105,7 @@ def collect(name, ssh, known_down=False):
     connect_t, poll_t = (2, 5) if known_down else (6, 25)
     try:
         script = open(COLLECT).read()
-        cmd = ["sh","-s"] if ssh is None else \
-              ["ssh","-o","BatchMode=yes","-o","ConnectTimeout=%d" % connect_t,ssh,"sh -s"]
+        cmd = ["sh","-s"] if ssh is None else ssh_cmd(ssh, connect_t)
         r = subprocess.run(cmd, input=script, capture_output=True, text=True, timeout=poll_t)
         if not r.stdout.strip():
             e = (r.stderr or "no answer").strip().splitlines()
@@ -261,6 +273,45 @@ def unfreezer(session):
             import dlog
             dlog.event_throttled("FLEET", "unfreeze-failed", str(e)[:60])
         time.sleep(3)
+
+MOUNT_CHECK_S = 20   # background sweep for zombie ~/fleet mounts
+
+def recover_zombie_mount(name, mp):
+    """fusermount -uz first, then restart the unit: a fresh rclone can't
+    mount over a mountpoint the kernel still considers busy from the dead
+    one (see mount_watchdog)."""
+    fusermount = shutil.which("fusermount3") or shutil.which("fusermount") or "fusermount3"
+    try:
+        subprocess.run([fusermount, "-uz", mp], capture_output=True, timeout=10)
+        subprocess.run(["systemctl", "--user", "restart", "fleet-%s.service" % name],
+                       capture_output=True, timeout=15)
+        return True
+    except (subprocess.TimeoutExpired, OSError):
+        return False
+
+def mount_sweep(names, root):
+    """One pass over `~/fleet/<host>` mounts whose SFTP transport died (a
+    remote sleeping or changing IP over Tailscale, most often): nothing
+    else notices, since the mount stays registered and looks fine to
+    `os.path.ismount()` -- only every real access to it fails. Never names
+    which host in deck.log, same reasoning as collect(). Split out of
+    mount_watchdog() so a sweep can be tested without its infinite loop."""
+    recovered = 0
+    for name in names:
+        mp = os.path.join(root, name)
+        if deckconf.mount_zombie(mp) and recover_zombie_mount(name, mp):
+            recovered += 1
+    if recovered:
+        import dlog
+        dlog.event("FLEET", "zombie-mount", "recovered %d mount(s)" % recovered)
+    return recovered
+
+def mount_watchdog(names, root):
+    if not names:
+        return
+    while True:
+        mount_sweep(names, root)
+        time.sleep(MOUNT_CHECK_S)
 
 def read_state():
     """The latest poll for every host, straight from fleet.json -- the same
@@ -431,6 +482,9 @@ def main():
     threading.Thread(target=unfreezer, args=(sess,), daemon=True).start()
     import mentions
     threading.Thread(target=mentions.marker, args=(sess,), daemon=True).start()
+    mount_names = [h["name"] for h in deckconf.mount_hosts(prof)]
+    threading.Thread(target=mount_watchdog, args=(mount_names, deckconf.mount_root(prof)),
+                     daemon=True).start()
     sys.stdout.write("\x1b[?1049h\x1b[?25l")
     try:
         while True:

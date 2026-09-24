@@ -22,6 +22,12 @@ panes = [
 then `phosphor gen && phosphor restart`. Point `cmd` back at whatever it was
 to go back -- nothing else to undo.
 
+On x86_64/aarch64, `install.sh` now fetches a static musl build of this
+binary from the GitHub mirror's latest release (#32) into
+`~/.local/bin/phosphor-run` -- so `cmd` above can point there instead of a
+repo checkout's `target/release/`, but it's still only ever used where a
+profile names it explicitly; nothing in `gen.py` picks it up on its own.
+
 ## Building it
 
 ```sh

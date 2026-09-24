@@ -64,5 +64,14 @@ $X grep -q "second-marker" /home/deck/.phosphor/README.md || fail "phosphor upda
 $X test -x /home/deck/.local/bin/deck || fail "the deck command is missing"
 echo "   update brought the code, and the deck command is there"
 
+step "curl | sh on a clean machine (no local copy, no PHOSPHOR_REPO): clones the public repo"
+out=$(docker exec -i -u deck -e HOME=/home/deck -e PHOSPHOR_DEST=/home/deck/clean-install \
+      -e PHOSPHOR_PROFILE=/home/deck/no-such-profile.toml -e PHOSPHOR_NO_WIZARD=1 $C sh < install.sh 2>&1) \
+      || fail "curl | sh from a clean machine"
+$X test -d /home/deck/clean-install/.git || fail "it didn't clone the public repo"
+$X test -f /home/deck/clean-install/phosphor || fail "the clone has no phosphor command"
+echo "$out" | grep -q "cloning the public repo" || fail "it didn't say it was cloning the public repo"
+echo "   cloned the public mirror and left a working phosphor command"
+
 printf '\n\033[38;2;51;255;68mPASS\033[0m: installed from zero, deck up with %s tabs\n' "$tabs"
 [ -n "${KEEP:-}" ] && echo "container left up: docker exec -it -u deck $C bash" || docker rm -f $C >/dev/null

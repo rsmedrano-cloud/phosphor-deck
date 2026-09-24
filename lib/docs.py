@@ -79,6 +79,12 @@ not in any one assistant's memory.
   then the fast checks against the result -- so a conflict or a test that
   only breaks once it's merged shows up before it's dev's problem.
   `tests/release.py` runs it too, as a heads-up, not a blocker.
+- **Open GitHub issues and PRs, same moment:** `python3 tests/github-check.py`
+  (also run by `tests/release.py`, same heads-up spirit). Nothing else polls
+  the public mirror -- real dev happens on GitLab, but a bug report or
+  feature request only ever lands on GitHub, so this is the one place it
+  gets looked at. A PR there can't be merged as-is (main is squashed and
+  force-pushed at every sync): point the author at an issue instead.
 - **Releases** come as topics close, without waiting to be asked: a patch
   version (0.2.26, 0.2.27...) for each closed topic or batch of fixes, and the
   next minor (0.3.0) when its roadmap milestone is covered and its bugs are
@@ -91,9 +97,25 @@ not in any one assistant's memory.
   first. A bug that hurts stable users before then is cherry-picked onto
   `main` by hand and released as a patch of that minor. It never touches the
   live deck's checkout: the brain takes the release with `phosphor update`
-  (`--channel nightly` for a dev one). Going public (a public repo, a
-  GitHub mirror, an announcement) stays the maintainer's call: the project
-  is private and lives on GitLab.
+  (`--channel nightly` for a dev one). `tests/release.py` also syncs the
+  public GitHub mirror (github.com/rsmedrano-cloud/phosphor-deck) as its
+  last step: a squashed commit onto GitHub's own `main` at a minor, onto
+  GitHub's own `dev` at a patch -- building on that branch's previous sync
+  there (a real, if squashed, history on GitHub), never GitLab's granular
+  one. Titled after the release, authored as the maintainer, no AI
+  co-author. Best-effort on purpose: a GitHub hiccup there is printed, not
+  fatal -- it never undoes a GitLab release that already shipped; fix by
+  hand (`tests/release.py`'s own `sync_github()`, called standalone, does
+  the same sync again). At a minor only, also a real GitHub Release for
+  that tag, with the cross-compiled Rust binaries (`rust/fleet-poll`,
+  `rust/run`; the tag's own `rust-release` CI job cross-compiles them,
+  x86_64 and aarch64, with plain rustup targets) attached -- `install.sh`'s
+  `fetch()` reads `releases/latest` there, and it always installs from
+  `main`, so shipping this at every dev patch too would make
+  `releases/latest` drift ahead of what a plain clone of `main` actually
+  checks out. Same best-effort spirit (`sync_github_binaries()`), same
+  standalone-rerun escape hatch. Announcing it anywhere beyond the repo
+  itself (Hacker News, Reddit...) stays the maintainer's call.
 - **The deck is someone's live session:** anything that restarts it, rewrites
   the profile or touches mounts gets checked before and after.
 """

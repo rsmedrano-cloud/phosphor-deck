@@ -62,6 +62,12 @@ not in any one assistant's memory.
   then the fast checks against the result -- so a conflict or a test that
   only breaks once it's merged shows up before it's dev's problem.
   `tests/release.py` runs it too, as a heads-up, not a blocker.
+- **Open GitHub issues and PRs, same moment:** `python3 tests/github-check.py`
+  (also run by `tests/release.py`, same heads-up spirit). Nothing else polls
+  the public mirror -- real dev happens on GitLab, but a bug report or
+  feature request only ever lands on GitHub, so this is the one place it
+  gets looked at. A PR there can't be merged as-is (main is squashed and
+  force-pushed at every sync): point the author at an issue instead.
 - **Releases** come as topics close, without waiting to be asked: a patch
   version (0.2.26, 0.2.27...) for each closed topic or batch of fixes, and the
   next minor (0.3.0) when its roadmap milestone is covered and its bugs are
@@ -74,9 +80,25 @@ not in any one assistant's memory.
   first. A bug that hurts stable users before then is cherry-picked onto
   `main` by hand and released as a patch of that minor. It never touches the
   live deck's checkout: the brain takes the release with `phosphor update`
-  (`--channel nightly` for a dev one). Going public (a public repo, a
-  GitHub mirror, an announcement) stays the maintainer's call: the project
-  is private and lives on GitLab.
+  (`--channel nightly` for a dev one). `tests/release.py` also syncs the
+  public GitHub mirror (github.com/rsmedrano-cloud/phosphor-deck) as its
+  last step: a squashed commit onto GitHub's own `main` at a minor, onto
+  GitHub's own `dev` at a patch -- building on that branch's previous sync
+  there (a real, if squashed, history on GitHub), never GitLab's granular
+  one. Titled after the release, authored as the maintainer, no AI
+  co-author. Best-effort on purpose: a GitHub hiccup there is printed, not
+  fatal -- it never undoes a GitLab release that already shipped; fix by
+  hand (`tests/release.py`'s own `sync_github()`, called standalone, does
+  the same sync again). At a minor only, also a real GitHub Release for
+  that tag, with the cross-compiled Rust binaries (`rust/fleet-poll`,
+  `rust/run`; the tag's own `rust-release` CI job cross-compiles them,
+  x86_64 and aarch64, with plain rustup targets) attached -- `install.sh`'s
+  `fetch()` reads `releases/latest` there, and it always installs from
+  `main`, so shipping this at every dev patch too would make
+  `releases/latest` drift ahead of what a plain clone of `main` actually
+  checks out. Same best-effort spirit (`sync_github_binaries()`), same
+  standalone-rerun escape hatch. Announcing it anywhere beyond the repo
+  itself (Hacker News, Reddit...) stays the maintainer's call.
 - **The deck is someone's live session:** anything that restarts it, rewrites
   the profile or touches mounts gets checked before and after.
 
@@ -107,13 +129,19 @@ the only source of truth. `phosphor gen` turns it into the real files.
 
 On the machine that will be the brain:
 
-    sh install.sh            # from a copy of the repo, or: curl -fsSL …/install.sh | sh
+    sh install.sh            # from a copy of the repo, or:
+    curl -fsSL https://raw.githubusercontent.com/rsmedrano-cloud/phosphor-deck/main/install.sh | sh
 
 It downloads zellij, yazi, btop, gping, ctop and rclone into `~/.local/bin`
 (static binaries; no root), puts the code in `~/.phosphor` (an install that
 already exists keeps its folder), writes the `deck` command, and asks
 "set it up now?". Yes runs the wizard, which ends with "build the deck and
 start it now?" and "get in now?": you finish inside the deck.
+
+On x86_64/aarch64 it also fetches `phosphor-fleet-poll` and `phosphor-run`,
+the two optional Rust rewrites (see CONTRIBUTING.md) -- best-effort, same as
+the rest: missing one, or a 32-bit ARM install, just means the Python
+fallback runs, same as before either existed.
 
 The same steps by hand:
 
@@ -243,6 +271,16 @@ generator, a shortcut zellij itself needs to reread, anything outside
 judgement call is conservative on purpose: `--full` skips it and always
 restarts, if you'd rather not think about it.
 
+A real restart only starts the new deck once the old one is proven gone:
+zellij no longer lists the session, its service has stopped, and none of its
+processes outlived the reaper. If anything is still alive, it stops right
+there, says what, and leaves the watchdog off instead of starting new code
+next to old panes; once those are gone, `phosphor restart` again. `phosphor
+update` exits non-zero when that happens, and when the install itself fails
+(then it doesn't restart at all), so an unattended update (cron, a timer)
+knows it didn't land. Run from a pane inside the deck, the restart detaches
+itself, so there the exit status only covers the install.
+
 Two channels: **stable** follows main, which only moves when a minor version
 is done (0.3.0, 0.4.0...), and the notice shows up only for a new version;
 **nightly** follows dev, every patch release and what's done but not released
@@ -343,11 +381,13 @@ keep, or someone else's to drop in.
 ### Backing out
 
 Every write phosphor's tools make to your profile keeps a `deck.toml.bak`
-first (the *previous* version -- only one deep, not a history). `phosphor
-gen --dry-run` shows what a change would write without writing it. Nothing
-here replaces real version control: a profile is one text file, so `git
-init ~/.config/phosphor` (kept out of any repo you publish, see privacy) is
-a real history if you want one.
+first (the version just before it), rotating up to two older ones behind it
+(`deck.toml.bak.2`, `deck.toml.bak.3`) instead of losing them -- `phosphor
+setup` then a recipe, back to back, still keeps both. `phosphor gen --dry-run`
+shows what a change would write without writing it. Nothing here replaces
+real version control: a profile is one text file, so `git init
+~/.config/phosphor` (kept out of any repo you publish, see privacy) is a
+real history if you want one.
 
 ## The profile
 
@@ -392,6 +432,11 @@ bare `show-floating-panes`, with no tab named, can itself answer "Tab not
 found" when called from outside the client -- naming the tab fixes that
 too) and to hide it again. If you turn `notifier` on, this is lower-risk
 than before, not risk-free.
+
+With `notifier` off (the default) a notification still isn't silent: the
+tab `phosphor notify` names (`--tab`, or SYS with none) reads "`<TAB> ●N`"
+until you look, the same mechanism mentions.py uses for "COMMS ●2" (see
+mentions) -- no floating panes, so none of the risk above.
 
 `theme` recolors more than zellij and the web client: `phosphor gen` also
 writes it into yazi's `theme.toml`, btop's own `phosphor` theme (set as
@@ -687,9 +732,12 @@ and in the `+` menu, and open in a tab of their own.
   `--notes` shows what this version brought, `--new` what a newer one brings (from CHANGELOG.md).
 
 ### Session
-- `phosphor restart` — down, reap leftover processes, up. From inside the deck it detaches itself.
+- `phosphor restart` — down, reap leftover processes, up. Up only runs once down is proven clean
+  (session gone from zellij, service stopped, nothing of it left alive); otherwise it names what's
+  left, leaves the watchdog off and exits non-zero. From inside the deck it detaches itself.
   Every screen that came in with `deck` (this machine, other computers, phones) waits and goes back in by itself.
-- `phosphor down` — bring it down and stop the watchdog timer (`phosphor up` to return).
+- `phosphor down` — bring it down and stop the watchdog timer (`phosphor up` to return); exits non-zero
+  if anything of the old deck is still alive.
 
 ### Workspaces
 - `phosphor workspace new|open|list` — a tab per idea with its own folder and assistants; see workspaces.
@@ -706,7 +754,8 @@ and in the `+` menu, and open in a tab of their own.
   `c` opens a CHAT tab where an assistant (claude, gemini, codex or opencode) starts from it,
   `w` opens a workspace from it (see workspaces).
   A note taken from a tab says so (`from SYS`); `f` goes through those tabs, showing one tab's notes at a time.
-  `u` brings back the last archived note. Every key shows at the bottom from the start (dimmed
+  `u` brings back the last archived note. `/` searches title, body, author and tab at once (case-insensitive);
+  Enter applies it, Esc cancels, an empty query clears it. Every key shows at the bottom from the start (dimmed
   until it applies), and tapping one works.
 - Archived notes live in `notes-archive.md` next to the notebook; `phosphor notes --archive`
   shows them: `r` restores one, `D` deletes it for good (asks first).
@@ -718,9 +767,11 @@ and in the `+` menu, and open in a tab of their own.
   services lists systemd units and their state (see `[prometheus]`, `[ci]` and `[services]` in profile; `--once` prints one frame).
   `fleet` also calls `phosphor notify` itself when a host's ok/not-ok flips (down, or back) -- at most once a minute per host even if the link flaps.
 - `phosphor glance [--once]` — read-only: the fleet's problem hosts (or "all N ok"), unread
-  mentions, open todos. For a small screen: `ssh -t you@brain ~/.local/bin/phosphor glance` needs no zellij
-  attach at all (see screens); refreshes every 5s, Ctrl-C to leave.
-- `phosphor notify [--tab TAB] [--voice VOICE] [--tts|--no-tts] [--push|--no-push] MESSAGE` — the adjutant announces it, speaks it if TTS is enabled, and pushes it to your phone if `[push]` is on.
+  mentions, open todos, and any workspace with uncommitted changes or commits ahead/behind its
+  upstream ("one device, then another" makes those easy to forget). For a small screen:
+  `ssh -t you@brain ~/.local/bin/phosphor glance` needs no zellij attach at all (see screens);
+  refreshes every 5s, Ctrl-C to leave.
+- `phosphor notify [--tab TAB] [--voice VOICE] [--tts|--no-tts] [--push|--no-push] MESSAGE` — the adjutant announces it, speaks it if TTS is enabled, and pushes it to your phone if `[push]` is on. The tab it names (or SYS with no `--tab`) also reads "`<TAB> ●N`" until you look, whether or not `[deck] notifier` is on (see profile).
 - `phosphor tts [MESSAGE]` — speak a message aloud with selectable voices (glados, adjutant, hal, synth, system); `phosphor tts install glados` assists with installing GLaDOS-TTS.
 - `phosphor push [--qr]` — `[push]`'s status (on/off, server, topic); `--qr` prints the subscribe
   link as a QR (also onto every screen's clipboard) so the phone's ntfy app can scan it instead of
@@ -965,7 +1016,7 @@ Some screens are too small for a full attach: a Pi with a small display
 sitting on a shelf, an old e-reader, anything you'd rather glance at than
 drive. `ssh -t you@brain ~/.local/bin/phosphor glance` skips zellij entirely and prints a
 read-only summary that refreshes on its own -- the fleet's problem hosts (or
-"all N ok"), unread mentions, open todos -- until Ctrl-C. Nothing to attach,
+"all N ok"), unread mentions, open todos, any workspace dirty or unpushed -- until Ctrl-C. Nothing to attach,
 nothing to detach: it's just a command, so any cron job or kiosk script that
 can run one over ssh can drive that little screen.
 
@@ -1003,10 +1054,11 @@ The same thing, without a note: the tab bar's `+` → **workspace**, or
 The tab is kept in your profile like any other, so it comes back after
 `phosphor restart`. What "comes back" means depends on the assistant:
 **claude** resumes its last conversation there (`claude --continue`, or a
-fresh one if there wasn't one yet); every other assistant (gemini, codex,
-opencode) just starts over -- there's no `--continue` for them yet, so
-whatever context it had lives only in that session and in what got written
-to the notebook before it ended.
+fresh one if there wasn't one yet), and so does **aider**
+(`--restore-chat-history`); **gemini**, **codex** and **opencode** just
+start over -- there's no equivalent for them yet, so whatever context they
+had lives only in that session and in what got written to the notebook
+before it ended.
 
 The first time a pane starts, that assistant is asked to read its own
 `AGENTS.md` and `BRIEF.md` and say where things stand -- so arriving at a
@@ -1042,9 +1094,23 @@ knows to leave a note before it stops rather than let context evaporate
 when the pane restarts. Nobody types into another assistant's pane --
 the notebook is the only channel between them.
 
+You don't have to go polling it to find out: the moment a workspace's
+`NOTES.md` changes, its tab gets marked the same way a chat mention marks
+COMMS (`<TAB> ●N`, no floating panes -- see mentions), cleared the moment
+you actually look at that tab.
+
+"One device, then another" also makes it easy to leave a workspace with
+uncommitted changes (or committed, but never pushed) and forget which
+machine has them. `phosphor glance` and the DECK tab's own status line
+both call out any workspace that's dirty or ahead/behind its upstream --
+`git init` runs for you when a workspace is created (with a first commit
+of its own scaffold, so a fresh workspace starts clean, not flagged from
+day one), but nothing pushes or pulls for you: that stays yours to do by
+hand, same as any other git repo.
+
 ### Commands
 
-- `phosphor workspace new [NAME] [--shape one|two|shell] [--parts "a b"] [--assistant claude|gemini|codex|opencode]`
+- `phosphor workspace new [NAME] [--shape one|two|shell] [--parts "a b"] [--assistant claude|gemini|codex|opencode|aider]`
   `[--brief FILE | --note TEXT] [--folder-only]` — `--note` takes the note whose title contains TEXT;
   `--folder-only` writes the folder and leaves the profile and tabs alone (an assistant can use it).
 - `phosphor workspace open NAME` — go to its tab, or open it (inside the deck).
@@ -1295,6 +1361,10 @@ From yazi, `c` `s` does the same to the hovered file.
   after boot or `phosphor up`) and waits for it, up to a minute and a half.
 - **The deck is gone**: the watchdog brings it back within a minute; `phosphor
   up` if you ran `phosphor down`.
+- **"the old deck isn't fully down"**: a restart (or an update's restart)
+  found part of the old deck still alive and started nothing new. It lists
+  what: kill those pids, or wait for the service to stop, then `phosphor
+  restart`. The watchdog stays off until then, on purpose.
 - **A change to the profile doesn't show**: `phosphor gen && phosphor restart`.
 - **A new version doesn't show**: the panes run the code they started with.
   `phosphor update` restarts the deck for you; after updating any other way,
@@ -1320,6 +1390,15 @@ From yazi, `c` `s` does the same to the hovered file.
   `phosphor doctor` checks that too; `systemctl --user import-environment
   SSH_AUTH_SOCK` (then `phosphor gen`) gives the service your agent, or use a
   key without a passphrase for the deck.
+- **A folder in `~/fleet` errors instead** ("Transport endpoint is not
+  connected"): the remote slept or changed IP (common over Tailscale) and
+  the sftp transport died, but the kernel still lists the mount as up, so
+  `os.path.ismount()` alone can't tell the two apart. `phosphor fleet`
+  sweeps for exactly this in the background and self-heals it within 20s
+  (`fusermount -uz` then a restart of that host's `fleet-NAME.service`);
+  `phosphor doctor` calls it "zombie" instead of "mounted" while that's
+  still pending. Still broken after that: the remote itself is down, same
+  as the empty-folder case above.
 - **A frozen pane**: Ctrl-Z in a pane without a shell stops the program; the
   deck resumes it within seconds. A program stuck on its last frame (it
   doesn't redraw when you resize) is closed after 20 seconds and says

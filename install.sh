@@ -2,7 +2,7 @@
 # ─────────────────────────────────────────────────────────────
 #  Phosphor Deck · installer
 #
-#    curl -fsSL .../install.sh | sh
+#    curl -fsSL https://raw.githubusercontent.com/rsmedrano-cloud/phosphor-deck/main/install.sh | sh
 #
 #  Fetches the static binaries it needs, leaves the repo in
 #  ~/phosphor-deck and points you to `phosphor doctor`. No root:
@@ -12,6 +12,11 @@
 set -eu
 
 REPO="${PHOSPHOR_REPO:-}"
+# Only reached with nothing else to work from (no PHOSPHOR_REPO, not run
+# from a local copy): the public mirror, so `curl | sh` on a clean machine
+# actually finishes instead of downloading binaries with no `phosphor` to
+# run them.
+DEFAULT_REPO="https://github.com/rsmedrano-cloud/phosphor-deck.git"
 # New installs go to a hidden folder; an install that already exists keeps
 # its place, so updating never moves anything under your feet.
 DEST="${PHOSPHOR_DEST:-}"
@@ -116,7 +121,9 @@ else
   elif [ -f "$DEST/phosphor" ]; then
     say "using $DEST"
   else
-    say "no PHOSPHOR_REPO and no copy to use: run it from inside the repo"
+    need git || { r "  git is missing"; exit 1; }
+    say "no local copy and no PHOSPHOR_REPO: cloning the public repo"
+    git clone -q "$DEFAULT_REPO" "$DEST" && g "  + cloned into $DEST"
   fi
 fi
 
@@ -138,6 +145,20 @@ fetch gping  "$(d64 $GH/orf/gping/releases/latest/download/gping-Linux-musl-$GP.
       orf/gping "gping-Linux-.*\.tar\.gz" || true
 fetch btop   "$GH/aristocratos/btop/releases/latest/download/btop-$BT.tar.gz" aristocratos/btop "" || true
 fetch ctop   "" bcicen/ctop "ctop-.*-linux-$GO\"" || true
+
+# The optional Rust rewrites (rust/fleet-poll, rust/run; see #32): bare
+# static binaries, not archives, on our own GitHub mirror's latest release
+# -- x86_64 and aarch64 only, and never released to begin with on 32-bit
+# ARM (see tests/release.py's sync_github_binaries()). Nothing here fails
+# the install: both tools fall back to their own Python/shell versions
+# (deckconf.exe() first checks ~/.local/bin, same as everything else) when
+# the binary just isn't there.
+if [ "$A" != arm ]; then
+  fetch phosphor-fleet-poll "$GH/rsmedrano-cloud/phosphor-deck/releases/latest/download/phosphor-fleet-poll-$M-unknown-linux-musl" \
+        rsmedrano-cloud/phosphor-deck "phosphor-fleet-poll-$M-unknown-linux-musl\$" || true
+  fetch phosphor-run "$GH/rsmedrano-cloud/phosphor-deck/releases/latest/download/phosphor-run-$M-unknown-linux-musl" \
+        rsmedrano-cloud/phosphor-deck "phosphor-run-$M-unknown-linux-musl\$" || true
+fi
 
 if [ ! -x "$BIN/zellij" ]; then
   r "  ! zellij couldn't be installed and the deck can't run without it."

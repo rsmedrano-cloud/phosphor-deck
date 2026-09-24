@@ -58,6 +58,9 @@ out=$(python3 tests/tabs-check.py 2>&1) && ok || bad "$out"
 step "your keys, and what gen may touch"
 out=$(python3 tests/keys-check.py 2>&1) && ok || bad "$out"
 
+step "a profile write's undo depth: .bak, .bak.2, .bak.3"
+out=$(python3 tests/backup-check.py 2>&1) && ok || bad "$out"
+
 step "the reaper takes only the deck"
 out=$(python3 tests/reap-check.py 2>&1) && ok || bad "$out"
 
@@ -72,6 +75,9 @@ out=$(python3 tests/version-check.py 2>&1) && ok || bad "$out"
 
 step "a workspace, folder to tab"
 out=$(python3 tests/workspace-check.py 2>&1) && ok || bad "$out"
+
+step "a workspace's tab marks when NOTES.md changes"
+out=$(python3 tests/workspace-notes-watch-check.py 2>&1) && ok || bad "$out"
 
 step "prometheus gauges, fake server"
 out=$(python3 tests/prom-check.py 2>&1) && ok || bad "$out"
@@ -130,11 +136,17 @@ out=$(python3 tests/fleet-timing-check.py 2>&1) && ok || bad "$out"
 step "fleet: rust poller picked when installed, else python"
 out=$(python3 tests/fleet-poller-check.py 2>&1) && ok || bad "$out"
 
+step "fleet: a zombie ~/fleet mount self-heals"
+out=$(python3 tests/mount-zombie-check.py 2>&1) && ok || bad "$out"
+
 step "hotswap: which code changes are safe to refresh live"
 out=$(python3 tests/hotswap-check.py 2>&1) && ok || bad "$out"
 
 step "restart: poll instead of blind sleeps, same worst case"
 out=$(python3 tests/restart-check.py 2>&1) && ok || bad "$out"
+
+step "restart: nothing new until the old deck is gone"
+out=$(python3 tests/down-gate-check.py 2>&1) && ok || bad "$out"
 
 step "site/ (GitHub Pages) matches the manual"
 out=$(python3 tests/site-check.py 2>&1) && ok || bad "$out"

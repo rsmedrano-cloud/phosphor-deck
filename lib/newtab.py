@@ -17,7 +17,7 @@ BIN  = os.path.join(HOME, ".local/bin")
 PHOSPHOR = os.path.join(REPO, "phosphor")
 # Assistant CLIs offered when installed: (binary, label).
 ASSISTANTS = [("claude", "Claude Code"), ("aichat", "aichat"), ("gemini", "Gemini CLI"),
-              ("codex", "Codex"), ("opencode", "opencode")]
+              ("codex", "Codex"), ("opencode", "opencode"), ("aider", "Aider")]
 INV = "\x1b[7m"
 
 def have(b):
@@ -152,7 +152,7 @@ def keep_tab(name, spec):
         ok = False
     if not ok:
         return "the profile wouldn't parse, left it alone"
-    open(p + ".bak", "w").write(text)
+    deckconf.backup(p, text)
     open(p, "w").write(new)
     subprocess.run([sys.executable, PHOSPHOR, "gen"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return None

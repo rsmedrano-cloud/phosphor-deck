@@ -494,7 +494,7 @@ def edit(e):
 
 # Assistants that take a first message and stay open: the same ones a
 # workspace starts (aichat answers once and exits, so it isn't one of them).
-from workspace import FIRST
+from workspace import FIRST, assistant_first_cmd
 CHATS = list(FIRST.items())
 
 def chat(e):
@@ -502,10 +502,9 @@ def chat(e):
     import newtab
     if not os.environ.get("ZELLIJ"):
         return "chat opens a tab: only inside the deck"
-    found = next(((b, pre) for b, pre in CHATS if newtab.have(b)), None)
+    found = next((b for b, _ in CHATS if newtab.have(b)), None)
     if not found:
         return "no assistant installed: " + ", ".join(b for b, _ in CHATS)
-    b, pre = found
     d = os.path.expanduser("~/.cache/phosphor/chat")
     os.makedirs(d, exist_ok=True)
     stamp = time.strftime("%Y%m%d-%H%M%S")
@@ -515,7 +514,7 @@ def chat(e):
                 "before doing anything: don't change files yet.\n\n%s\n" % (PATH, e["raw"]))
     import deckconf, gen
     prof, _ = deckconf.load()
-    line = "exec %s \"$(cat %s)\"" % (" ".join([b] + pre), shlex.quote(brief))
+    line = assistant_first_cmd(found, "\"$(cat %s)\"" % shlex.quote(brief))
     tab = {"name": "CHAT", "panes": [{"cmd": "bash", "args": ["-lc", line]}]}
     lay = os.path.join(d, stamp + ".kdl")
     with open(lay, "w") as f:
@@ -576,7 +575,7 @@ def actions(e):
             ("x", "done", bool(e) and e["kind"] == "todo"), ("c", "chat", bool(e)),
             ("w", "workspace", bool(e)),
             ("a", "write", True), ("t", "todo", True), ("i", "idea", True), ("u", "undo", True),
-            ("f", "from: " + (ONLY_TAB or "every tab"), True)]
+            ("f", "from: " + (ONLY_TAB or "every tab"), True), ("/", "search", True)]
 
 def footer(acts, w):
     """Footer lines and where each key sits: [(line, first col, last col, key)]."""
@@ -597,6 +596,26 @@ def confirm(q, rows):
     sys.stdout.flush()
     return getkey(None) == "y"
 
+def matches(e, q):
+    q = q.lower()
+    return any(q in (e.get(f) or "").lower() for f in ("title", "body", "by", "tab"))
+
+def search_prompt(rows, current):
+    """A one-line prompt on the footer's row. Returns the new query (empty
+    clears it), or None if cancelled -- the query stays whatever it was."""
+    q = current
+    while True:
+        sys.stdout.write("\x1b[%d;1H\x1b[K " % rows + PH + "/" + RST + q + "\x1b[K")
+        sys.stdout.flush()
+        k = getkey(None)
+        if k is None or isinstance(k, tuple):
+            continue
+        if k in ("\r", "\n"): return q
+        if k in ("\x03", "\x1b"): return None
+        if k in ("\x7f", "\x08"): q = q[:-1]
+        elif k == "\x15": q = ""                          # Ctrl-u
+        elif len(k) == 1 and k >= " ": q += k
+
 def main():
     global ONLY_TAB
     use_book(sys.argv)
@@ -607,8 +626,8 @@ def main():
         except BrokenPipeError:                      # | head
             sys.stdout = None
         return 0
-    st = {"off": 0, "sel": None, "msg": "", "msg_t": 0, "mt": None}
-    lastw, notes, lines, owner = None, [], [], []
+    st = {"off": 0, "sel": None, "msg": "", "msg_t": 0, "mt": None, "q": ""}
+    lastw, lastq, notes, lines, owner = None, None, [], [], []
     def say(s):
         st.update(msg=s, msg_t=time.time(), mt=None)   # mt=None: reload now
     sys.stdout.write("\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h")
@@ -618,12 +637,13 @@ def main():
             w = min(cols, 100)
             try: cur = os.path.getmtime(view)
             except OSError: cur = 0
-            if cur != st["mt"] or w != lastw:        # reload on change or resize
+            if cur != st["mt"] or w != lastw or st["q"] != lastq:   # reload on change, resize or search
                 sel = st["sel"]
                 picked = notes[sel]["raw"] if sel is not None and sel < len(notes) else None
                 notes = entries(view, None if ARCHIVE_VIEW else ONLY_TAB)
+                if st["q"]: notes = [n for n in notes if matches(n, st["q"])]
                 lines, owner = render(w - 3, notes)
-                st["mt"], lastw = cur, w
+                st["mt"], lastw, lastq = cur, w, st["q"]
                 raws = [n["raw"] for n in notes]
                 if picked in raws: st["sel"] = raws.index(picked)
                 elif sel is not None and notes: st["sel"] = min(sel, len(notes) - 1)
@@ -635,7 +655,8 @@ def main():
             maxoff = max(0, len(lines) - body)
             off = st["off"] = max(0, min(st["off"], maxoff))
             if time.time() - st["msg_t"] > 5: st["msg"] = ""
-            head = "─ %s%s " % (BOOK, (" · from " + ONLY_TAB) if ONLY_TAB and not ARCHIVE_VIEW else "")
+            head = "─ %s%s%s " % (BOOK, (" · from " + ONLY_TAB) if ONLY_TAB and not ARCHIVE_VIEW else "",
+                                  (" · search: " + st["q"]) if st["q"] else "")
             tail = ("─ %s ─" % st["msg"]) if st["msg"] else \
                    ("─ %d entries · tap one or j to pick ─" if notes and not e else "─ %d entries · newest first ─") % len(notes)
             out = [RULE + "╭" + head + "─" * max(0, w - 2 - len(head) - len(tail)) + tail + "╮" + RST]
@@ -690,6 +711,10 @@ def main():
                 ONLY_TAB = ts[(ts.index(ONLY_TAB) + 1) % len(ts)] if ONLY_TAB in ts else None
                 st.update(mt=None, sel=None, off=0)
                 say("from " + ONLY_TAB if ONLY_TAB else ("every tab" if len(ts) > 1 else "no note says its tab yet"))
+            elif k == "/":
+                q = search_prompt(rows, st["q"])
+                if q is not None:
+                    st.update(q=q, sel=None, off=0)
             elif k == "a": compose(); say("")
             elif k == "t": compose("todo"); say("")
             elif k == "i": compose("idea"); say("")

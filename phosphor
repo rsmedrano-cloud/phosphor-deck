@@ -211,11 +211,18 @@ def main():
         R = lambda *a: _sp.run(list(a), capture_output=True, text=True, timeout=30)
 
         def procs():
-            out = R("ps", "-eo", "pid,args", "--no-headers").stdout
+            # /proc directly, not `ps`: it isn't installed everywhere the
+            # deck (or its CI) runs, and /proc/PID/stat is already how the
+            # parent-chain walk above reads it.
             r = []
-            for l in out.splitlines():
-                q = l.split(None, 1)
-                if len(q) == 2: r.append((int(q[0]), q[1]))
+            for pid in os.listdir("/proc"):
+                if not pid.isdigit(): continue
+                try:
+                    with open("/proc/%s/cmdline" % pid, "rb") as f:
+                        args = f.read().replace(b"\0", b" ").strip().decode("utf-8", "replace")
+                except OSError:
+                    continue
+                if args: r.append((int(pid), args))
             return r
 
         if cmd == "restart":
@@ -230,7 +237,7 @@ def main():
             R(zj, "kill-session", sess)
             poll_until(lambda: not session_live(zj, sess), 2)
             R(zj, "delete-session", sess)
-            poll_until(lambda: session_gone(zj, sess), 1)
+            gone = poll_until(lambda: session_gone(zj, sess), 5)
             # This process and its whole parent chain match the patterns too.
             protect, cur = set(), os.getpid()
             while cur and cur != 1:
@@ -246,11 +253,25 @@ def main():
                     try: os.kill(pid, sg)
                     except Exception: pass
                 poll_until(lambda: not reap.targets(procs(), sess, protect), 2)
-            left = [a for _pid, a in reap.targets(procs(), sess, protect)]
-            print("  session down · leftovers: %d" % len(left))
+            left = reap.targets(procs(), sess, protect)
+            # Proof that the old deck is really gone before a new one starts:
+            # otherwise new code on disk runs next to old panes still alive.
+            svc = R("systemctl", "--user", "is-active", "%s.service" % sess).stdout.strip()
+            problems = reap.down_problems(gone, svc, left, sess)
+            import dlog
+            if problems:
+                print("  the old deck isn't fully down: %s" % (
+                    "no new one started" if cmd == "restart" else "check it before phosphor up"))
+                for p in problems:
+                    print("    " + p)
+                print("  " + DIM_ + "the watchdog stays off. Once they're gone: phosphor %s" % cmd + RST_)
+                dlog.event("deck", "%s-stopped" % cmd, "problems=%d leftovers=%d" % (len(problems), len(left)))
+                try: os.remove(RESTARTING)
+                except OSError: pass
+                return 1
+            print("  session down · leftovers: 0")
             if cmd == "down":
-                import dlog
-                dlog.event("deck", "down", "leftovers=%d" % len(left))
+                dlog.event("deck", "down", "leftovers=0")
                 print("  " + DIM_ + "the timer is stopped: phosphor up brings it back" + RST_)
                 return 0
 
@@ -294,8 +315,15 @@ def main():
             note = "" if n == want else ("   <- missing" if n < want else "   <- duplicate")
             if note: bad = True
             print("    %-10s %d%s" % (name, n, note))
+        # By name alone, not scoped to sess: on a machine that's also running
+        # a real deck (this checkout's own tests, run on the brain, always
+        # are) every one of these matches twice and falsely calls it a
+        # duplicate. ZELLIJ_SESSION_NAME is the same mark reap.targets() uses.
+        import reap
+        mark = ("ZELLIJ_SESSION_NAME=%s" % sess).encode()
         for name in ("matterhorn", "yazi", "btop", "ctop", "gping"):
-            n = sum(1 for _, a in procs() if os.path.basename(a.split()[0]) == name)
+            n = sum(1 for pid, a in procs()
+                    if os.path.basename(a.split()[0]) == name and mark in reap.env_of(pid))
             if n > 1:
                 bad = True; print("    %-10s %d   <- duplicate" % (name, n))
         import dlog
@@ -420,12 +448,22 @@ def main():
         zj = os.path.expanduser("~/.local/bin/zellij")
         if not os.path.exists(zj): zj = _sh.which("zellij")
         prof, _ = load_profile()
+        sess = ((prof or {}).get("deck") or {}).get("session", "deck")
         flot = ((prof or {}).get("deck") or {}).get("notifier", False)
-        # Without floating panes zellij isn't touched at all: the event is
-        # already written and the SYS adjutant shows it. Showing/hiding
-        # floats is the path that wedged zellij 0.45.
+        # No floating panes needed for this part: a "<TAB> ●N" on the tab
+        # it came from (or SYS with no --tab), same mechanism mentions.py
+        # already uses for COMMS -- see tabmark.py. Runs whether or not
+        # notifier is on: with notifier=false (the default), it's the only
+        # on-screen trace a notification leaves.
+        if zj:
+            try:
+                import tabmark
+                tabmark.bump(sess, tab)
+            except Exception:
+                pass
+        # Floating panes only with notifier = true: showing/hiding them is
+        # the path that wedged zellij 0.45.
         if zj and flot:
-            sess = ((prof or {}).get("deck") or {}).get("session", "deck")
             # The active tab, by id: `show-floating-panes` with no -t asks
             # zellij to resolve "the active tab" for this one-shot CLI call,
             # and that resolution isn't reliable (it can answer "Tab not

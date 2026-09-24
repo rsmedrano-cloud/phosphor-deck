@@ -45,7 +45,8 @@ Try it first, without touching anything of yours: a throwaway session over
 made-up machines and a made-up notebook.
 
 ```sh
-sh install.sh        # fetches zellij, yazi, btop... into ~/.local/bin, no root
+curl -fsSL https://raw.githubusercontent.com/rsmedrano-cloud/phosphor-deck/main/install.sh | sh
+# fetches zellij, yazi, btop... into ~/.local/bin, no root (or, from a copy of the repo: sh install.sh)
 phosphor demo        # look around; Alt-x leaves
 phosphor demo --stop # kill it and clean up
 ```
@@ -120,7 +121,7 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
   assistant) and it shows up in the NOTES tab, where `a` (or a tap) writes one
   without leaving the tab. Alt-j jots one from whatever tab you're in (SYS
   shows a full disk: a todo), and NOTES says where it came from; `f` shows one
-  tab's notes. Tap a note to edit it, archive it, mark a todo
+  tab's notes, `/` searches all of them. Tap a note to edit it, archive it, mark a todo
   done, or open an assistant that starts from it. Private by default; `[notes] folder` in the
   profile (`phosphor init` or `setup`) moves it into a vault you already sync -- Obsidian,
   Syncthing, git.
@@ -310,7 +311,7 @@ should read. Contributing: [CONTRIBUTING.md](CONTRIBUTING.md).
 | `phosphor panel` | the DECK tab: state, next steps, every action one key away |
 | `phosphor phone` | put a phone or tablet one tap away from the deck |
 | `phosphor gen` | generate layouts, units and mounts |
-| `phosphor restart` | bring the session down cleanly and back up; every screen goes back in by itself |
+| `phosphor restart` | bring the session down cleanly and back up (never the new one before the old one is gone); every screen goes back in by itself |
 | `phosphor note` / `notes` | write to / read the shared notebook |
 | `phosphor workspace` | a tab per idea: folder, git, its assistants |
 | `phosphor new` | the + menu (also Alt-n): a shell, a machine, an assistant, your apps, a layout |

@@ -16,6 +16,7 @@ from ui import DIM, MUTE, FG, PH, AMB, RED, RST, rule
 import deckconf
 import mentions
 import notes
+import workspace
 
 HOME  = os.path.expanduser("~")
 CACHE = os.path.join(deckconf.cache_dir(), "fleet.json")
@@ -84,6 +85,18 @@ def frame(w, rows):
             out += wrapped(title, w)
     else:
         out.append(DIM + "  nothing pending" + RST)
+    out.append("")
+
+    out.append(rule("workspaces", w))
+    dirty = workspace.dirty_workspaces()
+    if dirty:
+        for name, is_dirty, ahead, behind in dirty[:4]:
+            bits = ([] if not is_dirty else ["uncommitted"]) \
+                 + ([] if not ahead else ["%d ahead" % ahead]) \
+                 + ([] if not behind else ["%d behind" % behind])
+            out += wrapped("%s: %s" % (name, ", ".join(bits)), w, color=AMB)
+    else:
+        out.append(DIM + "  nothing dirty or unpushed" + RST)
 
     return out[:max(1, rows)]
 

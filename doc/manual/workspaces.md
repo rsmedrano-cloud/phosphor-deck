@@ -32,10 +32,11 @@ The same thing, without a note: the tab bar's `+` → **workspace**, or
 The tab is kept in your profile like any other, so it comes back after
 `phosphor restart`. What "comes back" means depends on the assistant:
 **claude** resumes its last conversation there (`claude --continue`, or a
-fresh one if there wasn't one yet); every other assistant (gemini, codex,
-opencode) just starts over -- there's no `--continue` for them yet, so
-whatever context it had lives only in that session and in what got written
-to the notebook before it ended.
+fresh one if there wasn't one yet), and so does **aider**
+(`--restore-chat-history`); **gemini**, **codex** and **opencode** just
+start over -- there's no equivalent for them yet, so whatever context they
+had lives only in that session and in what got written to the notebook
+before it ended.
 
 The first time a pane starts, that assistant is asked to read its own
 `AGENTS.md` and `BRIEF.md` and say where things stand -- so arriving at a
@@ -71,9 +72,23 @@ knows to leave a note before it stops rather than let context evaporate
 when the pane restarts. Nobody types into another assistant's pane --
 the notebook is the only channel between them.
 
+You don't have to go polling it to find out: the moment a workspace's
+`NOTES.md` changes, its tab gets marked the same way a chat mention marks
+COMMS (`<TAB> ●N`, no floating panes -- see mentions), cleared the moment
+you actually look at that tab.
+
+"One device, then another" also makes it easy to leave a workspace with
+uncommitted changes (or committed, but never pushed) and forget which
+machine has them. `phosphor glance` and the DECK tab's own status line
+both call out any workspace that's dirty or ahead/behind its upstream --
+`git init` runs for you when a workspace is created (with a first commit
+of its own scaffold, so a fresh workspace starts clean, not flagged from
+day one), but nothing pushes or pulls for you: that stays yours to do by
+hand, same as any other git repo.
+
 ## Commands
 
-- `phosphor workspace new [NAME] [--shape one|two|shell] [--parts "a b"] [--assistant claude|gemini|codex|opencode]`
+- `phosphor workspace new [NAME] [--shape one|two|shell] [--parts "a b"] [--assistant claude|gemini|codex|opencode|aider]`
   `[--brief FILE | --note TEXT] [--folder-only]` — `--note` takes the note whose title contains TEXT;
   `--folder-only` writes the folder and leaves the profile and tabs alone (an assistant can use it).
 - `phosphor workspace open NAME` — go to its tab, or open it (inside the deck).

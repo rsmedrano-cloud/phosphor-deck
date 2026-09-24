@@ -52,8 +52,7 @@ class Ctx:
         return next((h for h in self.hosts if h.get("role") == "brain"), None)
 
     def remotes(self):
-        return [h for h in self.sorted_hosts()
-                if not h.get("local") and h.get("mount")]
+        return deckconf.mount_hosts(self.prof)
     def expand(self, tok):
         if tok == "@mount_root": return [self.root]
         if tok == "@hosts":

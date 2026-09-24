@@ -29,6 +29,7 @@ zellij:
     - zellij --version
     - python3 tests/edit-check.py
     - python3 tests/notify-floats-check.py
+    - python3 tests/tabmark-check.py
     - python3 tests/hotswap-live-check.py
 
 # docs: a push that changes code (lib/, phosphor, share/, install.sh) also
@@ -91,6 +92,60 @@ distros:
     - apk add --no-cache git
   script:
     - sh tests/from-zero.sh
+
+# rust-release: cross-compiles the optional Rust rewrites (rust/fleet-poll,
+# rust/run -- see their own README, and #32) for both architectures the
+# brain runs on, only at a tag: cross-compiling is slow and a normal push
+# to dev/main doesn't need it. Plain rustup targets + a musl cross-linker
+# for aarch64, no docker: this runner shares its docker socket into every
+# job (what makes docker:27-cli work for install/distros above), and a
+# `cross`-based approach -- its normal way of cross-compiling with musl --
+# tried and failed twice against that exact shape (confirmed by two real
+# tag pipelines): its target container is a sibling of this one over that
+# one shared socket, not nested inside it, so cross's bind-mount of the
+# project dir and $CARGO_HOME pointed at a path that only exists in this
+# container's own overlay ("cargo: not found"); its own documented
+# in-container-CI switch then failed the same way trying to `docker
+# inspect` itself by hostname, which GitLab's docker executor doesn't set
+# to the container's own ID. Skips that whole problem by never spawning a
+# second container. rust:1-bookworm, not alpine: rustup's own host-tuple
+# detection picks a musl toolchain on Alpine, which then needs
+# libgcc_s.so.1 that a minimal Alpine image doesn't have. tests/release.py
+# (`--main` only, see sync_github_binaries()) picks up this job's own
+# artifacts by id (the API directly -- `glab job artifact`'s own ref+job
+# lookup 404ed against a real tag pipeline in testing, even though the
+# same artifact downloads fine by job id) and attaches them to the GitHub
+# mirror's release, which is where install.sh's fetch() looks for them.
+rust-release:
+  tags: [homelab]
+  image: rust:1-bookworm
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/ && $CI_COMMIT_REF_PROTECTED == "true"
+  timeout: 30m
+  variables:
+    CC_aarch64_unknown_linux_musl: aarch64-linux-musl-gcc
+    CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER: aarch64-linux-musl-gcc
+  before_script:
+    - rustup target add x86_64-unknown-linux-musl aarch64-unknown-linux-musl
+    # musl-tools: musl-gcc, the linker rustc expects by convention for its
+    # own (x86_64) target. aarch64 has no such package in Debian's repos --
+    # musl.cc's prebuilt cross toolchain is the standard stand-in.
+    - apt-get update -qq && apt-get install -y -qq musl-tools >/dev/null
+    - curl -fsSL https://musl.cc/aarch64-linux-musl-cross.tgz | tar -xzC /opt
+    - export PATH="/opt/aarch64-linux-musl-cross/bin:$PATH"
+  script:
+    - export PATH="/opt/aarch64-linux-musl-cross/bin:$PATH"
+    - mkdir -p dist
+    - |
+      for pkg in fleet-poll run; do
+        for target in x86_64-unknown-linux-musl aarch64-unknown-linux-musl; do
+          (cd rust/$pkg && cargo build --release --target "$target")
+          cp rust/$pkg/target/$target/release/phosphor-$pkg dist/phosphor-$pkg-$target
+        done
+      done
+    - ls -la dist/
+  artifacts:
+    paths: [dist/]
 
 # A tag vX.Y.Z publishes its release notes, once every test above passed on
 # it: the tag must match VERSION, and CHANGELOG.md's "## X.Y.Z — title" section

@@ -252,7 +252,7 @@ def save(name, blk):
         print(row(BAD, "not saved", str(e)[:60])); return False
     if not any(t.get("name") == name for t in prof.get("tabs", [])):
         print(row(BAD, "not saved", "the tab isn't in the result")); return False
-    open(p + ".bak", "w").write(text)
+    deckconf.backup(p, text)
     open(p, "w").write(new)
     print(row(OK, "saved", p, note="backup: deck.toml.bak"))
     return True

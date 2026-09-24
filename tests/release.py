@@ -17,13 +17,34 @@ Which releases go to main is the maintainer's policy: while a minor version is
 being built (0.2.x) every release stays on dev, which is the nightly channel;
 main, the stable one, only moves when a minor is done (--main, 0.3.0).
 
+5. The public GitHub mirror (github.com/rsmedrano-cloud/phosphor-deck): a
+   squashed commit onto its own dev (or main, with --main), never GitLab's
+   real history -- building on that branch's previous sync there, same as a
+   normal commit, just never carrying GitLab's granular one. Best-effort:
+   a GitHub hiccup here doesn't undo an already-shipped GitLab release, it
+   just prints what to fix by hand. With --main only, also a real GitHub
+   Release with the cross-compiled Rust binaries (rust-release's job
+   artifacts on this tag's own pipeline) attached, for install.sh's
+   fetch() to find (#32).
+
 It never touches the checkout the live deck runs from: the brain gets the
 release like anyone else, with `phosphor update` (the DECK tab offers it).
 """
-import os, re, subprocess, sys
+import json, os, re, shutil, subprocess, sys, tempfile, zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.chdir(ROOT)
+
+GITHUB = "https://github.com/rsmedrano-cloud/phosphor-deck.git"
+GITHUB_REPO = "rsmedrano-cloud/phosphor-deck"
+
+def gh_identity():
+    """This checkout's own git identity -- already the maintainer's noreply
+    address (see privacy), never hardcoded here: phosphor privacy blocks a
+    real email or username in tracked source, on purpose, no exceptions."""
+    name = subprocess.run(["git", "config", "user.name"], capture_output=True, text=True).stdout.strip()
+    email = subprocess.run(["git", "config", "user.email"], capture_output=True, text=True).stdout.strip()
+    return name, email
 
 def sh(*a, check=True, quiet=True):
     r = subprocess.run(list(a), capture_output=quiet, text=True)
@@ -36,6 +57,108 @@ def stop(why):
 
 def vtuple(v):
     return tuple(int(x) for x in v.split("."))
+
+def sync_github(branch, v, title):
+    """Squash HEAD onto GitHub's own `branch` as one commit, building on
+    that branch's previous sync there (a real, if squashed, history on
+    GitHub -- never GitLab's granular one). Best-effort on purpose: prints
+    what to fix by hand instead of raising, so a GitHub hiccup never undoes
+    a GitLab release that already shipped."""
+    tmp = tempfile.mkdtemp(prefix="phosphor-ghmirror-")
+    try:
+        c = subprocess.run(["git", "clone", "-q", GITHUB, tmp], capture_output=True, text=True)
+        if c.returncode != 0:
+            print("release: GitHub mirror sync skipped (clone failed): " + c.stderr.strip()); return
+        has = subprocess.run(["git", "-C", tmp, "rev-parse", "-q", "--verify", "origin/" + branch],
+                             capture_output=True).returncode == 0
+        if has:
+            subprocess.run(["git", "-C", tmp, "checkout", "-q", "-B", branch, "origin/" + branch])
+            subprocess.run(["git", "-C", tmp, "rm", "-rq", "."], capture_output=True)
+        else:
+            subprocess.run(["git", "-C", tmp, "checkout", "-q", "--orphan", branch])
+        arc = subprocess.run(["git", "archive", "--format=tar", "HEAD"], cwd=ROOT, capture_output=True).stdout
+        t = subprocess.run(["tar", "-xf", "-"], input=arc, cwd=tmp, capture_output=True)
+        if t.returncode != 0:
+            print("release: GitHub mirror sync skipped (couldn't lay down the tree): " + t.stderr.decode()); return
+        subprocess.run(["git", "-C", tmp, "add", "-A"], capture_output=True)
+        name, email = gh_identity()
+        env = dict(os.environ, GIT_AUTHOR_NAME=name, GIT_AUTHOR_EMAIL=email,
+                   GIT_COMMITTER_NAME=name, GIT_COMMITTER_EMAIL=email)
+        cm = subprocess.run(["git", "-C", tmp, "commit", "-q", "-m", "%s — %s" % (v, title)],
+                            capture_output=True, text=True, env=env)
+        if cm.returncode != 0:
+            print("release: GitHub mirror sync skipped (nothing changed since its last sync)"); return
+        p = subprocess.run(["git", "-C", tmp, "push", "-q", "-u", "origin", branch],
+                           capture_output=True, text=True)
+        if p.returncode != 0:
+            print("release: GitHub mirror push failed, fix by hand: " + p.stderr.strip()); return
+        print("release: GitHub mirror's %s updated too (github.com/rsmedrano-cloud/phosphor-deck)" % branch)
+    except Exception as e:
+        print("release: GitHub mirror sync skipped (%s)" % e)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+def rust_release_job(v):
+    """This tag's own rust-release job id, or None. Not `glab job artifact`
+    (its own ref+job lookup 404ed against a real tag pipeline in testing,
+    even though the artifact plainly exists and downloads fine by job id
+    -- see sync_github_binaries()) -- straight at the API instead, the same
+    way tests/ci.py already talks to it."""
+    p = subprocess.run(["glab", "api", "projects/:id/pipelines?ref=v%s&per_page=1" % v],
+                       capture_output=True, text=True)
+    pipes = json.loads(p.stdout) if p.returncode == 0 and p.stdout.strip() else []
+    if not pipes:
+        return None
+    j = subprocess.run(["glab", "api", "projects/:id/pipelines/%d/jobs?per_page=50" % pipes[0]["id"]],
+                       capture_output=True, text=True)
+    jobs = json.loads(j.stdout) if j.returncode == 0 and j.stdout.strip() else []
+    hit = next((x for x in jobs if x["name"] == "rust-release"), None)
+    return hit["id"] if hit else None
+
+def sync_github_binaries(v, title):
+    """Attach the cross-compiled Rust binaries (rust/fleet-poll, rust/run --
+    see #32) to a real GitHub Release: install.sh's fetch() looks at
+    GitHub's releases/latest for these, same as zellij/yazi/etc, and it
+    always installs from main -- so this only runs for a --main release.
+    Shipping it at every dev patch too would make releases/latest drift
+    ahead of what a plain `git clone` of main actually checks out.
+
+    The binaries themselves were already built by the tag's own pipeline
+    (the rust-release job) -- tests/ci.py already waited for that pipeline
+    to go green before this runs, so rust_release_job() just finds what's
+    already there. Best-effort, same spirit as sync_github(): a GitHub
+    hiccup here never undoes the GitLab release that already shipped."""
+    tmp = tempfile.mkdtemp(prefix="phosphor-ghrelease-")
+    try:
+        jid = rust_release_job(v)
+        if jid is None:
+            print("release: GitHub release skipped (no rust-release job found for v%s)" % v); return
+        zpath = os.path.join(tmp, "artifacts.zip")
+        r = subprocess.run(["glab", "api", "projects/:id/jobs/%d/artifacts" % jid,
+                            "-H", "Accept: application/octet-stream"],
+                           capture_output=True)
+        if r.returncode != 0 or not r.stdout:
+            print("release: GitHub release skipped (couldn't download rust-release's artifacts): "
+                  + r.stderr.decode(errors="replace").strip()); return
+        open(zpath, "wb").write(r.stdout)
+        with zipfile.ZipFile(zpath) as z:
+            z.extractall(tmp)
+        dist = os.path.join(tmp, "dist")
+        bins = sorted(os.listdir(dist)) if os.path.isdir(dist) else []
+        if not bins:
+            print("release: GitHub release skipped (rust-release built no binaries)"); return
+        c = subprocess.run(["gh", "release", "create", "v" + v, "--repo", GITHUB_REPO,
+                            "--title", "%s — %s" % (v, title), "--target", "main",
+                            "--notes", "See CHANGELOG.md."]
+                           + [os.path.join(dist, b) for b in bins],
+                           capture_output=True, text=True)
+        if c.returncode != 0:
+            print("release: GitHub release failed, fix by hand: " + (c.stderr or c.stdout).strip()); return
+        print("release: GitHub release v%s published with %s" % (v, ", ".join(bins)))
+    except Exception as e:
+        print("release: GitHub release skipped (%s)" % e)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
 
 def main():
     args = [a for a in sys.argv[1:] if a != "--main"]
@@ -74,6 +197,11 @@ def main():
     if subprocess.run([sys.executable, "tests/mrs-check.py"]).returncode != 0:
         print("release: (the above needs a look, but doesn't block this release)")
 
+    # Same idea for the public mirror: nothing else polls it, so without
+    # this a bug report or feature request just sits there unseen. See #30.
+    print("release: open GitHub issues/PRs")
+    subprocess.run([sys.executable, "tests/github-check.py"])
+
     # 2. the fast checks
     print("release: fast checks")
     if subprocess.run(["sh", "tests/check.sh"], capture_output=True).returncode != 0:
@@ -110,6 +238,12 @@ def main():
     if failed:
         stop("%s is tagged and its notes are up, but a pipeline failed after it went out: "
              "fix on dev and cut the next patch" % v)
+
+    # 5. the public GitHub mirror -- best-effort, see sync_github's own docstring
+    sync_github("main" if to_main else "dev", v, title)
+    if to_main:
+        sync_github_binaries(v, title)
+
     print("release: %s — %s is out, on %s. The brain gets it with phosphor update%s." %
           (v, title, "main and dev" if to_main else "dev (nightly)", "" if to_main else " --channel nightly"))
     return 0

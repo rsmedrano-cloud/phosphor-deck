@@ -6,6 +6,90 @@ before it updates.
 
 ## Unreleased
 
+## 0.4.0 — the deck that tells you: tab marks, dirty workspaces, self-healing mounts
+
+- `phosphor glance` and the DECK tab's status line now call out a workspace with uncommitted
+  changes, or commits ahead/behind its upstream -- "one device, then another" makes those easy to
+  forget which machine has. A fresh workspace's own scaffold (`AGENTS.md`, `NOTES.md`...) gets
+  committed when it's created, so a brand new workspace starts clean instead of showing up dirty
+  from day one.
+
+## 0.3.5 — self-healing fleet mounts, real Rust binaries, and aider
+
+- Fixed: a `~/fleet/<host>` mount (rclone sftp) whose transport died -- a remote sleeping or
+  changing IP over Tailscale, most often -- used to stay broken forever: the kernel still lists
+  it as mounted, so nothing noticed, and a fresh rclone can't mount over a mountpoint it still
+  considers busy from the dead one. `phosphor fleet` now sweeps for it in the background (every
+  20s) and self-heals it (`fusermount -uz` then a unit restart); `phosphor doctor` calls out a
+  zombie mount by name instead of reporting it as healthy.
+
+- `install.sh` now fetches the optional Rust rewrites (`rust/fleet-poll`, `rust/run`) on
+  x86_64/aarch64, same as zellij/yazi/btop: a new `rust-release` CI job cross-compiles both for
+  both architectures at every tag, and a minor release (`tests/release.py --main`) attaches them
+  to a real GitHub Release for `install.sh`'s fetch to find. Still entirely optional -- missing,
+  or on 32-bit ARM, both tools fall back to Python exactly as before.
+
+- `phosphor workspace` (and the notebook's `c`) can now start a workspace with **aider**, alongside
+  claude, gemini, codex and opencode. It resumes across restarts like claude does
+  (`--restore-chat-history`), and gets its own onboarding message on first launch too, even though
+  aider's `--message` normally answers once and exits: it answers that one message non-interactively,
+  then hands off to a normal interactive aider that reloads the exchange from its chat history.
+
+- A workspace's tab now marks itself (`<TAB> ●N`, same mechanism as a chat mention) the moment its
+  `NOTES.md` changes -- the only channel a workspace's assistants have to hand off work, and until
+  now nothing signalled a new entry landed there short of polling it by hand.
+
+## 0.3.4 — ssh multiplexing, and a real undo depth for the profile
+
+- A profile write (`phosphor setup`, `keep`, `tabs`, `shortcuts`, a new tab from `+`, a tunnel,
+  `web on/off`, `init` over an existing one) now keeps up to three backups (`deck.toml.bak`,
+  `.bak.2`, `.bak.3`), rotating the oldest out, instead of one slot every write overwrote --
+  `phosphor setup` then a recipe, back to back, used to lose the setup-time backup.
+
+- Fleet: ssh multiplexing (`ControlMaster=auto`, `ControlPersist=60s`) -- a full handshake on the
+  first poll of each host, every poll after that rides the same connection instead of opening a
+  fresh one every 15s. Cuts both the CPU cost of repeated key exchange and the login-every-15s
+  noise a polled host's own auth log used to get.
+
+- Fixed: `phosphor restart`/`down`'s new duplicate-process check (0.3.3) counted matterhorn,
+  yazi, btop, ctop and gping by name alone, machine-wide -- on the same machine the tests were
+  run from (the brain itself, running a real deck) it always found the live deck's own panes
+  too and called them duplicates. Scoped to the session just restarted, the same
+  `ZELLIJ_SESSION_NAME` mark `reap.targets()` already uses.
+
+## 0.3.3 — notes search, and a restart that waits for proof
+
+- `phosphor notes`: `/` searches title, body, author and tab at once (case-insensitive) over
+  what's already loaded -- no new file reads. Enter applies it, Esc cancels, an empty query
+  clears it; the header shows the active search and the entry count updates as you'd expect.
+
+- `phosphor restart` (and so `phosphor update`) no longer starts the new deck until the old one
+  is proven gone: zellij no longer lists the session, `deck.service` isn't still active, and no
+  process of it survived the reaper. If any of that fails it stops there, names what's still
+  alive, leaves the watchdog off and exits non-zero -- before, it only printed how many processes
+  were left over and started the new deck anyway, so new code on disk could run next to old
+  panes. `phosphor down` checks the same and exits non-zero too. Reads `/proc` directly for
+  this, not `ps` -- not every minimal install has `procps`, CI's own slim image included.
+- `phosphor update` now exits non-zero when the install fails (and then doesn't restart the
+  deck at all) or when the restart doesn't finish cleanly, instead of always reporting success:
+  an unattended update (cron, a timer) can tell. Run from a pane inside the deck, the restart
+  still detaches, so there the exit status only covers the install.
+
+## 0.3.2 — phosphor notify marks the tab it came from
+
+- `phosphor notify` now marks the tab it came from (`--tab`, or SYS with none) with "`<TAB> ●N`"
+  even with `[deck] notifier = false` (the default, no floating panes) -- the same mechanism
+  mentions.py already used for "COMMS ●2", generalized so a notification never leaves you with
+  nothing on screen. Cleared the moment you actually look at that tab.
+
+## 0.3.1 — install.sh finishes the job on a clean machine
+
+- Fixed: `install.sh` on a genuinely clean machine (`curl -fsSL .../install.sh | sh`,
+  nothing cloned yet, no `PHOSPHOR_REPO` set) used to download every deck binary and then quietly
+  give up on getting the actual code, leaving `~/.local/bin` full of zellij/yazi/btop and no
+  `phosphor` command. It now falls back to cloning the public repo in that case. The README and
+  manual show the real, working curl command instead of a `…/install.sh` placeholder.
+
 - README: links to the manual's own GitHub Pages site (next to the logo, and again in "The
   manual"), a "Built on" section crediting zellij/yazi/btop/gping/ctop/rclone by name, and a
   "Status" section that actually says 0.3.0 and public instead of the stale "not published yet".

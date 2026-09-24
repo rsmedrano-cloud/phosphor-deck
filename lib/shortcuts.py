@@ -202,7 +202,7 @@ def save(action, key):
         return "the profile wouldn't parse: %s" % str(e)[:50]
     if current(prof).get(action) != key:
         return "the profile didn't take it"
-    open(p + ".bak", "w").write(text)
+    deckconf.backup(p, text)
     open(p, "w").write(new)
     import subprocess
     subprocess.run([sys.executable, os.path.join(REPO, "phosphor"), "gen"],

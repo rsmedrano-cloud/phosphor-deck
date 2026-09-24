@@ -138,12 +138,25 @@ def run(profile=None):
                       note=h.get("role", "")))
             if not good: issues.append("%s doesn't answer over ssh" % h["name"])
             if h.get("mount"):
-                import deckconf
+                import deckconf, fleet
                 mp = os.path.join(deckconf.mount_root(profile), h["name"])
                 mounted = os.path.ismount(mp)
-                print(row(OK if mounted else BAD, "  " + mp.replace(os.path.expanduser("~"), "~", 1),
-                          "mounted" if mounted else "not mounted: it will look empty",
-                          note="" if mounted else "journalctl --user -u fleet-%s" % h["name"]))
+                # A dead SFTP transport (the remote slept, or changed IP over
+                # Tailscale) leaves the kernel still listing mp as mounted --
+                # os.path.ismount() alone can't tell it apart from a healthy
+                # one. `phosphor fleet`'s own background sweep self-heals
+                # this now (fusermount -uz + restart the unit); this just
+                # says so instead of reporting "mounted" on a dead mount.
+                zombie = mounted and deckconf.mount_zombie(mp)
+                state = "zombie: transport dead, self-heals within %ds" % fleet.MOUNT_CHECK_S \
+                        if zombie else ("mounted" if mounted else "not mounted: it will look empty")
+                print(row(WARN if zombie else (OK if mounted else BAD),
+                          "  " + mp.replace(os.path.expanduser("~"), "~", 1), state,
+                          note="" if mounted and not zombie else "journalctl --user -u fleet-%s" % h["name"]))
+                if zombie:
+                    issues.append("~/fleet/%s's transport died: phosphor fleet self-heals it "
+                                  "within %ds (fusermount -uz + restart fleet-%s.service by hand "
+                                  "if it doesn't)" % (h["name"], fleet.MOUNT_CHECK_S, h["name"]))
                 if not mounted:
                     issues.append("~/fleet/%s isn't mounted: journalctl --user -u fleet-%s" % (h["name"], h["name"]))
                     # The mount runs as a systemd service, not in this terminal: a key

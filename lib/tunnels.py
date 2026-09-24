@@ -99,7 +99,7 @@ def add_block(host):
     p = _profile(); text = open(p).read()
     new = text.rstrip("\n") + '\n\n[[tunnels]]\nhost = "%s"\n' % host
     deckconf.tomllib.loads(new)
-    open(p + ".bak", "w").write(text); open(p, "w").write(new)
+    deckconf.backup(p, text); open(p, "w").write(new)
 
 def remove_block(host):
     p = _profile(); lines = open(p).read().split("\n")
@@ -112,7 +112,7 @@ def remove_block(host):
             s = i - 1 if i > 0 and not lines[i - 1].strip() else i
             new = "\n".join(lines[:s] + lines[j:])
             deckconf.tomllib.loads(new)
-            open(p + ".bak", "w").write("\n".join(lines)); open(p, "w").write(new)
+            deckconf.backup(p, "\n".join(lines)); open(p, "w").write(new)
             return True
     return False
 

@@ -28,9 +28,12 @@
   `--notes` shows what this version brought, `--new` what a newer one brings (from CHANGELOG.md).
 
 ## Session
-- `phosphor restart` — down, reap leftover processes, up. From inside the deck it detaches itself.
+- `phosphor restart` — down, reap leftover processes, up. Up only runs once down is proven clean
+  (session gone from zellij, service stopped, nothing of it left alive); otherwise it names what's
+  left, leaves the watchdog off and exits non-zero. From inside the deck it detaches itself.
   Every screen that came in with `deck` (this machine, other computers, phones) waits and goes back in by itself.
-- `phosphor down` — bring it down and stop the watchdog timer (`phosphor up` to return).
+- `phosphor down` — bring it down and stop the watchdog timer (`phosphor up` to return); exits non-zero
+  if anything of the old deck is still alive.
 
 ## Workspaces
 - `phosphor workspace new|open|list` — a tab per idea with its own folder and assistants; see workspaces.
@@ -47,7 +50,8 @@
   `c` opens a CHAT tab where an assistant (claude, gemini, codex or opencode) starts from it,
   `w` opens a workspace from it (see workspaces).
   A note taken from a tab says so (`from SYS`); `f` goes through those tabs, showing one tab's notes at a time.
-  `u` brings back the last archived note. Every key shows at the bottom from the start (dimmed
+  `u` brings back the last archived note. `/` searches title, body, author and tab at once (case-insensitive);
+  Enter applies it, Esc cancels, an empty query clears it. Every key shows at the bottom from the start (dimmed
   until it applies), and tapping one works.
 - Archived notes live in `notes-archive.md` next to the notebook; `phosphor notes --archive`
   shows them: `r` restores one, `D` deletes it for good (asks first).
@@ -59,9 +63,11 @@
   services lists systemd units and their state (see `[prometheus]`, `[ci]` and `[services]` in profile; `--once` prints one frame).
   `fleet` also calls `phosphor notify` itself when a host's ok/not-ok flips (down, or back) -- at most once a minute per host even if the link flaps.
 - `phosphor glance [--once]` — read-only: the fleet's problem hosts (or "all N ok"), unread
-  mentions, open todos. For a small screen: `ssh -t you@brain ~/.local/bin/phosphor glance` needs no zellij
-  attach at all (see screens); refreshes every 5s, Ctrl-C to leave.
-- `phosphor notify [--tab TAB] [--voice VOICE] [--tts|--no-tts] [--push|--no-push] MESSAGE` — the adjutant announces it, speaks it if TTS is enabled, and pushes it to your phone if `[push]` is on.
+  mentions, open todos, and any workspace with uncommitted changes or commits ahead/behind its
+  upstream ("one device, then another" makes those easy to forget). For a small screen:
+  `ssh -t you@brain ~/.local/bin/phosphor glance` needs no zellij attach at all (see screens);
+  refreshes every 5s, Ctrl-C to leave.
+- `phosphor notify [--tab TAB] [--voice VOICE] [--tts|--no-tts] [--push|--no-push] MESSAGE` — the adjutant announces it, speaks it if TTS is enabled, and pushes it to your phone if `[push]` is on. The tab it names (or SYS with no `--tab`) also reads "`<TAB> ●N`" until you look, whether or not `[deck] notifier` is on (see profile).
 - `phosphor tts [MESSAGE]` — speak a message aloud with selectable voices (glados, adjutant, hal, synth, system); `phosphor tts install glados` assists with installing GLaDOS-TTS.
 - `phosphor push [--qr]` — `[push]`'s status (on/off, server, topic); `--qr` prints the subscribe
   link as a QR (also onto every screen's clipboard) so the phone's ntfy app can scan it instead of

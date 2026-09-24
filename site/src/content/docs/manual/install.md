@@ -7,13 +7,19 @@ sidebar:
 
 On the machine that will be the brain:
 
-    sh install.sh            # from a copy of the repo, or: curl -fsSL …/install.sh | sh
+    sh install.sh            # from a copy of the repo, or:
+    curl -fsSL https://raw.githubusercontent.com/rsmedrano-cloud/phosphor-deck/main/install.sh | sh
 
 It downloads zellij, yazi, btop, gping, ctop and rclone into `~/.local/bin`
 (static binaries; no root), puts the code in `~/.phosphor` (an install that
 already exists keeps its folder), writes the `deck` command, and asks
 "set it up now?". Yes runs the wizard, which ends with "build the deck and
 start it now?" and "get in now?": you finish inside the deck.
+
+On x86_64/aarch64 it also fetches `phosphor-fleet-poll` and `phosphor-run`,
+the two optional Rust rewrites (see CONTRIBUTING.md) -- best-effort, same as
+the rest: missing one, or a 32-bit ARM install, just means the Python
+fallback runs, same as before either existed.
 
 The same steps by hand:
 
@@ -142,6 +148,16 @@ generator, a shortcut zellij itself needs to reread, anything outside
 `lib/`) still gets a real `phosphor restart`, same as always -- that
 judgement call is conservative on purpose: `--full` skips it and always
 restarts, if you'd rather not think about it.
+
+A real restart only starts the new deck once the old one is proven gone:
+zellij no longer lists the session, its service has stopped, and none of its
+processes outlived the reaper. If anything is still alive, it stops right
+there, says what, and leaves the watchdog off instead of starting new code
+next to old panes; once those are gone, `phosphor restart` again. `phosphor
+update` exits non-zero when that happens, and when the install itself fails
+(then it doesn't restart at all), so an unattended update (cron, a timer)
+knows it didn't land. Run from a pane inside the deck, the restart detaches
+itself, so there the exit status only covers the install.
 
 Two channels: **stable** follows main, which only moves when a minor version
 is done (0.3.0, 0.4.0...), and the notice shows up only for a new version;
