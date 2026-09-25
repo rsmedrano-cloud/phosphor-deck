@@ -154,6 +154,9 @@ out=$(python3 tests/screens-check.py 2>&1) && ok || bad "$out"
 step "fleet: a slow poll tags itself and logs"
 out=$(python3 tests/fleet-timing-check.py 2>&1) && ok || bad "$out"
 
+step "adjutant: fleet.json read once per change, not per tick"
+out=$(python3 tests/adjutant-check.py 2>&1) && ok || bad "$out"
+
 step "fleet: rust poller picked when installed, else python"
 out=$(python3 tests/fleet-poller-check.py 2>&1) && ok || bad "$out"
 

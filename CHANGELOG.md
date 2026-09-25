@@ -6,6 +6,16 @@ before it updates.
 
 ## Unreleased
 
+## 1.0.5 — rust fleet-poll reuses SSH, adjutant stops hammering fleet.json
+
+- Fixed: `rust/fleet-poll` did a full SSH handshake every poll (~every 15s, forever) instead of
+  reusing one, filling every fleet host's own auth.log with a login per poll -- `lib/fleet.py`
+  already had this (ControlMaster/ControlPersist), the Rust rewrite never did. Ported over 1:1.
+- Fixed: `phosphor adjutant` re-read and re-parsed `fleet.json` on every redraw tick (every 20ms
+  while the pane's alive) instead of only when the file actually changed -- fifty re-parses a
+  second, real micro-stutter risk on a slow SD card (the `revived` shape's whole reason to
+  exist). Now checked with a stat() first, only actually re-read once a poll round.
+
 ## 1.0.4 — agy, and the fleet catches failed services and pending reboots
 
 - New: `agy` (Antigravity CLI) joins claude, gemini, codex, opencode and aider as a full

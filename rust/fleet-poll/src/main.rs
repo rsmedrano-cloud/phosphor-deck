@@ -151,6 +151,25 @@ fn dlog_event(tool: &str, what: &str, detail: &str) {
 /// `known_down`: this host has already missed DOWN_AFTER polls in a row --
 /// a short probe instead of the full window (see lib/fleet.py's collect()
 /// for why).
+/// The ssh argv for one host: BatchMode (never wait on a password) plus
+/// ControlMaster/ControlPersist/ControlPath, reusing one real handshake
+/// across polls instead of a fresh login every ~15s forever -- 1:1 with
+/// lib/fleet.py's ssh_cmd(). Without it, every fleet host's own auth.log
+/// fills with a login per poll, and every poll pays a full SSH+crypto
+/// handshake it doesn't need to. `ctrl_dir` is `<cache_dir>/ssh`, passed in
+/// so this stays a pure function to test against.
+fn ssh_args(target: &str, connect_t: u32, ctrl_dir: &str) -> Vec<String> {
+    vec![
+        "-o".into(), "BatchMode=yes".into(),
+        "-o".into(), format!("ConnectTimeout={}", connect_t),
+        "-o".into(), "ControlMaster=auto".into(),
+        "-o".into(), "ControlPersist=60s".into(),
+        "-o".into(), format!("ControlPath={}/%C", ctrl_dir),
+        target.to_string(),
+        "sh -s".into(),
+    ]
+}
+
 fn collect(target: &Option<String>, known_down: bool) -> (serde_json::Value, i64) {
     let t0 = Instant::now();
     let connect_t = if known_down { CONNECT_TIMEOUT_DOWN_S } else { CONNECT_TIMEOUT_S };
@@ -162,11 +181,10 @@ fn collect(target: &Option<String>, known_down: bool) -> (serde_json::Value, i64
             c
         }
         Some(t) => {
+            let ctrl_dir = format!("{}/ssh", cache_dir());
+            let _ = std::fs::create_dir_all(&ctrl_dir);
             let mut c = Command::new("ssh");
-            c.args(["-o", "BatchMode=yes", "-o"])
-                .arg(format!("ConnectTimeout={}", connect_t))
-                .arg(t)
-                .arg("sh -s");
+            c.args(ssh_args(t, connect_t, &ctrl_dir));
             c
         }
     };
@@ -432,6 +450,19 @@ mod tests {
     fn known_down_timeouts_are_real_and_shorter() {
         assert!(CONNECT_TIMEOUT_DOWN_S < CONNECT_TIMEOUT_S);
         assert!(POLL_TIMEOUT_DOWN < POLL_TIMEOUT);
+    }
+
+    #[test]
+    fn ssh_reuses_one_handshake_instead_of_a_fresh_login_every_poll() {
+        let args = ssh_args("db-box", 6, "/home/x/.cache/phosphor/ssh");
+        let joined = args.join(" ");
+        assert!(joined.contains("BatchMode=yes"), "never waits on a password");
+        assert!(joined.contains("ConnectTimeout=6"));
+        assert!(joined.contains("ControlMaster=auto"), "reuse one real handshake, not one per poll");
+        assert!(joined.contains("ControlPersist=60s"), "outlives one poll, so the next reuses it");
+        assert!(joined.contains("ControlPath=/home/x/.cache/phosphor/ssh/%C"),
+                "keyed per host (ssh's own %C), not shared across them");
+        assert_eq!(args.last().unwrap(), "sh -s");
     }
 
     #[test]
