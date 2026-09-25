@@ -30,6 +30,7 @@ need("no workspaces yet says so", any("nothing dirty or unpushed" in l for l in 
 json.dump({"t": 9999999999, "hosts": {
     "nova": {"ok": True, "CPU": 10, "MEMU": 100, "MEMT": 1000, "mnt": []},
     "forge": {"ok": False, "err": "connection refused"},
+    "atlas": {"ok": True, "CPU": 5, "MEMU": 50, "MEMT": 1000, "mnt": [], "SVCFAIL": 2, "REBOOT": "1"},
 }}, open(os.path.join(home, ".cache/phosphor/fleet.json"), "w"))
 open(os.path.join(home, ".local/share/phosphor/mentions.jsonl"), "w").write(
     json.dumps({"t": 1.0, "from": "sam", "message": "one comment on the tts PR"}) + "\n")
@@ -39,6 +40,9 @@ open(os.path.join(home, ".local/share/phosphor/notes.md"), "w").write(
 lines = [strip(l) for l in glance.frame(80, 40)]
 need("bad host shows up", any("forge" in l and "connection refused" in l for l in lines))
 need("ok host doesn't clutter the list", not any(l.strip().startswith("✗ nova") for l in lines))
+need("a failed service shows up even though the host itself is ok",
+     any("atlas" in l and "2 services failed" in l for l in lines))
+need("a pending reboot shows up too", any("atlas" in l and "reboot pending" in l for l in lines))
 need("unread mention shows up", any("1 unread" in l for l in lines))
 need("mention sender/text shows up", any("sam" in l for l in lines))
 need("todo shows up", any("1 open todo" in l for l in lines) and any("tailnet" in l for l in lines))

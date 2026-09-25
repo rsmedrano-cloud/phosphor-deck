@@ -37,6 +37,9 @@ out=$(python3 tests/keep-check.py 2>&1) && ok || bad "$out"
 step "a frozen program is closed"
 out=$(python3 tests/hang-check.py 2>&1) && ok || bad "$out"
 
+step "--reconnect backs off instead of hammering a dead link"
+out=$(python3 tests/run-reconnect-check.py 2>&1) && ok || bad "$out"
+
 step "welcome invites, not a key list"
 out=$(python3 tests/welcome-check.py 2>&1) && ok || bad "$out"
 
@@ -94,6 +97,15 @@ out=$(python3 tests/newtab-attach-check.py 2>&1) && ok || bad "$out"
 step "commands: category/leaf picker, only safe ones auto-run"
 out=$(python3 tests/commands-menu-check.py 2>&1) && ok || bad "$out"
 
+step "tail: journalctl/docker/podman through phosphor run --reconnect"
+out=$(python3 tests/tail-check.py 2>&1) && ok || bad "$out"
+
+step "triage: snapshot over ssh, piped into phosphor ask"
+out=$(python3 tests/triage-check.py 2>&1) && ok || bad "$out"
+
+step "panel: DECK tab actions that pick a host first (triage, tail)"
+out=$(python3 tests/panel-actions-check.py 2>&1) && ok || bad "$out"
+
 step "prometheus gauges, fake server"
 out=$(python3 tests/prom-check.py 2>&1) && ok || bad "$out"
 
@@ -150,6 +162,9 @@ out=$(python3 tests/screens-check.py 2>&1) && ok || bad "$out"
 
 step "fleet: a slow poll tags itself and logs"
 out=$(python3 tests/fleet-timing-check.py 2>&1) && ok || bad "$out"
+
+step "adjutant: fleet.json read once per change, not per tick"
+out=$(python3 tests/adjutant-check.py 2>&1) && ok || bad "$out"
 
 step "fleet: rust poller picked when installed, else python"
 out=$(python3 tests/fleet-poller-check.py 2>&1) && ok || bad "$out"

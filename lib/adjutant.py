@@ -74,14 +74,29 @@ def read_events(pos):
         pos = 0
     return out, pos
 
+_fleet_cache = {"mtime": None, "data": None}
+
 def fleet_alert():
+    """Checked every tick of the main loop (every 20ms, tty_ok) -- a stat()
+    call is cheap, re-opening and re-parsing fleet.json isn't, especially
+    on a slow SD card (the "revived" shape's whole reason to exist). Only
+    actually re-reads it when its mtime moves, which is once a poll round
+    (~15s), not fifty times a second."""
     try:
-        with open(FLEET) as f: d = json.load(f)
-    except FileNotFoundError:
+        mtime = os.path.getmtime(FLEET)
+    except OSError:
         return None
-    except Exception:
-        import dlog
-        dlog.event_throttled("ADJUTANT", "fleet-json-failed")
+    if mtime != _fleet_cache["mtime"]:
+        try:
+            with open(FLEET) as f:
+                _fleet_cache["data"] = json.load(f)
+            _fleet_cache["mtime"] = mtime
+        except Exception:
+            import dlog
+            dlog.event_throttled("ADJUTANT", "fleet-json-failed")
+            return None
+    d = _fleet_cache["data"]
+    if d is None:
         return None
     if time.time() - d.get("t", 0) > 120: return None
     for name, h in d.get("hosts", {}).items():

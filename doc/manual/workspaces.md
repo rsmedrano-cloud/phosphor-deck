@@ -32,11 +32,11 @@ The same thing, without a note: the tab bar's `+` → **workspace**, or
 The tab is kept in your profile like any other, so it comes back after
 `phosphor restart`. What "comes back" means depends on the assistant:
 **claude** resumes its last conversation there (`claude --continue`, or a
-fresh one if there wasn't one yet), and so does **aider**
-(`--restore-chat-history`); **gemini**, **codex** and **opencode** just
-start over -- there's no equivalent for them yet, so whatever context they
-had lives only in that session and in what got written to the notebook
-before it ended.
+fresh one if there wasn't one yet), and so do **aider**
+(`--restore-chat-history`) and **agy** (`--continue`); **gemini**, **codex**
+and **opencode** just start over -- there's no equivalent for them yet, so
+whatever context they had lives only in that session and in what got
+written to the notebook before it ended.
 
 The first time a pane starts, that assistant is asked to read its own
 `AGENTS.md` and `BRIEF.md` and say where things stand -- so arriving at a
@@ -88,7 +88,7 @@ hand, same as any other git repo.
 
 ## Commands
 
-- `phosphor workspace new [NAME] [--shape one|two|shell] [--parts "a b"] [--assistant claude|gemini|codex|opencode|aider]`
+- `phosphor workspace new [NAME] [--shape one|two|shell] [--parts "a b"] [--assistant claude|gemini|codex|opencode|aider|agy]`
   `[--brief FILE | --note TEXT] [--folder-only]` — `--note` takes the note whose title contains TEXT;
   `--folder-only` writes the folder and leaves the profile and tabs alone (an assistant can use it).
 - `phosphor workspace open NAME` — go to its tab, or open it (inside the deck).

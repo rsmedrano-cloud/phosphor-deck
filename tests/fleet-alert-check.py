@@ -26,7 +26,7 @@ fleet.subprocess.Popen = fake_popen
 
 def reset():
     fleet.STATE.clear(); fleet.FAILS.clear()
-    fleet.PREV_OK.clear(); fleet.LAST_ALERT.clear()
+    fleet.PREV_OK.clear(); fleet.PREV_SVCFAIL.clear(); fleet.LAST_ALERT.clear()
     calls.clear()
 
 def alert_texts():
@@ -49,6 +49,8 @@ try:
           "db-box is unreachable" in alert_texts())
     check("goes through phosphor notify --fleet-alert",
           calls[0][2] == "notify" and "--fleet-alert" in calls[0])
+    check("marks the real SYS tab, not a made-up 'FLEET' one nothing is ever named",
+          "--tab" in calls[0] and calls[0][calls[0].index("--tab") + 1] == "SYS")
 
     # recovering fires the "back" alert too, once the per-host cooldown
     # from the down alert above has passed
@@ -82,6 +84,33 @@ try:
     fleet.update_host("db-box", {"ok": False}); fleet.update_host("db-box", {"ok": False})
     fleet.update_host("nimbus", {"ok": False}); fleet.update_host("nimbus", {"ok": False})
     check("each host gets its own alert", len(calls) == 2)
+
+    # a service failing (or recovering) alerts too, same first-poll and
+    # cooldown rules as the host up/down case above
+    reset()
+    fleet.update_host("db-box", {"ok": True, "SVCFAIL": 0})
+    check("no alert on the first poll, even with a service already down",
+          calls == [])
+    fleet.update_host("db-box", {"ok": True, "SVCFAIL": 2})
+    check("a new service failure alerts", len(calls) == 1)
+    check("names the host and the count", "db-box: 2 services failed" in alert_texts())
+    fleet.LAST_ALERT["db-box"] = time.time() - 61
+    fleet.update_host("db-box", {"ok": True, "SVCFAIL": 2})
+    check("staying at the same count doesn't refire", len(calls) == 1)
+    fleet.update_host("db-box", {"ok": True, "SVCFAIL": 0})
+    check("recovering alerts again", len(calls) == 2)
+    check("says back to normal", "db-box: services back to normal" in alert_texts())
+
+    reset()
+    fleet.update_host("db-box", {"ok": True, "SVCFAIL": 0})
+    fleet.update_host("db-box", {"ok": True, "SVCFAIL": 1})
+    check("singular: '1 service failed', not '1 services'",
+          "db-box: 1 service failed" in alert_texts())
+    reset()
+    fleet.update_host("db-box", {"ok": False, "err": "timeout"})
+    fleet.update_host("db-box", {"ok": False, "err": "timeout"})
+    check("a down host reports no service alert (no SVCFAIL data to compare)",
+          calls == [] or all("service" not in t for t in alert_texts()))
 
     # demo mode's own loop never calls update_host: no alerts possible
     reset()

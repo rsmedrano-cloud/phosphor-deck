@@ -14,6 +14,14 @@ awk '{d=$1/86400; h=($1%86400)/3600; if(d>=1) printf "UP=%dd\n",d; else printf "
 df -h --output=source,target,pcent,size -x tmpfs -x devtmpfs -x overlay -x squashfs -x efivarfs -x fuse.rclone -x fuse.sshfs -x fuse 2>/dev/null \
   | tail -n +2 | sort -k2,2 \
   | awk '$2 ~ /^\/(sys|proc|run|dev|boot|etc)/ {next} $4 !~ /[GT]$/ {next} seen[$1]++ {next} {gsub("%","",$3); print "MNT=" $2 "|" $3 "|" $4}'
+# A machine rarely dies outright; a key service crashing (jellyfin,
+# postgresql, tailscaled) or a security update leaving a reboot pending is
+# the more common self-hosting failure. Both are near-free to check.
+if command -v systemctl >/dev/null 2>&1; then
+  echo "SVCFAIL=$(systemctl --failed --quiet --no-legend 2>/dev/null | wc -l)"
+fi
+[ -f /var/run/reboot-required ] && echo "REBOOT=1"
+
 if command -v docker >/dev/null 2>&1 && docker ps -q >/dev/null 2>&1; then
   echo "CTR=docker|$(docker ps -q 2>/dev/null|wc -l)|$(docker ps -aq -f status=exited 2>/dev/null|wc -l)"
 elif command -v podman >/dev/null 2>&1; then

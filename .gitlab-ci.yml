@@ -93,6 +93,22 @@ distros:
   script:
     - sh tests/from-zero.sh
 
+# rust-test: cargo test for both optional Rust rewrites, natively, on every
+# protected push -- unlike rust-release below, no cross-compiling, so it's
+# cheap enough to run every time, not just at a tag. Added after a real gap:
+# their own unit tests (parity checks against lib/fleet.py and lib/run.py,
+# among others) had never run in CI at all, so a divergence between the
+# Python and Rust implementations of the same fix (the SYS/FLEET tab-mark
+# bug, the --reconnect backoff) shipped in the Python side and sat
+# unnoticed in Rust until an audit found it by hand.
+rust-test:
+  tags: [homelab]
+  rules:
+    - if: $CI_COMMIT_REF_PROTECTED == "true"
+  image: rust:1-bookworm
+  script:
+    - for pkg in fleet-poll run; do (cd rust/$pkg && cargo test) || exit 1; done
+
 # rust-release: cross-compiles the optional Rust rewrites (rust/fleet-poll,
 # rust/run -- see their own README, and #32) for both architectures the
 # brain runs on, only at a tag: cross-compiling is slow and a normal push

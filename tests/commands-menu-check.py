@@ -4,7 +4,7 @@ and its detail screen only auto-runs what share/commands.json calls safe.
 
     python3 tests/commands-menu-check.py
 """
-import io, os, re, sys
+import builtins, io, os, re, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "lib"))
 import commands
@@ -41,8 +41,13 @@ check("command_items shape", items[0] == (first_cat_cmds[0][0], first_cat_cmds[0
 # always copies, regardless of safety; never touches a real terminal or
 # a real assistant/clipboard here.
 import contextlib
-real_screen, real_getkey, real_run = commands.screen, commands.getkey, commands.subprocess.run
+real_screen, real_getkey, real_run, real_input = commands.screen, commands.getkey, commands.subprocess.run, builtins.input
 commands.screen = lambda lines: None
+# detail() prompts "Enter to go back" (a bare `input()`) after running a safe
+# command -- on a real tty (a developer running sh tests/check.sh by hand,
+# not CI's non-interactive stdin) that would block this test waiting for a
+# real keypress.
+builtins.input = lambda *a, **kw: ""
 ran = []
 commands.subprocess.run = lambda cmd, **kw: ran.append(cmd)
 copied = []
@@ -92,6 +97,7 @@ try:
             check("%r leaves with no side effects" % key, not ran and not copied)
 finally:
     commands.screen, commands.getkey, commands.subprocess.run = real_screen, real_getkey, real_run
+    builtins.input = real_input
     del sys.modules["clip"]
 
 if fails:

@@ -70,17 +70,23 @@ real GitHub Release (never a dev/nightly one -- see its own
 `sync_github_binaries()` for why). Missing or the wrong architecture still
 just falls back silently: fetching them is best-effort, same as the other
 bundled binaries.
-Neither's `cargo test` is in `tests/check.sh` yet -- CI's images
-(`python:3.12-slim`, `alpine`) don't carry a Rust toolchain, and adding one
-is its own topic, not bundled into a module's first pass. Run them by hand
-from each crate's folder until that's sorted out.
+Neither's `cargo test` is in `tests/check.sh` (its images, `python:3.12-slim`
+and `alpine`, carry no Rust toolchain, and adding one there is its own
+topic) -- but both do run in CI, on every push to a protected ref, as their
+own `rust-test` job (`rust:1-bookworm`, no cross-compiling, so it's cheap
+enough to run every time unlike `rust-release` below). That job exists
+because its absence once let a real bug ship: the same fix landed in
+`lib/fleet.py` and `lib/run.py` without anyone noticing `rust/fleet-poll`
+and `rust/run` still had the old, buggy behavior, since nothing was
+checking their tests at all. Run them by hand from each crate's folder too
+when you're changing one (`cargo test`).
 
 ## Branches
 
 `dev` is where work happens; `main` is what stable users run. A topic is done
 when its tests pass on `dev`, with a CHANGELOG.md entry written for the people
-who use it, not for the code. Patch releases (0.2.x) stay on `dev`, the nightly
-channel; `main` only moves when a minor version is done (0.3.0), so stable
+who use it, not for the code. Patch releases stay on `dev`, the nightly
+channel; `main` only moves at a minor (or major) version, so stable
 users never get half a milestone.
 
 What's done but not released goes under `## Unreleased` at the top of
@@ -89,7 +95,7 @@ is a release: small things wait until there's something worth announcing,
 and the "new version" notice only fires when VERSION changes.
 
 A release is one command from a dev checkout: `python3 tests/release.py
-0.2.0 "a short title"`. It checks where it stands, bumps VERSION, turns
+1.0.1 "a short title"`. It checks where it stands, bumps VERSION, turns
 `## Unreleased` into the version, waits for dev's pipeline, pushes the tag
 and waits for its pipeline (`--main` for a minor: it fast-forwards main first);
 a tag's pipeline publishes its release notes from CHANGELOG.md once every test passed.

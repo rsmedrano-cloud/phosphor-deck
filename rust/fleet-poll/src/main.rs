@@ -151,6 +151,25 @@ fn dlog_event(tool: &str, what: &str, detail: &str) {
 /// `known_down`: this host has already missed DOWN_AFTER polls in a row --
 /// a short probe instead of the full window (see lib/fleet.py's collect()
 /// for why).
+/// The ssh argv for one host: BatchMode (never wait on a password) plus
+/// ControlMaster/ControlPersist/ControlPath, reusing one real handshake
+/// across polls instead of a fresh login every ~15s forever -- 1:1 with
+/// lib/fleet.py's ssh_cmd(). Without it, every fleet host's own auth.log
+/// fills with a login per poll, and every poll pays a full SSH+crypto
+/// handshake it doesn't need to. `ctrl_dir` is `<cache_dir>/ssh`, passed in
+/// so this stays a pure function to test against.
+fn ssh_args(target: &str, connect_t: u32, ctrl_dir: &str) -> Vec<String> {
+    vec![
+        "-o".into(), "BatchMode=yes".into(),
+        "-o".into(), format!("ConnectTimeout={}", connect_t),
+        "-o".into(), "ControlMaster=auto".into(),
+        "-o".into(), "ControlPersist=60s".into(),
+        "-o".into(), format!("ControlPath={}/%C", ctrl_dir),
+        target.to_string(),
+        "sh -s".into(),
+    ]
+}
+
 fn collect(target: &Option<String>, known_down: bool) -> (serde_json::Value, i64) {
     let t0 = Instant::now();
     let connect_t = if known_down { CONNECT_TIMEOUT_DOWN_S } else { CONNECT_TIMEOUT_S };
@@ -162,11 +181,10 @@ fn collect(target: &Option<String>, known_down: bool) -> (serde_json::Value, i64
             c
         }
         Some(t) => {
+            let ctrl_dir = format!("{}/ssh", cache_dir());
+            let _ = std::fs::create_dir_all(&ctrl_dir);
             let mut c = Command::new("ssh");
-            c.args(["-o", "BatchMode=yes", "-o"])
-                .arg(format!("ConnectTimeout={}", connect_t))
-                .arg(t)
-                .arg("sh -s");
+            c.args(ssh_args(t, connect_t, &ctrl_dir));
             c
         }
     };
@@ -244,7 +262,7 @@ fn parse(stdout: &str) -> serde_json::Value {
                                                    f[2].parse::<i64>().unwrap_or(0)]));
                 }
             }
-            "CPU" | "MEMU" | "MEMT" => {
+            "CPU" | "MEMU" | "MEMT" | "SVCFAIL" => {
                 d.insert(k.into(), serde_json::json!(v.parse::<i64>().unwrap_or(0)));
             }
             _ => {
@@ -258,13 +276,21 @@ fn parse(stdout: &str) -> serde_json::Value {
     serde_json::Value::Object(d)
 }
 
-/// `phosphor notify --tab FLEET --fleet-alert TEXT`, off the polling path
-/// (fire and forget, same as lib/fleet.py's `_alert`'s own thread).
+/// `phosphor notify --tab SYS --fleet-alert TEXT`, off the polling path
+/// (fire and forget, same as lib/fleet.py's `_alert`'s own thread). SYS,
+/// not FLEET: the fleet card lives inside the SYS tab, alongside pulse and
+/// the adjutant -- no tab is ever named "FLEET" (see the Python fix,
+/// commit 7d5f022: a --tab naming a tab that doesn't exist marks nothing
+/// and can never be cleared either).
+fn notify_args(text: &str) -> [&str; 5] {
+    ["notify", "--tab", "SYS", "--fleet-alert", text]
+}
+
 fn notify(text: &str) {
     let phosphor = format!("{}/.local/bin/phosphor", home());
     let bin = if std::path::Path::new(&phosphor).exists() { phosphor } else { "phosphor".to_string() };
     let _ = Command::new(bin)
-        .args(["notify", "--tab", "FLEET", "--fleet-alert", text])
+        .args(notify_args(text))
         .stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null())
         .spawn();
 }
@@ -297,6 +323,7 @@ fn main() {
     let mut state: HashMap<String, serde_json::Value> = HashMap::new();
     let mut fails: HashMap<String, u32> = HashMap::new();
     let mut prev_ok: HashMap<String, bool> = HashMap::new();
+    let mut prev_svcfail: HashMap<String, i64> = HashMap::new();
     let mut last_alert: HashMap<String, Instant> = HashMap::new();
     let mut throttled: HashMap<&str, Instant> = HashMap::new();
     let mut first = true;
@@ -341,6 +368,29 @@ fn main() {
                 }
             }
             prev_ok.insert(name.clone(), now_ok);
+            // A service crashing is a more common self-hosting failure than
+            // the whole host going down -- same first-poll and cooldown rules
+            // as the host up/down alert above (1:1 with lib/fleet.py's
+            // update_host()).
+            if now_ok {
+                let svcfail = r.get("SVCFAIL").and_then(|v| v.as_i64()).unwrap_or(0);
+                if let Some(&was) = prev_svcfail.get(&name) {
+                    if was != svcfail {
+                        let cooled = last_alert.get(&name).map(|t| t.elapsed() >= ALERT_COOLDOWN).unwrap_or(true);
+                        if cooled {
+                            if svcfail > 0 && was == 0 {
+                                last_alert.insert(name.clone(), Instant::now());
+                                let unit = if svcfail == 1 { "service" } else { "services" };
+                                notify(&format!("{}: {} {} failed", name, svcfail, unit));
+                            } else if svcfail == 0 && was > 0 {
+                                last_alert.insert(name.clone(), Instant::now());
+                                notify(&format!("{}: services back to normal", name));
+                            }
+                        }
+                    }
+                }
+                prev_svcfail.insert(name.clone(), svcfail);
+            }
             state.insert(name, r);
         }
 
@@ -369,6 +419,7 @@ mod tests {
     #[test]
     fn parses_every_collect_sh_key() {
         let out = "CPU=7\nMEMU=5855\nMEMT=12904\nLOAD=2.26 1.50 1.19\nUP=16h\n\
+                    SVCFAIL=2\nREBOOT=1\n\
                     MNT=/|63|467G\nMNT=/mnt/data|53|1.9T\n\
                     GPU=AMD|38|4200|12288|57\nCTR=docker|7|0\n";
         let d = parse(out);
@@ -376,15 +427,42 @@ mod tests {
         assert_eq!(d["CPU"], serde_json::json!(7));
         assert_eq!(d["MEMU"], serde_json::json!(5855));
         assert_eq!(d["UP"], serde_json::json!("16h"));
+        assert_eq!(d["SVCFAIL"], serde_json::json!(2), "a number, like CPU/MEMU/MEMT, not a string");
+        assert_eq!(d["REBOOT"], serde_json::json!("1"));
         assert_eq!(d["mnt"], serde_json::json!([["/", 63, "467G"], ["/mnt/data", 53, "1.9T"]]));
         assert_eq!(d["gpu"][0]["name"], serde_json::json!("AMD"));
         assert_eq!(d["ctr"], serde_json::json!(["docker", 7, 0]));
     }
 
     #[test]
+    fn no_svcfail_line_means_no_failures() {
+        let d = parse("CPU=7\n");
+        assert!(d.get("SVCFAIL").is_none());
+    }
+
+    #[test]
+    fn alert_marks_the_real_sys_tab_not_a_made_up_fleet_one() {
+        assert_eq!(notify_args("db-box is unreachable"),
+                   ["notify", "--tab", "SYS", "--fleet-alert", "db-box is unreachable"]);
+    }
+
+    #[test]
     fn known_down_timeouts_are_real_and_shorter() {
         assert!(CONNECT_TIMEOUT_DOWN_S < CONNECT_TIMEOUT_S);
         assert!(POLL_TIMEOUT_DOWN < POLL_TIMEOUT);
+    }
+
+    #[test]
+    fn ssh_reuses_one_handshake_instead_of_a_fresh_login_every_poll() {
+        let args = ssh_args("db-box", 6, "/home/x/.cache/phosphor/ssh");
+        let joined = args.join(" ");
+        assert!(joined.contains("BatchMode=yes"), "never waits on a password");
+        assert!(joined.contains("ConnectTimeout=6"));
+        assert!(joined.contains("ControlMaster=auto"), "reuse one real handshake, not one per poll");
+        assert!(joined.contains("ControlPersist=60s"), "outlives one poll, so the next reuses it");
+        assert!(joined.contains("ControlPath=/home/x/.cache/phosphor/ssh/%C"),
+                "keyed per host (ssh's own %C), not shared across them");
+        assert_eq!(args.last().unwrap(), "sh -s");
     }
 
     #[test]

@@ -17,7 +17,7 @@ BIN  = os.path.join(HOME, ".local/bin")
 PHOSPHOR = os.path.join(REPO, "phosphor")
 # Assistant CLIs offered when installed: (binary, label).
 ASSISTANTS = [("claude", "Claude Code"), ("aichat", "aichat"), ("gemini", "Gemini CLI"),
-              ("codex", "Codex"), ("opencode", "opencode"), ("aider", "Aider")]
+              ("codex", "Codex"), ("opencode", "opencode"), ("aider", "Aider"), ("agy", "Antigravity")]
 INV = "\x1b[7m"
 
 def have(b):

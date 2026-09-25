@@ -15,7 +15,8 @@ brain itself, on another computer (`phosphor gen` writes it there), on a phone
 (the phone kit writes it).
 
 **The fleet** is your other machines. The deck watches them (CPU, RAM, disks,
-containers, over ssh; nothing is installed on them) and shows their files as
+containers, failed systemd units, a pending reboot, over ssh; nothing is
+installed on them) and shows their files as
 folders under `~/fleet` on the brain: `~/fleet/<machine>/...`. Nothing is
 copied or moved; you see the files where they are (rclone sftp mounts, or
 links for the brain's own disks).

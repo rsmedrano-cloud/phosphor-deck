@@ -2,20 +2,20 @@
 """Cut a release from a dev checkout, the whole way, stopping at the first thing
 that isn't right.
 
-    python3 tests/release.py 0.2.26 "a short title"          # a dev release
-    python3 tests/release.py 0.3.0 "a short title" --main    # a stable one
+    python3 tests/release.py 1.0.1 "a short title"          # a dev release
+    python3 tests/release.py 1.1.0 "a short title" --main   # a stable one
 
 1. dev, clean, pushed as it is; the version is newer; Unreleased says something
 2. the fast checks
-3. VERSION and CHANGELOG.md (`## Unreleased` becomes `## 0.1.10 — title`),
+3. VERSION and CHANGELOG.md (`## Unreleased` becomes `## 1.0.1 — title`),
    committed, dev pushed, its pipeline green
-4. the tag v0.2.26 pushed on dev and its pipeline green; with --main, main
+4. the tag v1.0.1 pushed on dev and its pipeline green; with --main, main
    fast-forwarded to it first on the remote. The pipeline's release job
    publishes the notes (if it couldn't, this does it with glab)
 
-Which releases go to main is the maintainer's policy: while a minor version is
-being built (0.2.x) every release stays on dev, which is the nightly channel;
-main, the stable one, only moves when a minor is done (--main, 0.3.0).
+Which releases go to main is the maintainer's policy: while the next minor or
+major is being built every release stays on dev, which is the nightly channel;
+main, the stable one, only moves when that minor or major is done (--main).
 
 5. The public GitHub mirror (github.com/rsmedrano-cloud/phosphor-deck): a
    squashed commit onto its own dev (or main, with --main), never GitLab's

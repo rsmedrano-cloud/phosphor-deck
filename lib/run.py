@@ -3,7 +3,10 @@
 When the program ends (exit, q, a crash) the pane doesn't vanish or quietly
 restart: it says so, in color, and asks. Enter opens it again, x closes the
 tab. A mistyped exit costs one Enter; closing is always a decision. With
---reconnect (ssh tabs) a dropped link, ssh's own 255, retries by itself.
+--reconnect (ssh tabs) a dropped link, ssh's own 255, retries by itself:
+3s, 6s, 12s... doubling up to a 60s cap while the link stays down, back to
+3s the moment a connection actually holds for half a minute -- a real
+outage shouldn't get hammered every 3s for hours.
 A program that froze (a resize it never answers, see hung.py) is closed and
 the pane says so, with the same Enter to open it again.
 
@@ -22,6 +25,16 @@ def sane():
 
 def banner(name, text, color):
     sys.stdout.write("\n" + color + "\x1b[7m %s " % name + RST + " " + color + text + RST + "\n\n")
+
+def reconnect_delay(fails, lasted):
+    """(new consecutive-failure count, seconds to wait) for --reconnect's
+    next retry. `lasted`: how long the last attempt actually ran before
+    dropping -- a real connection (up 30s+) forgives the streak, one that
+    never came up at all keeps doubling the wait, capped at 60s, so a link
+    that's really down doesn't get hammered every 3s for hours on end (a
+    real outage did exactly 2055 of those once)."""
+    fails = 0 if lasted > 30 else fails + 1
+    return fails, min(3 * 2 ** max(fails - 1, 0), 60)
 
 def keys(*pairs):
     sys.stdout.write("   " + "      ".join(AMB + k + RST + "  " + FG + v + RST for k, v in pairs) + "\n")
@@ -123,6 +136,7 @@ def main():
         print("usage: phosphor run [--name N] [--reconnect] [--wait S] [--alt] -- CMD ARGS..."); return 2
     name = name or os.path.basename(a[0]).upper()
     if wait: time.sleep(wait)          # some TUIs read the size once, before zellij settles it
+    fails = 0    # consecutive drops with no real connection in between; backs off --reconnect
     while True:
         if alt:
             # gping and ctop draw on the normal screen, where zellij keeps
@@ -133,6 +147,7 @@ def main():
         missing = froze = False
         broke, child = None, None
         if dlog.tracing(name): dlog.trace(name, "start: %s" % " ".join(a))
+        started = time.time()
         try:
             child = subprocess.Popen(a, preexec_fn=lambda: [signal.signal(s, signal.SIG_DFL)
                                                             for s in (signal.SIGINT, signal.SIGQUIT)])
@@ -152,10 +167,11 @@ def main():
         if dlog.tracing(name):
             dlog.trace(name, "rc=%s froze=%s missing=%s broke=%s" % (rc, froze, missing, bool(broke)))
         if reconnect and rc == 255:
-            dlog.event(name, "dropped", "reconnecting in 3s")
-            banner(name, "connection lost: reconnecting in 3s", AMB)
+            fails, delay = reconnect_delay(fails, time.time() - started)
+            dlog.event(name, "dropped", "reconnecting in %ds" % delay)
+            banner(name, "connection lost: reconnecting in %ds" % delay, AMB)
             keys(("x", "close this tab"))
-            if getkey(3.0) in ("x", "X"): return 0
+            if getkey(delay) in ("x", "X"): return 0
             continue
         again = "open it again"
         if froze:

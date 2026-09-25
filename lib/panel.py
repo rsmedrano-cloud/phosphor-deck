@@ -22,6 +22,8 @@ ACTIONS = [("e", "explore commands",  "every phosphor command, by category"),
            ("t", "tunnels",          "keep your ssh LocalForward tunnels up"),
            ("i", "install tools",    "TUIs from their releases, no sudo"),
            ("k", "keep a tab",       "the way you arranged it, into your profile"),
+           ("g", "triage a host",    "pick a flagged one (or none flagged: back), ask an assistant"),
+           ("j", "tail logs",        "pick a host and service, stream its logs (Ctrl-C back)"),
            ("c", "shortcuts",        "the deck's keys, yours to change"),
            ("b", "tabs",             "the ones that come back: forget, reorder"),
            ("a", "recipes",          "starter tab bundles: homelab, dev, bubble, workbench"),
@@ -169,9 +171,23 @@ def act(k, st):
             P("store")
         elif k == "k":
             P("keep", "--pick"); pause()
+        elif k == "g":
+            P("triage"); pause()
+        elif k == "j":
+            hosts = deckconf.hosts(deckconf.load()[0] or {})
+            if not hosts:
+                print(DIM + "  no hosts in your profile." + RST); pause()
+            else:
+                import edit
+                picked = edit.pick("phosphor tail -- pick a host", [(h["name"], h.get("role", "")) for h in hosts])
+                if picked:
+                    try:
+                        svc = input("  service (blank: plain journalctl, or docker/NAME, podman/NAME): ").strip()
+                    except (EOFError, KeyboardInterrupt):
+                        svc = ""
+                    P(*(["tail", picked[0]] + ([svc] if svc else [])))
         elif k == "s":
             print(DIM + "  a shell on this machine. exit (or Ctrl-d) comes back to the panel." + RST)
-            import deckconf
             subprocess.run([deckconf.shell(deckconf.load()[0]), "-l"])
         elif k == "d":
             P("doctor"); pause()

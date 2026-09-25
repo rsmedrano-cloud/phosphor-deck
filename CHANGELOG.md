@@ -6,6 +6,114 @@ before it updates.
 
 ## Unreleased
 
+## 1.1.0 — tail and triage: the fleet talks back
+
+- New: `phosphor tail HOST [SERVICE]` and `phosphor triage [HOST]` -- stream a fleet host's logs
+  (`journalctl`/`docker`/`podman`) or get a deeper diagnostic snapshot piped to whichever AI
+  assistant CLI is installed, without hand-typing the ssh alias or the exact command. `triage`
+  with no `HOST`, on a real terminal, opens an arrow-key picker over whatever the fleet panel is
+  flagging; both also got a key in the DECK tab (`j` tail, `g` triage).
+- New: the fleet panel now catches a failed systemd unit or a pending reboot on an otherwise-ok
+  host, not just one that's fully down or low on disk -- alerted the same way a host going down or
+  coming back already is. `agy` (Antigravity CLI) joins the assistants phosphor already knows
+  everywhere (`ask`, `workspace`, the + menu, chat from a note).
+- Fixed: `phosphor run --reconnect` hammered a dropped ssh link every 3 seconds forever with no
+  backoff (a real outage did it 2055 times over 6 hours) -- now doubles the wait up to a 60s cap,
+  dropping back to 3s once a connection actually holds. The two Rust rewrites (`fleet-poll`, `run`)
+  had quietly fallen out of parity with their Python originals on this and on which tab a fleet
+  alert marks; both fixed, and `cargo test` now runs in CI so it can't happen silently again.
+- Fixed: `rust/fleet-poll` opened a fresh SSH handshake on every poll instead of reusing one
+  (every fleet host's `auth.log` got a login roughly every 15 seconds, forever); `phosphor
+  adjutant` re-parsed `fleet.json` fifty times a second instead of once per actual change.
+- Fixed: `phosphor receive` read an upload straight into memory with no size cap -- a large file
+  sent to a low-memory brain (the `revived` shape's whole reason to exist) risked an OOM kill.
+  Now rejected with 413 before the body is read, at 500MB.
+
+## 1.0.7 — triage picks a host for you; receive stops trusting a stranger's Content-Length
+
+- New: `phosphor triage` with no `HOST`, on a real terminal, opens the same arrow-key picker
+  `phosphor commands` uses over whatever the fleet panel is flagging, instead of just printing the
+  list and stopping (piped or scripted, it still just prints).
+- New: `g` (triage a flagged host) and `j` (pick a host and service, tail its logs) in the DECK
+  tab's action list.
+- Fixed: `phosphor receive` read the whole upload into memory with no cap -- a large file (a
+  video, a big backup) sent to a low-memory brain (the `revived` shape's whole reason to exist)
+  risked an OOM kill. Now rejected with 413 before the body is read, at 500MB.
+
+## 1.0.6 — phosphor triage: a second opinion, piped from the fleet
+
+- New: `phosphor tail HOST [SERVICE]` -- stream a fleet host's logs without having to remember
+  its ssh alias or the exact `journalctl`/`docker logs`/`podman logs` syntax. `SERVICE` can be a
+  bare unit name, `systemd/NAME`, `docker/NAME` or `podman/NAME`; with none, plain `journalctl
+  -f`. It's exactly a normal ssh tab (through `phosphor run --reconnect`) with the command
+  already filled in -- reconnects on a dropped link the same way, never touches the host.
+- New: `phosphor triage [--assistant NAME] HOST` -- a deeper, one-off diagnostic snapshot of a
+  host (uptime and load, failed systemd units, memory, disk, recent kernel messages), piped
+  straight into `phosphor ask` for a second opinion from whichever assistant CLI is installed.
+  With no `HOST`, it lists whatever the fleet panel is already flagging instead of guessing.
+  Also extended `phosphor glance`'s fleet summary to call out a failed service or a pending
+  reboot on an otherwise-ok host, not just one that's fully down or low on disk.
+
+## 1.0.5 — rust fleet-poll reuses SSH, adjutant stops hammering fleet.json
+
+- Fixed: `rust/fleet-poll` did a full SSH handshake every poll (~every 15s, forever) instead of
+  reusing one, filling every fleet host's own auth.log with a login per poll -- `lib/fleet.py`
+  already had this (ControlMaster/ControlPersist), the Rust rewrite never did. Ported over 1:1.
+- Fixed: `phosphor adjutant` re-read and re-parsed `fleet.json` on every redraw tick (every 20ms
+  while the pane's alive) instead of only when the file actually changed -- fifty re-parses a
+  second, real micro-stutter risk on a slow SD card (the `revived` shape's whole reason to
+  exist). Now checked with a stat() first, only actually re-read once a poll round.
+
+## 1.0.4 — agy, and the fleet catches failed services and pending reboots
+
+- New: `agy` (Antigravity CLI) joins claude, gemini, codex, opencode and aider as a full
+  assistant everywhere phosphor already knows the others -- `phosphor ask`, `phosphor workspace`,
+  the + menu, and `c` (chat from a note). Resumes like claude (`agy --continue`), starts with a
+  first message like gemini (`-i`); verified its flags for real (`agy -p "..."` answers
+  headlessly, matching claude/gemini's own shape).
+- New: the fleet panel now collects failed systemd units and a pending reboot (near-free checks
+  in `collect.sh`), shown on the card (`● N failed`, `⟳ reboot pending`) and alerted on a real
+  transition, the same way a host going down or coming back already is -- a machine rarely dies
+  outright; a service crashing or a security update leaving a reboot pending is the more common
+  self-hosting failure. Confirmed live on two real machines while building this.
+
+## 1.0.3 — rust/python parity restored, cargo test now in CI
+
+- Fixed: the two Rust rewrites (`rust/fleet-poll`, `rust/run`) had quietly fallen out of parity
+  with their Python originals -- caught by an independent audit, not by CI: `rust/fleet-poll`
+  still sent fleet alerts with `--tab FLEET` (the bug 1.0.1 fixed in `lib/fleet.py`), and
+  `rust/run` still retried `--reconnect` on a flat 3s timer with no backoff (the bug 1.0.2 fixed
+  in `lib/run.py`). Both now match their Python side exactly.
+- New: `cargo test` for both Rust crates now runs in CI, on every push, as its own `rust-test`
+  job -- it never ran there before, which is exactly how the divergence above went unnoticed.
+- Fixed: `tests/hang-check.py` didn't isolate `PHOSPHOR_CACHE`, so every local `sh
+  tests/check.sh` run wrote a real "PROBE hung" line into the actual `~/.cache/phosphor/deck.log`
+  -- 265 of them, found while tracking down the fleet/reconnect bugs above. Existing entries are
+  harmless leftovers (deck.log carries no personal data), but the test is isolated now, same
+  pattern `tests/run-rust-check.py` already used correctly.
+
+## 1.0.2 — reconnect backs off instead of hammering a dead link
+
+- Fixed: `phosphor run --reconnect` (every ssh pane) retried a dropped link every 3 seconds,
+  forever, with no backoff -- fine for a blip, but a real outage hammered the remote host the
+  whole time it was down (one incident in the wild: 6 hours, 2055 attempts, found going through
+  deck.log). Now doubles the wait each consecutive failure, capped at 60s, and drops straight
+  back to a plain 3s the moment a connection actually holds for 30 seconds or more.
+
+## 1.0.1 — fleet alerts mark the real tab, docs catch up to 1.0
+
+- Fixed: a fleet host going down or coming back marked a tab named "FLEET" -- which never
+  existed (the fleet card lives inside the SYS tab, alongside pulse and the adjutant), so the
+  "SYS ●N" mark it should have set never got there for a new alert, and worse, once one was
+  already showing there was nothing left tracking it to ever clear it, however many times you
+  looked at the tab. Fleet alerts now correctly mark SYS, the same tab the doc always said they
+  did. If yours is stuck: `phosphor restart` -- `phosphor gen` won't touch it, this is live
+  session state, and a restart reloads the tab names fresh from your profile.
+- Docs: README's "## Status" line still said 0.3.0 (this project's first public version) three
+  releases after it stopped being true. Fixed, along with a few version examples elsewhere
+  (CONTRIBUTING.md, doc/manual/install.md, `phosphor docs`'s own release-policy rules) that were
+  still anchored to the 0.2.x/0.3.0 era.
+
 ## 1.0.0 — phosphor commands, and the other direction: phosphor receive
 
 - New: `phosphor commands` (also `e` in the DECK tab) -- a categorized, drill-down index of

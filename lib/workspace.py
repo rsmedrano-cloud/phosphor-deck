@@ -29,12 +29,14 @@ SHAPES = [("one", "one assistant"), ("two", "two assistants side by side (fronte
 # where it left after a restart.
 CONTEXT = {"claude": "CLAUDE.md", "gemini": "GEMINI.md"}
 RESUME = {"claude": "claude --continue || exec claude",
-          "aider": "aider --restore-chat-history || exec aider"}
+          "aider": "aider --restore-chat-history || exec aider",
+          "agy": "agy --continue || exec agy"}
 # (binary, flags before a first message): assistants that start from a message
 # and stay open. notes.py's c uses the same list. aider can't really do this
 # (its --message "disables chat mode": answers once, exits) -- assistant_first_cmd()
 # fakes it for aider specifically, so it's still in this list.
-FIRST = {"claude": [], "gemini": ["-i"], "codex": [], "opencode": ["--prompt"], "aider": ["--message"]}
+FIRST = {"claude": [], "gemini": ["-i"], "codex": [], "opencode": ["--prompt"], "aider": ["--message"],
+         "agy": ["-i"]}
 
 def root(prof=None):
     if prof is None:

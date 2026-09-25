@@ -74,8 +74,16 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
   several at once: pick a shape, then what goes in each pane (four
   assistants side by side in a few taps). Mark "keep" and
   the tab is written into your profile, so it survives restarts.
-- **Fleet panel.** One card per machine: CPU, RAM, load, GPU, disks and
-  containers, collected over SSH. Nothing gets installed on the other side.
+- **Fleet panel.** One card per machine: CPU, RAM, load, GPU, disks,
+  containers, failed services and a pending reboot, collected over SSH.
+  Nothing gets installed on the other side. A host going down (or a service
+  failing on one that's still up) pushes and speaks up on its own, the same
+  as any other notification. See something worth a closer look? `phosphor
+  tail HOST` streams that machine's `journalctl` (or `docker`/`podman logs`)
+  right there, no need to remember the ssh alias or the exact command. Want a
+  second opinion instead? `phosphor triage HOST` collects a deeper snapshot
+  (load, failed units, memory, disk, recent kernel messages) and hands it to
+  whichever AI assistant is installed to diagnose.
 - **Prometheus gauges.** If you already run Prometheus, `phosphor prom` draws
   your PromQL queries as bars, arcs and sparklines, colored by thresholds.
 - **CI/CD status.** `phosphor ci` draws status cards for GitLab and GitHub
@@ -131,7 +139,7 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
   project folder with git and a tab with one or two AI assistants, each
   knowing its part and handing off through the workspace's own notebook.
 - **A quick question, no tab.** `phosphor ask "..."` shells out to whichever
-  assistant CLI is already installed (claude, gemini, codex, opencode, aider)
+  assistant CLI is already installed (claude, gemini, codex, opencode, aider, agy)
   in headless mode and prints the answer inline -- for "what was that command
   again", not a whole workspace or a chat tab. `git diff | phosphor ask "what
   changed here"` sends the pipe as context, question and all.
@@ -254,7 +262,8 @@ when all your other tabs are ssh sessions somewhere else. On the left: its
 state (screens in, watchdog, browser access, tunnels), the next steps while
 you're still setting it up, and one key or tap per action: add a screen,
 machines and color, browser access, tunnels, install tools, keep a tab,
-tabs, shortcuts, a shell on the brain, doctor, update, restart, the manual. On the
+triage a flagged host, tail a host's logs, tabs, shortcuts, a shell on the
+brain, doctor, update, restart, the manual. On the
 right: the keys of every installed tool, with the deck's own as you set them.
 
 ![The DECK tab: next steps, every action, and the key guide](doc/img/readme/deck-tab.png)
@@ -381,6 +390,8 @@ more depth on every one of these.
 | `phosphor receive` | the other way: a one-time upload link, into `~/received` |
 | `phosphor web` | on / off / status / token: the deck in a browser, tailnet only |
 | `phosphor path` | turns `~/fleet/x/y` into `host:/y` |
+| `phosphor tail HOST [SVC]` | stream a fleet host's journalctl/docker/podman logs, reconnecting on its own |
+| `phosphor triage [HOST]` | a diagnostic snapshot of a host, piped straight to phosphor ask; no HOST: lists what's flagged |
 | `phosphor tunnel` | keep your ssh config's LocalForward tunnels up |
 | `phosphor face` | turn an image into the adjutant's face |
 | `phosphor logs` | the deck's own log: crashes with traceback, hangs, exits, restarts; `-f` follows |
@@ -475,8 +486,8 @@ untouched-background run would give a tighter number.
 
 ## Status
 
-0.3.0, and public. Day-to-day development happens on a private GitLab
-(issues, merge requests, CI) -- [GitHub](https://github.com/rsmedrano-cloud/phosphor-deck)
+1.0, and public since 0.3.0. Day-to-day development happens on a private
+GitLab (issues, merge requests, CI) -- [GitHub](https://github.com/rsmedrano-cloud/phosphor-deck)
 is where releases land, starting from a single snapshot instead of that
 private history. That's a choice about what's public, not a sign this
 showed up overnight: see CHANGELOG.md for the pace of actual releases, and

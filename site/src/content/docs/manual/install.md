@@ -159,12 +159,13 @@ update` exits non-zero when that happens, and when the install itself fails
 knows it didn't land. Run from a pane inside the deck, the restart detaches
 itself, so there the exit status only covers the install.
 
-Two channels: **stable** follows main, which only moves when a minor version
-is done (0.3.0, 0.4.0...), and the notice shows up only for a new version;
-**nightly** follows dev, every patch release and what's done but not released
-yet, and the notice shows every new commit with the Unreleased notes. While a
-minor is being built (0.2.x), what's new is on nightly. Pick one with
-`phosphor update --channel nightly` or `--channel stable`.
+Two channels: **stable** follows main, which only moves at a minor or major
+version (0.3.0, 0.4.0, 1.0.0...), and the notice shows up only for a new
+version; **nightly** follows dev, every patch release and what's done but
+not released yet, and the notice shows every new commit with the Unreleased
+notes. While the next minor or major is being built, what's new is on
+nightly first. Pick one with `phosphor update --channel nightly` or
+`--channel stable`.
 
 Which version you run: `phosphor version`. In a git clone it also checks for a
 newer one, and the DECK tab shows "new version: u" when there is (u updates).

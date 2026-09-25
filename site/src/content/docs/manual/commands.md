@@ -11,8 +11,10 @@ sidebar:
 - `phosphor setup` — add/remove machines, color, editor and shell, phone, browser access, tunnels, notebook
   (also: `m` in the DECK tab).
 - `phosphor panel` — the DECK tab: the deck's state, the next steps while you set up, and every
-  action one key or tap away (add a screen, machines, web, tunnels, tools, keep a tab, tabs, shortcuts,
-  a shell here, doctor, logs, update, restart, manual). Actions run in the same pane and come back.
+  action one key or tap away (add a screen, machines, web, tunnels, tools, keep a tab, triage a
+  host, tail logs, tabs, shortcuts, a shell here, doctor, logs, update, restart, manual). Actions
+  run in the same pane and come back -- `tail`'s stream is the one exception: it takes over the
+  pane until you Ctrl-C, the same way "a shell here" does.
 - `phosphor commands` — every phosphor command, browsable by category (also: `e` in the DECK
   tab). Pick a category, then a command: a read-only one runs right there when you pick it,
   anything else shows its usage and copies the invocation to every screen's clipboard instead
@@ -47,9 +49,10 @@ sidebar:
 ## Workspaces
 - `phosphor workspace new|open|list` — a tab per idea with its own folder and assistants; see workspaces.
 - `phosphor ask [--assistant NAME] QUESTION` — a one-shot question, no tab: shells out to whichever
-  assistant CLI is already installed (claude, gemini, codex, opencode, aider -- the same list
-  `phosphor workspace` knows, tried in that order) with a headless, single-answer flag of its own
-  (`claude -p`, `gemini -p`, `codex exec`, `opencode run`, `aider --message`) and prints the answer.
+  assistant CLI is already installed (claude, gemini, codex, opencode, aider, agy -- the same
+  list `phosphor workspace` knows, tried in that order) with a headless, single-answer flag of
+  its own (`claude -p`, `gemini -p`, `codex exec`, `opencode run`, `aider --message`, `agy -p`)
+  and prints the answer.
   `--assistant` picks one by name instead of the first installed. For "what was that command
   again" -- not a replacement for a workspace or a chat tab. Piped input is context, not a
   replacement for the question: `git diff | phosphor ask "what changed here"` sends both
@@ -64,7 +67,7 @@ sidebar:
   In the tab itself: `a` writes a note, `t` a todo, `i` an idea (first line the title, an empty
   line saves). Tap a note or move with `j`/`k` to pick it: `e` edits it in `$EDITOR` (someone
   else's note gets "edited by you" on its author), `d` archives it, `x` marks a todo done,
-  `c` opens a CHAT tab where an assistant (claude, gemini, codex or opencode) starts from it,
+  `c` opens a CHAT tab where an assistant (claude, gemini, codex, opencode, aider or agy) starts from it,
   `w` opens a workspace from it (see workspaces).
   A note taken from a tab says so (`from SYS`); `f` goes through those tabs, showing one tab's notes at a time.
   `u` brings back the last archived note. `/` searches title, body, author and tab at once (case-insensitive);
@@ -135,10 +138,28 @@ sidebar:
   read it directly. See clipboard.
 - `phosphor web on|off|status|token` — browser access, tailnet only.
 - `phosphor path PATH` — `~/fleet/x/y` → `host:/y`.
+- `phosphor tail HOST [SERVICE]` — stream a fleet host's logs: `journalctl -f` with no `SERVICE`,
+  `journalctl -f -u SERVICE` for a bare name or `systemd/NAME`, `docker logs -f` or `podman logs
+  -f` for `docker/NAME` or `podman/NAME`. Just a normal ssh tab (`ssh -t HOST ...`, through
+  `phosphor run --reconnect`) with the command already filled in -- reconnects on a dropped link
+  the same way any other ssh tab does, never touches anything on the host (also: `j` in the DECK
+  tab, which asks for the host and service first).
+- `phosphor triage [--assistant NAME] [HOST]` — a deeper, one-off look at a host (uptime and load,
+  failed systemd units, memory, disk, recent kernel messages) collected over ssh and piped
+  straight into `phosphor ask`, which shells it to whichever assistant CLI is installed with a
+  fixed question: what's actually wrong, and how to fix it. For when `phosphor fleet` or `phosphor
+  doctor` already flagged something and you want a second look before digging by hand -- not
+  something to run on a timer. With no `HOST` on a real terminal, it opens the same arrow-key
+  picker `phosphor commands` uses, over whatever the fleet panel is currently flagging (the same
+  hosts `phosphor glance` calls out); piped or scripted, it just lists them instead (also: `g` in
+  the DECK tab).
 - `phosphor tunnel [on|off HOST]` — keep your ssh config's LocalForward tunnels up.
 - `phosphor face IMAGE [--name N] [--w 24] [--h 13] [--half] [--mode thr|dither|edge]`.
 - `phosphor run [--name N] [--reconnect] [--wait S] [--alt] -- CMD` — the watcher every pane uses:
   a crash, a hang or a non-zero exit goes into the deck's log; `l` on an "ended" pane reads it back.
+  `--reconnect` (ssh panes) retries a dropped link (ssh's own exit 255) starting at 3s, doubling
+  up to a 60s cap while it stays down, back to 3s once a connection actually holds for 30s or
+  more -- a real outage doesn't get hammered every 3s for hours.
 - `phosphor logs [TOOL] [-f]` — the deck's own log (`~/.cache/phosphor/deck.log`): crashes with their
   traceback, hangs, exits, restarts. `TOOL` narrows to it (its trace file if `phosphor trace` turned
   one on, else its lines from the base log); `-f` follows, like `tail -f`. Also `l` in the DECK tab.
