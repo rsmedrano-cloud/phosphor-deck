@@ -42,6 +42,12 @@ def fleet_state():
             if pct >= 92:
                 bad.append((name, "disk %d%%" % pct))
                 break
+        try: svcfail = int(h.get("SVCFAIL") or 0)
+        except (TypeError, ValueError): svcfail = 0
+        if svcfail:
+            bad.append((name, "%d service%s failed" % (svcfail, "" if svcfail == 1 else "s")))
+        if h.get("REBOOT"):
+            bad.append((name, "reboot pending"))
     return ok, len(hosts), (bad if not stale else [("*", "stale data")])
 
 def wrapped(text, w, color=FG, indent="    "):

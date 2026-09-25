@@ -78,7 +78,12 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
   containers, failed services and a pending reboot, collected over SSH.
   Nothing gets installed on the other side. A host going down (or a service
   failing on one that's still up) pushes and speaks up on its own, the same
-  as any other notification.
+  as any other notification. See something worth a closer look? `phosphor
+  tail HOST` streams that machine's `journalctl` (or `docker`/`podman logs`)
+  right there, no need to remember the ssh alias or the exact command. Want a
+  second opinion instead? `phosphor triage HOST` collects a deeper snapshot
+  (load, failed units, memory, disk, recent kernel messages) and hands it to
+  whichever AI assistant is installed to diagnose.
 - **Prometheus gauges.** If you already run Prometheus, `phosphor prom` draws
   your PromQL queries as bars, arcs and sparklines, colored by thresholds.
 - **CI/CD status.** `phosphor ci` draws status cards for GitLab and GitHub
@@ -384,6 +389,8 @@ more depth on every one of these.
 | `phosphor receive` | the other way: a one-time upload link, into `~/received` |
 | `phosphor web` | on / off / status / token: the deck in a browser, tailnet only |
 | `phosphor path` | turns `~/fleet/x/y` into `host:/y` |
+| `phosphor tail HOST [SVC]` | stream a fleet host's journalctl/docker/podman logs, reconnecting on its own |
+| `phosphor triage [HOST]` | a diagnostic snapshot of a host, piped straight to phosphor ask; no HOST: lists what's flagged |
 | `phosphor tunnel` | keep your ssh config's LocalForward tunnels up |
 | `phosphor face` | turn an image into the adjutant's face |
 | `phosphor logs` | the deck's own log: crashes with traceback, hangs, exits, restarts; `-f` follows |

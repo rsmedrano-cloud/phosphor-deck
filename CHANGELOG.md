@@ -6,6 +6,20 @@ before it updates.
 
 ## Unreleased
 
+## 1.0.6 — phosphor triage: a second opinion, piped from the fleet
+
+- New: `phosphor tail HOST [SERVICE]` -- stream a fleet host's logs without having to remember
+  its ssh alias or the exact `journalctl`/`docker logs`/`podman logs` syntax. `SERVICE` can be a
+  bare unit name, `systemd/NAME`, `docker/NAME` or `podman/NAME`; with none, plain `journalctl
+  -f`. It's exactly a normal ssh tab (through `phosphor run --reconnect`) with the command
+  already filled in -- reconnects on a dropped link the same way, never touches the host.
+- New: `phosphor triage [--assistant NAME] HOST` -- a deeper, one-off diagnostic snapshot of a
+  host (uptime and load, failed systemd units, memory, disk, recent kernel messages), piped
+  straight into `phosphor ask` for a second opinion from whichever assistant CLI is installed.
+  With no `HOST`, it lists whatever the fleet panel is already flagging instead of guessing.
+  Also extended `phosphor glance`'s fleet summary to call out a failed service or a pending
+  reboot on an otherwise-ok host, not just one that's fully down or low on disk.
+
 ## 1.0.5 — rust fleet-poll reuses SSH, adjutant stops hammering fleet.json
 
 - Fixed: `rust/fleet-poll` did a full SSH handshake every poll (~every 15s, forever) instead of

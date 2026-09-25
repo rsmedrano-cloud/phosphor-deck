@@ -136,6 +136,18 @@ sidebar:
   read it directly. See clipboard.
 - `phosphor web on|off|status|token` — browser access, tailnet only.
 - `phosphor path PATH` — `~/fleet/x/y` → `host:/y`.
+- `phosphor tail HOST [SERVICE]` — stream a fleet host's logs: `journalctl -f` with no `SERVICE`,
+  `journalctl -f -u SERVICE` for a bare name or `systemd/NAME`, `docker logs -f` or `podman logs
+  -f` for `docker/NAME` or `podman/NAME`. Just a normal ssh tab (`ssh -t HOST ...`, through
+  `phosphor run --reconnect`) with the command already filled in -- reconnects on a dropped link
+  the same way any other ssh tab does, never touches anything on the host.
+- `phosphor triage [--assistant NAME] HOST` — a deeper, one-off look at a host (uptime and load,
+  failed systemd units, memory, disk, recent kernel messages) collected over ssh and piped
+  straight into `phosphor ask`, which shells it to whichever assistant CLI is installed with a
+  fixed question: what's actually wrong, and how to fix it. For when `phosphor fleet` or `phosphor
+  doctor` already flagged something and you want a second look before digging by hand -- not
+  something to run on a timer. With no `HOST`, it doesn't guess: it lists whatever the fleet panel
+  is currently flagging (the same hosts `phosphor glance` calls out), so you can pick one.
 - `phosphor tunnel [on|off HOST]` — keep your ssh config's LocalForward tunnels up.
 - `phosphor face IMAGE [--name N] [--w 24] [--h 13] [--half] [--mode thr|dither|edge]`.
 - `phosphor run [--name N] [--reconnect] [--wait S] [--alt] -- CMD` — the watcher every pane uses:

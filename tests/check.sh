@@ -97,6 +97,12 @@ out=$(python3 tests/newtab-attach-check.py 2>&1) && ok || bad "$out"
 step "commands: category/leaf picker, only safe ones auto-run"
 out=$(python3 tests/commands-menu-check.py 2>&1) && ok || bad "$out"
 
+step "tail: journalctl/docker/podman through phosphor run --reconnect"
+out=$(python3 tests/tail-check.py 2>&1) && ok || bad "$out"
+
+step "triage: snapshot over ssh, piped into phosphor ask"
+out=$(python3 tests/triage-check.py 2>&1) && ok || bad "$out"
+
 step "prometheus gauges, fake server"
 out=$(python3 tests/prom-check.py 2>&1) && ok || bad "$out"
 
