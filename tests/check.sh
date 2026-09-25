@@ -37,6 +37,9 @@ out=$(python3 tests/keep-check.py 2>&1) && ok || bad "$out"
 step "a frozen program is closed"
 out=$(python3 tests/hang-check.py 2>&1) && ok || bad "$out"
 
+step "--reconnect backs off instead of hammering a dead link"
+out=$(python3 tests/run-reconnect-check.py 2>&1) && ok || bad "$out"
+
 step "welcome invites, not a key list"
 out=$(python3 tests/welcome-check.py 2>&1) && ok || bad "$out"
 

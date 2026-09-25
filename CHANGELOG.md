@@ -6,6 +6,14 @@ before it updates.
 
 ## Unreleased
 
+## 1.0.2 — reconnect backs off instead of hammering a dead link
+
+- Fixed: `phosphor run --reconnect` (every ssh pane) retried a dropped link every 3 seconds,
+  forever, with no backoff -- fine for a blip, but a real outage hammered the remote host the
+  whole time it was down (one incident in the wild: 6 hours, 2055 attempts, found going through
+  deck.log). Now doubles the wait each consecutive failure, capped at 60s, and drops straight
+  back to a plain 3s the moment a connection actually holds for 30 seconds or more.
+
 ## 1.0.1 — fleet alerts mark the real tab, docs catch up to 1.0
 
 - Fixed: a fleet host going down or coming back marked a tab named "FLEET" -- which never

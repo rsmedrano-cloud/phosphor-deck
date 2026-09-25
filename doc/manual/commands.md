@@ -134,6 +134,9 @@
 - `phosphor face IMAGE [--name N] [--w 24] [--h 13] [--half] [--mode thr|dither|edge]`.
 - `phosphor run [--name N] [--reconnect] [--wait S] [--alt] -- CMD` — the watcher every pane uses:
   a crash, a hang or a non-zero exit goes into the deck's log; `l` on an "ended" pane reads it back.
+  `--reconnect` (ssh panes) retries a dropped link (ssh's own exit 255) starting at 3s, doubling
+  up to a 60s cap while it stays down, back to 3s once a connection actually holds for 30s or
+  more -- a real outage doesn't get hammered every 3s for hours.
 - `phosphor logs [TOOL] [-f]` — the deck's own log (`~/.cache/phosphor/deck.log`): crashes with their
   traceback, hangs, exits, restarts. `TOOL` narrows to it (its trace file if `phosphor trace` turned
   one on, else its lines from the base log); `-f` follows, like `tail -f`. Also `l` in the DECK tab.
