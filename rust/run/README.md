@@ -52,7 +52,7 @@ cargo build --release
 ## Testing it
 
 ```sh
-cargo test                        # 12 unit tests: theme, dlog, hang detection
+cargo test                        # 15 unit tests: theme, dlog, hang detection, reconnect backoff
 python3 ../../tests/run-rust-check.py   # the real binary, in a real pty
 ```
 

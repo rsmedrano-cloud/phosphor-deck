@@ -70,10 +70,16 @@ real GitHub Release (never a dev/nightly one -- see its own
 `sync_github_binaries()` for why). Missing or the wrong architecture still
 just falls back silently: fetching them is best-effort, same as the other
 bundled binaries.
-Neither's `cargo test` is in `tests/check.sh` yet -- CI's images
-(`python:3.12-slim`, `alpine`) don't carry a Rust toolchain, and adding one
-is its own topic, not bundled into a module's first pass. Run them by hand
-from each crate's folder until that's sorted out.
+Neither's `cargo test` is in `tests/check.sh` (its images, `python:3.12-slim`
+and `alpine`, carry no Rust toolchain, and adding one there is its own
+topic) -- but both do run in CI, on every push to a protected ref, as their
+own `rust-test` job (`rust:1-bookworm`, no cross-compiling, so it's cheap
+enough to run every time unlike `rust-release` below). That job exists
+because its absence once let a real bug ship: the same fix landed in
+`lib/fleet.py` and `lib/run.py` without anyone noticing `rust/fleet-poll`
+and `rust/run` still had the old, buggy behavior, since nothing was
+checking their tests at all. Run them by hand from each crate's folder too
+when you're changing one (`cargo test`).
 
 ## Branches
 

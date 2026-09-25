@@ -150,6 +150,50 @@ fn banner(pal: &theme::Palette, name: &str, text: &str, color: &str) {
     let _ = std::io::stdout().flush();
 }
 
+/// (new consecutive-failure count, seconds to wait) for --reconnect's next
+/// retry. `lasted`: how long the last attempt actually ran before dropping --
+/// a real connection (up 30s+) forgives the streak, one that never came up
+/// at all keeps doubling the wait, capped at 60s, so a link that's really
+/// down doesn't get hammered every 3s for hours on end (a real outage did
+/// exactly 2055 of those once). 1:1 with lib/run.py's reconnect_delay().
+fn reconnect_delay(fails: u32, lasted: f64) -> (u32, u64) {
+    let fails = if lasted > 30.0 { 0 } else { fails + 1 };
+    (fails, (3u64 << fails.saturating_sub(1)).min(60))
+}
+
+#[cfg(test)]
+mod reconnect_tests {
+    use super::*;
+
+    #[test]
+    fn escalates_then_caps_at_60s() {
+        let mut fails = 0u32;
+        let mut delays = Vec::new();
+        for _ in 0..8 {
+            let (f, d) = reconnect_delay(fails, 0.1);
+            fails = f;
+            delays.push(d);
+        }
+        assert_eq!(delays, vec![3, 6, 12, 24, 48, 60, 60, 60]);
+        assert_eq!(fails, 8);
+    }
+
+    #[test]
+    fn a_real_connection_resets_the_streak() {
+        let (fails, _) = reconnect_delay(5, 0.1);
+        assert_eq!(fails, 6);
+        let (fails, delay) = reconnect_delay(fails, 45.0);
+        assert_eq!(fails, 0);
+        assert_eq!(delay, 3, "the very next drop after a reset is a plain 3s, not capped");
+    }
+
+    #[test]
+    fn thirty_seconds_exactly_does_not_count_as_a_real_connection() {
+        let (fails, _) = reconnect_delay(2, 30.0);
+        assert_eq!(fails, 3);
+    }
+}
+
 fn keys_line(pal: &theme::Palette, pairs: &[(&str, &str)]) {
     let s: Vec<String> = pairs.iter()
         .map(|(k, v)| format!("{}{}{}  {}{}{}", pal.amb, k, pal.rst, pal.fg, v, pal.rst))
@@ -240,6 +284,7 @@ fn main() {
         std::thread::sleep(Duration::from_secs_f64(args.wait));
     }
 
+    let mut fails: u32 = 0;   // consecutive drops with no real connection in between
     loop {
         if args.alt {
             print!("\x1b[?1049h");
@@ -264,6 +309,7 @@ fn main() {
                 Ok(())
             });
         }
+        let started = Instant::now();
         let (rc, froze, missing, broke);
         match cmd.spawn() {
             Ok(mut child) => {
@@ -290,10 +336,13 @@ fn main() {
         }
 
         if args.reconnect && rc == 255 {
-            dlog::event(&cache_dir, &name, "dropped", "reconnecting in 3s");
-            banner(&pal, &name, "connection lost: reconnecting in 3s", pal.amb);
+            let (f, delay) = reconnect_delay(fails, started.elapsed().as_secs_f64());
+            fails = f;
+            let msg = format!("connection lost: reconnecting in {}s", delay);
+            dlog::event(&cache_dir, &name, "dropped", &format!("reconnecting in {}s", delay));
+            banner(&pal, &name, &msg, pal.amb);
             keys_line(&pal, &[("x", "close this tab")]);
-            if getkey(Some(3.0)).as_deref().map(|k| k == "x" || k == "X").unwrap_or(false) {
+            if getkey(Some(delay as f64)).as_deref().map(|k| k == "x" || k == "X").unwrap_or(false) {
                 std::process::exit(0);
             }
             continue;

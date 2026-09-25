@@ -6,6 +6,21 @@ before it updates.
 
 ## Unreleased
 
+## 1.0.3 — rust/python parity restored, cargo test now in CI
+
+- Fixed: the two Rust rewrites (`rust/fleet-poll`, `rust/run`) had quietly fallen out of parity
+  with their Python originals -- caught by an independent audit, not by CI: `rust/fleet-poll`
+  still sent fleet alerts with `--tab FLEET` (the bug 1.0.1 fixed in `lib/fleet.py`), and
+  `rust/run` still retried `--reconnect` on a flat 3s timer with no backoff (the bug 1.0.2 fixed
+  in `lib/run.py`). Both now match their Python side exactly.
+- New: `cargo test` for both Rust crates now runs in CI, on every push, as its own `rust-test`
+  job -- it never ran there before, which is exactly how the divergence above went unnoticed.
+- Fixed: `tests/hang-check.py` didn't isolate `PHOSPHOR_CACHE`, so every local `sh
+  tests/check.sh` run wrote a real "PROBE hung" line into the actual `~/.cache/phosphor/deck.log`
+  -- 265 of them, found while tracking down the fleet/reconnect bugs above. Existing entries are
+  harmless leftovers (deck.log carries no personal data), but the test is isolated now, same
+  pattern `tests/run-rust-check.py` already used correctly.
+
 ## 1.0.2 — reconnect backs off instead of hammering a dead link
 
 - Fixed: `phosphor run --reconnect` (every ssh pane) retried a dropped link every 3 seconds,

@@ -42,15 +42,18 @@ nothing else to undo.
 cargo test
 ```
 
-Not in `tests/check.sh` (see CONTRIBUTING.md): CI's images don't carry a
-Rust toolchain yet. `tests/fleet-poller-check.py` (plain Python, in
-`check.sh`) covers the Python side: that a binary here gets picked up, that
-its absence or a failed spawn falls back to the Python thread, that `[deck]
-demo = true` never touches this at all, and -- against real, disposable
-scripts standing in for this binary, not mocks -- that `RustPoller.tick()`
-relaunches a crashed one, hot-reloads one whose mtime changed, leaves a
-healthy unchanged one alone, and gives up to the Python thread after a real
-crash loop.
+Not in `tests/check.sh` (its images don't carry a Rust toolchain), but it
+does run in CI: its own `rust-test` job (`rust:1-bookworm`), on every push
+to a protected ref, no cross-compiling so it's cheap enough to run every
+time -- see CONTRIBUTING.md for why that job exists (a real bug shipped
+once from nothing checking this side at all). `tests/fleet-poller-check.py`
+(plain Python, in `check.sh`) covers the Python side: that a binary here
+gets picked up, that its absence or a failed spawn falls back to the Python
+thread, that `[deck] demo = true` never touches this at all, and -- against
+real, disposable scripts standing in for this binary, not mocks -- that
+`RustPoller.tick()` relaunches a crashed one, hot-reloads one whose mtime
+changed, leaves a healthy unchanged one alone, and gives up to the Python
+thread after a real crash loop.
 
 ## What it deliberately doesn't do
 
@@ -61,7 +64,3 @@ crash loop.
   issue (see troubleshooting.md); this writes the same first-poll/slow-round
   lines `lib/fleet.py` does, host-name free, in the exact format
   `dlog.tail_for()` expects.
-- **`cargo test` in CI.** A build+test job for this crate is still out of
-  scope (see CONTRIBUTING.md) -- separate from the `rust-release` job that
-  now cross-compiles it for distribution (#32), which only builds, never
-  runs its tests.

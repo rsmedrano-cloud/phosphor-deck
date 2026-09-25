@@ -258,13 +258,21 @@ fn parse(stdout: &str) -> serde_json::Value {
     serde_json::Value::Object(d)
 }
 
-/// `phosphor notify --tab FLEET --fleet-alert TEXT`, off the polling path
-/// (fire and forget, same as lib/fleet.py's `_alert`'s own thread).
+/// `phosphor notify --tab SYS --fleet-alert TEXT`, off the polling path
+/// (fire and forget, same as lib/fleet.py's `_alert`'s own thread). SYS,
+/// not FLEET: the fleet card lives inside the SYS tab, alongside pulse and
+/// the adjutant -- no tab is ever named "FLEET" (see the Python fix,
+/// commit 7d5f022: a --tab naming a tab that doesn't exist marks nothing
+/// and can never be cleared either).
+fn notify_args(text: &str) -> [&str; 5] {
+    ["notify", "--tab", "SYS", "--fleet-alert", text]
+}
+
 fn notify(text: &str) {
     let phosphor = format!("{}/.local/bin/phosphor", home());
     let bin = if std::path::Path::new(&phosphor).exists() { phosphor } else { "phosphor".to_string() };
     let _ = Command::new(bin)
-        .args(["notify", "--tab", "FLEET", "--fleet-alert", text])
+        .args(notify_args(text))
         .stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null())
         .spawn();
 }
@@ -379,6 +387,12 @@ mod tests {
         assert_eq!(d["mnt"], serde_json::json!([["/", 63, "467G"], ["/mnt/data", 53, "1.9T"]]));
         assert_eq!(d["gpu"][0]["name"], serde_json::json!("AMD"));
         assert_eq!(d["ctr"], serde_json::json!(["docker", 7, 0]));
+    }
+
+    #[test]
+    fn alert_marks_the_real_sys_tab_not_a_made_up_fleet_one() {
+        assert_eq!(notify_args("db-box is unreachable"),
+                   ["notify", "--tab", "SYS", "--fleet-alert", "db-box is unreachable"]);
     }
 
     #[test]
