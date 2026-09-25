@@ -65,6 +65,16 @@ chat_line = notes.assistant_first_cmd("aider", '"$(cat /tmp/x.md)"')
 check("notes.py's chat() builds the same one-shot-then-handoff line for aider",
       chat_line == 'aider --message "$(cat /tmp/x.md)" --yes-always; exec aider --restore-chat-history')
 
+# agy (Antigravity CLI): resumes like claude does, starts with a first
+# message like gemini does -- verified against its own --help, not installed
+# here to test live (same caveat as aider's own addition, #33).
+check("agy is a known assistant", "agy" in ws.FIRST)
+check("agy resumes with --continue, like claude",
+      "--continue" in ws.tab_spec("s", base, "one", [], "agy")["panes"][0]["args"][1])
+check("agy's first message: -i, stays open (same shape as gemini)",
+      ws.assistant_line("agy", "it's") == "exec agy -i 'it'\"'\"'s'")
+check("agy is in the + menu's assistant list too", "agy" in dict(newtab.ASSISTANTS))
+
 prof = os.path.join(d, "deck.toml")
 open(prof, "w").write('[deck]\nprojects = "%s"\n\n[[tabs]]\nname = "SHOP"\npanes = [ {} ]\n' % d)
 env = dict(os.environ, PHOSPHOR_PROFILE=prof, PHOSPHOR_NOTES=os.path.join(d, "n.md"))

@@ -6,6 +6,19 @@ before it updates.
 
 ## Unreleased
 
+## 1.0.4 — agy, and the fleet catches failed services and pending reboots
+
+- New: `agy` (Antigravity CLI) joins claude, gemini, codex, opencode and aider as a full
+  assistant everywhere phosphor already knows the others -- `phosphor ask`, `phosphor workspace`,
+  the + menu, and `c` (chat from a note). Resumes like claude (`agy --continue`), starts with a
+  first message like gemini (`-i`); verified its flags for real (`agy -p "..."` answers
+  headlessly, matching claude/gemini's own shape).
+- New: the fleet panel now collects failed systemd units and a pending reboot (near-free checks
+  in `collect.sh`), shown on the card (`● N failed`, `⟳ reboot pending`) and alerted on a real
+  transition, the same way a host going down or coming back already is -- a machine rarely dies
+  outright; a service crashing or a security update leaving a reboot pending is the more common
+  self-hosting failure. Confirmed live on two real machines while building this.
+
 ## 1.0.3 — rust/python parity restored, cargo test now in CI
 
 - Fixed: the two Rust rewrites (`rust/fleet-poll`, `rust/run`) had quietly fallen out of parity

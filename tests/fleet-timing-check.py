@@ -99,6 +99,28 @@ fleet.FAILS["h"] = fleet.DOWN_AFTER
 check("right at the threshold: known-down", fleet.FAILS.get("h", 0) >= fleet.DOWN_AFTER)
 fleet.FAILS.clear()
 
+# collect.sh's new SVCFAIL/REBOOT lines: parsed like CPU/MEMU/MEMT (a
+# number, not left as a string), and the card shows them when present.
+real_run = fleet.subprocess.run
+def fake_svc_run(cmd, **kw):
+    class R: stdout, stderr = "CPU=3\nMEMU=100\nMEMT=1000\nSVCFAIL=2\nREBOOT=1\n", ""
+    return R()
+fleet.subprocess.run = fake_svc_run
+try:
+    d = fleet.collect("host", None)
+finally:
+    fleet.subprocess.run = real_run
+check("SVCFAIL parses as an int, like CPU/MEMU/MEMT", d.get("SVCFAIL") == 2)
+check("REBOOT is present when the file says so", d.get("REBOOT") == "1")
+
+_, body = fleet.card("host", 40, {"ok": True, "CPU": 3, "MEMU": 100, "MEMT": 1000, "SVCFAIL": 2})
+check("the card calls out failed services", any("2 failed" in b for b in body))
+_, body = fleet.card("host", 40, {"ok": True, "CPU": 3, "MEMU": 100, "MEMT": 1000, "REBOOT": "1"})
+check("the card calls out a pending reboot", any("reboot pending" in b for b in body))
+_, body = fleet.card("host", 40, {"ok": True, "CPU": 3, "MEMU": 100, "MEMT": 1000})
+check("neither shows up when the host reports neither",
+      not any("failed" in b or "reboot" in b for b in body))
+
 if fails:
     print("FAILED:\n  " + "\n  ".join(fails))
     sys.exit(1)

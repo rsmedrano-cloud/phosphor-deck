@@ -21,6 +21,8 @@ check("codex exec", ask.command("codex", "hi") == ["codex", "exec", "hi"])
 check("opencode run", ask.command("opencode", "hi") == ["opencode", "run", "hi"])
 check("aider --message", ask.command("aider", "hi") ==
       ["aider", "--yes-always", "--message", "hi"])
+check("agy -p", ask.command("agy", "hi") == ["agy", "-p", "hi"])
+check("agy is in the picking order too", "agy" in ask.ORDER)
 
 # prompt(): piped text as context, the question, or both together
 check("just a question", ask.prompt(["hi", "there"], "") == "hi there")

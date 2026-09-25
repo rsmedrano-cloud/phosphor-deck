@@ -122,28 +122,33 @@ def collect(name, ssh, known_down=False):
                                  "used": f[2], "total": f[3], "temp": f[4]})
             elif k == "CTR":
                 e, run, st = v.split("|"); d["ctr"] = (e, int(run), int(st))
-            elif k in ("CPU","MEMU","MEMT"): d[k] = int(v)
+            elif k in ("CPU","MEMU","MEMT","SVCFAIL"): d[k] = int(v)
             else: d[k] = v
         return done(d)
     except Exception as e:
         return done({"ok": False, "err": str(e)[:24]})
 
-STATE      = {}
-FAILS      = {}   # consecutive failed polls, per host
-PREV_OK    = {}   # last known ok/not-ok per host, so a level (still down) never refires
-LAST_ALERT = {}   # last alert time per host, so a flapping link doesn't flood the phone
+STATE        = {}
+FAILS        = {}   # consecutive failed polls, per host
+PREV_OK      = {}   # last known ok/not-ok per host, so a level (still down) never refires
+PREV_SVCFAIL = {}   # last known failed-service count per host, same reason
+LAST_ALERT   = {}   # last alert time per host, so a flapping link doesn't flood the phone
 
-def _alert(name, ok):
-    """A host's ok/not-ok flipped: push+TTS it, off the poller thread so a
-    slow or unreachable ntfy server never delays the next poll. Goes
-    through `phosphor notify` like any other notification (SYS event,
-    push if [push] is on, TTS if [tts] enabled AND fleet_alerts is on,
-    the floating toast if notifier is on) instead of duplicating that."""
+def _alert(name, ok, text=None):
+    """A host's ok/not-ok flipped (or, with an explicit `text`, some other
+    real transition on it -- a service failing, or recovering): push+TTS
+    it, off the poller thread so a slow or unreachable ntfy server never
+    delays the next poll. Goes through `phosphor notify` like any other
+    notification (SYS event, push if [push] is on, TTS if [tts] enabled
+    AND fleet_alerts is on, the floating toast if notifier is on) instead
+    of duplicating that. One cooldown per host covers every alert kind:
+    a host already flapping doesn't also need a second, separate one for
+    its services."""
     now = time.time()
     if now - LAST_ALERT.get(name, 0) < 60:      # at most one alert a minute per host
         return
     LAST_ALERT[name] = now
-    text = ("%s is back" % name) if ok else ("%s is unreachable" % name)
+    text = text or (("%s is back" % name) if ok else ("%s is unreachable" % name))
     def run():
         try:
             subprocess.Popen([sys.executable, os.path.join(REPO, "phosphor"), "notify",
@@ -177,6 +182,19 @@ def update_host(n, r):
     if was_ok is not None and was_ok != now_ok:
         _alert(n, now_ok)
     PREV_OK[n] = now_ok
+    # A service crashing (jellyfin, postgresql, tailscaled...) is a more
+    # common self-hosting failure than the whole host going down -- same
+    # not-the-first-poll guard, so an already-failed service when we start
+    # watching doesn't alert either.
+    if now_ok:
+        fails = r.get("SVCFAIL", 0)
+        was_fails = PREV_SVCFAIL.get(n)
+        if was_fails is not None and fails != was_fails:
+            if fails and not was_fails:
+                _alert(n, False, "%s: %d service%s failed" % (n, fails, "" if fails == 1 else "s"))
+            elif was_fails and not fails:
+                _alert(n, True, "%s: services back to normal" % n)
+        PREV_SVCFAIL[n] = fails
     STATE[n] = r
 
 def poller():
@@ -351,6 +369,18 @@ def card(name, w, d):
         body.append(DIM + ("     %.1f / %.0f GiB" % (mu/1024.0, mt/1024.0)) + RST)
         if d.get("LOAD"):
             body.append(MUTE + "LOAD " + RST + FG + d["LOAD"] + RST)
+        # fleet.json can be written by either poller, possibly an older
+        # build than this code (a Rust binary needs a rebuild to pick up a
+        # collect.sh change; Python doesn't) -- SVCFAIL may come through as
+        # a plain string from a stale writer that doesn't know it's a
+        # number yet. Never trust its type, same spirit as the GPU fields
+        # a few lines up.
+        try: svcfail = int(d.get("SVCFAIL") or 0)
+        except (TypeError, ValueError): svcfail = 0
+        if svcfail:
+            body.append(RED + "● %d failed" % svcfail + RST)
+        if d.get("REBOOT"):
+            body.append(AMB + "⟳ reboot pending" + RST)
         if d.get("ms", 0) > SLOW_POLL_MS:
             body.append(AMB + "slow poll: %.1fs" % (d["ms"] / 1000.0) + RST)
         for g in d.get("gpu", []):

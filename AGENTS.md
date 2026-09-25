@@ -118,7 +118,8 @@ brain itself, on another computer (`phosphor gen` writes it there), on a phone
 (the phone kit writes it).
 
 **The fleet** is your other machines. The deck watches them (CPU, RAM, disks,
-containers, over ssh; nothing is installed on them) and shows their files as
+containers, failed systemd units, a pending reboot, over ssh; nothing is
+installed on them) and shows their files as
 folders under `~/fleet` on the brain: `~/fleet/<machine>/...`. Nothing is
 copied or moved; you see the files where they are (rclone sftp mounts, or
 links for the brain's own disks).
@@ -751,9 +752,10 @@ and in the `+` menu, and open in a tab of their own.
 ### Workspaces
 - `phosphor workspace new|open|list` — a tab per idea with its own folder and assistants; see workspaces.
 - `phosphor ask [--assistant NAME] QUESTION` — a one-shot question, no tab: shells out to whichever
-  assistant CLI is already installed (claude, gemini, codex, opencode, aider -- the same list
-  `phosphor workspace` knows, tried in that order) with a headless, single-answer flag of its own
-  (`claude -p`, `gemini -p`, `codex exec`, `opencode run`, `aider --message`) and prints the answer.
+  assistant CLI is already installed (claude, gemini, codex, opencode, aider, agy -- the same
+  list `phosphor workspace` knows, tried in that order) with a headless, single-answer flag of
+  its own (`claude -p`, `gemini -p`, `codex exec`, `opencode run`, `aider --message`, `agy -p`)
+  and prints the answer.
   `--assistant` picks one by name instead of the first installed. For "what was that command
   again" -- not a replacement for a workspace or a chat tab. Piped input is context, not a
   replacement for the question: `git diff | phosphor ask "what changed here"` sends both
@@ -768,7 +770,7 @@ and in the `+` menu, and open in a tab of their own.
   In the tab itself: `a` writes a note, `t` a todo, `i` an idea (first line the title, an empty
   line saves). Tap a note or move with `j`/`k` to pick it: `e` edits it in `$EDITOR` (someone
   else's note gets "edited by you" on its author), `d` archives it, `x` marks a todo done,
-  `c` opens a CHAT tab where an assistant (claude, gemini, codex or opencode) starts from it,
+  `c` opens a CHAT tab where an assistant (claude, gemini, codex, opencode, aider or agy) starts from it,
   `w` opens a workspace from it (see workspaces).
   A note taken from a tab says so (`from SYS`); `f` goes through those tabs, showing one tab's notes at a time.
   `u` brings back the last archived note. `/` searches title, body, author and tab at once (case-insensitive);
@@ -1087,11 +1089,11 @@ The same thing, without a note: the tab bar's `+` → **workspace**, or
 The tab is kept in your profile like any other, so it comes back after
 `phosphor restart`. What "comes back" means depends on the assistant:
 **claude** resumes its last conversation there (`claude --continue`, or a
-fresh one if there wasn't one yet), and so does **aider**
-(`--restore-chat-history`); **gemini**, **codex** and **opencode** just
-start over -- there's no equivalent for them yet, so whatever context they
-had lives only in that session and in what got written to the notebook
-before it ended.
+fresh one if there wasn't one yet), and so do **aider**
+(`--restore-chat-history`) and **agy** (`--continue`); **gemini**, **codex**
+and **opencode** just start over -- there's no equivalent for them yet, so
+whatever context they had lives only in that session and in what got
+written to the notebook before it ended.
 
 The first time a pane starts, that assistant is asked to read its own
 `AGENTS.md` and `BRIEF.md` and say where things stand -- so arriving at a
@@ -1143,7 +1145,7 @@ hand, same as any other git repo.
 
 ### Commands
 
-- `phosphor workspace new [NAME] [--shape one|two|shell] [--parts "a b"] [--assistant claude|gemini|codex|opencode|aider]`
+- `phosphor workspace new [NAME] [--shape one|two|shell] [--parts "a b"] [--assistant claude|gemini|codex|opencode|aider|agy]`
   `[--brief FILE | --note TEXT] [--folder-only]` — `--note` takes the note whose title contains TEXT;
   `--folder-only` writes the folder and leaves the profile and tabs alone (an assistant can use it).
 - `phosphor workspace open NAME` — go to its tab, or open it (inside the deck).

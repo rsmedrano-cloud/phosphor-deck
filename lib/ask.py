@@ -6,9 +6,9 @@
 Shells out to whichever assistant CLI is already installed and prints its
 answer inline: no tab, no context switch, for the "what was that command
 again" class of question. Same assistants `phosphor workspace` already
-knows (claude, gemini, codex, opencode, aider), tried in that order unless
---assistant names one. Nothing new to install: if none of them are on this
-machine, it says so instead of reaching for a dependency of its own.
+knows (claude, gemini, codex, opencode, aider, agy), tried in that order
+unless --assistant names one. Nothing new to install: if none of them are
+on this machine, it says so instead of reaching for a dependency of its own.
 
 Piped input is context, not a replacement for the question: `git diff |
 phosphor ask "what changed here"` sends the diff and the question together.
@@ -29,8 +29,9 @@ ONESHOT = {
     "codex": ["codex", "exec"],
     "opencode": ["opencode", "run"],
     "aider": ["aider", "--yes-always", "--message"],
+    "agy": ["agy", "-p"],
 }
-ORDER = ["claude", "gemini", "codex", "opencode", "aider"]
+ORDER = ["claude", "gemini", "codex", "opencode", "aider", "agy"]
 
 
 def pick(name=None):

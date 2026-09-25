@@ -244,7 +244,7 @@ fn parse(stdout: &str) -> serde_json::Value {
                                                    f[2].parse::<i64>().unwrap_or(0)]));
                 }
             }
-            "CPU" | "MEMU" | "MEMT" => {
+            "CPU" | "MEMU" | "MEMT" | "SVCFAIL" => {
                 d.insert(k.into(), serde_json::json!(v.parse::<i64>().unwrap_or(0)));
             }
             _ => {
@@ -305,6 +305,7 @@ fn main() {
     let mut state: HashMap<String, serde_json::Value> = HashMap::new();
     let mut fails: HashMap<String, u32> = HashMap::new();
     let mut prev_ok: HashMap<String, bool> = HashMap::new();
+    let mut prev_svcfail: HashMap<String, i64> = HashMap::new();
     let mut last_alert: HashMap<String, Instant> = HashMap::new();
     let mut throttled: HashMap<&str, Instant> = HashMap::new();
     let mut first = true;
@@ -349,6 +350,29 @@ fn main() {
                 }
             }
             prev_ok.insert(name.clone(), now_ok);
+            // A service crashing is a more common self-hosting failure than
+            // the whole host going down -- same first-poll and cooldown rules
+            // as the host up/down alert above (1:1 with lib/fleet.py's
+            // update_host()).
+            if now_ok {
+                let svcfail = r.get("SVCFAIL").and_then(|v| v.as_i64()).unwrap_or(0);
+                if let Some(&was) = prev_svcfail.get(&name) {
+                    if was != svcfail {
+                        let cooled = last_alert.get(&name).map(|t| t.elapsed() >= ALERT_COOLDOWN).unwrap_or(true);
+                        if cooled {
+                            if svcfail > 0 && was == 0 {
+                                last_alert.insert(name.clone(), Instant::now());
+                                let unit = if svcfail == 1 { "service" } else { "services" };
+                                notify(&format!("{}: {} {} failed", name, svcfail, unit));
+                            } else if svcfail == 0 && was > 0 {
+                                last_alert.insert(name.clone(), Instant::now());
+                                notify(&format!("{}: services back to normal", name));
+                            }
+                        }
+                    }
+                }
+                prev_svcfail.insert(name.clone(), svcfail);
+            }
             state.insert(name, r);
         }
 
@@ -377,6 +401,7 @@ mod tests {
     #[test]
     fn parses_every_collect_sh_key() {
         let out = "CPU=7\nMEMU=5855\nMEMT=12904\nLOAD=2.26 1.50 1.19\nUP=16h\n\
+                    SVCFAIL=2\nREBOOT=1\n\
                     MNT=/|63|467G\nMNT=/mnt/data|53|1.9T\n\
                     GPU=AMD|38|4200|12288|57\nCTR=docker|7|0\n";
         let d = parse(out);
@@ -384,9 +409,17 @@ mod tests {
         assert_eq!(d["CPU"], serde_json::json!(7));
         assert_eq!(d["MEMU"], serde_json::json!(5855));
         assert_eq!(d["UP"], serde_json::json!("16h"));
+        assert_eq!(d["SVCFAIL"], serde_json::json!(2), "a number, like CPU/MEMU/MEMT, not a string");
+        assert_eq!(d["REBOOT"], serde_json::json!("1"));
         assert_eq!(d["mnt"], serde_json::json!([["/", 63, "467G"], ["/mnt/data", 53, "1.9T"]]));
         assert_eq!(d["gpu"][0]["name"], serde_json::json!("AMD"));
         assert_eq!(d["ctr"], serde_json::json!(["docker", 7, 0]));
+    }
+
+    #[test]
+    fn no_svcfail_line_means_no_failures() {
+        let d = parse("CPU=7\n");
+        assert!(d.get("SVCFAIL").is_none());
     }
 
     #[test]

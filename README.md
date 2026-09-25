@@ -74,8 +74,11 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
   several at once: pick a shape, then what goes in each pane (four
   assistants side by side in a few taps). Mark "keep" and
   the tab is written into your profile, so it survives restarts.
-- **Fleet panel.** One card per machine: CPU, RAM, load, GPU, disks and
-  containers, collected over SSH. Nothing gets installed on the other side.
+- **Fleet panel.** One card per machine: CPU, RAM, load, GPU, disks,
+  containers, failed services and a pending reboot, collected over SSH.
+  Nothing gets installed on the other side. A host going down (or a service
+  failing on one that's still up) pushes and speaks up on its own, the same
+  as any other notification.
 - **Prometheus gauges.** If you already run Prometheus, `phosphor prom` draws
   your PromQL queries as bars, arcs and sparklines, colored by thresholds.
 - **CI/CD status.** `phosphor ci` draws status cards for GitLab and GitHub
@@ -131,7 +134,7 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
   project folder with git and a tab with one or two AI assistants, each
   knowing its part and handing off through the workspace's own notebook.
 - **A quick question, no tab.** `phosphor ask "..."` shells out to whichever
-  assistant CLI is already installed (claude, gemini, codex, opencode, aider)
+  assistant CLI is already installed (claude, gemini, codex, opencode, aider, agy)
   in headless mode and prints the answer inline -- for "what was that command
   again", not a whole workspace or a chat tab. `git diff | phosphor ask "what
   changed here"` sends the pipe as context, question and all.
