@@ -90,11 +90,11 @@ not in any one assistant's memory.
   gets looked at. A PR there can't be merged as-is (main is squashed and
   force-pushed at every sync): point the author at an issue instead.
 - **Releases** come as topics close, without waiting to be asked: a patch
-  version (0.2.26, 0.2.27...) for each closed topic or batch of fixes, and the
-  next minor (0.3.0) when its roadmap milestone is covered and its bugs are
+  version (1.0.1, 1.0.2...) for each closed topic or batch of fixes, and the
+  next minor or major when its roadmap milestone is covered and its bugs are
   checked. Patches stay on `dev` (the nightly channel): `main`, the stable
-  channel, only moves at a minor, so users on stable never get half a
-  milestone. `python3 tests/release.py X.Y.Z "title"` does a dev release from a
+  channel, only moves at a minor or major, so users on stable never get half
+  a milestone. `python3 tests/release.py X.Y.Z "title"` does a dev release from a
   dev checkout, stopping at the first problem: checks, VERSION and CHANGELOG,
   dev's pipeline, the tag, its pipeline; the pipeline's release job publishes
   the notes. Add `--main` for a minor: main is fast-forwarded on the remote

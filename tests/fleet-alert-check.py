@@ -49,6 +49,8 @@ try:
           "db-box is unreachable" in alert_texts())
     check("goes through phosphor notify --fleet-alert",
           calls[0][2] == "notify" and "--fleet-alert" in calls[0])
+    check("marks the real SYS tab, not a made-up 'FLEET' one nothing is ever named",
+          "--tab" in calls[0] and calls[0][calls[0].index("--tab") + 1] == "SYS")
 
     # recovering fires the "back" alert too, once the per-host cooldown
     # from the down alert above has passed

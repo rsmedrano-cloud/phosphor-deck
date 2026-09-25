@@ -91,6 +91,9 @@ out=$(python3 tests/web-check.py 2>&1) && ok || bad "$out"
 step "new --here: refuses with nobody attached"
 out=$(python3 tests/newtab-attach-check.py 2>&1) && ok || bad "$out"
 
+step "commands: category/leaf picker, only safe ones auto-run"
+out=$(python3 tests/commands-menu-check.py 2>&1) && ok || bad "$out"
+
 step "prometheus gauges, fake server"
 out=$(python3 tests/prom-check.py 2>&1) && ok || bad "$out"
 
@@ -129,6 +132,9 @@ out=$(python3 tests/yazi-keymap-check.py 2>&1) && ok || bad "$out"
 
 step "send: one file, one link, gone"
 out=$(python3 tests/send-check.py 2>&1) && ok || bad "$out"
+
+step "receive: the other way, one upload, gone"
+out=$(python3 tests/receive-check.py 2>&1) && ok || bad "$out"
 
 step "services: units match what gen writes"
 out=$(python3 tests/services-check.py 2>&1) && ok || bad "$out"

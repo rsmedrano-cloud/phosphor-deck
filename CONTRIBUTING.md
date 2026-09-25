@@ -79,8 +79,8 @@ from each crate's folder until that's sorted out.
 
 `dev` is where work happens; `main` is what stable users run. A topic is done
 when its tests pass on `dev`, with a CHANGELOG.md entry written for the people
-who use it, not for the code. Patch releases (0.2.x) stay on `dev`, the nightly
-channel; `main` only moves when a minor version is done (0.3.0), so stable
+who use it, not for the code. Patch releases stay on `dev`, the nightly
+channel; `main` only moves at a minor (or major) version, so stable
 users never get half a milestone.
 
 What's done but not released goes under `## Unreleased` at the top of
@@ -89,7 +89,7 @@ is a release: small things wait until there's something worth announcing,
 and the "new version" notice only fires when VERSION changes.
 
 A release is one command from a dev checkout: `python3 tests/release.py
-0.2.0 "a short title"`. It checks where it stands, bumps VERSION, turns
+1.0.1 "a short title"`. It checks where it stands, bumps VERSION, turns
 `## Unreleased` into the version, waits for dev's pipeline, pushes the tag
 and waits for its pipeline (`--main` for a minor: it fast-forwards main first);
 a tag's pipeline publishes its release notes from CHANGELOG.md once every test passed.

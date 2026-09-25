@@ -6,6 +6,35 @@ before it updates.
 
 ## Unreleased
 
+## 1.0.1 — fleet alerts mark the real tab, docs catch up to 1.0
+
+- Fixed: a fleet host going down or coming back marked a tab named "FLEET" -- which never
+  existed (the fleet card lives inside the SYS tab, alongside pulse and the adjutant), so the
+  "SYS ●N" mark it should have set never got there for a new alert, and worse, once one was
+  already showing there was nothing left tracking it to ever clear it, however many times you
+  looked at the tab. Fleet alerts now correctly mark SYS, the same tab the doc always said they
+  did. If yours is stuck: `phosphor restart` -- `phosphor gen` won't touch it, this is live
+  session state, and a restart reloads the tab names fresh from your profile.
+- Docs: README's "## Status" line still said 0.3.0 (this project's first public version) three
+  releases after it stopped being true. Fixed, along with a few version examples elsewhere
+  (CONTRIBUTING.md, doc/manual/install.md, `phosphor docs`'s own release-policy rules) that were
+  still anchored to the 0.2.x/0.3.0 era.
+
+## 1.0.0 — phosphor commands, and the other direction: phosphor receive
+
+- New: `phosphor commands` (also `e` in the DECK tab) -- a categorized, drill-down index of
+  every phosphor subcommand: pick a category, then a command, the same categories the manual
+  and README already use. A read-only one (`share/commands.json` says `mutates: false`) runs
+  right there when you pick it; anything else shows its usage and copies the invocation to
+  every screen's clipboard instead of guessing at missing arguments (a file, a host, a message)
+  for you.
+- New: `phosphor receive [--dir FOLDER] [--timeout SECONDS]` -- the upload-direction mirror of
+  `phosphor send`: a one-time link and QR, same tailnet-or-LAN reach, but a form to send a file
+  in instead of a link to download one. It lands in `~/received` (or `--dir`), never overwriting
+  one that's already there. For getting a real file (a photo, a screenshot) from whatever
+  device you're actually holding onto this machine -- an AI assistant running in a pane here
+  can then read it directly, no detour through copying it by hand and typing "I left it in ~/x".
+
 ## 0.4.4 — ask reads a pipe, README finds its categories
 
 - Docs: README's command table was one long undifferentiated list of ~45 rows -- split into

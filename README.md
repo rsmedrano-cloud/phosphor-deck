@@ -116,7 +116,9 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
   `phosphor clip file` sends a file; pasting the other way works as usual.
   In yazi, `c` then `t` does the same to the hovered file, no shell tab needed.
   For a real file (any size, saved as itself, not pasted text), `phosphor
-  send file` opens a one-time link and QR, gone once it's downloaded.
+  send file` opens a one-time link and QR, gone once it's downloaded --
+  `phosphor receive` is the other way: send it from your phone, it lands in
+  `~/received`, so an AI assistant running on the brain can read it directly.
 - **A shared notebook.** `phosphor note` from anywhere (you, a script, an AI
   assistant) and it shows up in the NOTES tab, where `a` (or a tap) writes one
   without leaving the tab. Alt-j jots one from whatever tab you're in (SYS
@@ -133,6 +135,10 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
   in headless mode and prints the answer inline -- for "what was that command
   again", not a whole workspace or a chat tab. `git diff | phosphor ask "what
   changed here"` sends the pipe as context, question and all.
+- **Every command, browsable.** `phosphor commands` (or `e` in the DECK tab) is a
+  categorized index of everything phosphor can do -- pick a category, then a
+  command; a read-only one runs right there, anything else shows its usage and
+  copies the invocation for you instead of guessing at missing arguments.
 - **Tabs that stay put.** Tabs are locked; Alt-r unlocks the one you're in,
   lets you resize, split or swap what runs in a pane, and then asks: save it
   into your profile, or put it back.
@@ -319,6 +325,7 @@ more depth on every one of these.
 | `phosphor init` | profile wizard |
 | `phosphor setup` | add/remove machines, color, editor and shell, phone, browser access, tunnels, notebook |
 | `phosphor panel` | the DECK tab: state, next steps, every action one key away |
+| `phosphor commands` | every phosphor command, browsable by category (also: `e` in DECK) |
 | `phosphor phone` | put a phone or tablet one tap away from the deck |
 | `phosphor gen` | generate layouts, units and mounts |
 | `phosphor up` | start the deck (and at every boot) |
@@ -371,6 +378,7 @@ more depth on every one of these.
 | `phosphor mentions` | read-only feed of chat notifications; `--setup` hooks matterhorn |
 | `phosphor clip` | a file or a pipe onto your device's clipboard; `--save` the other way |
 | `phosphor send` | one real file, as a one-time link and QR; any size, gone once it's downloaded |
+| `phosphor receive` | the other way: a one-time upload link, into `~/received` |
 | `phosphor web` | on / off / status / token: the deck in a browser, tailnet only |
 | `phosphor path` | turns `~/fleet/x/y` into `host:/y` |
 | `phosphor tunnel` | keep your ssh config's LocalForward tunnels up |
@@ -467,8 +475,8 @@ untouched-background run would give a tighter number.
 
 ## Status
 
-0.3.0, and public. Day-to-day development happens on a private GitLab
-(issues, merge requests, CI) -- [GitHub](https://github.com/rsmedrano-cloud/phosphor-deck)
+1.0, and public since 0.3.0. Day-to-day development happens on a private
+GitLab (issues, merge requests, CI) -- [GitHub](https://github.com/rsmedrano-cloud/phosphor-deck)
 is where releases land, starting from a single snapshot instead of that
 private history. That's a choice about what's public, not a sign this
 showed up overnight: see CHANGELOG.md for the pace of actual releases, and

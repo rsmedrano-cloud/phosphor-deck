@@ -147,7 +147,7 @@ def _alert(name, ok):
     def run():
         try:
             subprocess.Popen([sys.executable, os.path.join(REPO, "phosphor"), "notify",
-                              "--tab", "FLEET", "--fleet-alert", text],
+                              "--tab", "SYS", "--fleet-alert", text],
                              start_new_session=True, stdin=subprocess.DEVNULL,
                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except Exception as e:

@@ -73,11 +73,11 @@ not in any one assistant's memory.
   gets looked at. A PR there can't be merged as-is (main is squashed and
   force-pushed at every sync): point the author at an issue instead.
 - **Releases** come as topics close, without waiting to be asked: a patch
-  version (0.2.26, 0.2.27...) for each closed topic or batch of fixes, and the
-  next minor (0.3.0) when its roadmap milestone is covered and its bugs are
+  version (1.0.1, 1.0.2...) for each closed topic or batch of fixes, and the
+  next minor or major when its roadmap milestone is covered and its bugs are
   checked. Patches stay on `dev` (the nightly channel): `main`, the stable
-  channel, only moves at a minor, so users on stable never get half a
-  milestone. `python3 tests/release.py X.Y.Z "title"` does a dev release from a
+  channel, only moves at a minor or major, so users on stable never get half
+  a milestone. `python3 tests/release.py X.Y.Z "title"` does a dev release from a
   dev checkout, stopping at the first problem: checks, VERSION and CHANGELOG,
   dev's pipeline, the tag, its pipeline; the pipeline's release job publishes
   the notes. Add `--main` for a minor: main is fast-forwarded on the remote
@@ -285,12 +285,13 @@ update` exits non-zero when that happens, and when the install itself fails
 knows it didn't land. Run from a pane inside the deck, the restart detaches
 itself, so there the exit status only covers the install.
 
-Two channels: **stable** follows main, which only moves when a minor version
-is done (0.3.0, 0.4.0...), and the notice shows up only for a new version;
-**nightly** follows dev, every patch release and what's done but not released
-yet, and the notice shows every new commit with the Unreleased notes. While a
-minor is being built (0.2.x), what's new is on nightly. Pick one with
-`phosphor update --channel nightly` or `--channel stable`.
+Two channels: **stable** follows main, which only moves at a minor or major
+version (0.3.0, 0.4.0, 1.0.0...), and the notice shows up only for a new
+version; **nightly** follows dev, every patch release and what's done but
+not released yet, and the notice shows every new commit with the Unreleased
+notes. While the next minor or major is being built, what's new is on
+nightly first. Pick one with `phosphor update --channel nightly` or
+`--channel stable`.
 
 Which version you run: `phosphor version`. In a git clone it also checks for a
 newer one, and the DECK tab shows "new version: u" when there is (u updates).
@@ -716,6 +717,10 @@ and in the `+` menu, and open in a tab of their own.
 - `phosphor panel` — the DECK tab: the deck's state, the next steps while you set up, and every
   action one key or tap away (add a screen, machines, web, tunnels, tools, keep a tab, tabs, shortcuts,
   a shell here, doctor, logs, update, restart, manual). Actions run in the same pane and come back.
+- `phosphor commands` — every phosphor command, browsable by category (also: `e` in the DECK
+  tab). Pick a category, then a command: a read-only one runs right there when you pick it,
+  anything else shows its usage and copies the invocation to every screen's clipboard instead
+  of guessing at missing arguments (a file, a host, a message) for you.
 - `phosphor phone` — how to add a screen (phone, another computer, anything with ssh), with the
   phone's line as a QR; piped (`ssh … phosphor phone | sh`) it is the Termux kit. `--qr` prints only the code.
 - `phosphor screen` — the same kit for a computer without Termux: a key and a `deck` in ~/.local/bin.
@@ -826,6 +831,12 @@ and in the `+` menu, and open in a tab of their own.
 - `phosphor send FILE [--timeout SECONDS]` — one real file (any size or type), as a one-time
   link and QR on your tailnet (or LAN without one). Gone the moment it's downloaded, or after
   the timeout (default 180s) if nobody comes for it. See clipboard.
+- `phosphor receive [--dir FOLDER] [--timeout SECONDS]` — the other way: a one-time upload
+  link and QR, same tailnet-or-LAN reach as `send`. The file lands in `~/received` (or `--dir`),
+  never overwriting one that's already there, and the link is gone the moment it's used or
+  after the timeout. For getting a real file (a photo, a screenshot) from whatever device
+  you're actually holding onto this machine -- an AI assistant running in a pane here can then
+  read it directly. See clipboard.
 - `phosphor web on|off|status|token` — browser access, tailnet only.
 - `phosphor path PATH` — `~/fleet/x/y` → `host:/y`.
 - `phosphor tunnel [on|off HOST]` — keep your ssh config's LocalForward tunnels up.
@@ -1363,6 +1374,26 @@ The link is also printed as a clickable hyperlink (OSC 8: a tap or click opens i
 if your terminal supports it) and copied to the clipboard of every screen looking
 at the deck, so on a phone it's paste into the browser, no scanning or retyping.
 From yazi, `c` `s` does the same to the hovered file.
+
+### The other way: getting a file in
+
+`send` and `clip` both move things out of the deck. For the opposite --
+a photo you just took, a screenshot from whatever device you're actually
+holding -- there's `phosphor receive`: the same one-time link and QR, but an
+upload page instead of a download. Open it on the device that has the file,
+send it, and it lands in `~/received` (or `--dir FOLDER`), never overwriting
+one that's already there. The link dies the moment a file arrives, or after
+the timeout (default 180s) if nobody sends one -- same tailnet-or-LAN reach
+as `send`, deliberate every time, nothing automatic. This is the piece
+`clip`'s OSC 52 bridge can't cover (a real file, not ~70 KB of text) and
+that copying a file onto the brain by hand and typing "I left it in ~/x"
+into an assistant's pane used to stand in for: run `phosphor receive` from
+the same pane, send the file from wherever it actually is, and it's a real
+path on disk an assistant can `Read` directly, no detour through another
+device's mount or another copy step.
+
+    phosphor receive                       # into ~/received, 180s to use it
+    phosphor receive --dir ~/inbox --timeout 60
 
 ## Privacy
 

@@ -64,3 +64,23 @@ The link is also printed as a clickable hyperlink (OSC 8: a tap or click opens i
 if your terminal supports it) and copied to the clipboard of every screen looking
 at the deck, so on a phone it's paste into the browser, no scanning or retyping.
 From yazi, `c` `s` does the same to the hovered file.
+
+## The other way: getting a file in
+
+`send` and `clip` both move things out of the deck. For the opposite --
+a photo you just took, a screenshot from whatever device you're actually
+holding -- there's `phosphor receive`: the same one-time link and QR, but an
+upload page instead of a download. Open it on the device that has the file,
+send it, and it lands in `~/received` (or `--dir FOLDER`), never overwriting
+one that's already there. The link dies the moment a file arrives, or after
+the timeout (default 180s) if nobody sends one -- same tailnet-or-LAN reach
+as `send`, deliberate every time, nothing automatic. This is the piece
+`clip`'s OSC 52 bridge can't cover (a real file, not ~70 KB of text) and
+that copying a file onto the brain by hand and typing "I left it in ~/x"
+into an assistant's pane used to stand in for: run `phosphor receive` from
+the same pane, send the file from wherever it actually is, and it's a real
+path on disk an assistant can `Read` directly, no detour through another
+device's mount or another copy step.
+
+    phosphor receive                       # into ~/received, 180s to use it
+    phosphor receive --dir ~/inbox --timeout 60
