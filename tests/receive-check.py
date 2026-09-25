@@ -8,7 +8,7 @@ Drives the real `phosphor receive` subprocess against localhost with a real
 multipart upload; address picking (tailnet vs LAN) is already covered by
 tests/send-check.py, since receive.py reuses send.pick_address directly.
 """
-import os, re, subprocess, sys, tempfile, time, urllib.error, urllib.request
+import os, re, socket, subprocess, sys, tempfile, time, urllib.error, urllib.parse, urllib.request
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "lib"))
 import receive
@@ -124,6 +124,39 @@ if url2:
 drain(p2, 5)
 need("existing file untouched", open(os.path.join(dest2, "shot.png"), "rb").read() == b"already here")
 need("the new one got its own name", open(os.path.join(dest2, "shot-2.png"), "rb").read() == b"the new one")
+
+# an oversized upload is rejected by its Content-Length before the body is
+# read into memory -- a raw socket so the test never actually has to send
+# MAX_UPLOAD_BYTES of real data to prove it.
+def post_with_fake_length(url, boundary, body, fake_length, timeout=5):
+    p = urllib.parse.urlparse(url)
+    s = socket.create_connection((p.hostname, p.port), timeout=timeout)
+    head = ("POST %s/upload HTTP/1.1\r\nHost: %s\r\n"
+            "Content-Type: multipart/form-data; boundary=%s\r\n"
+            "Content-Length: %d\r\nConnection: close\r\n\r\n"
+            % (p.path, p.hostname, boundary, fake_length))
+    s.sendall(head.encode() + body)
+    s.settimeout(timeout)
+    resp = b""
+    try:
+        while True:
+            chunk = s.recv(4096)
+            if not chunk: break
+            resp += chunk
+    except socket.timeout:
+        pass
+    s.close()
+    return resp
+
+dest4 = tempfile.mkdtemp()
+p4 = run_receive(dest4, 8)
+url4, _ = wait_for_url(p4)
+if url4:
+    body, boundary = build("huge.bin", b"a few real bytes, nowhere near the cap")
+    resp = post_with_fake_length(url4, boundary, body, receive.MAX_UPLOAD_BYTES + 1)
+    need("oversized Content-Length rejected with 413", resp.split(b"\r\n", 1)[0] == b"HTTP/1.0 413 file too big (max 500MB)")
+    need("nothing written for an oversized upload", os.listdir(dest4) == [])
+drain(p4, 5)
 
 # nobody sends anything: times out, exits non-zero, nothing written
 dest3 = tempfile.mkdtemp()

@@ -22,6 +22,8 @@ import clip, deckconf, send
 
 DEFAULT_TIMEOUT = 180
 DEFAULT_DIR = os.path.expanduser("~/received")
+MAX_UPLOAD_MB = 500
+MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024
 
 FORM_HTML = """<!doctype html>
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -105,6 +107,12 @@ def handler_for(path, upload_path, dest_dir, result):
                 self.send_error(400, "expected a multipart file upload")
                 return
             length = int(self.headers.get("Content-Length", 0))
+            if length > MAX_UPLOAD_BYTES:
+                # A brain running the `revived` shape may be a Pi or other
+                # low-memory box: reject before reading it all into RAM,
+                # not after.
+                self.send_error(413, "file too big (max %dMB)" % MAX_UPLOAD_MB)
+                return
             body = self.rfile.read(length)
             filename, data = parse_multipart(body, m.group(1).strip('"'))
             if not filename or data is None:

@@ -2,7 +2,8 @@
 fleet host, straight to whichever AI assistant is installed.
 
     phosphor triage HOST
-    phosphor triage                 lists what the fleet panel is flagging
+    phosphor triage                 pick a flagged host (a real terminal),
+                                     or list them (piped/scripted)
 
 A deeper, one-off look than the regular fleet poll (load, failed systemd
 units, memory, disk, recent kernel messages) over ssh, piped straight into
@@ -10,8 +11,9 @@ units, memory, disk, recent kernel messages) over ssh, piped straight into
 do I fix it. Not something to run on a timer -- for when `phosphor fleet`
 or `phosphor doctor` already told you something's off and you want a
 second look before you go digging by hand. With no HOST, it doesn't guess:
-it shows whatever the fleet panel currently thinks needs attention (same
-list `phosphor glance` shows) so you can pick one.
+on a real terminal it opens the same arrow-key picker `phosphor commands`
+uses, over whatever the fleet panel currently thinks needs attention (the
+list `phosphor glance` shows); piped or scripted, it just prints that list.
 """
 import os, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -55,9 +57,15 @@ def snapshot(h, timeout=20):
     return r.stdout, None
 
 
-def list_flagged():
+def flagged():
+    """[(name, detail)] from the fleet panel's own view -- () if it has
+    nothing to say (no data, or all ok)."""
     import glance
-    ok, total, bad = glance.fleet_state()
+    return glance.fleet_state()[2] or []
+
+
+def list_flagged():
+    bad = flagged()
     if not bad:
         print(DIM + "  nothing the fleet panel is flagging right now." + RST)
         return 0
@@ -67,18 +75,19 @@ def list_flagged():
     return 1
 
 
-def main():
-    a = sys.argv[1:]
-    if a and a[0] in ("-h", "--help"):
-        print("usage: phosphor triage [--assistant NAME] HOST"); return 0
-    assistant = None
-    if a[:1] == ["--assistant"]:
-        if len(a) < 2:
-            print(BAD + " --assistant needs a name" + RST); return 1
-        assistant, a = a[1], a[2:]
-    if not a:
-        return list_flagged()
-    host = a[0]
+def pick_flagged():
+    """The arrow-key picker over flagged hosts (same one phosphor commands
+    uses) -- the chosen host name, or None (nothing flagged, or backed out)."""
+    bad = flagged()
+    if not bad:
+        print(DIM + "  nothing the fleet panel is flagging right now." + RST)
+        return None
+    import edit
+    picked = edit.pick("phosphor triage -- pick a flagged host", bad)
+    return picked[0] if picked else None
+
+
+def run_host(host, assistant):
     prof, _ = deckconf.load()
     h = find_host(prof, host)
     if not h:
@@ -104,6 +113,23 @@ def main():
         return subprocess.run(ask.command(chosen, full)).returncode
     except OSError as e:
         print(BAD + " couldn't run %s: %s" % (chosen, e) + RST); return 1
+
+
+def main():
+    a = sys.argv[1:]
+    if a and a[0] in ("-h", "--help"):
+        print("usage: phosphor triage [--assistant NAME] [HOST]"); return 0
+    assistant = None
+    if a[:1] == ["--assistant"]:
+        if len(a) < 2:
+            print(BAD + " --assistant needs a name" + RST); return 1
+        assistant, a = a[1], a[2:]
+    if not a:
+        if not sys.stdin.isatty():
+            return list_flagged()
+        host = pick_flagged()
+        return run_host(host, assistant) if host else 0
+    return run_host(a[0], assistant)
 
 
 if __name__ == "__main__":

@@ -103,6 +103,9 @@ out=$(python3 tests/tail-check.py 2>&1) && ok || bad "$out"
 step "triage: snapshot over ssh, piped into phosphor ask"
 out=$(python3 tests/triage-check.py 2>&1) && ok || bad "$out"
 
+step "panel: DECK tab actions that pick a host first (triage, tail)"
+out=$(python3 tests/panel-actions-check.py 2>&1) && ok || bad "$out"
+
 step "prometheus gauges, fake server"
 out=$(python3 tests/prom-check.py 2>&1) && ok || bad "$out"
 

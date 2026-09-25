@@ -716,8 +716,10 @@ and in the `+` menu, and open in a tab of their own.
 - `phosphor setup` — add/remove machines, color, editor and shell, phone, browser access, tunnels, notebook
   (also: `m` in the DECK tab).
 - `phosphor panel` — the DECK tab: the deck's state, the next steps while you set up, and every
-  action one key or tap away (add a screen, machines, web, tunnels, tools, keep a tab, tabs, shortcuts,
-  a shell here, doctor, logs, update, restart, manual). Actions run in the same pane and come back.
+  action one key or tap away (add a screen, machines, web, tunnels, tools, keep a tab, triage a
+  host, tail logs, tabs, shortcuts, a shell here, doctor, logs, update, restart, manual). Actions
+  run in the same pane and come back -- `tail`'s stream is the one exception: it takes over the
+  pane until you Ctrl-C, the same way "a shell here" does.
 - `phosphor commands` — every phosphor command, browsable by category (also: `e` in the DECK
   tab). Pick a category, then a command: a read-only one runs right there when you pick it,
   anything else shows its usage and copies the invocation to every screen's clipboard instead
@@ -845,14 +847,17 @@ and in the `+` menu, and open in a tab of their own.
   `journalctl -f -u SERVICE` for a bare name or `systemd/NAME`, `docker logs -f` or `podman logs
   -f` for `docker/NAME` or `podman/NAME`. Just a normal ssh tab (`ssh -t HOST ...`, through
   `phosphor run --reconnect`) with the command already filled in -- reconnects on a dropped link
-  the same way any other ssh tab does, never touches anything on the host.
-- `phosphor triage [--assistant NAME] HOST` — a deeper, one-off look at a host (uptime and load,
+  the same way any other ssh tab does, never touches anything on the host (also: `j` in the DECK
+  tab, which asks for the host and service first).
+- `phosphor triage [--assistant NAME] [HOST]` — a deeper, one-off look at a host (uptime and load,
   failed systemd units, memory, disk, recent kernel messages) collected over ssh and piped
   straight into `phosphor ask`, which shells it to whichever assistant CLI is installed with a
   fixed question: what's actually wrong, and how to fix it. For when `phosphor fleet` or `phosphor
   doctor` already flagged something and you want a second look before digging by hand -- not
-  something to run on a timer. With no `HOST`, it doesn't guess: it lists whatever the fleet panel
-  is currently flagging (the same hosts `phosphor glance` calls out), so you can pick one.
+  something to run on a timer. With no `HOST` on a real terminal, it opens the same arrow-key
+  picker `phosphor commands` uses, over whatever the fleet panel is currently flagging (the same
+  hosts `phosphor glance` calls out); piped or scripted, it just lists them instead (also: `g` in
+  the DECK tab).
 - `phosphor tunnel [on|off HOST]` — keep your ssh config's LocalForward tunnels up.
 - `phosphor face IMAGE [--name N] [--w 24] [--h 13] [--half] [--mode thr|dither|edge]`.
 - `phosphor run [--name N] [--reconnect] [--wait S] [--alt] -- CMD` — the watcher every pane uses:

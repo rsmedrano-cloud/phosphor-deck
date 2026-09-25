@@ -6,6 +6,17 @@ before it updates.
 
 ## Unreleased
 
+## 1.0.7 — triage picks a host for you; receive stops trusting a stranger's Content-Length
+
+- New: `phosphor triage` with no `HOST`, on a real terminal, opens the same arrow-key picker
+  `phosphor commands` uses over whatever the fleet panel is flagging, instead of just printing the
+  list and stopping (piped or scripted, it still just prints).
+- New: `g` (triage a flagged host) and `j` (pick a host and service, tail its logs) in the DECK
+  tab's action list.
+- Fixed: `phosphor receive` read the whole upload into memory with no cap -- a large file (a
+  video, a big backup) sent to a low-memory brain (the `revived` shape's whole reason to exist)
+  risked an OOM kill. Now rejected with 413 before the body is read, at 500MB.
+
 ## 1.0.6 — phosphor triage: a second opinion, piped from the fleet
 
 - New: `phosphor tail HOST [SERVICE]` -- stream a fleet host's logs without having to remember

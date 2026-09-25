@@ -262,7 +262,8 @@ when all your other tabs are ssh sessions somewhere else. On the left: its
 state (screens in, watchdog, browser access, tunnels), the next steps while
 you're still setting it up, and one key or tap per action: add a screen,
 machines and color, browser access, tunnels, install tools, keep a tab,
-tabs, shortcuts, a shell on the brain, doctor, update, restart, the manual. On the
+triage a flagged host, tail a host's logs, tabs, shortcuts, a shell on the
+brain, doctor, update, restart, the manual. On the
 right: the keys of every installed tool, with the deck's own as you set them.
 
 ![The DECK tab: next steps, every action, and the key guide](doc/img/readme/deck-tab.png)

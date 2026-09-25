@@ -74,6 +74,36 @@ out = buf.getvalue()
 check("list_flagged: nonzero when something's flagged", rc == 1)
 check("list_flagged: names the host and the reason", "atlas" in out and "service" in out)
 
+# pick_flagged(): the same arrow-key picker phosphor commands uses, over
+# whatever's flagged -- edit.pick mocked, never a real terminal here.
+import edit
+real_edit_pick = edit.pick
+edit.pick = lambda title, items: items[0]
+try:
+    host = triage.pick_flagged()
+    check("pick_flagged: the mocked picker's choice comes back as the host name", host == "atlas")
+finally:
+    edit.pick = real_edit_pick
+
+# nothing flagged: glance.CACHE swapped to a path with no fleet.json at all
+# (glance.CACHE is computed once at import time from $HOME, so this session's
+# earlier HOME change wouldn't reach it -- patch the constant directly)
+import glance
+real_cache = glance.CACHE
+glance.CACHE = os.path.join(tempfile.mkdtemp(), "fleet.json")
+picker_shown = []
+edit.pick = lambda title, items: picker_shown.append(1)
+try:
+    buf = io.StringIO(); sys.stdout = buf
+    try:
+        host = triage.pick_flagged()
+    finally:
+        sys.stdout = real_stdout
+    check("nothing flagged: no picker opened, no host", host is None and not picker_shown)
+finally:
+    edit.pick = real_edit_pick
+    glance.CACHE = real_cache
+
 # main(): unknown host never reaches ssh or ask
 real_load = triage.deckconf.load
 triage.deckconf.load = lambda: (PROF, "t")
@@ -85,20 +115,53 @@ def run(argv):
     finally:
         sys.argv = saved
 
+class FakeStdin:
+    def __init__(self, tty): self._tty = tty
+    def isatty(self): return self._tty
+
+real_stdin = triage.sys.stdin
 try:
     rc = run(["nope-a-host"])
     check("unknown host: exits 1", rc == 1)
 
-    # no HOST at all: falls through to list_flagged(), no crash
+    # no HOST, piped/scripted (not a tty): the plain list, never the picker
+    triage.sys.stdin = FakeStdin(False)
+    picker_shown = []
+    edit.pick = lambda title, items: picker_shown.append(1)
     buf = io.StringIO()
     sys.stdout = buf
     try:
         rc = run([])
     finally:
         sys.stdout = real_stdout
-    check("no host given: exits through list_flagged, not a crash", rc in (0, 1))
+    check("no host, not a tty: falls through to list_flagged, no picker",
+          rc in (0, 1) and not picker_shown)
+    edit.pick = real_edit_pick
+
+    # no HOST, a real terminal: picks a flagged host, then runs it
+    triage.sys.stdin = FakeStdin(True)
+    real_pick_flagged, real_run_host = triage.pick_flagged, triage.run_host
+    triage.pick_flagged = lambda: "atlas"
+    calls = []
+    triage.run_host = lambda host, assistant: calls.append((host, assistant)) or 0
+    try:
+        rc = run([])
+        check("no host, a tty: picks then runs that host", calls == [("atlas", None)] and rc == 0)
+    finally:
+        triage.pick_flagged, triage.run_host = real_pick_flagged, real_run_host
+
+    # no HOST, a real terminal, but nothing flagged (or backed out): a no-op
+    triage.pick_flagged = lambda: None
+    calls = []
+    triage.run_host = lambda host, assistant: calls.append((host, assistant)) or 1
+    try:
+        rc = run([])
+        check("no host, a tty, nothing picked: no-op, exits 0", not calls and rc == 0)
+    finally:
+        triage.pick_flagged, triage.run_host = real_pick_flagged, real_run_host
 finally:
     triage.deckconf.load = real_load
+    triage.sys.stdin = real_stdin
 
 # --assistant with no name after it
 rc_out = io.StringIO()
