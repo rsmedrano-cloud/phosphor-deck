@@ -32,6 +32,7 @@ zellij:
     - python3 tests/tour-check.py
     - python3 tests/tabmark-check.py
     - python3 tests/hotswap-live-check.py
+    - python3 tests/fleet-keys-check.py --live
 
 # docs: a push that changes code (lib/, phosphor, share/, install.sh) also
 # changes CHANGELOG.md, and the docs name every command. [no-changelog] in a

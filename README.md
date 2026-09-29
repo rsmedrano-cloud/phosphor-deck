@@ -372,7 +372,7 @@ more depth on every one of these.
 
 | | |
 |---|---|
-| `phosphor fleet` | fleet panel |
+| `phosphor fleet` | fleet panel: pick a card, then `s` ssh, `l` logs, `t` triage, each in its own tab |
 | `phosphor pulse` | the heartbeat: a wave tied to real load |
 | `phosphor glance` | read-only: fleet, unread mentions, open todos -- for a small screen, no zellij needed |
 | `phosphor adjutant` | the SYS panel that speaks up: `phosphor notify MESSAGE` makes it announce something |

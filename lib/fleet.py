@@ -409,6 +409,83 @@ def card(name, w, d):
             body.append(DIM + "no containers" + RST)
     return head, body
 
+# Keys over a card: pick one (arrows, Tab, a tap), then open something on
+# that machine in a tab of its own. Nothing here changes the host itself:
+# a shell, its logs, or a read-only look through `phosphor triage`.
+ACTIONS = [("s", "ssh"), ("l", "logs"), ("t", "triage")]
+
+def action_tab(key, name, target):
+    """(tab name, pane spec) for `key` over the card of `name` (its ssh
+    target, None for this machine), or None for a key that isn't one."""
+    if key == "s":
+        return name.upper(), ({"ssh": target} if target else {"cwd": HOME})
+    if key == "l":
+        import tail
+        argv = tail.remote_argv(None)
+        if target:
+            argv = ["ssh", "-t", target] + argv
+        label = ("TAIL-" + name).upper()[:24]
+        return label, {"_run": argv, "_name": label, "reconnect": bool(target)}
+    if key == "t":
+        return ("TRIAGE-" + name).upper()[:24], {"cmd": "phosphor triage", "args": [name]}
+    return None
+
+def open_action(key, name, target):
+    """Open the tab for `key` next to this one. A message either way."""
+    if DEMO:
+        return "the demo's machines aren't real: nothing to open"
+    if not os.environ.get("ZELLIJ"):
+        return "open it from inside the deck"
+    got = action_tab(key, name, target)
+    if not got:
+        return ""
+    import gen, newtab
+    label, spec = got
+    label = newtab.unique(label, newtab.taken_names())
+    d = os.path.join(deckconf.cache_dir(), "apps")
+    os.makedirs(d, exist_ok=True)
+    lay = os.path.join(d, "%s-%s.kdl" % (label.lower(), time.strftime("%Y%m%d-%H%M%S")))
+    with open(lay, "w") as f:
+        f.write(gen.tab_kdl({"name": label, "panes": [spec]}, gen.Ctx(deckconf.load()[0] or {}),
+                            "phosphor fleet"))
+    newtab.zj("new-tab", "--layout", lay, "--name", label)
+    return "opened " + label
+
+def card_at(x, y, cw, gap, per_row, h, n):
+    """The card index under a tap at pane column x, row y (both 1-based),
+    or None: the gap between cards, or below the last one."""
+    col, cx = divmod(x - 1, cw + gap)
+    if cx >= cw or col >= per_row:
+        return None
+    i = ((y - 1) // h) * per_row + col
+    return i if 0 <= i < n else None
+
+def move(sel, k, per_row, n):
+    """The card an arrow or Tab lands on; the first one when none is picked."""
+    if sel is None:
+        return 0
+    step = {"\x1b[C": 1, "\t": 1, "\x1b[D": -1, "\x1b[B": per_row, "\x1b[A": -per_row}.get(k, 0)
+    j = sel + step
+    return j if 0 <= j < n else sel
+
+def footer(n, sel, msg):
+    """The bottom line, and {column range: key} for tapping its hints."""
+    base = " phosphor fleet · " + time.strftime("%H:%M:%S") + "  ·  " + str(n) + " hosts  ·  every " \
+        + str(INTERVAL) + "s"
+    if sel is None:
+        text = base + "  ·  tap a machine"
+        return DIM + text + RST + ("  " + AMB + msg + RST if msg else ""), {}
+    # picked: just what the keys do, short enough for a phone's width
+    out, taps, x = " " + FG + HOSTS[sel][0] + RST, {}, 1 + len(HOSTS[sel][0])
+    for k, what in ACTIONS + [("Esc", "")]:
+        piece = "  " + k + (" " + what if what else "")
+        taps[(x + 3, x + len(piece))] = "\x1b" if k == "Esc" else k
+        out += "  " + AMB + k + RST + (" " + FG + what + RST if what else "")
+        x += len(piece)
+    if msg:
+        out += "  " + DIM + "· " + RST + AMB + msg + RST
+    return out, taps
+
 class RustPoller:
     """Supervises the optional `phosphor-fleet-poll` subprocess: relaunches
     it if it dies, and hot-reloads it (terminate, respawn) the moment the
@@ -515,7 +592,9 @@ def main():
     mount_names = [h["name"] for h in deckconf.mount_hosts(prof)]
     threading.Thread(target=mount_watchdog, args=(mount_names, deckconf.mount_root(prof)),
                      daemon=True).start()
-    sys.stdout.write("\x1b[?1049h\x1b[?25l")
+    tty = sys.stdin.isatty()
+    sys.stdout.write("\x1b[?1049h\x1b[?25l" + ("\x1b[?1000h\x1b[?1006h" if tty else ""))
+    sel, msg, msg_until, geo = None, "", 0, None
     try:
         while True:
             if rust_poller is not None:
@@ -527,13 +606,16 @@ def main():
             raw = [card(h[0], cw, state.get(h[0])) for h in HOSTS]
             bh = max(len(b) for _, b in raw)
             inner = cw - 4
+            if sel is not None and sel >= n:
+                sel = None
             cards = []
-            for head, body in raw:
+            for i, (head, body) in enumerate(raw):
+                edge = BLOOM if i == sel else RULE      # the picked card's border lights up
                 body = body + [""]*(bh - len(body))
-                c = [head]
+                c = [head.replace(RULE, edge, 1)]
                 for b in body:
-                    c.append(RULE + "│" + RST + " " + pad(b, inner) + " " + RULE + "│" + RST)
-                c.append(RULE + "╰" + "─"*(cw-2) + "╯" + RST)
+                    c.append(edge + "│" + RST + " " + pad(b, inner) + " " + edge + "│" + RST)
+                c.append(edge + "╰" + "─"*(cw-2) + "╯" + RST)
                 cards.append(c)
             per_row = max(1, (cols + gap) // (cw + gap))
             h = len(cards[0])
@@ -546,15 +628,44 @@ def main():
             # cards get cut at the bottom but the footer stays visible.
             out = out[:max(0, rows - 2)]
             out.append("")
-            out.append(DIM + " phosphor fleet · " + time.strftime("%H:%M:%S")
-                       + "  ·  " + str(n) + " hosts  ·  every " + str(INTERVAL) + "s" + RST)
+            if msg and time.time() > msg_until:
+                msg = ""
+            line, taps = footer(n, sel, msg)
+            out.append(line)
+            geo = (cw, gap, per_row, h, len(out))
             sys.stdout.write("\x1b[H" + "\x1b[K\n".join(out) + "\x1b[K\x1b[J")
             sys.stdout.flush()
-            time.sleep(1)
+            if not tty:
+                time.sleep(1); continue
+            k = getkey(1)
+            if isinstance(k, tuple):                 # a tap: a card, or a hint on the last line
+                _, btn, x, y, pressed = k
+                if btn != 0 or not pressed:
+                    continue
+                if y == geo[4]:
+                    k = next((v for (a, b), v in taps.items() if a <= x <= b), None)
+                else:
+                    if y <= geo[4] - 2:
+                        hit = card_at(x, y, cw, gap, per_row, h, n)
+                        if hit is not None:
+                            sel = hit
+                    continue
+            if k == "\x03":
+                break
+            if k in ("\x1b[A", "\x1b[B", "\x1b[C", "\x1b[D", "\t"):
+                sel = move(sel, k, per_row, n)
+            elif k == "\x1b":
+                sel = None
+            elif k in [a for a, _ in ACTIONS]:
+                if sel is None:
+                    msg = "pick a machine first: arrows or a tap"
+                else:
+                    msg = open_action(k, HOSTS[sel][0], HOSTS[sel][1])
+                msg_until = time.time() + 5
     except KeyboardInterrupt:
         pass
     finally:
-        sys.stdout.write("\x1b[?1049l\x1b[?25h\n")
+        sys.stdout.write(("\x1b[?1006l\x1b[?1000l" if tty else "") + "\x1b[?1049l\x1b[?25h\n")
         if rust_poller is not None:
             rust_poller.stop()
 

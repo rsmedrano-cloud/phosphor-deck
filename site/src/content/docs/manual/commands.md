@@ -90,6 +90,10 @@ sidebar:
 - `phosphor fleet`, `phosphor pulse`, `phosphor adjutant`, `phosphor prom`, `phosphor ci`, `phosphor services` — the SYS panels; prom draws your Prometheus queries, ci draws your GitLab/GitHub pipeline statuses,
   services lists systemd units and their state (see `[prometheus]`, `[ci]` and `[services]` in profile; `--once` prints one frame).
   `fleet` also calls `phosphor notify` itself when a host's ok/not-ok flips (down, or back) -- at most once a minute per host even if the link flaps.
+  In `fleet`, pick a machine's card (arrows, Tab or a tap; Esc lets go) and open something on it in a tab of
+  its own: `s` a shell there (ssh, or a plain shell for the brain), `l` its logs (what `phosphor tail HOST`
+  runs), `t` a `phosphor triage` of it. The keys show on the bottom line and tapping them works too; none
+  of them changes anything on the host.
 - `phosphor glance [--once]` — read-only: the fleet's problem hosts (or "all N ok"), unread
   mentions, open todos, and any workspace with uncommitted changes or commits ahead/behind its
   upstream ("one device, then another" makes those easy to forget). For a small screen:

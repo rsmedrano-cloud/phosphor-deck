@@ -6,6 +6,13 @@ before it updates.
 
 ## Unreleased
 
+## 1.1.10 — FLEET: s ssh, l logs, t triage
+
+- New: keys in the FLEET panel. Pick a machine's card with the arrows, Tab or a tap, then `s` opens a
+  shell on it, `l` its logs (the same as `phosphor tail`) and `t` a `phosphor triage`, each in a tab of
+  its own. The keys show on the panel's bottom line, and tapping them works on a phone. Nothing on the
+  host changes; Esc lets go of the card.
+
 ## 1.1.9 — phosphor ask -c
 
 - New: `phosphor ask -c` sends your notebook's five latest decisions and summaries along with

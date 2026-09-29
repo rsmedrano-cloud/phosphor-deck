@@ -78,6 +78,12 @@ def pane_kdl(spec, ctx, ind):
 
     extra = ['%s    cwd "%s"' % (pad, os.path.expanduser(spec["cwd"]))] if spec.get("cwd") else []
 
+    if "_run" in spec:
+        # a ready argv, never from a profile: what fleet's l (a host's logs)
+        # opens, the same way `phosphor tail` would run it in place
+        return run_pane(pad, sz, spec["_run"], extra, name=spec.get("_name"),
+                        reconnect=spec.get("reconnect", False))
+
     if "ssh" in spec:
         tgt = ctx.expand(spec["ssh"])
         tgt = tgt[0] if tgt else "localhost"
