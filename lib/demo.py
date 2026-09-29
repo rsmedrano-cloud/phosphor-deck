@@ -4,10 +4,12 @@ screenshot or a recording: never your real profile, never your real
 session, never a real IP, hostname or note.
 
     phosphor demo            build it (if needed) and get in
+    phosphor demo --tour     the same, with a guide on every tab that has you try each thing
     phosphor demo --stop     kill it and clean up
 
-Runs from profiles/demo.toml instead of your profile (PHOSPHOR_PROFILE for
-every pane it opens) and profiles/demo-tabs.d instead of your tabs.d, so
+Runs from a copy of profiles/demo.toml instead of your profile (PHOSPHOR_PROFILE for
+every pane it opens: Alt-r's save lands in that copy, and gen/up/restart refuse to run
+on it, so nothing the demo does rewrites this machine's real deck) and profiles/demo-tabs.d instead of your tabs.d, so
 nothing of yours leaks in. It writes no systemd unit and touches no mount:
 just a zellij session of its own (`phosphor-demo` by default). Its notebook, chat
 feed, events, fleet readings and log live in ~/.cache/phosphor/demo-state, never in
@@ -27,13 +29,24 @@ LAYOUT   = os.path.expanduser("~/.cache/phosphor/demo.kdl")
 # ~/.local/share/phosphor or ~/.cache/phosphor: mentions, the adjutant's events, the fleet's
 # readings, the log. (A demo that showed this machine's real chat feed leaked a name.)
 STATE    = os.path.expanduser("~/.cache/phosphor/demo-state")
+COPY     = os.path.join(STATE, "deck.toml")    # what the panes read and Alt-r writes
 
 
-def load_profile():
+def write_copy(tour):
+    """The demo's own profile, from the repo's, fresh every time the session is built."""
+    os.makedirs(STATE, exist_ok=True)
+    text = open(PROFILE).read()
+    if tour:
+        text = text.replace("[deck]\n", "[deck]\ntour = true          # phosphor demo --tour: a guide on every tab\n", 1)
+    with open(COPY, "w") as f:
+        f.write(text)
+
+
+def load_profile(path=PROFILE):
     if deckconf.tomllib is None:
         print("no TOML parser: pip install --user tomli")
         return None
-    with open(PROFILE, "rb") as f:
+    with open(path, "rb") as f:
         return deckconf.tomllib.load(f)
 
 
@@ -78,7 +91,7 @@ def background_env():
     ZELLIJ_SESSION_NAME as "the session you're already in" and appends the
     demo's tabs there instead of starting a session of its own -- your real
     deck, not a throwaway one."""
-    env = dict(os.environ, PHOSPHOR_PROFILE=PROFILE, PHOSPHOR_TABS_D=TABS_D,
+    env = dict(os.environ, PHOSPHOR_PROFILE=COPY, PHOSPHOR_TABS_D=TABS_D,
                PHOSPHOR_DATA=os.path.join(STATE, "data"), PHOSPHOR_CACHE=os.path.join(STATE, "cache"))
     for d in (env["PHOSPHOR_DATA"], env["PHOSPHOR_CACHE"]):
         os.makedirs(d, exist_ok=True)
@@ -113,13 +126,25 @@ def main():
 
     if argv and argv[0] == "--stop":
         return stop(sess)
+    if argv and argv[0] == "--tour-pane":      # what the tour's floating panes run
+        import tour
+        return tour.main()
+    with_tour = "--tour" in argv
 
     zj = zellij_bin()
     if not zj:
         print("  zellij isn't installed: run install.sh again (it fetches it)")
         return 1
 
-    if not session_live(zj, sess):
+    if session_live(zj, sess):
+        live = load_profile(COPY) if os.path.exists(COPY) else {}
+        if with_tour and not ((live or {}).get("deck") or {}).get("tour"):
+            print("  the demo is already running without the tour: phosphor demo --stop, then phosphor demo --tour")
+            return 1
+    else:
+        shutil.rmtree(STATE, ignore_errors=True)   # a new session starts from scratch, tour included
+        write_copy(with_tour)
+        prof = load_profile(COPY)
         seed_notes(((prof.get("notes") or {}).get("folder")) or "~/.local/share/phosphor")
         layout = build_layout(prof)
         print("  building the demo deck...")

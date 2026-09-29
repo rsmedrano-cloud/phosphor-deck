@@ -29,6 +29,7 @@ zellij:
     - zellij --version
     - python3 tests/edit-check.py
     - python3 tests/notify-floats-check.py
+    - python3 tests/tour-check.py
     - python3 tests/tabmark-check.py
     - python3 tests/hotswap-live-check.py
 

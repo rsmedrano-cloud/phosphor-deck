@@ -6,6 +6,17 @@ before it updates.
 
 ## Unreleased
 
+## 1.1.7 — phosphor demo --tour
+
+- New: `phosphor demo --tour`, the demo with a guide. A small floating pane on every tab walks
+  you through the deck by doing: go to a tab, write a note with Alt-j, open a tab with Alt-n,
+  keep it with Alt-r. Each step moves on once it has actually seen you do it; Enter steps the
+  guide aside so your keys reach the deck, and it comes back by itself.
+- Fixed: inside `phosphor demo`, saving a tab with Alt-r wrote into the repo's demo profile and
+  ran a real `phosphor gen` with it, rewriting this machine's own layouts and keys with the
+  demo's. The demo now runs from a copy of its profile, and `gen`, `up`, `restart`, `down`,
+  `setup` and `update` refuse to run on a demo profile.
+
 ## 1.1.6 — An assistant asks which folder it starts in
 
 - New: an assistant from the `+` menu (or Alt-n) asks which folder it starts in: here, any

@@ -38,6 +38,7 @@ Files that gen writes say
 | face | "" | adjutant face (see `phosphor face`) |
 | notify_seconds | 8 | how long a floating notice stays (notifier = true) |
 | demo | false | fleet fakes its readings instead of polling ssh (what `phosphor demo` sets) |
+| tour | false | a guide in a floating pane on every tab (what `phosphor demo --tour` sets; demo only) |
 
 `notifier` opens a floating pane per tab for `phosphor notify`'s toast. It's
 off by default: zellij 0.45's screen thread froze twice in real use, both

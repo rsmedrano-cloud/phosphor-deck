@@ -190,6 +190,12 @@ sidebar:
   `~/.cache/phosphor/demo-state` (`--stop` removes it). What it can't hide is where it runs: the
   machine's user and host name still show in paths and prompts, so for a public screenshot run
   it on a machine whose user name you're happy to show.
+  `phosphor demo --tour` is the same demo with a guide: a small floating pane on every tab that
+  has you try each thing (switch tabs, Alt-j a note, Alt-n a tab, Alt-r to keep it) and moves on
+  once it has seen you do it. Enter steps it aside so your keys reach the deck; it comes back by
+  itself when the step is done. The demo's profile is a copy under `demo-state`: saving a tab
+  there never touches the repo or your own profile, and `gen`, `up`, `restart` and `down` refuse
+  to run on it (they'd write the demo over this machine's real deck).
 - `phosphor privacy [--install]` — finds your own data (IPs, users, servers) in what git would publish.
 
 ## Shell

@@ -147,6 +147,21 @@ def floating_notifier(ctx, ind):
         pad + "    }",
         pad + "}"])
 
+def floating_tour(ind):
+    """`phosphor demo --tour`'s guide, on every tab of the demo and nowhere else
+    (`tour = true` only ever comes from the demo's own copy of its profile)."""
+    pad = " " * ind
+    return "\n".join([
+        pad + "floating_panes {",
+        pad + '    pane command="%s" name="TOUR" {' % PHOSPHOR,
+        pad + '        args "demo" "--tour-pane"',
+        pad + "        width 52",
+        pad + "        height 14",
+        pad + '        x "46%"',
+        pad + '        y "38%"',
+        pad + "    }",
+        pad + "}"])
+
 def tab_body(tab, ctx, ind):
     panes = tab.get("panes", [{}])
     if len(panes) == 1 and "panes" not in panes[0]:
@@ -189,7 +204,9 @@ def deck_kdl(prof, ctx, src):
         foc = " focus=true" if i == 0 else ""
         out.append('    tab name="%s"%s {' % (tab["name"], foc))
         out.append(tab_body(tab, ctx, 8))
-        if notifier:
+        if ctx.deck.get("tour"):
+            out.append(floating_tour(8))
+        elif notifier:
             out.append(floating_notifier(ctx, 8))
         out.append("    }")
         out.append("")

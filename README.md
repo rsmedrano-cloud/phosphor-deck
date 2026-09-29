@@ -48,6 +48,7 @@ made-up machines and a made-up notebook.
 curl -fsSL https://raw.githubusercontent.com/rsmedrano-cloud/phosphor-deck/main/install.sh | sh
 # fetches zellij, yazi, btop... into ~/.local/bin, no root (or, from a copy of the repo: sh install.sh)
 phosphor demo        # look around; Alt-x leaves
+phosphor demo --tour # the same, with a guide that has you try each thing
 phosphor demo --stop # kill it and clean up
 ```
 
@@ -406,7 +407,7 @@ more depth on every one of these.
 
 | | |
 |---|---|
-| `phosphor demo` | a throwaway session over made-up machines, for a screenshot or a recording |
+| `phosphor demo` | a throwaway session over made-up machines, for a screenshot or a recording; `--tour` adds a guide |
 | `phosphor privacy` | before you push a fork: finds your own data in it |
 
 ### Shell
