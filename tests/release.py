@@ -18,9 +18,11 @@ major is being built every release stays on dev, which is the nightly channel;
 main, the stable one, only moves when that minor or major is done (--main).
 
 5. The public GitHub mirror (github.com/rsmedrano-cloud/phosphor-deck): a
-   squashed commit onto its own dev (and main, with --main), never GitLab's
-   real history -- building on that branch's previous sync there, same as a
-   normal commit, just never carrying GitLab's granular one. Best-effort:
+   squashed commit onto its own dev, never GitLab's real history -- building
+   on dev's previous sync there, same as a normal commit, just never
+   carrying GitLab's granular one. With --main, GitHub's main is then
+   fast-forwarded to that same commit, so there main never diverges from
+   dev. Best-effort:
    a GitHub hiccup here doesn't undo an already-shipped GitLab release, it
    just prints what to fix by hand. With --main only, also a real GitHub
    Release with the cross-compiled Rust binaries (rust-release's job
@@ -58,41 +60,54 @@ def stop(why):
 def vtuple(v):
     return tuple(int(x) for x in v.split("."))
 
-def sync_github(branch, v, title):
-    """Squash HEAD onto GitHub's own `branch` as one commit, building on
-    that branch's previous sync there (a real, if squashed, history on
-    GitHub -- never GitLab's granular one). Best-effort on purpose: prints
-    what to fix by hand instead of raising, so a GitHub hiccup never undoes
-    a GitLab release that already shipped."""
+def sync_github(v, title, to_main=False):
+    """Squash HEAD onto GitHub's own dev as one commit, building on dev's
+    previous sync there (a real, if squashed, history on GitHub -- never
+    GitLab's granular one); with to_main, GitHub's main is then
+    fast-forwarded to that same commit, so main is always an ancestor of
+    dev there and GitHub never shows the two as diverged ("N ahead, M
+    behind"). A main left over from the old separate-squash syncs gets
+    folded into dev once, as the second parent of a merge that keeps dev's
+    tree (-s ours): after that the fast-forward always holds. Best-effort
+    on purpose: prints what to fix by hand instead of raising, so a GitHub
+    hiccup never undoes a GitLab release that already shipped."""
     tmp = tempfile.mkdtemp(prefix="phosphor-ghmirror-")
+    g = lambda *a, **k: subprocess.run(["git", "-C", tmp] + list(a), capture_output=True, text=True, **k)
     try:
         c = subprocess.run(["git", "clone", "-q", GITHUB, tmp], capture_output=True, text=True)
         if c.returncode != 0:
             print("release: GitHub mirror sync skipped (clone failed): " + c.stderr.strip()); return
-        has = subprocess.run(["git", "-C", tmp, "rev-parse", "-q", "--verify", "origin/" + branch],
-                             capture_output=True).returncode == 0
+        has = g("rev-parse", "-q", "--verify", "origin/dev").returncode == 0
+        has_main = g("rev-parse", "-q", "--verify", "origin/main").returncode == 0
+        heal = has and has_main and g("merge-base", "--is-ancestor", "origin/main", "origin/dev").returncode != 0
         if has:
-            subprocess.run(["git", "-C", tmp, "checkout", "-q", "-B", branch, "origin/" + branch])
-            subprocess.run(["git", "-C", tmp, "rm", "-rq", "."], capture_output=True)
+            g("checkout", "-q", "-B", "dev", "origin/dev")
+            if heal:
+                g("merge", "-q", "-s", "ours", "--no-commit", "--allow-unrelated-histories", "origin/main")
+            g("rm", "-rq", ".")
         else:
-            subprocess.run(["git", "-C", tmp, "checkout", "-q", "--orphan", branch])
+            g("checkout", "-q", "--orphan", "dev")
         arc = subprocess.run(["git", "archive", "--format=tar", "HEAD"], cwd=ROOT, capture_output=True).stdout
         t = subprocess.run(["tar", "-xf", "-"], input=arc, cwd=tmp, capture_output=True)
         if t.returncode != 0:
             print("release: GitHub mirror sync skipped (couldn't lay down the tree): " + t.stderr.decode()); return
-        subprocess.run(["git", "-C", tmp, "add", "-A"], capture_output=True)
+        g("add", "-A")
         name, email = gh_identity()
         env = dict(os.environ, GIT_AUTHOR_NAME=name, GIT_AUTHOR_EMAIL=email,
                    GIT_COMMITTER_NAME=name, GIT_COMMITTER_EMAIL=email)
-        cm = subprocess.run(["git", "-C", tmp, "commit", "-q", "-m", "%s — %s" % (v, title)],
-                            capture_output=True, text=True, env=env)
-        if cm.returncode != 0:
-            print("release: GitHub mirror sync skipped (nothing changed since its last sync)"); return
-        p = subprocess.run(["git", "-C", tmp, "push", "-q", "-u", "origin", branch],
-                           capture_output=True, text=True)
-        if p.returncode != 0:
-            print("release: GitHub mirror push failed, fix by hand: " + p.stderr.strip()); return
-        print("release: GitHub mirror's %s updated too (github.com/rsmedrano-cloud/phosphor-deck)" % branch)
+        if g("commit", "-q", "-m", "%s — %s" % (v, title), env=env).returncode == 0:
+            p = g("push", "-q", "-u", "origin", "dev")
+            if p.returncode != 0:
+                print("release: GitHub mirror push failed, fix by hand: " + p.stderr.strip()); return
+            print("release: GitHub mirror's dev updated too (github.com/%s)" % GITHUB_REPO)
+        else:
+            print("release: GitHub mirror's dev unchanged (nothing changed since its last sync)")
+        if to_main:
+            p = g("push", "-q", "origin", "dev:main")
+            if p.returncode != 0:
+                print("release: GitHub mirror's main didn't fast-forward to dev, fix by hand: "
+                      + p.stderr.strip()); return
+            print("release: GitHub mirror's main fast-forwarded to dev")
     except Exception as e:
         print("release: GitHub mirror sync skipped (%s)" % e)
     finally:
@@ -240,10 +255,7 @@ def main():
              "fix on dev and cut the next patch" % v)
 
     # 5. the public GitHub mirror -- best-effort, see sync_github's own docstring
-    # at a minor, GitHub's dev too: left behind at the last patch, it's what a
-    # contributor branching from GitHub's dev would build on (MR !5 did)
-    for b in (("main", "dev") if to_main else ("dev",)):
-        sync_github(b, v, title)
+    sync_github(v, title, to_main)
     if to_main:
         sync_github_binaries(v, title)
 

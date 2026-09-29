@@ -77,8 +77,8 @@ not in any one assistant's memory.
   (also run by `tests/release.py`, same heads-up spirit). Nothing else polls
   the public mirror -- real dev happens on GitLab, but a bug report or
   feature request only ever lands on GitHub, so this is the one place it
-  gets looked at. A PR there can't be merged as-is (main is squashed and
-  force-pushed at every sync): point the author at an issue instead.
+  gets looked at. A PR there can't be merged as-is (GitHub's history is
+  squashed releases, not GitLab's): point the author at an issue instead.
 - **Releases** come as topics close, without waiting to be asked: a patch
   version (1.0.1, 1.0.2...) for each closed topic or batch of fixes, and the
   next minor or major when its roadmap milestone is covered and its bugs are
@@ -94,10 +94,11 @@ not in any one assistant's memory.
   (`--channel nightly` for a dev one). `tests/release.py` also syncs the
   public GitHub mirror (github.com/rsmedrano-cloud/phosphor-deck) as its
   last step: a squashed commit onto GitHub's own `dev` at every release,
-  and onto its `main` too at a minor (so GitHub's dev, where an outside
-  contributor branches from, is never behind its main) -- building on that branch's previous sync
-  there (a real, if squashed, history on GitHub), never GitLab's granular
-  one. Titled after the release, authored as the maintainer, no AI
+  building on dev's previous sync there (a real, if squashed, history on
+  GitHub), never GitLab's granular one; at a minor, GitHub's `main` is then
+  fast-forwarded to that same commit, so there main is always an ancestor
+  of dev and GitHub never shows them as diverged ("N ahead, M behind") to
+  an outside contributor branching from dev. Titled after the release, authored as the maintainer, no AI
   co-author. Best-effort on purpose: a GitHub hiccup there is printed, not
   fatal -- it never undoes a GitLab release that already shipped; fix by
   hand (`tests/release.py`'s own `sync_github()`, called standalone, does

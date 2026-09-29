@@ -6,6 +6,12 @@ before it updates.
 
 ## Unreleased
 
+## 1.1.4 — GitHub's dev and main stop diverging
+
+- The GitHub mirror's `dev` no longer shows as "ahead of and behind" `main`: a stable
+  release now fast-forwards GitHub's `main` to `dev` instead of squashing onto each branch
+  separately, and the next release folds the old, diverged `main` into `dev` once.
+
 ## 1.1.3 — DECK tab: q goes back everywhere; a hand-edited profile says so
 
 - Fixed: `phosphor gen` wrote everything and then crashed with a traceback when zellij wasn't
