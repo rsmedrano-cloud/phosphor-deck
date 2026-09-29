@@ -6,6 +6,14 @@ before it updates.
 
 ## Unreleased
 
+## 1.1.6 — An assistant asks which folder it starts in
+
+- New: an assistant from the `+` menu (or Alt-n) asks which folder it starts in: here, any
+  folder of your projects folder (workspaces marked as such), or another one you type (`~` and
+  relative paths work). Folders typed by hand come back in that list next time. The tab takes
+  the folder's name, and "keep this tab" keeps that folder. Before, an assistant only ever
+  started where the menu was opened, and a project of your own meant typing the whole command.
+
 ## 1.1.5 — Unconfigured panels explain themselves
 
 - A panel with nothing set up yet explains itself instead of looking broken. `phosphor prom`

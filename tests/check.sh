@@ -97,6 +97,9 @@ out=$(python3 tests/web-check.py 2>&1) && ok || bad "$out"
 step "new --here: refuses with nobody attached"
 out=$(python3 tests/newtab-attach-check.py 2>&1) && ok || bad "$out"
 
+step "new: an assistant asks which folder it starts in"
+out=$(python3 tests/newtab-folder-check.py 2>&1) && ok || bad "$out"
+
 step "commands: category/leaf picker, only safe ones auto-run"
 out=$(python3 tests/commands-menu-check.py 2>&1) && ok || bad "$out"
 

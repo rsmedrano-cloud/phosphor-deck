@@ -6,7 +6,7 @@ assistant, one of your own apps (apps.toml), files, or any command. This process
 when it exits the tab closes. "keep" also writes the tab into the profile,
 so it comes back after restarts.
 """
-import json, os, select, shutil, subprocess, sys, termios, tty
+import json, os, select, shutil, subprocess, sys, termios, time, tty
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
 from ui import getkey as ui_getkey
@@ -172,8 +172,8 @@ def launch(name, argv, spec, keep):
         + (["--wait", "1"] if spec.get("needs_size") else []) + (["--alt"] if spec.get("alt") else [])
     os.execv(sys.executable, [sys.executable, PHOSPHOR, "run"] + opts + ["--"] + argv)
 
-def ask_command(rows):
-    sys.stdout.write("\x1b[?1006l\x1b[?1000l\x1b[?25h\x1b[%d;1H\x1b[K " % rows + AMB + "command: " + RST)
+def ask_command(rows, prompt="command: "):
+    sys.stdout.write("\x1b[?1006l\x1b[?1000l\x1b[?25h\x1b[%d;1H\x1b[K " % rows + AMB + prompt + RST)
     sys.stdout.flush()
     try:
         text = sys.stdin.readline().strip()
@@ -181,6 +181,70 @@ def ask_command(rows):
         text = ""
     sys.stdout.write("\x1b[?25l\x1b[?1000h\x1b[?1006h"); sys.stdout.flush()
     return text
+
+RECENT = 8      # folders typed by hand that "where?" offers again
+
+def recent_path():
+    return os.path.join(deckconf.data_dir(), "folders")
+
+def recent():
+    try:
+        return [l for l in open(recent_path()).read().splitlines() if os.path.isdir(os.path.expanduser(l))]
+    except OSError:
+        return []
+
+def remember(path):
+    """Put a folder typed by hand first in the recent list (deduped, capped)."""
+    t = path.replace(HOME, "~", 1) if path == HOME or path.startswith(HOME + "/") else path
+    keep = [t] + [l for l in recent() if l != t]
+    try:
+        os.makedirs(os.path.dirname(recent_path()), exist_ok=True)
+        open(recent_path(), "w").write("\n".join(keep[:RECENT]) + "\n")
+    except OSError:
+        pass
+
+def resolve(text, cwd):
+    """A typed folder: ~ and relative paths work. None if it isn't a folder."""
+    p = os.path.normpath(os.path.join(cwd, os.path.expanduser(text.strip())))
+    return p if text.strip() and os.path.isdir(p) else None
+
+def places(cwd, prof):
+    """Where an assistant can start: [(label, note, path)] -- here first, then
+    the projects folder's own folders (workspaces say so), then folders typed
+    before. No path twice."""
+    import workspace
+    tilde = workspace.tilde
+    out, seen = [("here", tilde(cwd), cwd)], {cwd}
+    root = workspace.root(prof)
+    try:
+        subs = sorted(n for n in os.listdir(root) if not n.startswith(".") and os.path.isdir(os.path.join(root, n)))
+    except OSError:
+        subs = []
+    for n in subs:
+        p = os.path.join(root, n)
+        ws = os.path.isfile(os.path.join(p, "NOTES.md"))
+        out.append((n, ("workspace  " if ws else "") + tilde(p), p)); seen.add(p)
+    for t in recent():
+        p = os.path.expanduser(t)
+        if p not in seen:
+            out.append((os.path.basename(p) or p, t, p)); seen.add(p)
+    return out
+
+def where(label, prof, rows):
+    """Pick the folder an assistant starts in. The path, or None for back."""
+    import edit
+    cwd = os.getcwd()
+    while True:
+        it = edit.pick("%s: which folder?" % label, places(cwd, prof), [("/", "another folder...")])
+        if it is None: return None
+        if it != "/": return it[2]
+        text = ask_command(rows, "folder: ")
+        if not text: continue
+        p = resolve(text, cwd)
+        if p:
+            remember(p); return p
+        sys.stdout.write("\x1b[%d;1H\x1b[K " % rows + WARN + " not a folder: " + text); sys.stdout.flush()
+        time.sleep(1.5)
 
 # (label, picture, slots, how the slots make a tab)
 SHAPES = [
@@ -308,6 +372,13 @@ def main():
             if spec is None:                  # a wizard, not a tab of its own: it opens the real one
                 sys.stdout.write("\x1b[?1006l\x1b[?1000l\x1b[?1049l\x1b[?25h\x1b[2J\x1b[H"); sys.stdout.flush()
                 os.execv(argv[0], argv)
+            if note == "assistant":
+                folder = where(label, prof, rows)
+                if folder is None:
+                    sys.stdout.write("\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h"); continue
+                if folder != os.getcwd():
+                    name = (os.path.basename(folder) or name).upper()[:12]
+                    os.chdir(folder)          # the assistant starts here; keep_tab() saves it as cwd
             launch(name, argv, spec, keep)
     except KeyboardInterrupt:
         return 0

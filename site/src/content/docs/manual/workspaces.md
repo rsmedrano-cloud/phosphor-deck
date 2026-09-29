@@ -59,6 +59,11 @@ workspace you didn't just create still tells you something.
 Nothing that already exists is overwritten: `phosphor workspace new` on a
 folder you have adds only the missing files, and says which ones it left alone.
 
+Just an assistant in a folder you already have, no workspace files at all:
+`+` (or Alt-n) → the assistant, then pick the folder -- here, one of your
+projects folder, or `/` to type any other. Tick "keep this tab" first and it
+comes back there after a restart.
+
 ## Two notebooks, not one
 
 Easy to mix up, so worth saying plainly: **Alt-j**, anywhere in the deck

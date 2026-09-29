@@ -843,6 +843,9 @@ and in the `+` menu, and open in a tab of their own.
   (`apps.toml`, see profile) come first, as "yours".
 - `phosphor new` — the new-tab menu (what + and Alt-n open). **layout** in it: pick a shape (2 columns,
   2 rows, 2 × 2, 3 columns), then what goes in each pane, or "the same in the rest"; all by tap too.
+  An **assistant** in it asks which folder it starts in: here, a folder of `[deck] projects`
+  (workspaces say so), one you typed before, or `/` to type another (`~` and relative paths
+  work); the tab takes that folder's name.
 - `phosphor keep [TAB]` — read the tab as it is now (splits, sizes, what runs in each pane)
   and write it into your profile; `--pick` chooses the tab, `--dry-run` only shows it.
   Also `k` in the DECK tab.
@@ -1165,6 +1168,11 @@ workspace you didn't just create still tells you something.
 
 Nothing that already exists is overwritten: `phosphor workspace new` on a
 folder you have adds only the missing files, and says which ones it left alone.
+
+Just an assistant in a folder you already have, no workspace files at all:
+`+` (or Alt-n) → the assistant, then pick the folder -- here, one of your
+projects folder, or `/` to type any other. Tick "keep this tab" first and it
+comes back there after a restart.
 
 ### Two notebooks, not one
 

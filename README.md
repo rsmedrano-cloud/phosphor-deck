@@ -382,7 +382,7 @@ more depth on every one of these.
 | `phosphor screens` | who's attached (phone, tablet, another computer); `x` twice kicks one loose |
 | `phosphor keys` | key guide, updates itself when you install a tool |
 | `phosphor store` | install TUIs from their releases, no sudo; open what you have, and your own apps |
-| `phosphor new` | the + menu (also Alt-n): a shell, a machine, an assistant, your apps, a layout |
+| `phosphor new` | the + menu (also Alt-n): a shell, a machine, an assistant (in the folder you pick), your apps, a layout |
 | `phosphor keep` | write a tab you arranged by hand into your profile |
 | `phosphor tabs` | the tabs your profile brings back: forget one, reorder, reopen |
 | `phosphor recipe [NAME]` | starter tab bundles: homelab, dev, bubble, workbench; `--remove NAME` undoes one |

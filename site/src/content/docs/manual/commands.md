@@ -112,6 +112,9 @@ sidebar:
   (`apps.toml`, see profile) come first, as "yours".
 - `phosphor new` — the new-tab menu (what + and Alt-n open). **layout** in it: pick a shape (2 columns,
   2 rows, 2 × 2, 3 columns), then what goes in each pane, or "the same in the rest"; all by tap too.
+  An **assistant** in it asks which folder it starts in: here, a folder of `[deck] projects`
+  (workspaces say so), one you typed before, or `/` to type another (`~` and relative paths
+  work); the tab takes that folder's name.
 - `phosphor keep [TAB]` — read the tab as it is now (splits, sizes, what runs in each pane)
   and write it into your profile; `--pick` chooses the tab, `--dry-run` only shows it.
   Also `k` in the DECK tab.
