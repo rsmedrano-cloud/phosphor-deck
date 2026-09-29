@@ -74,6 +74,7 @@ CATEGORIES = [
         ("path", "phosphor path PATH", "turns ~/fleet/x/y into host:/y"),
         ("tail", "phosphor tail HOST", "stream a fleet host's journalctl/docker/podman logs, reconnecting on its own"),
         ("triage", "phosphor triage HOST", "a diagnostic snapshot of a host, piped straight to phosphor ask"),
+        ("broadcast", "phosphor broadcast -- CMD", "one command on every fleet host at once, output grouped by host"),
         ("tunnel", "phosphor tunnel", "keep your ssh config's LocalForward tunnels up"),
         ("face", "phosphor face IMAGE", "turn an image into the adjutant's face"),
         ("logs", "phosphor logs", "the deck's own log: crashes, hangs, exits, restarts; -f follows"),

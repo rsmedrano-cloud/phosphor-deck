@@ -6,6 +6,15 @@ before it updates.
 
 ## Unreleased
 
+## 1.1.2 — phosphor broadcast: one command, the whole fleet
+
+- New: `phosphor broadcast -- COMMAND` -- one command on every machine of the fleet at once, over
+  ssh, in parallel: each host's output under its own header, with its exit code and how long it
+  took, and a line saying how many answered 0. `--host NAME` (repeatable) and `--role ROLE`
+  narrow it down; the brain runs it locally, viewers and `fleet = false` hosts are left out. It
+  can change anything on those machines, so it shows the command and the hosts and asks first;
+  without a terminal it refuses unless `--yes` is given.
+
 ## 1.1.1 — update never hangs on a silent pull; the wizard stops offering itself
 
 - Fixed: `phosphor update` could hang forever and silently on its `git pull` (a dead link, a

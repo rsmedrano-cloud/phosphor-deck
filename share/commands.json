@@ -10,6 +10,8 @@
     "note": "shells out to an installed assistant CLI for one answer and prints it; nothing is written locally."},
   "attach": {"mutates": false, "needs_deck": true,
     "note": "waits (up to ~90s) for the session to come up if it's starting, then attaches; a first-ever run also asks one Enter before writing a small 'welcomed' marker, skipped and unwritten without a tty."},
+  "broadcast": {"mutates": true, "needs_deck": false,
+    "note": "runs an arbitrary command over ssh on every fleet host (or --host/--role): it can change anything there. Asks first on a terminal; without one it refuses unless --yes is given."},
   "ci": {"mutates": false, "needs_deck": false,
     "note": "read-only GitHub/GitLab pipeline status."},
   "clip": {"mutates": false, "needs_deck": false,

@@ -148,6 +148,14 @@
   picker `phosphor commands` uses, over whatever the fleet panel is currently flagging (the same
   hosts `phosphor glance` calls out); piped or scripted, it just lists them instead (also: `g` in
   the DECK tab).
+- `phosphor broadcast [--host NAME]... [--role ROLE] [--timeout S] [--yes] -- COMMAND` — one
+  command on every host `phosphor fleet` watches, at once: over ssh (BatchMode, a key, never a
+  password prompt) and in parallel, the brain itself locally, viewers and `fleet = false` ones left
+  out. Each host's output comes under its own header with its exit code (or "unreachable", when
+  ssh never got there) and how long it took; it exits 0 only if every host answered 0. `--host`
+  (repeatable) and `--role` narrow it down; `--timeout` (default 60s) is per host. It can change
+  anything on those machines, so it shows the command and the hosts and asks first; without a
+  terminal it refuses unless `--yes` says the run was meant to be unattended.
 - `phosphor tunnel [on|off HOST]` — keep your ssh config's LocalForward tunnels up.
 - `phosphor face IMAGE [--name N] [--w 24] [--h 13] [--half] [--mode thr|dither|edge]`.
 - `phosphor run [--name N] [--reconnect] [--wait S] [--alt] -- CMD` — the watcher every pane uses:
