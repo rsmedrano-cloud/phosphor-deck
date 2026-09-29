@@ -13,8 +13,11 @@ sidebar:
 - `phosphor panel` — the DECK tab: the deck's state, the next steps while you set up, and every
   action one key or tap away (add a screen, machines, web, tunnels, tools, keep a tab, triage a
   host, tail logs, tabs, shortcuts, a shell here, doctor, logs, update, restart, manual). Actions
-  run in the same pane and come back -- `tail`'s stream is the one exception: it takes over the
-  pane until you Ctrl-C, the same way "a shell here" does.
+  run in the same pane and come back the same way from every one: q, Esc or Enter (the ones
+  that print and wait say "q · Enter: back", the TUIs take q) -- `tail`'s stream is the one
+  exception: it takes over the pane until you Ctrl-C, the same way "a shell here" does.
+  After a hand edit of the profile, its status line says "profile changed: f applies it":
+  `f` asks, then runs `phosphor gen` and `phosphor restart`.
 - `phosphor commands` — every phosphor command, browsable by category (also: `e` in the DECK
   tab). Pick a category, then a command: a read-only one runs right there when you pick it,
   anything else shows its usage and copies the invocation to every screen's clipboard instead

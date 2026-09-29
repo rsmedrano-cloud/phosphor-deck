@@ -17,7 +17,8 @@
   found part of the old deck still alive and started nothing new. It lists
   what: kill those pids, or wait for the service to stop, then `phosphor
   restart`. The watchdog stays off until then, on purpose.
-- **A change to the profile doesn't show**: `phosphor gen && phosphor restart`.
+- **A change to the profile doesn't show**: `phosphor gen && phosphor restart`
+  (or `f` in the DECK tab, which says "profile changed" until you do).
 - **A new version doesn't show**: the panes run the code they started with.
   `phosphor update` restarts the deck for you; after updating any other way,
   `phosphor restart`.

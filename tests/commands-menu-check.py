@@ -43,11 +43,11 @@ check("command_items shape", items[0] == (first_cat_cmds[0][0], first_cat_cmds[0
 import contextlib
 real_screen, real_getkey, real_run, real_input = commands.screen, commands.getkey, commands.subprocess.run, builtins.input
 commands.screen = lambda lines: None
-# detail() prompts "Enter to go back" (a bare `input()`) after running a safe
-# command -- on a real tty (a developer running sh tests/check.sh by hand,
-# not CI's non-interactive stdin) that would block this test waiting for a
-# real keypress.
+# detail() waits on back() (q, Esc or Enter) after running a safe command --
+# on a real tty (a developer running sh tests/check.sh by hand, not CI's
+# non-interactive stdin) that would block this test waiting for a real key.
 builtins.input = lambda *a, **kw: ""
+commands.back = lambda *a, **kw: None
 ran = []
 commands.subprocess.run = lambda cmd, **kw: ran.append(cmd)
 copied = []

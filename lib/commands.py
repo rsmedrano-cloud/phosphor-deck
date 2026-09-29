@@ -137,8 +137,7 @@ def detail(cmd, usage, note, man):
         if k in ("\r", "\n") and safe:
             sys.stdout.write("\x1b[?1049l\x1b[?25h"); sys.stdout.flush()
             subprocess.run([sys.executable, PHOSPHOR, cmd])
-            try: input("\n  " + DIM + "Enter to go back " + RST)
-            except (EOFError, KeyboardInterrupt): pass
+            back()
             return
         if k == "c":
             import clip

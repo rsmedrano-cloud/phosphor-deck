@@ -264,8 +264,8 @@ state (screens in, watchdog, browser access, tunnels), the next steps while
 you're still setting it up, and one key or tap per action: add a screen,
 machines and color, browser access, tunnels, install tools, keep a tab,
 triage a flagged host, tail a host's logs, tabs, shortcuts, a shell on the
-brain, doctor, update, restart, the manual. On the
-right: the keys of every installed tool, with the deck's own as you set them.
+brain, doctor, update, restart, the manual. Every action comes back the
+same way: q, Esc or Enter. On the right: the keys of every installed tool, with the deck's own as you set them.
 
 ![The DECK tab: next steps, every action, and the key guide](doc/img/readme/deck-tab.png)
 
@@ -283,7 +283,9 @@ leaves a `deck.toml.bak` behind.
 
 ## The profile
 
-The single source of truth, in `~/.config/phosphor/deck.toml`. A shortened
+The single source of truth, in `~/.config/phosphor/deck.toml`. A hand edit
+shows after `phosphor gen && phosphor restart`; until then the DECK tab says
+"profile changed: f applies it" (and `phosphor doctor` warns). A shortened
 example (the full one is `profiles/example.toml`):
 
 ```toml

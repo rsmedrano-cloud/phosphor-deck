@@ -84,10 +84,67 @@ try:
     run_act("j")
     check("j: Ctrl-C at the service prompt still runs tail with no service",
           ran and ran[-1][-2:] == ["tail", "nimbus"])
+
+    # every action goes back the same way: the ones that end on their own
+    # output wait on back() (q, Esc, Enter), never on an "Enter to go back"
+    # input(); the rest open a TUI that takes q itself.
+    import init, tunnels
+    real_yes, real_tunnels, real_back = init.yes, tunnels.interactive, panel.back
+    prompts, backs = [], []
+    builtins.input = lambda *a, **kw: prompts.append(a[0] if a else "") or ""
+    init.yes = lambda *a, **kw: True
+    tunnels.interactive = lambda: None
+    panel.back = lambda *a, **kw: backs.append(1)
+    panel.getkey = lambda timeout=None: "q"
+    edit.pick = lambda title, items: None
+    waits = {"p", "k", "g", "d", "l", "u", "r", "h", "w"}
+    try:
+        for k in keys:
+            backs.clear(); prompts.clear()
+            run_act(k, {"web": False})
+            check("%s: never asks 'Enter to go back' through input()" % k,
+                  not any("go back" in p for p in prompts))
+            if k in waits:
+                check("%s: waits on back() (q, Esc, Enter) after its output" % k, backs == [1])
+        # web already on: q at its t/o prompt goes straight back, nothing runs
+        backs.clear(); ran.clear()
+        run_act("w", {"web": True})
+        check("w (web on): q at t/o goes back without running anything else",
+              not backs and ran and ran[-1][-2:] == ["web", "status"])
+    finally:
+        init.yes, tunnels.interactive, panel.back = real_yes, real_tunnels, real_back
+        panel.getkey = __import__("ui").getkey
 finally:
     panel.subprocess.run, panel.deckconf.load, panel.deckconf.hosts = real_run, real_load, real_hosts
     edit.pick = real_edit_pick
     builtins.input = real_input
+
+# ui.back() itself, on a real terminal: q, Esc and Enter go back, a stray key doesn't
+import pty, select, subprocess, time
+def back_on_pty(keys):
+    m, s = pty.openpty()
+    p = subprocess.Popen([sys.executable, "-c",
+                          "import sys; sys.path.insert(0, %r); import ui; ui.back(); print('BACK')"
+                          % os.path.join(ROOT, "lib")], stdin=s, stdout=s, stderr=s, close_fds=True)
+    os.close(s)
+    time.sleep(0.5)
+    for key in keys:
+        os.write(m, key); time.sleep(0.3)
+    try:
+        done = p.wait(timeout=3) == 0
+    except subprocess.TimeoutExpired:
+        done = False
+        p.kill(); p.wait()
+    out = b""
+    while select.select([m], [], [], 0.1)[0]:
+        try: out += os.read(m, 4096)
+        except OSError: break
+    done = done and b"BACK" in out
+    os.close(m)
+    return done
+for name, key in (("q", b"q"), ("Esc", b"\x1b"), ("Enter", b"\r")):
+    check("back(): %s goes back" % name, back_on_pty([key]))
+check("back(): a stray key doesn't go back", not back_on_pty([b"x"]))
 
 if fails:
     print("panel-actions-check FAILED:\n  " + "\n  ".join(fails)); sys.exit(1)

@@ -87,6 +87,22 @@ def getkey(timeout=None):
         return s[:3] if len(s) >= 3 else s
     return s[:1] if s else None
 
+BACK_KEYS = ("q", "Q", "\x1b", "\r", "\n", "\x03", "\x04")   # q, Esc, Enter, Ctrl-C, Ctrl-D
+
+def back(prompt="q · Enter: back"):
+    """Wait under something just printed until q, Esc or Enter (the keys
+    every TUI the DECK tab opens already takes to go back). Anything else
+    is ignored, so a stray key never wipes the output before it's read.
+    Without a terminal it returns at once."""
+    sys.stdout.write("\n  " + DIM + prompt + " " + RST); sys.stdout.flush()
+    while True:
+        try:
+            k = getkey()
+        except (termios.error, OSError, ValueError):
+            return
+        if k is None or k in BACK_KEYS:       # None: end of input
+            print(); return
+
 def rule(title, w=None):
     w = w or width()
     h = "── " + title + " "

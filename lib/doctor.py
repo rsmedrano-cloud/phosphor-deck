@@ -117,6 +117,11 @@ def run(profile=None):
                       "it declares '%s' as local, but you're on '%s'" % (loc[0], me)))
             print("      " + DIM + "the checks below don't apply. Run: phosphor init" + RST)
             issues.append("the profile isn't this machine's: run phosphor init")
+        import deckconf
+        if deckconf.profile_changed():
+            print(row(WARN, "profile", "changed since the last phosphor gen",
+                      note="it doesn't show until then"))
+            issues.append("the profile changed since the last gen: phosphor gen && phosphor restart")
     import mesh
     kind, control = mesh.current(profile)
     if kind == "none":

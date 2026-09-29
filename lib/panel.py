@@ -5,7 +5,7 @@ It runs on the brain, so phosphor always has a place to run even when every
 other tab is an ssh to somewhere else. Actions run in this same pane and
 come back here: no new tabs, no floating panes.
 """
-import os, shutil, subprocess, sys, time
+import os, shutil, subprocess, sys, termios, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
 import deckconf, version
@@ -71,6 +71,7 @@ def state(prof):
          "timer": out("systemctl", "--user", "is-active", sess + ".timer").strip() == "active",
          "tunnels": [tunnels.active(t["host"]) for t in deckconf.tunnels(prof)],
          "dirty_workspaces": len(workspace.dirty_workspaces()),
+         "profile_changed": deckconf.profile_changed(),
          "version": version.current()["version"], "channel": version.current()["channel"],
          "news": version.news()}
     version.check_later()
@@ -94,7 +95,9 @@ def draw(prof, st, w, rows, with_steps=True):
     ver = "v" + st["version"] + (" nightly" if st.get("channel") == "nightly" else "")
     L.append(pad(BLOOM + " PHOSPHOR DECK" + RST + DIM + " · " + st["session"] + RST, w - len(ver) - 1)
              + DIM + ver + RST)
-    parts = [AMB + st["news"] + ": u" + RST + FG] if st["news"] else []
+    parts = [AMB + "profile changed: f applies it" + RST + FG] if st.get("profile_changed") else []
+    if st["news"]:
+        parts.append(AMB + st["news"] + ": u" + RST + FG)
     if st["screens"] is not None:
         parts.append("%d screen%s in" % (st["screens"], "" if st["screens"] == 1 else "s"))
     parts.append("watchdog " + ("on" if st["timer"] else AMB + "OFF" + RST + FG))
@@ -109,6 +112,8 @@ def draw(prof, st, w, rows, with_steps=True):
     while len(parts) > 1 and vlen(" " + " · ".join(parts)) > w:
         parts.pop()
     L.append(" " + FG + " · ".join(parts) + RST)
+    if st.get("profile_changed"):
+        hit[len(L)] = "f"             # a tap on that line applies it too
     todo = steps(prof)
     if with_steps and not all(done for _, done in todo):
         L.append("")
@@ -131,8 +136,9 @@ def draw(prof, st, w, rows, with_steps=True):
     return L[:rows], hit
 
 def pause():
-    try: input("\n  " + DIM + "Enter to go back " + RST)
-    except (EOFError, KeyboardInterrupt): pass
+    """Every action that ends on its own output waits here, with the same
+    keys (q, Esc, Enter) as the TUIs the other actions open."""
+    back()
 
 def act(k, st):
     from init import yes
@@ -151,16 +157,20 @@ def act(k, st):
             P("web", "status")
             print()
             if st["web"] or st.get("web_mismatch"):
-                # every choice spelled out: Enter changes nothing
+                # every choice spelled out: anything else (q, Enter) changes nothing
+                sys.stdout.write("  " + AMB + "t" + RST + " a new login token · " + AMB + "o" + RST
+                                 + " turn it off · " + DIM + "q · Enter: back " + RST); sys.stdout.flush()
                 try:
-                    a = input("  " + AMB + "t" + RST + " a new login token · " + AMB + "o" + RST
-                              + " turn it off · " + DIM + "Enter: back " + RST).strip().lower()
-                except (EOFError, KeyboardInterrupt):
+                    a = (getkey() or "").lower()
+                except (termios.error, OSError, ValueError):
                     a = ""
+                print()
                 if a == "t":
                     P("web", "token")
                 elif a == "o":
                     P("web", "off")
+                else:
+                    return
             elif yes("turn it on? your tailnet's devices only, with a login token (the deck restarts)", False):
                 P("web", "on")
             pause()
@@ -208,6 +218,17 @@ def act(k, st):
             P("tabs")
         elif k == "a":
             P("recipe")
+        elif k == "f":
+            # a hand edit of deck.toml (or tabs.d) only shows after gen and a
+            # restart; never done behind anyone's back: the restart closes every pane
+            print("  the profile changed since the last " + PH + "phosphor gen" + RST
+                  + ": the deck still runs the one before.")
+            if yes("apply it now? phosphor gen, then a restart (every screen comes back by itself)", False):
+                if P("gen").returncode == 0:
+                    P("restart")
+                else:
+                    print(AMB + "  gen failed: nothing restarted. Fix the profile, then f again." + RST)
+            pause()
     except KeyboardInterrupt:
         print()
     finally:
@@ -231,7 +252,7 @@ def main():
             k = getkey(1.0)
             if isinstance(k, tuple):
                 k = hit.get(k[3]) if k[0] == "MOUSE" and k[1] == 0 and k[4] else None
-            if k in keys:
+            if k in keys or (k == "f" and st.get("profile_changed")):
                 act(k, st); last = 0
     except KeyboardInterrupt:
         pass

@@ -6,6 +6,21 @@ before it updates.
 
 ## Unreleased
 
+## 1.1.3 — DECK tab: q goes back everywhere; a hand-edited profile says so
+
+- Fixed: `phosphor gen` wrote everything and then crashed with a traceback when zellij wasn't
+  installed yet; it now says "next: phosphor up" like any other first run.
+- New: a hand edit of `deck.toml` (or a `tabs.d` file) no longer goes unnoticed. `phosphor gen`
+  remembers the profile it read; when it no longer matches, the DECK tab's status line says
+  "profile changed: f applies it" (`f`, or a tap on that line, asks first, then runs `phosphor
+  gen` and `phosphor restart`) and `phosphor doctor` warns. Never applied on its own: a restart
+  closes every pane. It starts after your next `phosphor gen`.
+
+- Fixed: in the DECK tab, `q` went back from some actions (commands, screens, store, tabs...) but
+  typed a q into others (phone, keep, triage, doctor, logs, update, restart, manual, web), which
+  only took Enter. Now every action goes back with `q`, Esc or Enter, and says so the same way
+  ("q · Enter: back"). Same after a command run from `phosphor commands`.
+
 ## 1.1.2 — phosphor broadcast: one command, the whole fleet
 
 - New: `phosphor broadcast -- COMMAND` -- one command on every machine of the fleet at once, over

@@ -156,6 +156,50 @@ def cache_dir():
     """The same for what's only cached (events, the fleet's readings, the log): PHOSPHOR_CACHE."""
     return os.environ.get("PHOSPHOR_CACHE") or os.path.expanduser("~/.cache/phosphor")
 
+def _gen_stamp():
+    return os.path.join(data_dir(), "gen-profile")
+
+def profile_fingerprint():
+    """A hash of what `phosphor gen` reads: the profile and every tabs.d file.
+    None while the repo's example stands in for a profile."""
+    if example():
+        return None
+    import hashlib
+    h = hashlib.sha256()
+    files = [path()]
+    d = tabs_d_path()
+    if os.path.isdir(d):
+        files += [os.path.join(d, f) for f in sorted(os.listdir(d)) if f.endswith(".toml")]
+    for f in files:
+        try:
+            h.update(f.encode() + b"\0" + open(f, "rb").read() + b"\0")
+        except OSError:
+            pass
+    return h.hexdigest()
+
+def mark_generated():
+    """gen calls this once it has written everything: the profile as it was then."""
+    fp = profile_fingerprint()
+    if not fp:
+        return
+    try:
+        os.makedirs(data_dir(), exist_ok=True)
+        open(_gen_stamp(), "w").write(fp + "\n")
+    except OSError:
+        pass
+
+def profile_changed():
+    """True when the profile (or tabs.d) changed since the last `phosphor gen`,
+    e.g. a hand edit: it doesn't show until gen and a restart. False when
+    gen never recorded one (an install older than this), so it never nags
+    about nothing."""
+    try:
+        stamp = open(_gen_stamp()).read().strip()
+    except OSError:
+        return False
+    fp = profile_fingerprint()
+    return bool(stamp and fp and fp != stamp)
+
 def exe(name):
     """A program's path: ~/.local/bin first (the zellij server's PATH lacks it)."""
     if not name: return None

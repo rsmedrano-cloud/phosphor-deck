@@ -676,6 +676,8 @@ def run(prof, src, dry=False):
             print("  " + AMB + " %d files would change." % len(changed) + RST)
         else:
             print("  " + OK + " all up to date")
+        if not dry:
+            deckconf.mark_generated()
         print()
         return 0
 
@@ -740,6 +742,8 @@ def run(prof, src, dry=False):
         subprocess.run(["systemctl", "--user", "try-restart", "fleet-*.service"], capture_output=True)
         print(row(OK, "fleet mounts", "restarted with the new rclone.conf"))
 
+    if not dry:
+        deckconf.mark_generated()        # everything is written: this is the profile it applied
     print("\n" + rule("summary"))
     if not changed:
         print("  " + OK + " " + PH + "all up to date" + RST)
@@ -748,8 +752,11 @@ def run(prof, src, dry=False):
     else:
         print("  " + OK + " %d files written." % len(changed))
     if changed and not dry:
-        live = subprocess.run([resolve("zellij"), "list-sessions", "-n"], capture_output=True,
-                              text=True).stdout.startswith(ctx.deck.get("session", "deck") + " ")
+        try:
+            live = subprocess.run([resolve("zellij"), "list-sessions", "-n"], capture_output=True,
+                                  text=True).stdout.startswith(ctx.deck.get("session", "deck") + " ")
+        except OSError:                   # no zellij yet: nothing is running
+            live = False
         if live:
             print("  " + PH + "next: phosphor restart" + RST + DIM + "   applies this to the running deck" + RST)
         else:
