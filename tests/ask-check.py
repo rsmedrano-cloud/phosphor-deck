@@ -31,6 +31,24 @@ check("both: piped first, then the question",
       ask.prompt(["what", "changed"], "the diff") == "the diff\n\nwhat changed")
 check("neither: empty", ask.prompt([], "") == "")
 
+# recent_notes() / prompt() with -c: decisions and summaries only, newest
+# first, capped, and in front of everything else
+def note(kind, title, body=""):
+    return {"kind": kind, "raw": "## 2026-01-01 10:00 · %s · me · %s%s" % (kind, title, "\n\n" + body if body else "")}
+ents = [note("todo", "buy disks"), note("decision", "drop X", "because Y"), note("idea", "maybe"),
+        note("summary", "shipped 1.0")] + [note("decision", "old %d" % i) for i in range(10)]
+block = ask.recent_notes(ents)
+check("-c: decisions and summaries kept", "drop X" in block and "shipped 1.0" in block)
+check("-c: todos and ideas left out", "buy disks" not in block and "maybe" not in block)
+check("-c: newest first", block.index("drop X") < block.index("shipped 1.0"))
+check("-c: at most NOTE_COUNT", block.count("## ") == ask.NOTE_COUNT)
+check("-c: nothing to add is empty", ask.recent_notes([note("todo", "t")]) == "")
+long = ask.recent_notes([note("summary", "long", "z" * 5000)])
+check("-c: a long note is cut", len(long) < 2000 and long.endswith("[...]"))
+check("-c: notes, then piped, then question",
+      ask.prompt(["why"], "the diff", "NOTES") == "NOTES\n\nthe diff\n\nwhy")
+check("-c: notes with no question still need one", ask.prompt([], "", "NOTES") == "")
+
 # pick(): first installed in ORDER, or the named one if it's installed and known
 real_have = ask.newtab.have
 try:
@@ -105,6 +123,28 @@ try:
     rc, out = run([], piped="just the piped text")
     check("piped only, no question: still runs", rc == 0)
     check("piped text alone is the prompt", seen and seen[-1] == ["claude", "-p", "just the piped text"])
+
+    seen.clear()
+    real_notes = os.environ.get("PHOSPHOR_NOTES")
+    import tempfile
+    nb = tempfile.NamedTemporaryFile("w", suffix=".md", delete=False)
+    nb.write("## 2026-01-01 10:00 · decision · me · keep one deck\n\nno per-screen sessions\n\n"
+             "## 2026-01-02 10:00 · todo · me · buy disks\n")
+    nb.close()
+    os.environ["PHOSPHOR_NOTES"] = nb.name
+    try:
+        rc, out = run(["--assistant", "claude", "-c", "why", "one", "deck"])
+        sent = seen[-1][-1] if seen else ""
+        check("-c after --assistant: runs", rc == 0 and seen[-1][:2] == ["claude", "-p"])
+        check("-c: the notebook's decision goes along", "keep one deck" in sent and sent.endswith("why one deck"))
+        check("-c: its todo doesn't", "buy disks" not in sent)
+        seen.clear()
+        rc, out = run(["-c"])
+        check("-c alone, no question: usage, nothing run", rc == 1 and "usage" in out and not seen)
+    finally:
+        os.unlink(nb.name)
+        if real_notes is None: os.environ.pop("PHOSPHOR_NOTES", None)
+        else: os.environ["PHOSPHOR_NOTES"] = real_notes
 
     seen.clear()
     rc, out = run([], piped="")

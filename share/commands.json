@@ -7,7 +7,7 @@
   "adjutant": {"mutates": false, "needs_deck": false,
     "note": "SYS display of local fleet/notes state; its zellij calls (jump to a tab, hide a toast) only fire on a keypress and are no-ops without a live session."},
   "ask": {"mutates": false, "needs_deck": false,
-    "note": "shells out to an installed assistant CLI for one answer and prints it; nothing is written locally."},
+    "note": "shells out to an installed assistant CLI for one answer and prints it; nothing is written locally. -c reads the notebook and sends its latest decisions and summaries along."},
   "attach": {"mutates": false, "needs_deck": true,
     "note": "waits (up to ~90s) for the session to come up if it's starting, then attaches; a first-ever run also asks one Enter before writing a small 'welcomed' marker, skipped and unwritten without a tty."},
   "broadcast": {"mutates": true, "needs_deck": false,

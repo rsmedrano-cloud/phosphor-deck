@@ -143,7 +143,8 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
   assistant CLI is already installed (claude, gemini, codex, opencode, aider, agy)
   in headless mode and prints the answer inline -- for "what was that command
   again", not a whole workspace or a chat tab. `git diff | phosphor ask "what
-  changed here"` sends the pipe as context, question and all.
+  changed here"` sends the pipe as context, question and all; `-c` adds your
+  notebook's latest decisions and summaries.
 - **Every command, browsable.** `phosphor commands` (or `e` in the DECK tab) is a
   categorized index of everything phosphor can do -- pick a category, then a
   command, or `/` to search them all by name or word; a read-only one runs right
@@ -359,7 +360,7 @@ more depth on every one of these.
 | | |
 |---|---|
 | `phosphor workspace` | a tab per idea: folder, git, its assistants |
-| `phosphor ask Q` | a one-shot question to whichever assistant CLI is installed, no tab |
+| `phosphor ask Q` | a one-shot question to whichever assistant CLI is installed, no tab; `-c` adds your latest decisions and summaries |
 
 ### Notes
 

@@ -39,7 +39,7 @@ CATEGORIES = [
     ]),
     ("Workspaces", [
         ("workspace", "phosphor workspace new", "a tab per idea: folder, git, its assistants"),
-        ("ask", "phosphor ask QUESTION", "a one-shot question to whichever assistant CLI is installed, no tab"),
+        ("ask", "phosphor ask [-c] QUESTION", "a one-shot question to whichever assistant CLI is installed, no tab; -c adds your latest notes"),
     ]),
     ("Notes", [
         ("note", "phosphor note TEXT", "add a note to the shared notebook"),

@@ -53,7 +53,7 @@ sidebar:
 
 ## Workspaces
 - `phosphor workspace new|open|list` — a tab per idea with its own folder and assistants; see workspaces.
-- `phosphor ask [--assistant NAME] QUESTION` — a one-shot question, no tab: shells out to whichever
+- `phosphor ask [--assistant NAME] [-c] QUESTION` — a one-shot question, no tab: shells out to whichever
   assistant CLI is already installed (claude, gemini, codex, opencode, aider, agy -- the same
   list `phosphor workspace` knows, tried in that order) with a headless, single-answer flag of
   its own (`claude -p`, `gemini -p`, `codex exec`, `opencode run`, `aider --message`, `agy -p`)
@@ -62,6 +62,9 @@ sidebar:
   again" -- not a replacement for a workspace or a chat tab. Piped input is context, not a
   replacement for the question: `git diff | phosphor ask "what changed here"` sends both
   together (the pipe first); with no question at all, the piped text alone is the prompt.
+  `-c` (`--notes`) sends your notebook's five latest decisions and summaries along, ahead of
+  everything else, so "why did we drop X" has something to go on. Only when you ask for it:
+  those notes go to the assistant's provider with the question.
 
 ## Notes
 - `phosphor note [--kind note|idea|decision|todo|summary] [--by NAME] [--book NAME] [--tab TAB] TEXT` (`-` reads stdin).

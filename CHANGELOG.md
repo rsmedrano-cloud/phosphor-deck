@@ -6,6 +6,12 @@ before it updates.
 
 ## Unreleased
 
+## 1.1.9 — phosphor ask -c
+
+- New: `phosphor ask -c` sends your notebook's five latest decisions and summaries along with
+  the question, so "why did we drop X" or "what's left on the sync work" has something to go
+  on. Only when you ask for it: those notes go to the assistant's provider too.
+
 ## 1.1.8 — phosphor commands: / searches
 
 - New: `/` in `phosphor commands` (`e` in the DECK tab) searches every command at once, by
