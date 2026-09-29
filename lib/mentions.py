@@ -294,7 +294,13 @@ def render(w, sel):
             owner.append(i)
         lines.append(""); owner.append(None)
     if not lines:
-        return [DIM + " nothing yet. Notifications land here as they arrive." + RST], [None]
+        # say where they come from: an empty feed otherwise looks like it's waiting on nothing
+        empty = [DIM + " nothing yet. Notifications land here as they arrive:" + RST,
+                 DIM + " your chat client's notify hook feeds them in." + RST, "",
+                 DIM + " matterhorn: " + RST + "phosphor mentions --setup" + DIM + " does it for you." + RST,
+                 DIM + " anything else: pipe " + RST + '{"from", "message", "mention"}' + DIM + " JSON" + RST,
+                 DIM + " into " + RST + "phosphor mention-hook" + DIM + " (phosphor help mentions)." + RST]
+        return empty, [None] * len(empty)
     return lines, owner
 
 def view():

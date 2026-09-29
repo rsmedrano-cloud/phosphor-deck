@@ -42,7 +42,8 @@ anything per-message.
 
 ## Reading the feed
 
-`phosphor mentions` (or `+` → mentions) lists what came in, newest first:
+`phosphor mentions` (or `+` → mentions) lists what came in, newest first
+(empty, it says where notifications come from and how to hook one up):
 
 ![phosphor mentions: two notifications, one of them a real @-mention](../img/mentions/mentions-feed.png)
 

@@ -100,6 +100,13 @@ text = "\n".join(run(profile('[prometheus]\nurl = "http://127.0.0.1:9"\n'), 80))
 check("an unreachable server: every default card is ERR and says why",
       text.count(" ERR ") == 4 and "refused" in text.lower())
 
+for cols in (80, 40):
+    lines = run(profile('[deck]\nsession = "x"\n'), cols)
+    text = "\n".join(lines)
+    check("no [prometheus] at %d columns: it says what it is, not errors" % cols,
+          "Not set up yet" in text and "[prometheus]" in text and " ERR " not in text)
+    check("no [prometheus] at %d columns: no line is wider" % cols, all(len(l) <= cols for l in lines))
+
 sys.path.insert(0, os.path.join(ROOT, "lib"))
 import newtab
 labels = lambda prof: [e[0] for e in newtab.entries(prof)]

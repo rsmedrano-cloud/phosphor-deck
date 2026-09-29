@@ -175,7 +175,9 @@ conflict file your sync tool makes -- Phosphor doesn't resolve it.
 
 For `phosphor prom` (and "prometheus" in the + menu, which shows only with
 this section). One card per gauge, colored by its thresholds; the error, if a
-query fails, shows under it.
+query fails, shows under it. Without this section the panel says what it is
+and the lines to add, instead of errors; it rereads the profile by itself, so
+saving it is enough.
 
 | key | default | what |
 |---|---|---|
@@ -192,14 +194,14 @@ query fails, shows under it.
     crit = 200               # and red
     unit = "MB"
 
-A query answers with its first series. Without gauges it shows Prometheus
-watching itself:
+A query answers with its first series. With a `url` and no gauges it shows
+Prometheus watching itself:
 
 ![phosphor prom with no gauges configured: Prometheus watching itself -- up, TSDB head series, memory, a request-rate sparkline](../img/profile/prometheus-panel.png)
 
 ## [ci]
 
-For `phosphor ci` (and "ci" in the + menu, which shows only with this section). Status cards for GitHub Actions and GitLab pipelines: the latest run with its jobs, and under it a history of the five before it (so an idle repo still tells you what happened last). If a refresh fails the card stays, marked "stale", instead of turning red; a real error says what to do (a private project needs `glab auth login` or `GITLAB_TOKEN`).
+For `phosphor ci` (and "ci" in the + menu, which shows only with this section). Status cards for GitHub Actions and GitLab pipelines: the latest run with its jobs, and under it a history of the five before it (so an idle repo still tells you what happened last). If a refresh fails the card stays, marked "stale", instead of turning red; a real error says what to do (a private project needs `glab auth login` or `GITLAB_TOKEN`). With no pipelines the panel says what it is and the lines to add, and picks them up as soon as the profile is saved.
 
 | key | default | what |
 |---|---|---|

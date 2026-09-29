@@ -6,6 +6,21 @@ before it updates.
 
 ## Unreleased
 
+## 1.1.5 — Unconfigured panels explain themselves
+
+- A panel with nothing set up yet explains itself instead of looking broken. `phosphor prom`
+  without `[prometheus]` used to draw four "Connection refused" cards against a Prometheus you
+  never said you had, and `phosphor ci` without pipelines showed two strangers' example
+  pipelines, one of them failing. Both now say what they are, the profile lines that turn them
+  on, and where their tab came from and how to take it out. They also reread the profile on
+  their own: save it and the panel picks it up, no restart.
+- `phosphor recipe --remove NAME` takes a recipe back out (its tabs.d file, plus any place
+  `phosphor tabs` gave its tabs). Before, nothing did: `f` in `phosphor tabs` only un-places a
+  tabs.d tab, and it kept coming back.
+- An empty `phosphor mentions` says where notifications come from (your chat client's hook,
+  `phosphor mentions --setup` for matterhorn, `phosphor mention-hook` for anything else),
+  instead of only "nothing yet".
+
 ## 1.1.4 — GitHub's dev and main stop diverging
 
 - The GitHub mirror's `dev` no longer shows as "ahead of and behind" `main`: a stable

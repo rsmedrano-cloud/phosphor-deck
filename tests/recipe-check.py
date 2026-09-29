@@ -49,6 +49,23 @@ ctx = gen.Ctx(prof)
 kdl = gen.deck_kdl(prof, ctx, profile)
 check("the recipe's tabs show up in the generated layout", "PROM" in kdl and "CI" in kdl)
 
+# -- the empty panels say where their tab came from and how to take it out --
+import ui
+src = ui.tab_source("phosphor prom")
+check("a recipe's PROM tab names `phosphor recipe --remove homelab` (%r)" % src,
+      src and "phosphor recipe --remove homelab" in src)
+check("a program no tab runs has no source", ui.tab_source("phosphor nothing-runs-this") is None)
+
+# -- --remove undoes it, placed stub included --
+import tabs
+check("moving CI up writes stubs into the profile", tabs.move("CI", -1) is None
+      and any(t.get("name") == "CI" for t in deckconf.load()[0].get("tabs", [])))
+check("remove() reports success", recipe.remove("homelab") == 0)
+check("its tabs.d file is gone", not os.path.exists(dropped))
+check("the stub it left in the profile is gone too",
+      not any(t.get("name") in ("PROM", "CI") for t in deckconf.load()[0].get("tabs", [])))
+check("removing what isn't there says so, not a crash", recipe.remove("homelab") == 1)
+
 # -- the wizard's shapes: what tabs each one builds --
 import init
 hosts = [{"name": "x", "role": "brain", "local": True, "mounts": ["/"]},

@@ -119,3 +119,38 @@ def row(sym, label, value, w=None, note=""):
         else:                      # doesn't fit beside it: goes below, indented
             line += "\n" + " " * 31 + DIM + note + RST
     return line
+
+def tab_source(cmd):
+    """Where the tab running `cmd` comes from, as a line saying how to take it
+    out: a recipe, a tabs.d file of your own, or your profile. None if no tab runs it."""
+    for t, src in deckconf.tabs_d():
+        if cmd in str(t.get("panes", "")):
+            name = os.path.basename(src)[:-5]
+            if os.path.exists(os.path.join(REPO, "recipes", name + ".toml")):
+                return "this tab came with `phosphor recipe %s`: `phosphor recipe --remove %s` takes it out" % (name, name)
+            return "this tab comes from %s: delete that file, then `phosphor gen`" % src.replace(os.path.expanduser("~"), "~", 1)
+    prof, _ = deckconf.load()
+    for t in (prof or {}).get("tabs", []):
+        if cmd in str(t.get("panes", "")):
+            return "this tab is in your profile: `phosphor tabs` (b in the DECK tab) forgets it"
+    return None
+
+def not_set_up(title, what, needs, snippet, cmd, w):
+    """The screen of a panel that has nothing to show yet: what it is, the
+    profile lines that turn it on, and how to take the tab out if you don't
+    want it -- instead of a wall of errors that reads as "broken"."""
+    import textwrap
+    def para(col, text, lead=""):
+        lines = textwrap.wrap(lead + text, max(10, w - 4))
+        return ["  " + col + l + RST for l in lines]
+    out = [RULE + " " + title + " " + "─" * max(0, w - len(title) - 2) + RST, ""]
+    out += para(FG, what) + [""]
+    out += para(AMB, needs, "Not set up yet: ")
+    out += para(DIM, "in " + deckconf.path().replace(os.path.expanduser("~"), "~", 1) + ":") + [""]
+    out += ["    " + BLOOM + l + RST for l in snippet] + [""]
+    out += para(MUTE, "Save it and this screen picks it up by itself.")
+    out += para(DIM, "Every key it takes: phosphor help profile")
+    src = tab_source(cmd)
+    if src:
+        out += [""] + para(MUTE, src, "Not for you? ")
+    return out

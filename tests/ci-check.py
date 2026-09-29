@@ -130,6 +130,13 @@ priv = run(profile(ci_config.replace('repo = "group/repo"', 'repo = "private/rep
            PATH="/nonexistent", HOME=home, GITLAB_TOKEN="")
 check("glab found in ~/.local/bin, private project readable", "FAILED" in "\n".join(priv) and "private project or wrong repo" not in "\n".join(priv))
 
+# no [[ci.pipelines]]: it says what it is and how to turn it on -- not somebody
+# else's example pipelines failing, which reads as your own build being broken
+empty = "\n".join(run(profile('[ci]\ninterval = 5\n'), 50))
+empty = re.sub(r"\x1b\[[0-9;]*m", "", empty)
+check("no pipelines: says it's not set up", "Not set up yet" in empty and "[[ci.pipelines]]" in empty)
+check("no pipelines: no stranger's cards", "Example" not in empty and "FAILED" not in empty)
+
 # a hiccup keeps the last good card (marked stale) instead of turning it red
 sys.path.insert(0, os.path.join(ROOT, "lib"))
 import ci

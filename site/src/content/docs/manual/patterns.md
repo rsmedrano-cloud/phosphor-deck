@@ -32,7 +32,7 @@ None of this is permanent. `phosphor recipe` adds what a shape left out;
 Three ways to add a tab, from least to most committed:
 
 1. **`phosphor recipe NAME`** -- a bundle Phosphor ships (`homelab`, `dev`,
-   `bubble`, `workbench`). Fastest, and undoing it is `phosphor tabs`, `f`.
+   `bubble`, `workbench`). Fastest, and undoing it is `phosphor recipe --remove NAME`.
 2. **A `tabs.d/*.toml` file of your own** -- same mechanism recipes use, but
    the content is yours: something you built once and want on every deck
    you run, or a tab a friend sent you as a file. Drop it in, `phosphor

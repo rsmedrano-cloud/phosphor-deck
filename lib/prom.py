@@ -13,12 +13,12 @@ from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from ui import DIM, MUTE, PH, BLOOM, AMB, RED, RULE, RST, vlen
+from ui import DIM, MUTE, PH, BLOOM, AMB, RED, RULE, RST, vlen, not_set_up
 import deckconf
 
 SPARKS = (" ", "▁", "▂", "▃", "▄", "▅", "▆", "▇", "█")
 
-# Prometheus watching itself: something to see before you write your own
+# Prometheus watching itself: what [prometheus] with a url and no gauges shows
 DEFAULT_METRICS = [
     {"name": "Prometheus up", "type": "arc", "query": 'up{job="prometheus"}',
      "min": 0, "max": 1, "warn": 2, "crit": 3, "unit": ""},
@@ -34,9 +34,24 @@ DEFAULT_METRICS = [
 HISTORY = {}  # query -> its last values, for sparklines
 
 def settings(prof):
-    conf = (prof or {}).get("prometheus", {})
+    """(url, gauges, interval), or None with no [prometheus] in the profile."""
+    if "prometheus" not in (prof or {}):
+        return None
+    conf = prof["prometheus"]
     return (conf.get("url", "http://localhost:9090"), conf.get("gauges", DEFAULT_METRICS),
             conf.get("interval", 5))
+
+def unset(cols):
+    """No [prometheus] yet: say what this is and how to turn it on, not four
+    "Connection refused" cards against a Prometheus you never said you had."""
+    return not_set_up("PROMETHEUS",
+        "Your Prometheus queries, one card each: a bar, an arc or a sparkline, "
+        "amber and red past the thresholds you give it.",
+        "a Prometheus to ask, and what to ask it.",
+        ['[prometheus]', 'url = "http://localhost:9090"', '',
+         '[[prometheus.gauges]]', 'name  = "Load"', 'query = "node_load1"',
+         'max = 8', 'warn = 4', 'crit = 6'],
+        "phosphor prom", max(16, cols))
 
 def query_prometheus(url, query, timeout=4):
     """(value, None) or (None, why): the first series of an instant query."""
@@ -141,18 +156,25 @@ def fetch(url, metrics):
         futs = [ex.submit(query_prometheus, url, m["query"]) for m in metrics]
         return [(m,) + f.result() for m, f in zip(metrics, futs)]
 
+def screen(cols, rows):
+    """(lines, seconds to the next redraw), reading the profile afresh: a
+    [prometheus] you just saved shows up without restarting the pane."""
+    got = settings(deckconf.load()[0])
+    if got is None:
+        return unset(cols)[:max(1, rows)], 2
+    url, metrics, interval = got
+    return frame(url, cols, rows, fetch(url, metrics)), interval
+
 def main():
-    prof, _ = deckconf.load()
-    url, metrics, interval = settings(prof)
     if "--once" in sys.argv:
         cols = shutil.get_terminal_size((80, 24)).columns
-        print("\n".join(frame(url, cols, 10000, fetch(url, metrics))))
+        print("\n".join(screen(cols, 10000)[0]))
         return
     sys.stdout.write("\x1b[?1049h\x1b[?25l")
     try:
         while True:
             cols, rows = shutil.get_terminal_size((80, 24))
-            out = frame(url, cols, rows, fetch(url, metrics))
+            out, interval = screen(cols, rows)
             sys.stdout.write("\x1b[H" + "\x1b[K\n".join(out) + "\x1b[K\x1b[J")
             sys.stdout.flush()
             time.sleep(interval)

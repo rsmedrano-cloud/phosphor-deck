@@ -68,8 +68,8 @@ ssh   = "pi"
 # [[tunnels]]
 # host = "db-box"
 
-# Prometheus gauges (phosphor prom, and "prometheus" in the + menu). Without
-# [[prometheus.gauges]] it shows Prometheus watching itself.
+# Prometheus gauges (phosphor prom, and "prometheus" in the + menu). With a url
+# and no [[prometheus.gauges]] it shows Prometheus watching itself.
 # [prometheus]
 # url      = "http://localhost:9090"
 # interval = 5

@@ -6,8 +6,9 @@ regenerates. From then on it's a tabs.d tab like any other -- read-only
 from Alt-r, `phosphor keep` and `phosphor tabs`; edit the file itself, then
 `phosphor gen`, to change it.
 
-    phosphor recipe            what's there, and what's already added
-    phosphor recipe NAME       add it
+    phosphor recipe                what's there, and what's already added
+    phosphor recipe NAME           add it
+    phosphor recipe --remove NAME  take it back out (its tabs.d file)
 """
 import os, shutil, subprocess, sys, tomllib
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -57,7 +58,30 @@ def add(name, src):
     print(row(OK, name, "added", note=dst.replace(os.path.expanduser("~"), "~", 1)))
     subprocess.run([sys.executable, os.path.join(REPO, "phosphor"), "gen"],
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    print("  " + DIM + "phosphor restart to see it" + RST)
+    print("  " + DIM + "phosphor restart to see it · phosphor recipe --remove %s undoes it" % name + RST)
+    return 0
+
+def remove(name):
+    """Undo `phosphor recipe NAME`: its file out of tabs.d, and gen. A stub
+    your profile keeps for one of its tabs (from `phosphor tabs`, K/J) goes
+    too, or gen would find a tab with nothing behind it."""
+    dst = os.path.join(deckconf.tabs_d_path(), name + ".toml")
+    if not os.path.exists(dst):
+        print(row(AMB, name, "not in tabs.d: nothing to remove"))
+        return 1
+    names = tab_names(dst)
+    import tabs
+    prof, _ = deckconf.load()
+    for t in (prof or {}).get("tabs", []):
+        if t.get("name") in names and not deckconf.is_real_tab(t):
+            err = tabs.forget(t["name"])
+            if err:
+                print(row(BAD, name, err)); return 1
+    os.remove(dst)
+    print(row(OK, name, "removed", note=", ".join(names)))
+    subprocess.run([sys.executable, os.path.join(REPO, "phosphor"), "gen"],
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    print("  " + DIM + "phosphor restart to see it gone" + RST)
     return 0
 
 def main():
@@ -65,6 +89,10 @@ def main():
     recipes = available()
     if not recipes:
         print("  no recipes bundled with this install"); return 1
+    if argv and argv[0] in ("--remove", "-r"):
+        if len(argv) < 2:
+            print("  usage: phosphor recipe --remove NAME"); return 1
+        return remove(argv[1])
     if argv:
         name = argv[0]
         if name not in recipes:

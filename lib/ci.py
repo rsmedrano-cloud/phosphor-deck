@@ -12,17 +12,26 @@ import json, os, re, shutil, subprocess, sys, time, urllib.request, urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from ui import DIM, MUTE, PH, BLOOM, AMB, RED, RULE, RST, FG, vlen
+from ui import DIM, MUTE, PH, BLOOM, AMB, RED, RULE, RST, FG, vlen, not_set_up
 import deckconf
 
-DEFAULT_PIPELINES = [
-    {"name": "Example GitHub Pipeline", "provider": "github", "repo": "octocat/Hello-World", "branch": "main"},
-    {"name": "Example GitLab Pipeline", "provider": "gitlab", "repo": "gitlab-org/gitlab-runner", "branch": "main"},
-]
 
 def settings(prof):
     conf = (prof or {}).get("ci", {})
-    return (conf.get("pipelines", DEFAULT_PIPELINES), conf.get("interval", 10))
+    if not conf.get("pipelines"):
+        return None
+    return conf["pipelines"], conf.get("interval", 10)
+
+def unset(cols):
+    """No [[ci.pipelines]] yet: say what this is and how to turn it on, not
+    somebody else's pipelines failing, which reads as your own build broke."""
+    return not_set_up("CI / CD PIPELINES",
+        "The latest run of each pipeline you name, GitHub Actions or GitLab, with its "
+        "jobs and the five runs before it.",
+        "which repos and branches to watch.",
+        ['[[ci.pipelines]]', 'name     = "my app"', 'provider = "gitlab"      # or "github"',
+         'repo     = "you/my-app"', 'branch   = "main"'],
+        "phosphor ci", max(16, cols))
 
 _TOKENS = {}   # asking glab/gh spawns a process: once per run, not every redraw
 
@@ -397,18 +406,25 @@ def fetch(pipelines):
             res.append((p, data, err))
         return res
 
+def screen(cols, rows):
+    """(lines, seconds to the next redraw), reading the profile afresh: a
+    pipeline you just added shows up without restarting the pane."""
+    got = settings(deckconf.load()[0])
+    if got is None:
+        return unset(cols)[:max(1, rows)], 2
+    pipelines, interval = got
+    return frame(cols, rows, fetch(pipelines)), interval
+
 def main():
-    prof, _ = deckconf.load()
-    pipelines, interval = settings(prof)
     if "--once" in sys.argv:
         cols = shutil.get_terminal_size((80, 24)).columns
-        print("\n".join(frame(cols, 10000, fetch(pipelines))))
+        print("\n".join(screen(cols, 10000)[0]))
         return
     sys.stdout.write("\x1b[?1049h\x1b[?25l")
     try:
         while True:
             cols, rows = shutil.get_terminal_size((80, 24))
-            out = frame(cols, rows, fetch(pipelines))
+            out, interval = screen(cols, rows)
             sys.stdout.write("\x1b[H" + "\x1b[K\n".join(out) + "\x1b[K\x1b[J")
             sys.stdout.flush()
             time.sleep(interval)

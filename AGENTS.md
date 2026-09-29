@@ -363,7 +363,7 @@ None of this is permanent. `phosphor recipe` adds what a shape left out;
 Three ways to add a tab, from least to most committed:
 
 1. **`phosphor recipe NAME`** -- a bundle Phosphor ships (`homelab`, `dev`,
-   `bubble`, `workbench`). Fastest, and undoing it is `phosphor tabs`, `f`.
+   `bubble`, `workbench`). Fastest, and undoing it is `phosphor recipe --remove NAME`.
 2. **A `tabs.d/*.toml` file of your own** -- same mechanism recipes use, but
    the content is yours: something you built once and want on every deck
    you run, or a tab a friend sent you as a file. Drop it in, `phosphor
@@ -592,7 +592,9 @@ conflict file your sync tool makes -- Phosphor doesn't resolve it.
 
 For `phosphor prom` (and "prometheus" in the + menu, which shows only with
 this section). One card per gauge, colored by its thresholds; the error, if a
-query fails, shows under it.
+query fails, shows under it. Without this section the panel says what it is
+and the lines to add, instead of errors; it rereads the profile by itself, so
+saving it is enough.
 
 | key | default | what |
 |---|---|---|
@@ -609,14 +611,14 @@ query fails, shows under it.
     crit = 200               # and red
     unit = "MB"
 
-A query answers with its first series. Without gauges it shows Prometheus
-watching itself:
+A query answers with its first series. With a `url` and no gauges it shows
+Prometheus watching itself:
 
 ![phosphor prom with no gauges configured: Prometheus watching itself -- up, TSDB head series, memory, a request-rate sparkline](../img/profile/prometheus-panel.png)
 
 ### [ci]
 
-For `phosphor ci` (and "ci" in the + menu, which shows only with this section). Status cards for GitHub Actions and GitLab pipelines: the latest run with its jobs, and under it a history of the five before it (so an idle repo still tells you what happened last). If a refresh fails the card stays, marked "stale", instead of turning red; a real error says what to do (a private project needs `glab auth login` or `GITLAB_TOKEN`).
+For `phosphor ci` (and "ci" in the + menu, which shows only with this section). Status cards for GitHub Actions and GitLab pipelines: the latest run with its jobs, and under it a history of the five before it (so an idle repo still tells you what happened last). If a refresh fails the card stays, marked "stale", instead of turning red; a real error says what to do (a private project needs `glab auth login` or `GITLAB_TOKEN`). With no pipelines the panel says what it is and the lines to add, and picks them up as soon as the profile is saved.
 
 | key | default | what |
 |---|---|---|
@@ -852,7 +854,8 @@ and in the `+` menu, and open in a tab of their own.
   two-assistant tab), `bubble` (mail, RSS, Mastodon, Matrix in one tab), `workbench` (four AI CLIs
   side by side). No `NAME` lists them, and what's already added. Drops `recipes/NAME.toml` into
   `~/.config/phosphor/tabs.d/` (see profile) and regenerates: the same file, editable by hand
-  afterwards, same as any tabs.d tab. `phosphor init`'s "which shape" question builds `homelab`,
+  afterwards, same as any tabs.d tab. `phosphor recipe --remove NAME` takes it back out (the
+  file, and any place `phosphor tabs` gave its tabs). `phosphor init`'s "which shape" question builds `homelab`,
   `revived` (leaner: no CLOUD tab) or `dev` right into the profile from the start.
 - `phosphor shortcuts [--kdl]` — the deck's keys, yours to change (also `c` in the DECK tab); `--kdl` prints the block
   for a zellij config of your own.
@@ -1247,7 +1250,8 @@ anything per-message.
 
 ### Reading the feed
 
-`phosphor mentions` (or `+` → mentions) lists what came in, newest first:
+`phosphor mentions` (or `+` → mentions) lists what came in, newest first
+(empty, it says where notifications come from and how to hook one up):
 
 ![phosphor mentions: two notifications, one of them a real @-mention](../img/mentions/mentions-feed.png)
 
