@@ -217,6 +217,14 @@ def main():
     print("release: open GitHub issues/PRs")
     subprocess.run([sys.executable, "tests/github-check.py"])
 
+    # A minor goes out to stable users: it should have had an outside look
+    # first. A heads-up too -- the audit is a second opinion, not a gate.
+    if to_main:
+        import audit                                    # tests/, next to this file
+        if not audit.seen(cur):
+            print("release: no audit of %s in the notebook (python3 tests/audit.py, then check it "
+                  "against the code) -- going ahead anyway" % cur)
+
     # 2. the fast checks
     print("release: fast checks")
     if subprocess.run(["sh", "tests/check.sh"], capture_output=True).returncode != 0:

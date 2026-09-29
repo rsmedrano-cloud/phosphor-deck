@@ -22,6 +22,7 @@ check("j (tail) is in the action list", "j" in keys)
 
 real_run, real_load, real_hosts = panel.subprocess.run, panel.deckconf.load, panel.deckconf.hosts
 real_input = builtins.input
+real_panel_back = panel.back
 ran = []
 panel.subprocess.run = lambda cmd, **kw: ran.append(cmd)
 
@@ -38,9 +39,11 @@ def run_act(k, st=None):
 
 try:
     # g: no host picking of its own -- triage does that internally.
-    # pause() afterwards is a bare input() too (so the AI's answer isn't
-    # wiped by the next redraw before anyone reads it) -- mocked the same way.
+    # pause() afterwards waits on back() (so the AI's answer isn't wiped by
+    # the next redraw before anyone reads it): mocked, or on a real terminal
+    # it waits for a key forever.
     builtins.input = lambda *a, **kw: ""
+    panel.back = lambda *a, **kw: None
     ran.clear()
     run_act("g")
     check("g runs phosphor triage with no host", ran and ran[-1][-1:] == ["triage"])
@@ -118,6 +121,7 @@ finally:
     panel.subprocess.run, panel.deckconf.load, panel.deckconf.hosts = real_run, real_load, real_hosts
     edit.pick = real_edit_pick
     builtins.input = real_input
+    panel.back = real_panel_back
 
 # ui.back() itself, on a real terminal: q, Esc and Enter go back, a stray key doesn't
 import pty, select, subprocess, time
@@ -142,9 +146,30 @@ def back_on_pty(keys):
     done = done and b"BACK" in out
     os.close(m)
     return done
-for name, key in (("q", b"q"), ("Esc", b"\x1b"), ("Enter", b"\r")):
-    check("back(): %s goes back" % name, back_on_pty([key]))
-check("back(): a stray key doesn't go back", not back_on_pty([b"x"]))
+if not os.environ.get("PANEL_CHECK_ON_PTY"):       # already checked by the parent
+    for name, key in (("q", b"q"), ("Esc", b"\x1b"), ("Enter", b"\r")):
+        check("back(): %s goes back" % name, back_on_pty([key]))
+    check("back(): a stray key doesn't go back", not back_on_pty([b"x"]))
+
+# the whole check again with a terminal on stdin: CI has none, so a key wait
+# left unmocked above passes there and only hangs on someone's real terminal
+if not os.environ.get("PANEL_CHECK_ON_PTY"):
+    m, s = pty.openpty()
+    p = subprocess.Popen([sys.executable, os.path.abspath(__file__)], stdin=s, stdout=s, stderr=s,
+                         close_fds=True, env=dict(os.environ, PANEL_CHECK_ON_PTY="1"))
+    os.close(s)
+    out, deadline = b"", time.time() + 30
+    while time.time() < deadline and p.poll() is None:
+        if select.select([m], [], [], 0.2)[0]:
+            try: out += os.read(m, 4096)
+            except OSError: break
+    if p.poll() is None:
+        p.kill(); p.wait()
+        check("the check itself finishes with a terminal on stdin (something waits for a key)", False)
+    else:
+        check("the check itself passes with a terminal on stdin: " + out.decode(errors="replace")[-300:],
+              p.returncode == 0)
+    os.close(m)
 
 if fails:
     print("panel-actions-check FAILED:\n  " + "\n  ".join(fails)); sys.exit(1)

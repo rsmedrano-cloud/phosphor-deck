@@ -16,7 +16,9 @@
 - `phosphor commands` — every phosphor command, browsable by category (also: `e` in the DECK
   tab). Pick a category, then a command: a read-only one runs right there when you pick it,
   anything else shows its usage and copies the invocation to every screen's clipboard instead
-  of guessing at missing arguments (a file, a host, a message) for you.
+  of guessing at missing arguments (a file, a host, a message) for you. `/` searches every
+  command at once, by name or by a word from its description (`/logs`, `/tailnet`): the name
+  matching comes first.
 - `phosphor phone` — how to add a screen (phone, another computer, anything with ssh), with the
   phone's line as a QR; piped (`ssh … phosphor phone | sh`) it is the Termux kit. `--qr` prints only the code.
 - `phosphor screen` — the same kit for a computer without Termux: a key and a `deck` in ~/.local/bin.

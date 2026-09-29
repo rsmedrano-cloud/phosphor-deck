@@ -146,8 +146,9 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
   changed here"` sends the pipe as context, question and all.
 - **Every command, browsable.** `phosphor commands` (or `e` in the DECK tab) is a
   categorized index of everything phosphor can do -- pick a category, then a
-  command; a read-only one runs right there, anything else shows its usage and
-  copies the invocation for you instead of guessing at missing arguments.
+  command, or `/` to search them all by name or word; a read-only one runs right
+  there, anything else shows its usage and copies the invocation for you instead
+  of guessing at missing arguments.
 - **Tabs that stay put.** Tabs are locked; Alt-r unlocks the one you're in,
   lets you resize, split or swap what runs in a pane, and then asks: save it
   into your profile, or put it back.

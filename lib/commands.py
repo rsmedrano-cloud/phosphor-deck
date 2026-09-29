@@ -2,7 +2,8 @@
 
     phosphor commands
 
-Pick a category, then a command -- the same categories doc/manual/commands.md
+Pick a category, then a command -- or `/` to search every command's name
+and note at once -- the same categories doc/manual/commands.md
 and README already use, so nothing new to learn if you've read either. A
 read-only command (share/commands.json says `mutates: false`) runs right
 there when you pick it; anything else shows its usage and copies the
@@ -113,6 +114,32 @@ def command_items(cmds):
     return [(cmd, note, usage) for cmd, usage, note in cmds]
 
 
+def find(q):
+    """Every command whose name, usage, note or category contains q
+    (case-insensitive): the name matching first, then menu order."""
+    q = q.strip().lower()
+    return sorted([(cmd, note, usage) for name, cmds in CATEGORIES for cmd, usage, note in cmds
+            if q and any(q in f.lower() for f in (cmd, usage, note, name))],
+                  key=lambda it: (it[0] != q, not it[0].startswith(q)))
+
+
+def ask_query():
+    """A one-line search prompt. Returns the query, or None if cancelled."""
+    q = ""
+    while True:
+        screen(["", "  " + BLOOM + "search every command" + RST,
+                "  " + DIM + "a name or a word -- Enter searches, Esc goes back" + RST, "",
+                "  " + AMB + "/" + RST + FG + q + RST + "\x1b[?25h"])
+        k = getkey(None)
+        if k is None or isinstance(k, tuple):
+            continue
+        if k in ("\r", "\n"): return q
+        if k in ("\x03", "\x1b"): return None
+        if k in ("\x7f", "\x08"): q = q[:-1]
+        elif k == "\x15": q = ""                          # Ctrl-u
+        elif len(k) == 1 and k >= " ": q += k
+
+
 def screen(lines):
     sys.stdout.write("\x1b[?1049h\x1b[?25l\x1b[H\x1b[2J" + "\n".join(lines))
     sys.stdout.flush()
@@ -147,12 +174,21 @@ def detail(cmd, usage, note, man):
 def main():
     man = manifest()
     while True:
-        cat = edit.pick("phosphor commands", category_items())
+        cat = edit.pick("phosphor commands", category_items(), extra=[("/", "search every command")])
         if cat is None:
             return 0
-        _, _, name, cmds = cat
+        if cat == "/":
+            q = ask_query()
+            if not q:
+                continue
+            found = find(q)
+            title = ("%d match%s for '%s'" % (len(found), "" if len(found) == 1 else "es", q)) if found \
+                else "nothing matches '%s'" % q
+        else:
+            _, _, title, cmds = cat
+            found = command_items(cmds)
         while True:
-            item = edit.pick(name, command_items(cmds))
+            item = edit.pick(title, found)
             if item is None:
                 break
             cmd, note, usage = item

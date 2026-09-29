@@ -6,6 +6,12 @@ before it updates.
 
 ## Unreleased
 
+## 1.1.8 — phosphor commands: / searches
+
+- New: `/` in `phosphor commands` (`e` in the DECK tab) searches every command at once, by
+  name or by a word from its description -- `/logs`, `/tailnet` -- instead of guessing which
+  category it's in. A command whose name matches comes first.
+
 ## 1.1.7 — phosphor demo --tour
 
 - New: `phosphor demo --tour`, the demo with a guide. A small floating pane on every tab walks

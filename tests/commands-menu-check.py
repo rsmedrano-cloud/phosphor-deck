@@ -95,6 +95,41 @@ try:
             press([key])
             commands.detail("doctor", "phosphor doctor", "note", {"doctor": {"mutates": False}})
             check("%r leaves with no side effects" % key, not ran and not copied)
+
+        # find(): name, usage, note and category, case-insensitive, menu order
+        check("find by name", [c for c, _, _ in commands.find("broadcast")] == ["broadcast"])
+        check("find: the name matching comes first", commands.find("tail")[0][0] == "tail")
+        check("find by a word in the note", "tunnel" in [c for c, _, _ in commands.find("LocalForward")])
+        check("find by category", {c for c, _, _ in commands.find("session")} >= {"restart", "down"})
+        check("find: blank query finds nothing", commands.find("  ") == [])
+        check("find: no match is empty", commands.find("zzqx") == [])
+
+        # ask_query(): typing, Backspace, Enter returns it; Esc cancels
+        press(list("logx") + ["\x7f", "s", "\r"])
+        check("ask_query returns what was typed", commands.ask_query() == "logs")
+        press(["a", "\x1b"])
+        check("ask_query: Esc cancels", commands.ask_query() is None)
+
+        # main(): '/' on the categories, a query, pick a match, its detail
+        picks = iter(["/", ("logs", "note", "phosphor logs"), None, None])
+        titles = []
+        real_pick = commands.edit.pick
+        def fake_pick(title, items, extra=()):
+            titles.append((title, items, extra))
+            return next(picks)
+        commands.edit.pick = fake_pick
+        shown = []
+        real_detail = commands.detail
+        commands.detail = lambda cmd, usage, note, man: shown.append(cmd)
+        press(list("logs") + ["\r"])
+        try:
+            commands.main()
+        finally:
+            commands.edit.pick, commands.detail = real_pick, real_detail
+        check("categories offer '/'", ("/", "search every command") in titles[0][2])
+        check("search results titled with the query", titles[1][0].endswith("for 'logs'"))
+        check("search results are find()'s", titles[1][1] == commands.find("logs"))
+        check("a picked match opens its detail", shown == ["logs"])
 finally:
     commands.screen, commands.getkey, commands.subprocess.run = real_screen, real_getkey, real_run
     builtins.input = real_input

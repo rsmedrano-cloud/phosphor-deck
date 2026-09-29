@@ -96,6 +96,14 @@ not in any one assistant's memory.
   feature request only ever lands on GitHub, so this is the one place it
   gets looked at. A PR there can't be merged as-is (GitHub's history is
   squashed releases, not GitLab's): point the author at an issue instead.
+- **Before a minor, an outside audit:** `python3 tests/audit.py` has agy
+  (`-p --dangerously-skip-permissions`) audit a throwaway clone of dev with
+  no remote, the deck's zellij variables stripped and copies of phosphor's
+  data; the report goes into the notebook (`--by agy`, "audit VERSION
+  (SHA)"), never the repo. It's a second opinion, not a verdict: check each
+  finding against the code, fix what holds, then cut the minor.
+  `tests/release.py --main` says so when the notebook has no audit of that
+  version (a heads-up, not a blocker).
 - **Releases** come as topics close, without waiting to be asked: a patch
   version (1.0.1, 1.0.2...) for each closed topic or batch of fixes, and the
   next minor or major when its roadmap milestone is covered and its bugs are

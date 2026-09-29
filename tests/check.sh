@@ -214,6 +214,9 @@ PY
 )
 [ -z "$out" ] && ok || bad "missing from phosphor help: $out"
 
+step "audit: a clone with no remote"
+out=$(python3 tests/audit-check.py 2>&1) && ok || bad "$out"
+
 step "completion knows every command"
 out=$(python3 - <<'PY'
 import re, sys
