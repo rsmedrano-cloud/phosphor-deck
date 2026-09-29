@@ -52,6 +52,9 @@ out=$(python3 tests/tabs-d-check.py 2>&1) && ok || bad "$out"
 step "recipes, and wizard shapes"
 out=$(python3 tests/recipe-check.py 2>&1) && ok || bad "$out"
 
+step "wizard: never offers itself back as a fleet candidate"
+out=$(python3 tests/wizard-dedup-check.py 2>&1) && ok || bad "$out"
+
 step "your apps, the store opens them"
 out=$(python3 tests/apps-check.py 2>&1) && ok || bad "$out"
 

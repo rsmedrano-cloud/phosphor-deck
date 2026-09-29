@@ -6,6 +6,47 @@ before it updates.
 
 ## Unreleased
 
+## 1.1.1 — update never hangs on a silent pull; the wizard stops offering itself
+
+- Fixed: `phosphor update` could hang forever and silently on its `git pull` (a dead link, a
+  credential helper waiting on a window nobody sees): the pull ran with its output hidden and no
+  time limit. Now git's own output and prompts reach you, and a pull with no answer in two minutes
+  stops and says so, installing nothing. `phosphor update FOLDER` on the installed copy itself is
+  a plain update instead of an error, and a clone whose `.git` is a file (a worktree) counts as one.
+- Fixed: `phosphor init` (and `phosphor setup`'s "add a machine") could offer the machine running
+  the wizard back to itself as a separate fleet candidate -- its own Tailscale peer entry shows
+  up under a short Tailscale name (`titan`) that can differ from the brain's own name (the system
+  hostname, `titan.example.lan`), and a `~/.ssh/config` alias pointing back at this machine's own
+  hostname or IP wasn't checked at all. Accepting it produced a self-ssh host whose mount unit
+  crash-looped forever and, when it was the only `work` host, made the default WORK tab hang on
+  every `deck` attach. Machine discovery now reads `tailscale status --json`, which separates this
+  machine (`Self`) from the rest (`Peer`) explicitly instead of parsing plain text and matching by
+  IP, and checks `~/.ssh/config` aliases against this machine's own hostname, FQDN and IPs the
+  same way it already drops a code forge.
+
+## 1.1.0 — tail and triage: the fleet talks back
+
+- New: `phosphor tail HOST [SERVICE]` and `phosphor triage [HOST]` -- stream a fleet host's logs
+  (`journalctl`/`docker`/`podman`) or get a deeper diagnostic snapshot piped to whichever AI
+  assistant CLI is installed, without hand-typing the ssh alias or the exact command. `triage`
+  with no `HOST`, on a real terminal, opens an arrow-key picker over whatever the fleet panel is
+  flagging; both also got a key in the DECK tab (`j` tail, `g` triage).
+- New: the fleet panel now catches a failed systemd unit or a pending reboot on an otherwise-ok
+  host, not just one that's fully down or low on disk -- alerted the same way a host going down or
+  coming back already is. `agy` (Antigravity CLI) joins the assistants phosphor already knows
+  everywhere (`ask`, `workspace`, the + menu, chat from a note).
+- Fixed: `phosphor run --reconnect` hammered a dropped ssh link every 3 seconds forever with no
+  backoff (a real outage did it 2055 times over 6 hours) -- now doubles the wait up to a 60s cap,
+  dropping back to 3s once a connection actually holds. The two Rust rewrites (`fleet-poll`, `run`)
+  had quietly fallen out of parity with their Python originals on this and on which tab a fleet
+  alert marks; both fixed, and `cargo test` now runs in CI so it can't happen silently again.
+- Fixed: `rust/fleet-poll` opened a fresh SSH handshake on every poll instead of reusing one
+  (every fleet host's `auth.log` got a login roughly every 15 seconds, forever); `phosphor
+  adjutant` re-parsed `fleet.json` fifty times a second instead of once per actual change.
+- Fixed: `phosphor receive` read an upload straight into memory with no size cap -- a large file
+  sent to a low-memory brain (the `revived` shape's whole reason to exist) risked an OOM kill.
+  Now rejected with 413 before the body is read, at 500MB.
+
 ## 1.0.7 — triage picks a host for you; receive stops trusting a stranger's Content-Length
 
 - New: `phosphor triage` with no `HOST`, on a real terminal, opens the same arrow-key picker

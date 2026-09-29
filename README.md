@@ -191,7 +191,8 @@ with a copy. It installs what's new and restarts the deck. The steps by hand
 and how to remove it: `phosphor help install`.
 
 `init` reads your tailscale peers and `~/.ssh/config`, leaves phones and
-tablets out (they're viewers, never mounted), probes the rest over SSH and
+tablets out (they're viewers, never mounted) and the machine it's running on
+out too (whatever name it shows up under there), probes the rest over SSH and
 offers their real disks. A handful of questions.
 
 ## Getting in

@@ -144,7 +144,7 @@ def add(prof, text):
     have = {h["name"] for h in prof.get("hosts", [])}
     print("\n" + rule("add a machine"))
     print("    " + DIM + "looking around (tailscale, ~/.ssh/config)..." + RST)
-    cands, me = discover(mesh.current(prof)[0] != "none")
+    cands, me, self_ip = discover(mesh.current(prof)[0] != "none")
     names = [n for n, c in sorted(cands.items())
              if n not in have and n != me and not c.get("viewer_only")]
     opts = ["%-22s %s" % (n, "offline" if cands[n]["offline"] else (cands[n].get("ip") or "ssh config"))

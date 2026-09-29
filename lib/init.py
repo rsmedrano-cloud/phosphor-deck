@@ -1,5 +1,5 @@
 """phosphor init - builds the profile, detecting a lot and asking little."""
-import os, re, subprocess, sys
+import json, os, re, socket, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
 import mesh, deckconf
@@ -69,39 +69,90 @@ def yes(q, default=True):
     if not v: return default
     return v.startswith("y") or v.startswith("s")   # "s" also: sí
 
+def local_identity(ts_ip=None, ts_name=None):
+    """Every string this machine might turn up under elsewhere: its
+    hostname, short hostname, FQDN, localhost, its own LAN/other IPs, and
+    (once known) its Tailscale name and IP. Used to recognize a candidate
+    -- a Tailscale peer, a ~/.ssh/config alias -- as this same machine,
+    whichever name it shows up under, so it's never offered back to itself
+    as a separate fleet candidate."""
+    ids = {"localhost", "127.0.0.1", "::1"}
+    node = (os.uname().nodename or "").lower()
+    if node:
+        ids.add(node)
+        ids.add(node.split(".")[0])
+    try:
+        fqdn = socket.getfqdn().lower()
+        if fqdn: ids.add(fqdn)
+    except Exception:
+        pass
+    rc, out = sh("hostname -I 2>/dev/null")
+    if rc == 0:
+        ids.update(ip.lower() for ip in out.split())
+    if ts_ip: ids.add(ts_ip.lower())
+    if ts_name: ids.add(ts_name.lower())
+    return ids
+
+def _ts_name(node):
+    """The name a Tailscale node is known by: the machine name its DNSName
+    is built from (what `tailscale status` shows too), not the OS-reported
+    HostName -- some phones and tablets report a generic "localhost" there,
+    which would otherwise collide two different devices onto one name."""
+    dns = (node.get("DNSName") or "").rstrip(".")
+    if dns:
+        return dns.split(".")[0]
+    return node.get("HostName") or None
+
 def discover(use_tailscale=True):
     """Candidates: tailscale peers (tailscale.com or headscale, same client)
-    plus ~/.ssh/config aliases."""
-    cands, me = {}, None
-    rc, out = sh("tailscale status 2>/dev/null") if use_tailscale else (1, "")
-    if rc == 0:
-        rc2, myip = sh("tailscale ip -4 2>/dev/null")
-        myip = (myip or "").split("\n")[0].strip()
-        for line in out.splitlines():
-            p = line.split()
-            if len(p) < 2 or not re.match(r"^\d+\.", p[0]): continue
-            ip, name = p[0], p[1]
-            osname = p[3] if len(p) > 3 else "?"
-            offline = "offline" in line
-            if ip == myip: me = name
-            cands[name] = {"ip": ip, "offline": offline, "os": osname,
-                           "src": "tailscale"}
+    plus ~/.ssh/config aliases. `tailscale status --json` separates this
+    machine (Self) from the rest (Peer) explicitly, so this machine's own
+    peer entry -- often under a short Tailscale name that differs from its
+    system hostname -- never lands in the candidate list at all; a
+    ~/.ssh/config alias pointing at this same machine (by hostname or IP)
+    is filtered the same way ssh_hosts() already drops a code forge."""
+    cands, me, self_ip = {}, None, None
+    if use_tailscale:
+        rc, out = sh("tailscale status --json 2>/dev/null")
+        if rc == 0:
+            try:
+                data = json.loads(out)
+            except ValueError:
+                data = {}
+            selfd = data.get("Self") or {}
+            me = _ts_name(selfd)
+            ips = selfd.get("TailscaleIPs") or []
+            self_ip = ips[0] if ips else None
+            for p in (data.get("Peer") or {}).values():
+                name = _ts_name(p)
+                if not name: continue
+                ips = p.get("TailscaleIPs") or []
+                cands[name] = {"ip": ips[0] if ips else None,
+                               "offline": not p.get("Online", True),
+                               "os": p.get("OS") or "?", "src": "tailscale"}
     # phones and tablets are viewers, not fleet nodes: never mounted
     for n in list(cands):
         if cands[n].get("os") in ("android", "iOS"):
             cands[n]["viewer_only"] = True
-    for name in ssh_hosts():
+    for name in ssh_hosts(local_identity(self_ip, me)):
         if name not in cands:
             cands[name] = {"ip": None, "offline": False, "src": "~/.ssh/config"}
-    return cands, me
+    return cands, me, self_ip
 
 # Code forges and git-only servers live in ~/.ssh/config too, but they are
 # not machines to watch: offering "github.com" as a fleet host reads as if
 # the deck wanted your credentials.
 FORGES = ("github.com", "gitlab.com", "bitbucket.org", "codeberg.org", "sr.ht", "gitea.com")
 
-def ssh_hosts():
-    """Plain Host aliases from ~/.ssh/config that look like machines."""
+def ssh_hosts(exclude=None):
+    """Plain Host aliases from ~/.ssh/config that look like machines.
+
+    `exclude`: identity strings for this same machine (see local_identity)
+    -- an alias whose name or HostName is one of them points right back at
+    the machine running the wizard, so it's dropped here, the same way a
+    code forge is, instead of being offered as a fleet candidate for
+    itself."""
+    exclude = exclude or set()
     cfg = os.path.join(HOME, ".ssh/config")
     if not os.path.exists(cfg):
         return []
@@ -122,6 +173,7 @@ def ssh_hosts():
             where = (b["hostname"] or n).lower()
             if any(where == f or where.endswith("." + f) for f in FORGES): continue
             if "git" in n.lower() and not b["hostname"]: continue
+            if n.lower() in exclude or where in exclude: continue
             out.append(n)
     return out
 
@@ -209,7 +261,7 @@ def run():
                           nets, mesh.KINDS.index(kind))]
 
     print("\n" + rule("discovering"))
-    cands, me = discover(net != "none")
+    cands, me, self_ip = discover(net != "none")
     if not cands:
         print(row(AMB, "no candidates", "neither tailscale nor ~/.ssh/config"))
     hosts = []
@@ -235,11 +287,11 @@ def run():
         if extra and yes("also show these disks in ~/fleet (nothing is copied): %s" % ", ".join(extra), True):
             mounts += extra
         h = {"name": local_name, "role": "brain", "local": True, "mounts": mounts}
-        if me and cands.get(me, {}).get("ip"): h["ip"] = cands[me]["ip"]
+        if self_ip: h["ip"] = self_ip
         hosts.append(h)
     else:
         h = {"name": local_name, "role": "viewer", "local": True}
-        if me and cands.get(me, {}).get("ip"): h["ip"] = cands[me]["ip"]
+        if self_ip: h["ip"] = self_ip
         hosts.append(h)
 
     print("\n" + rule("the fleet"))

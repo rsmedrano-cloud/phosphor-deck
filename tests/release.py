@@ -18,7 +18,7 @@ major is being built every release stays on dev, which is the nightly channel;
 main, the stable one, only moves when that minor or major is done (--main).
 
 5. The public GitHub mirror (github.com/rsmedrano-cloud/phosphor-deck): a
-   squashed commit onto its own dev (or main, with --main), never GitLab's
+   squashed commit onto its own dev (and main, with --main), never GitLab's
    real history -- building on that branch's previous sync there, same as a
    normal commit, just never carrying GitLab's granular one. Best-effort:
    a GitHub hiccup here doesn't undo an already-shipped GitLab release, it
@@ -240,7 +240,10 @@ def main():
              "fix on dev and cut the next patch" % v)
 
     # 5. the public GitHub mirror -- best-effort, see sync_github's own docstring
-    sync_github("main" if to_main else "dev", v, title)
+    # at a minor, GitHub's dev too: left behind at the last patch, it's what a
+    # contributor branching from GitHub's dev would build on (MR !5 did)
+    for b in (("main", "dev") if to_main else ("dev",)):
+        sync_github(b, v, title)
     if to_main:
         sync_github_binaries(v, title)
 

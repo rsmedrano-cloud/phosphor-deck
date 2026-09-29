@@ -49,6 +49,22 @@ need("stable goes back to main", switch(clone, "stable") and branch() == "main" 
 need("nightly again, dev already there", switch(clone, "nightly") and branch() == "dev")
 need("an unknown channel is refused", not switch(clone, "beta") and branch() == "dev")
 
+# a pull whose remote never answers (a dead link, a credential helper waiting
+# on a window nobody sees) stops at the timeout instead of hanging update
+import time
+hung = os.path.join(d, "hung")
+git("clone", "-q", remote, hung)
+git("remote", "set-url", "origin", "ssh://nowhere.invalid/x.git", cwd=hung)
+os.environ["GIT_SSH_COMMAND"] = "sleep 30 </dev/null >/dev/null 2>&1 #"
+update.PULL_TIMEOUT = 2
+t0 = time.time()
+with contextlib.redirect_stdout(io.StringIO()):
+    ok = update.pull(hung)
+need("a hung pull fails instead of hanging", not ok and time.time() - t0 < 10)
+del os.environ["GIT_SSH_COMMAND"]
+with contextlib.redirect_stdout(io.StringIO()):
+    need("a pull that works still works", update.pull(clone))
+
 shutil.rmtree(d, ignore_errors=True)
 
 # refresh(): the restart-or-hotswap decision `phosphor update` makes after

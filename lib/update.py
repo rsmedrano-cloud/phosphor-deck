@@ -45,13 +45,32 @@ def remember(src):
 def run(cmd, **k):
     return subprocess.run(cmd, capture_output=True, text=True, **k)
 
+def is_clone(d):
+    # a worktree's .git is a file, not a folder
+    return bool(d) and os.path.exists(os.path.join(d, ".git"))
+
+PULL_TIMEOUT = int(os.environ.get("PHOSPHOR_PULL_TIMEOUT", "120"))
+
+def pull(where):
+    """git pull --ff-only in the open: git's own output and any prompt it needs
+    (a passphrase, a credential) reach the terminal, and a pull that never
+    finishes (a dead network, a credential helper waiting on a window nobody
+    sees) stops with a message instead of hanging silently."""
+    print("  " + DIM + "git pull   " + where + RST, flush=True)
+    try:
+        r = subprocess.run(["git", "-C", where, "pull", "--ff-only"], timeout=PULL_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        print(row(BAD, "git pull", "no answer in %ds" % PULL_TIMEOUT,
+                  note="try it by hand: git -C %s pull" % where))
+        return False
+    return r.returncode == 0
+
 def from_git():
-    if not os.path.isdir(os.path.join(REPO, ".git")):
+    if not is_clone(REPO):
         return None
     before = run(["git", "-C", REPO, "rev-parse", "--short", "HEAD"]).stdout.strip()
-    r = run(["git", "-C", REPO, "pull", "--ff-only"])
-    if r.returncode != 0:
-        print(row(BAD, "git pull", (r.stderr.strip().splitlines() or ["failed"])[-1][:60])); return False
+    if not pull(REPO):
+        print(row(BAD, "git pull", "failed", note="nothing was installed")); return False
     after = run(["git", "-C", REPO, "rev-parse", "--short", "HEAD"]).stdout.strip()
     print(row(OK, "git pull", ("%s → %s" % (before, after)) if before != after else "already up to date (%s)" % after))
     return True
@@ -60,8 +79,6 @@ def from_folder(src):
     src = os.path.abspath(os.path.expanduser(src))
     if not os.path.isfile(os.path.join(src, "phosphor")):
         print(row(BAD, src, "no phosphor there")); return False
-    if os.path.realpath(src) == os.path.realpath(REPO):
-        print(row(BAD, src, "that's the installed copy itself")); return False
     if shutil.which("rsync"):
         r = run(["rsync", "-a", "--delete", "--exclude", ".git", "--exclude", ".phosphor-source",
                  src + "/", REPO + "/"])
@@ -107,19 +124,21 @@ def main():
     print()
     print(BLOOM + "  phosphor update" + RST + DIM + "   " + REPO + RST)
     if chan is not None:
-        d = REPO if os.path.isdir(os.path.join(REPO, ".git")) else remembered()
-        if not d or not os.path.isdir(os.path.join(d, ".git")):
+        d = REPO if is_clone(REPO) else remembered()
+        if not is_clone(d):
             print(row(BAD, "channel", "needs a git clone", note="or a copy that remembers one"))
             return 1
         if not switch_channel(d, chan):
             return 1
     src = a[0] if a else None
-    if not src and not os.path.isdir(os.path.join(REPO, ".git")) and remembered():
+    if src and os.path.realpath(os.path.expanduser(src)) == os.path.realpath(REPO):
+        src = None                          # the installed copy itself: a plain update
+    if not src and not is_clone(REPO) and remembered():
         src = remembered()                  # a copy: back to the folder it came from
-        if os.path.isdir(os.path.join(src, ".git")):
-            r = run(["git", "-C", src, "pull", "--ff-only"])
-            print(row(OK if r.returncode == 0 else WARN, "git pull", src,
-                      note="" if r.returncode == 0 else "failed: installing what's there"))
+        if is_clone(src):
+            ok = pull(src)
+            print(row(OK if ok else WARN, "git pull", src,
+                      note="" if ok else "failed: installing what's there"))
     ok = from_folder(src) if src else from_git()
     if ok is None:
         print(row(BAD, "no source", "this isn't a git clone: phosphor update FOLDER"))

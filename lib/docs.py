@@ -49,6 +49,13 @@ Read this before changing anything in this repository, whichever assistant
 you are. The state of the work lives in the repo and in the deck's notebook,
 not in any one assistant's memory.
 
+- **One topic per session, then stop.** Once a topic is closed (pushed, CI
+  green, a `phosphor note` left), say so and tell the maintainer to open a
+  fresh session for the next one: the notebook and the repo carry
+  everything over, and a long session re-reads its whole history on every
+  turn. Don't pull a second topic into the same one; don't paste whole
+  files, diffs or logs into the conversation when a grep, a `tail` or a
+  line range answers the question.
 - **Start by reading** `phosphor notes` (the latest entries say what was done
   and what's next) and the open issues. **End by leaving** a short
   `phosphor note` saying what changed and what's pending.
@@ -103,8 +110,9 @@ not in any one assistant's memory.
   live deck's checkout: the brain takes the release with `phosphor update`
   (`--channel nightly` for a dev one). `tests/release.py` also syncs the
   public GitHub mirror (github.com/rsmedrano-cloud/phosphor-deck) as its
-  last step: a squashed commit onto GitHub's own `main` at a minor, onto
-  GitHub's own `dev` at a patch -- building on that branch's previous sync
+  last step: a squashed commit onto GitHub's own `dev` at every release,
+  and onto its `main` too at a minor (so GitHub's dev, where an outside
+  contributor branches from, is never behind its main) -- building on that branch's previous sync
   there (a real, if squashed, history on GitHub), never GitLab's granular
   one. Titled after the release, authored as the maintainer, no AI
   co-author. Best-effort on purpose: a GitHub hiccup there is printed, not

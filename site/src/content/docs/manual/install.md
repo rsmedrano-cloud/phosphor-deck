@@ -42,7 +42,12 @@ installer prints the line to add (`~/.bashrc` or `~/.zshrc`).
   `~/.ssh/config`) and only offers those that really run a shell; git servers
   never do. For each: watch it or not, its role, which disk to show. Tailscale
   peers are yours, so Enter means yes; hosts only in `~/.ssh/config` are often
-  someone else's servers, so Enter means no.
+  someone else's servers, so Enter means no. The brain's own machine never
+  shows up in this list, however it's spelled elsewhere -- its Tailscale
+  peer entry (often a short name like `titan` where the brain's own name is
+  the full `titan.example.lan`) and a `~/.ssh/config` alias that happens to
+  point back at this machine's own hostname or IP are both recognized as
+  itself and left out, not offered as a candidate to ssh into itself.
 - **tunnels**: only for the hosts you said yes to — a host you turned down is
   never asked about again.
 - **which shape fits how you'll use it**: `homelab` (the default: fleet panel,
@@ -136,7 +141,13 @@ and only asks when it's actually attached to a terminal).
 
 An install that came from a folder remembers it: the next time, a plain
 `phosphor update` goes back there (and pulls it first if it's a git clone),
-and `phosphor version` checks that clone for news.
+and `phosphor version` checks that clone for news. `FOLDER` being the
+installed copy itself is just a plain update.
+
+The pull shows git's own output, and any prompt git needs (a passphrase, a
+credential) reaches you. One that gets no answer in two minutes (a dead
+link, a credential helper waiting on a window nobody sees) stops there and
+says so, instead of hanging; nothing is installed.
 
 It updates the installed copy in place, fetches only the binaries you're
 missing, and gets the panes onto the new code (`--no-restart` to do that
