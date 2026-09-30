@@ -6,6 +6,13 @@ before it updates.
 
 ## Unreleased
 
+## 1.1.13 — a pushed notice opens the deck
+
+- A pushed notice now opens the deck: with browser access on (`phosphor web on`, over
+  tailscale), tapping the notification in the phone's ntfy app -- or its "open the deck"
+  button -- opens the deck's address in the browser. Nothing changes with browser access off.
+  `open_web = false` in `[push]` leaves the button out; `phosphor push` says whether it's there.
+
 ## 1.1.12 — phosphor theme: the color, previewed
 
 - New: `phosphor theme` picks the deck's color with a preview. Moving through p31, p3, p4 and

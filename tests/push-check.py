@@ -113,6 +113,51 @@ try:
 finally:
     push.deckconf.load = real_load
 
+# the "open the deck" button: only a real tailnet address, only with web on
+check("no button by default", "Click" not in got[-1][2] and "Actions" not in got[-1][2])
+c = push.get_config({"push": {"enabled": True, "url": url, "topic": "deck"}})
+check("open_web on by default", c["open_web"] is True)
+push.send("host down", cfg=c, click="https://brain.tail0.ts.net:8443")
+h = got[-1][2]
+check("tap opens the deck", h.get("Click") == "https://brain.tail0.ts.net:8443")
+check("button opens the deck", h.get("Actions") == "view, open the deck, https://brain.tail0.ts.net:8443")
+
+import web
+real = (web.usable, web.url)
+web.url = lambda prof: "https://brain.tail0.ts.net:8443"
+try:
+    web.usable = lambda prof: (True, "")
+    check("web off: no button", push.web_url({"deck": {"web": False}}) == "")
+    check("no [deck]: no button", push.web_url({}) == "")
+    check("web on, tailscale: the address",
+          push.web_url({"deck": {"web": True}}) == "https://brain.tail0.ts.net:8443")
+    web.usable = lambda prof: (False, "it needs tailscale")
+    check("web on, local only: no button", push.web_url({"deck": {"web": True}}) == "")
+    def boom(prof): raise OSError("tailscale gone")
+    web.usable = boom
+    check("tailscale failing: no button, no raise", push.web_url({"deck": {"web": True}}) == "")
+
+    # notify_hook wires it in, and open_web = false keeps it out
+    web.usable = lambda prof: (True, "")
+    real_load = push.deckconf.load
+    try:
+        push.deckconf.load = lambda: ({"deck": {"web": True},
+                                       "push": {"enabled": True, "url": url, "topic": "deck"}}, "t")
+        ok, _ = push.notify_hook("mention", tab="COMMS")
+        check("notify: sent with the button", ok and got[-1][2].get("Click") == "https://brain.tail0.ts.net:8443")
+        push.deckconf.load = lambda: ({"deck": {"web": True},
+                                       "push": {"enabled": True, "url": url, "topic": "deck", "open_web": False}}, "t")
+        push.notify_hook("mention", tab="COMMS")
+        check("open_web = false: no button", "Click" not in got[-1][2])
+        push.deckconf.load = lambda: ({"deck": {"web": True}, "push": {"url": url, "topic": "deck"}}, "t")
+        n = len(got)
+        ok, why = push.notify_hook("x")
+        check("notify: off stays off", not ok and len(got) == n)
+    finally:
+        push.deckconf.load = real_load
+finally:
+    web.usable, web.url = real
+
 srv.shutdown()
 if fails:
     print("push-check FAILED:\n  " + "\n  ".join(fails)); sys.exit(1)

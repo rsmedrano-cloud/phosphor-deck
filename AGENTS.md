@@ -678,6 +678,7 @@ message text leaves the brain**.
 | token | "" | for a protected topic: the token, or `env:VAR` to read it from the environment |
 | priority | "default" | min, low, default, high, max (high and max make the phone sound loudly) |
 | title | "phosphor" | the notice's title; the tab it came from is appended |
+| open_web | true | with browser access on (`phosphor web on`), tapping the notice or its "open the deck" button opens the deck in the browser |
 
     [push]
     enabled = true
@@ -848,7 +849,7 @@ and in the `+` menu, and open in a tab of their own.
   refreshes every 5s, Ctrl-C to leave.
 - `phosphor notify [--tab TAB] [--voice VOICE] [--tts|--no-tts] [--push|--no-push] MESSAGE` — the adjutant announces it, speaks it if TTS is enabled, and pushes it to your phone if `[push]` is on. The tab it names (or SYS with no `--tab`) also reads "`<TAB> ●N`" until you look, whether or not `[deck] notifier` is on (see profile).
 - `phosphor tts [MESSAGE]` — speak a message aloud with selectable voices (glados, adjutant, hal, synth, system); `phosphor tts install glados` assists with installing GLaDOS-TTS.
-- `phosphor push [--qr]` — `[push]`'s status (on/off, server, topic); `--qr` prints the subscribe
+- `phosphor push [--qr]` — `[push]`'s status (on/off, server, topic, the "open the deck" button); `--qr` prints the subscribe
   link as a QR (also onto every screen's clipboard) so the phone's ntfy app can scan it instead of
   you typing the server and topic in by hand.
 - `phosphor review` — open merge/pull requests, from the deck: detects GitLab or GitHub from this
@@ -1138,7 +1139,9 @@ then
 and scan the code in the ntfy app (its own "+" → scan a QR, not the phone's
 camera app) to subscribe -- no typing the server or topic in by hand. From
 then on `phosphor notify --push`, a fleet host going down or coming back, and
-a chat mention all ring and vibrate the phone, Termux open or not.
+a chat mention all ring and vibrate the phone, Termux open or not. With
+browser access on (see web), tapping the notice -- or its "open the deck"
+button -- opens the deck in the phone's browser.
 
 ### A glance instead of the whole deck
 

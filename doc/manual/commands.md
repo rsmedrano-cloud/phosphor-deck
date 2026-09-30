@@ -102,7 +102,7 @@
   refreshes every 5s, Ctrl-C to leave.
 - `phosphor notify [--tab TAB] [--voice VOICE] [--tts|--no-tts] [--push|--no-push] MESSAGE` — the adjutant announces it, speaks it if TTS is enabled, and pushes it to your phone if `[push]` is on. The tab it names (or SYS with no `--tab`) also reads "`<TAB> ●N`" until you look, whether or not `[deck] notifier` is on (see profile).
 - `phosphor tts [MESSAGE]` — speak a message aloud with selectable voices (glados, adjutant, hal, synth, system); `phosphor tts install glados` assists with installing GLaDOS-TTS.
-- `phosphor push [--qr]` — `[push]`'s status (on/off, server, topic); `--qr` prints the subscribe
+- `phosphor push [--qr]` — `[push]`'s status (on/off, server, topic, the "open the deck" button); `--qr` prints the subscribe
   link as a QR (also onto every screen's clipboard) so the phone's ntfy app can scan it instead of
   you typing the server and topic in by hand.
 - `phosphor review` — open merge/pull requests, from the deck: detects GitLab or GitHub from this

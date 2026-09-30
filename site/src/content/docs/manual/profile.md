@@ -257,6 +257,7 @@ message text leaves the brain**.
 | token | "" | for a protected topic: the token, or `env:VAR` to read it from the environment |
 | priority | "default" | min, low, default, high, max (high and max make the phone sound loudly) |
 | title | "phosphor" | the notice's title; the tab it came from is appended |
+| open_web | true | with browser access on (`phosphor web on`), tapping the notice or its "open the deck" button opens the deck in the browser |
 
     [push]
     enabled = true

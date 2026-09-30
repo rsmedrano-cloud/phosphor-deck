@@ -38,12 +38,31 @@ def get_config(prof=None):
         "token": token,
         "priority": str(p.get("priority", "default") or "default"),
         "title": str(p.get("title", "phosphor") or "phosphor"),
+        "open_web": p.get("open_web", True) is not False,
     }
 
 
-def send(text, tab="", cfg=None, force=False, timeout=8):
+def web_url(prof=None):
+    """The deck's browser address, for the notice's "open the deck" button:
+    only while [deck] web is on and tailscale serves it (a 127.0.0.1 address
+    means nothing on a phone). "" otherwise, never raises."""
+    try:
+        if prof is None:
+            prof, _ = deckconf.load()
+        if not ((prof or {}).get("deck") or {}).get("web", False):
+            return ""
+        import web
+        ok, _ = web.usable(prof)
+        return web.url(prof) if ok else ""
+    except Exception:
+        return ""
+
+
+def send(text, tab="", cfg=None, force=False, timeout=8, click=""):
     """POST the notice. Returns (ok, why): why says what went wrong, or "".
-    Never raises: a notice that can't be pushed must not break the caller."""
+    click: an address the notice opens when tapped, with an "open the deck"
+    button too. Never raises: a notice that can't be pushed must not break
+    the caller."""
     cfg = cfg or get_config()
     if not (force or cfg["enabled"]):
         return False, "push is off"
@@ -55,6 +74,9 @@ def send(text, tab="", cfg=None, force=False, timeout=8):
     headers = {"Title": title, "Priority": cfg["priority"]}
     if cfg["token"]:
         headers["Authorization"] = "Bearer " + cfg["token"]
+    if click:
+        headers["Click"] = click
+        headers["Actions"] = "view, open the deck, %s" % click
     body = text.strip()[:MAX_LEN].encode("utf-8")
     req = urllib.request.Request("%s/%s" % (cfg["url"], cfg["topic"]),
                                  data=body, headers=headers, method="POST")
@@ -68,8 +90,14 @@ def send(text, tab="", cfg=None, force=False, timeout=8):
 
 
 def notify_hook(text, tab="", force=False):
-    """Called by `phosphor notify`: push if enabled (or forced by --push)."""
-    return send(text, tab=tab, force=force)
+    """Called by `phosphor notify`: push if enabled (or forced by --push).
+    With browser access on, tapping the notice opens the deck."""
+    prof, _ = deckconf.load()
+    cfg = get_config(prof)
+    if not (force or cfg["enabled"]):
+        return False, "push is off"
+    return send(text, tab=tab, cfg=cfg, force=force,
+                click=web_url(prof) if cfg["open_web"] else "")
 
 
 def subscribe_url(cfg):
@@ -87,6 +115,10 @@ def status(cfg=None):
     print(row(OK if cfg["topic"] else WARN, "topic", cfg["topic"] or "(none set)"))
     if cfg["token"]:
         print(row(OK, "token", "set"))
+    if cfg["open_web"]:
+        u = web_url()
+        print(row(OK if u else DIM + "·" + RST, "open the deck", u or "no button",
+                  note="" if u else "phosphor web on adds one"))
     if not cfg["topic"]:
         print(DIM + "  set [push] topic in the profile, then phosphor push --qr" + RST)
         return 1

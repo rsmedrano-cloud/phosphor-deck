@@ -73,7 +73,9 @@ then
 and scan the code in the ntfy app (its own "+" → scan a QR, not the phone's
 camera app) to subscribe -- no typing the server or topic in by hand. From
 then on `phosphor notify --push`, a fleet host going down or coming back, and
-a chat mention all ring and vibrate the phone, Termux open or not.
+a chat mention all ring and vibrate the phone, Termux open or not. With
+browser access on (see web), tapping the notice -- or its "open the deck"
+button -- opens the deck in the phone's browser.
 
 ## A glance instead of the whole deck
 
