@@ -13,7 +13,7 @@ from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from ui import DIM, MUTE, PH, BLOOM, AMB, RED, RULE, RST, vlen, not_set_up
+from ui import DIM, MUTE, PH, BLOOM, AMB, RED, RULE, RST, vlen, not_set_up, topbar, card as ui_card
 import deckconf
 
 SPARKS = (" ", "▁", "▂", "▃", "▄", "▅", "▆", "▇", "█")
@@ -86,17 +86,7 @@ def cut(s, n):
     return s if len(s) <= n else s[:max(0, n - 1)] + "…"
 
 def card(name, tag, col, body, w):
-    """A box exactly w columns wide: name and tag on top, the body padded inside."""
-    inner = w - 2
-    title = " %s " % cut(name, max(1, inner - len(tag) - 5))
-    top = (RULE + "╭─" + RST + BLOOM + title + RST
-           + RULE + "─" * max(0, inner - 1 - len(title) - len(tag) - 2) + RST
-           + col + " %s " % tag + RST + RULE + "╮" + RST)
-    lines = [top]
-    for b in body:
-        lines.append(RULE + "│" + RST + b + " " * max(0, inner - vlen(b)) + RULE + "│" + RST)
-    lines.append(RULE + "╰" + "─" * inner + "╯" + RST)
-    return lines
+    return ui_card(name, tag, body, w, col)
 
 def why(err, inner):
     return [" " + MUTE + cut(err, inner - 2) + RST] if err else []
@@ -136,8 +126,7 @@ def draw_sparkline(name, val, err, min_v, max_v, warn, crit, unit, width, q_key)
 def frame(url, cols, rows, results):
     """The screen as lines, none wider than cols (at least 16)."""
     w = max(16, cols)
-    out = [RULE + " PROMETHEUS " + "─" * max(0, w - 12) + RST,
-           DIM + cut(" %s · %s" % (url, time.strftime("%H:%M:%S")), w) + RST]
+    out = topbar("PROMETHEUS", url, time.strftime("%H:%M:%S"), w)
     for m, val, err in results:
         args = dict(name=m.get("name", m.get("query", "?")), val=val, err=err,
                     min_v=m.get("min", 0), max_v=m.get("max", 100),

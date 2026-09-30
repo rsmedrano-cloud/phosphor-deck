@@ -326,12 +326,11 @@ def view():
             if first >= off + body: off = first - body + 2
             off = max(0, min(off, max(0, len(lines) - body)))
             n = unread()
-            head = BLOOM + " MENTIONS" + RST + DIM + ("   %d new" % n if n else "   all seen") + "   read-only" + RST
             bar, spans, x = "", [], 1
             for key, label in buttons:
                 spans.append((x, x + len(label) - 1, key)); bar += AMB + label + RST + " "; x += len(label) + 1
             foot = DIM + " j/k pick · Enter chat" + (" · p prepare" if can_prep else "") + " · w work notes · q quit" + RST
-            out = [head, RULE + " " + "─" * max(0, w - 2) + RST] + lines[off:off + body]
+            out = topbar("MENTIONS", "read-only", "%d new" % n if n else "all seen", w) + lines[off:off + body]
             out = out[:rows - 2] + [bar, foot]
             sys.stdout.write("\x1b[H" + "\x1b[K\n".join(out[:rows]) + "\x1b[K\x1b[J"); sys.stdout.flush()
             bar_row = len(out) - 1                 # 1-based row of the button bar

@@ -80,7 +80,7 @@ def screen(send=None, wait=1.5):
 first = screen()
 check("store: yours come first", first.find("YOURS") != -1 and first.find("YOURS") < first.find("CHAT"))
 narrowed = screen(b"i")
-check("store: i shows installed only", "· installed" in narrowed and "ghost" not in narrowed)
+check("store: i shows installed only", "installed only" in narrowed and "ghost" not in narrowed)
 opened = screen(b"\r")
 check("store: Enter on installed opens (asks for the deck here)", "open it from inside the deck" in opened)
 os.write(fd, b"q")

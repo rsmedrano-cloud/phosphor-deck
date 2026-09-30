@@ -6,6 +6,13 @@ before it updates.
 
 ## Unreleased
 
+## 1.2.9 — one header for every panel
+
+- Every panel now opens the same way: its name, what it is and a count on one line, a rule under
+  it, and no box around the whole screen (notes, store, keys, review, screens, services,
+  mentions, prom, ci, the + menu). Cards look the same everywhere too: the name bright on the top
+  border, its state on the right, including the fleet's machine cards.
+
 ## 1.2.8 — remove a workspace
 
 - A workspace you're done with can go now: `x` twice in the workspaces panel (`z` in the DECK

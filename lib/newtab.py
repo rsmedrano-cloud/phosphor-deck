@@ -116,8 +116,7 @@ def render(its, sel, keep, w, msg=None, tip=None):
     """Lines plus what each screen row does: an entry index, "cmd", "keep" or None."""
     rows, acts = [], []
     def add(text, act=None): rows.append(text); acts.append(act)
-    add(BLOOM + " NEW TAB" + RST + DIM + "   tap one, or press its number" + RST)
-    add(RULE + " " + "─" * max(0, w - 2) + RST)
+    for l in topbar("NEW TAB", "tap one, or press its number", "", w): add(l)
     for i, (label, note, *_rest) in enumerate(its):
         num = str(i + 1) if i < 9 else " "
         line = " %s  %-14s %s" % (num, label[:14], note)

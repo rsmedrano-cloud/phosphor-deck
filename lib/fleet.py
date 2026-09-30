@@ -363,9 +363,12 @@ def card(name, w, d):
     one lands."""
     inner = w - 4
     up = (d or {}).get("UP", "")
-    title = "─ " + name.upper() + " "
-    tail  = ("─ " + up + " ─") if up else "──"
-    head = RULE + "╭" + title + "─"*max(0, w-2-len(title)-len(tail)) + tail + "╮" + RST
+    # the same top border as ui.card(): the name bright, its uptime dim on the right
+    title = " " + name.upper() + " "
+    tail = (" " + up + " ") if up else ""
+    head = (RULE + "╭─" + RST + BLOOM + title + RST
+            + RULE + "─"*max(0, w-4-len(title)-len(tail)) + RST
+            + MUTE + tail + RST + RULE + "─╮" + RST)
     body = []
     if d is None:
         body = [DIM + "polling..." + RST]

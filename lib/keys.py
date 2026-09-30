@@ -3,7 +3,7 @@
 (share/keys.json) and picks up new installs by itself."""
 import json, os, select, shutil, subprocess, sys, termios, time, tty
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from ui import FG, DIM, MUTE, PH, BLOOM, AMB, RULE, RST, REPO, share, vlen, pad
+from ui import FG, DIM, MUTE, PH, BLOOM, AMB, RULE, RST, REPO, share, vlen, pad, topbar
 from ui import getkey as ui_getkey
 
 HOME = os.path.expanduser("~")
@@ -90,14 +90,10 @@ def main():
             body = max(3, rows - 3)
             maxoff = max(0, len(lines) - body)
             off = max(0, min(off, maxoff))
-            head = "─ KEYS "
-            tail = "─ %d tools ─" % n
-            out = [RULE + "╭" + head + "─"*max(0, w-2-len(head)-len(tail)) + tail + "╮" + RST]
+            at = " · %d/%d" % (min(off+body, len(lines)), len(lines)) if maxoff else ""
+            out = topbar("KEYS", "every installed tool", "%d tools%s" % (n, at), w)
             win = lines[off:off+body]
-            for l in win: out.append(RULE+"│"+RST + pad(l, w-2) + RULE+"│"+RST)
-            for _ in range(body - len(win)): out.append(RULE+"│"+RST + " "*(w-2) + RULE+"│"+RST)
-            bar = "─ %d/%d ─" % (min(off+body, len(lines)), len(lines)) if maxoff else "──"
-            out.append(RULE + "╰" + "─"*max(0, w-2-len(bar)) + bar + "╯" + RST)
+            out += win + [""] * (body - len(win))
             out.append(DIM + " j/k or two fingers: scroll · " + RST + AMB + "s" + RST
                        + DIM + " setup: machines and color" + RST)
             sys.stdout.write("\x1b[H" + "\x1b[K\n".join(out) + "\x1b[K\x1b[J"); sys.stdout.flush()

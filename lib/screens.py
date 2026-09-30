@@ -22,7 +22,7 @@ same few-second reconnect as any other.
 """
 import os, re, shutil, signal, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from ui import FG, DIM, MUTE, PH, AMB, RED, RULE, RST, getkey as ui_getkey, pad, vlen
+from ui import FG, DIM, MUTE, PH, AMB, RED, RULE, RST, getkey as ui_getkey, pad, vlen, topbar, HEAD
 import deckconf
 
 INV = "\x1b[7m"
@@ -135,10 +135,9 @@ def main():
         while True:
             cols, _ = shutil.get_terminal_size((90, 30))
             w = min(cols, 90)
-            head = "─ PHOSPHOR SCREENS ─ %s " % session
-            out = [RULE + "╭" + head + "─" * max(0, w - 2 - len(head)) + "╮" + RST]
+            out = topbar("SCREENS", "who's attached", "%d · %s" % (len(rows), session), w)
             if not rows:
-                out.append(RULE + "│" + RST + pad(" " + DIM + "no screens attached" + RST, w - 2) + RULE + "│" + RST)
+                out.append(" " + DIM + "no screens attached" + RST)
             for i, r in enumerate(rows):
                 nm = "%-16s %-16s idle %-8s" % (r["from"], r["tty"], r["idle"])
                 line = " " + FG + nm + RST
@@ -146,8 +145,8 @@ def main():
                     line = pad(line, w - 14) + AMB + "x again to kick" + RST
                 if i == sel:
                     line = INV + pad(" " + nm, w - 4) + RST
-                out.append(RULE + "│" + RST + pad(line, w - 2) + RULE + "│" + RST)
-            out.append(RULE + "╰" + "─" * (w - 2) + "╯" + RST)
+                out.append(line)
+            out.append("")
             out.append(DIM + " j/k move · x kick (twice) · r refresh · q quit" + RST)
             if msg:
                 out.append(" " + msg)

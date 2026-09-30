@@ -12,7 +12,7 @@ import json, os, re, shutil, subprocess, sys, time, urllib.request, urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from ui import DIM, MUTE, PH, BLOOM, AMB, RED, RULE, RST, FG, vlen, not_set_up
+from ui import DIM, MUTE, PH, BLOOM, AMB, RED, RULE, RST, FG, vlen, not_set_up, topbar, card as ui_card
 import deckconf
 
 
@@ -305,16 +305,7 @@ def cut(s, n):
     return s if len(s) <= n else s[:max(0, n - 1)] + "…"
 
 def card(name, tag, col, body, w):
-    inner = w - 2
-    title = " %s " % cut(name, max(1, inner - len(tag) - 5))
-    top = (RULE + "╭─" + RST + BLOOM + title + RST
-           + RULE + "─" * max(0, inner - 1 - len(title) - len(tag) - 2) + RST
-           + col + " %s " % tag + RST + RULE + "╮" + RST)
-    lines = [top]
-    for b in body:
-        lines.append(RULE + "│" + RST + b + " " * max(0, inner - vlen(b)) + RULE + "│" + RST)
-    lines.append(RULE + "╰" + "─" * inner + "╯" + RST)
-    return lines
+    return ui_card(name, tag, body, w, col)
 
 def draw_pipeline_card(item, data, err, width):
     name = item.get("name") or item.get("repo", "Pipeline")
@@ -381,8 +372,7 @@ def draw_pipeline_card(item, data, err, width):
 
 def frame(cols, rows, results):
     w = max(16, cols)
-    out = [RULE + " CI / CD PIPELINES " + "─" * max(0, w - 20) + RST,
-           DIM + cut(" Pipelines status · %s" % time.strftime("%H:%M:%S"), w) + RST]
+    out = topbar("CI / CD PIPELINES", "latest run and the five before it", time.strftime("%H:%M:%S"), w)
     for item, data, err in results:
         out += draw_pipeline_card(item, data, err, w)
     return out[:max(1, rows)]

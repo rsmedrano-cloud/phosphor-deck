@@ -641,7 +641,7 @@ def main():
                 picked = notes[sel]["raw"] if sel is not None and sel < len(notes) else None
                 notes = entries(view, None if ARCHIVE_VIEW else ONLY_TAB)
                 if st["q"]: notes = [n for n in notes if matches(n, st["q"])]
-                lines, owner = render(w - 3, notes)
+                lines, owner = render(w - 2, notes)
                 st["mt"], lastw, lastq = cur, w, st["q"]
                 raws = [n["raw"] for n in notes]
                 if picked in raws: st["sel"] = raws.index(picked)
@@ -654,17 +654,16 @@ def main():
             maxoff = max(0, len(lines) - body)
             off = st["off"] = max(0, min(st["off"], maxoff))
             if time.time() - st["msg_t"] > 5: st["msg"] = ""
-            head = "─ %s%s%s " % (BOOK, (" · from " + ONLY_TAB) if ONLY_TAB and not ARCHIVE_VIEW else "",
-                                  (" · search: " + st["q"]) if st["q"] else "")
-            tail = ("─ %s ─" % st["msg"]) if st["msg"] else \
-                   ("─ %d entries · tap one or j to pick ─" if notes and not e else "─ %d entries · newest first ─") % len(notes)
-            out = [RULE + "╭" + head + "─" * max(0, w - 2 - len(head) - len(tail)) + tail + "╮" + RST]
+            sub = " · ".join(x for x in (("from " + ONLY_TAB) if ONLY_TAB and not ARCHIVE_VIEW else "",
+                                         ("search: " + st["q"]) if st["q"] else "") if x)
+            right = st["msg"] or (("%d entries · tap one or j to pick" if notes and not e
+                                   else "%d entries · newest first") % len(notes))
+            out = topbar(BOOK, sub, right, w)
             win = range(off, min(off + body, len(lines)))
             for i in win:
                 mark = AMB + "▌" + RST if sel is not None and owner[i] == sel else " "
-                out.append(RULE + "│" + RST + mark + pad(lines[i], w - 3) + RULE + "│" + RST)
-            out += [RULE + "│" + RST + " " * (w - 2) + RULE + "│" + RST] * (body - len(win))
-            out.append(RULE + "╰" + "─" * (w - 2) + "╯" + RST)
+                out.append(mark + pad(lines[i], w - 2))
+            out += [""] * (body - len(win))
             first_foot = len(out) + 1                # screen row (1-based) of the footer
             out += foot
             sys.stdout.write("\x1b[H" + "\x1b[K\n".join(out[:rows]) + "\x1b[K\x1b[J")
@@ -677,8 +676,8 @@ def main():
                     hit = [s for s in spots if s[0] == row - first_foot and s[1] <= col <= s[2]]
                     if not hit: continue
                     k = hit[0][3]
-                elif 2 <= row < 2 + body:
-                    i = off + row - 2
+                elif HEAD < row <= HEAD + body:
+                    i = off + row - HEAD - 1
                     if i < len(owner) and owner[i] is not None: st["sel"] = owner[i]
                     continue
                 else:

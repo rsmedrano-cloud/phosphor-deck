@@ -9,7 +9,7 @@ the branch out into its own worktree to try it -- never your working copy.
 """
 import json, os, shutil, subprocess, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from ui import FG, DIM, MUTE, PH, BLOOM, AMB, RED, RULE, RST, getkey as ui_getkey, pad, vlen
+from ui import FG, DIM, MUTE, PH, BLOOM, AMB, RED, RULE, RST, getkey as ui_getkey, pad, vlen, topbar, HEAD
 import ci as cimod
 import deckconf
 
@@ -236,11 +236,9 @@ def main():
         while True:
             cols, rows = shutil.get_terminal_size((90, 30))
             w = min(cols, 110)
-            head = "─ PHOSPHOR REVIEW · %s " % ("GitLab" if prov == "gitlab" else "GitHub")
-            tail = "─ %s ─" % repo
-            out = [RULE + "╭" + head + "─" * max(0, w - 2 - len(head) - len(tail)) + tail + "╮" + RST]
+            out = topbar("REVIEW", "GitLab" if prov == "gitlab" else "GitHub", repo, w)
             if not items:
-                out.append(RULE + "│" + RST + pad(" " + DIM + "no open merge/pull requests" + RST, w - 2) + RULE + "│" + RST)
+                out.append(" " + DIM + "no open merge/pull requests" + RST)
             for i, it in enumerate(items):
                 col, tag = ci_tag(prov, it, repo, ci_cache)
                 mark = RED + "⚠ conflicts" + RST if it["conflicts"] else (col + tag + RST)
@@ -254,8 +252,8 @@ def main():
                 line = pad(line, w - 12) + mark
                 if i == sel:
                     line = INV + pad(" " + nm, w - 4) + RST
-                out.append(RULE + "│" + RST + pad(line, w - 2) + RULE + "│" + RST)
-            out.append(RULE + "╰" + "─" * (w - 2) + "╯" + RST)
+                out.append(line)
+            out.append("")
             hint = " j/k move · d diff · c ci · t try the branch · x drop worktree · r refresh · q quit"
             out.append(DIM + hint[:w] + RST)
             if msg:

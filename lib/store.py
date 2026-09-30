@@ -4,7 +4,7 @@ into ~/.local/bin. No sudo. Your own apps (apps.toml) are listed first as
 "yours"; Enter on anything installed opens it in a new tab."""
 import json, os, re, select, shutil, subprocess, sys, tarfile, tempfile, termios, tty, urllib.request, zipfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from ui import FG, DIM, MUTE, PH, BLOOM, AMB, RED, RULE, RST, share, vlen, pad
+from ui import FG, DIM, MUTE, PH, BLOOM, AMB, RED, RULE, RST, share, vlen, pad, topbar, HEAD
 from ui import getkey as ui_getkey
 import apps as mine
 
@@ -175,16 +175,15 @@ def main():
             if sel < top: top = sel
             if sel >= top + body: top = sel - body + 1
             ni = sum(1 for a in apps if have[a["n"]])
-            head = "─ PHOSPHOR STORE " + ("· installed " if only else "")
-            tail = "─ %d apps · %d installed ─" % (len(apps), ni)
-            out = [RULE + "╭" + head + "─" * max(0, w - 2 - len(head) - len(tail)) + tail + "╮" + RST]
+            out = topbar("STORE", "installed only" if only else "TUIs, no sudo",
+                         "%d apps · %d installed" % (len(apps), ni), w)
             lastc = None
             shown = view[top:top + body]
             for i, a in enumerate(shown):
                 idx = top + i
                 if a["c"] != lastc:
                     lastc = a["c"]
-                    out.append(RULE + "│" + RST + " " + pad(MUTE + a["c"].upper() + RST, w - 3) + RULE + "│" + RST)
+                    out.append(" " + MUTE + a["c"].upper() + RST)
                 mark = "●" if have[a["n"]] else "○"
                 nw = min(14, max(8, w - 8))
                 nm = ("%-*.*s" % (nw, nw, a["n"]))
@@ -199,10 +198,9 @@ def main():
                 else:
                     line = (" " + (PH if have[a["n"]] else DIM) + mark + RST + " "
                             + FG + nm + RST + (" " + DIM + desc + RST if desc else ""))
-                out.append(RULE + "│" + RST + pad(line, w - 2) + RULE + "│" + RST)
-            while len(out) - 1 < body:
-                out.append(RULE + "│" + RST + " " * (w - 2) + RULE + "│" + RST)
-            out.append(RULE + "╰" + "─" * (w - 2) + "╯" + RST)
+                out.append(line)
+            while len(out) - HEAD < body:
+                out.append("")
             hint = (" j/k move · enter " + ("open in a tab" if view and have[view[sel]["n"]] else "install")
                     + " · i " + ("all" if only else "installed") + " · d remove · / filter · q quit")
             if filt: hint = " filter: " + AMB + filt + RST + DIM + "  (esc clears)" + RST

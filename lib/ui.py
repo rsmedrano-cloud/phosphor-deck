@@ -107,9 +107,43 @@ def back(prompt="q · Enter: back"):
             print(); return
 
 def rule(title, w=None):
+    """A section inside a screen: its title readable, the line dim."""
     w = w or width()
-    h = "── " + title + " "
-    return RULE + h + "─" * max(0, w - len(h)) + RST
+    return RULE + "── " + RST + MUTE + title + RST + " " + RULE + "─" * max(0, w - len(title) - 4) + RST
+
+def cut(s, n):
+    return s if len(s) <= n else s[:max(0, n - 1)] + "…"
+
+def topbar(title, sub="", right="", w=None):
+    """The top of a whole screen, the same on every panel: its title bright,
+    what it is dim beside it, a count or a state on the right, then a line.
+    Two lines; the screen's body starts on row 3."""
+    w = w or width()
+    right = cut(right, max(0, w - len(title) - 4))
+    room = w - len(title) - 1 - (len(right) + 2 if right else 0) - 3
+    sub = cut(sub, room) if room > 3 else ""
+    left = " " + BLOOM + title + RST + (DIM + "   " + sub + RST if sub else "")
+    line = pad(left, w - len(right) - 1) + MUTE + right + RST if right else left
+    return [line, RULE + " " + "─" * max(0, w - 2) + RST]
+
+HEAD = 2      # rows topbar() takes
+
+def card(title, tag, body, w, tag_col=None):
+    """A box exactly w columns wide, the same for every card of every panel:
+    title bright on the top border, a tag on the right (in its own color,
+    e.g. a status), the body padded inside, the frame dim."""
+    inner = w - 2
+    tag = cut(tag, max(0, inner - 6)) if tag else ""
+    title = " %s " % cut(title, max(1, inner - len(tag) - 5 - (2 if tag else 0)))
+    t = (" %s " % tag) if tag else ""
+    top = (RULE + "╭─" + RST + BLOOM + title + RST
+           + RULE + "─" * max(0, inner - 1 - len(title) - len(t) - 1) + RST
+           + (tag_col or MUTE) + t + RST + RULE + "─╮" + RST)
+    lines = [top]
+    for b in body:
+        lines.append(RULE + "│" + RST + b + " " * max(0, inner - vlen(b)) + RULE + "│" + RST)
+    lines.append(RULE + "╰" + "─" * inner + "╯" + RST)
+    return lines
 
 def row(sym, label, value, w=None, note=""):
     w = w or width()

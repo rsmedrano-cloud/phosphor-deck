@@ -25,7 +25,7 @@ import os, shutil, subprocess, sys, time
 from concurrent.futures import ThreadPoolExecutor
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from ui import DIM, MUTE, PH, AMB, RED, RULE, RST, FG, vlen, pad, getkey
+from ui import DIM, MUTE, PH, AMB, RED, RULE, RST, FG, vlen, pad, getkey, topbar, HEAD
 
 INV = "\x1b[7m"
 import deckconf, gen
@@ -144,8 +144,9 @@ def lines(results, w, sel=None):
 
 def frame(prof, cols, rows):
     w = max(20, cols)
-    out = [RULE + " SERVICES " + "─" * max(0, w - 10) + RST]
-    out += lines(fetch(all_units(prof)), w)
+    res = fetch(all_units(prof))
+    out = topbar("SERVICES", "systemd units", "%d units" % len(res), w)
+    out += lines(res, w)
     return out[:max(1, rows)]
 
 
@@ -210,13 +211,13 @@ def panel(prof):
                 sel = min(sel, max(0, len(results) - 1))
             cols, rows = shutil.get_terminal_size((80, 24))
             w = max(20, cols)
-            out = [RULE + " SERVICES " + "─" * max(0, w - 10) + RST]
+            out = topbar("SERVICES", "systemd units", "%d units" % len(results), w)
             body = lines(results, w, sel if results else None)
-            room = max(1, rows - 4)
+            room = max(1, rows - 3 - HEAD)
             top = max(0, min(sel - room + 1, len(body) - room)) if len(body) > room else 0
             shown = body[top:top + room]
             out += shown
-            first = 2                                       # screen row of body[top]
+            first = HEAD + 1                                # screen row of body[top]
             foot = " " + "  ".join(AMB + k + RST + FG + " " + l + RST for k, l in KEYS) + DIM + "  · j/k pick" + RST
             spans, x = [], 2
             for k, l in KEYS:
