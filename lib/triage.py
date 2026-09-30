@@ -120,10 +120,11 @@ def main():
     if a and a[0] in ("-h", "--help"):
         print("usage: phosphor triage [--assistant NAME] [HOST]"); return 0
     assistant = None
-    if a[:1] == ["--assistant"]:
-        if len(a) < 2:
+    if "--assistant" in a:                  # before or after HOST
+        i = a.index("--assistant")
+        if i + 1 >= len(a):
             print(BAD + " --assistant needs a name" + RST); return 1
-        assistant, a = a[1], a[2:]
+        assistant, a = a[i + 1], a[:i] + a[i + 2:]
     if not a:
         if not sys.stdin.isatty():
             return list_flagged()

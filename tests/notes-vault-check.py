@@ -29,6 +29,16 @@ notes.use_book(argv)
 check("--book stays inside the same vault", notes.PATH == os.path.join(vault, "work.md"))
 check("--book still names the book", notes.BOOK == "WORK NOTES")
 
+# mentions' "prepare notes" writes WORK NOTES where --book work reads them
+os.environ["PHOSPHOR_DATA"] = os.environ["PHOSPHOR_CACHE"] = os.path.join(tmp, "data")
+import mentions
+mentions.cfg = lambda: {"prepare": "echo briefing", "by": "tester"}
+mentions.entries = lambda: [{"t": 1, "from": "ana", "message": "hi"}]
+mentions.prepare(1)
+check("prepared notes land in the vault's work.md",
+      "briefing" in open(os.path.join(vault, "work.md")).read())
+del os.environ["PHOSPHOR_DATA"], os.environ["PHOSPHOR_CACHE"]
+
 # -- migrate: moves, never overwrites, moves the archive alongside it --
 old = os.path.join(tmp, "old-notes.md")
 open(old, "w").write("# mine\n")

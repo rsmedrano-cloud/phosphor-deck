@@ -77,7 +77,7 @@ def open_tab(app):
     import gen, newtab
     prof, _ = deckconf.load()
     name = newtab.unique(tab_name(app), newtab.taken_names())
-    d = os.path.expanduser("~/.cache/phosphor/apps")
+    d = os.path.join(deckconf.cache_dir(), "apps")
     os.makedirs(d, exist_ok=True)
     lay = os.path.join(d, "%s-%s.kdl" % (name.lower(), time.strftime("%Y%m%d-%H%M%S")))
     with open(lay, "w") as f:

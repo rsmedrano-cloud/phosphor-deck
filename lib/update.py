@@ -57,13 +57,24 @@ def pull(where):
     finishes (a dead network, a credential helper waiting on a window nobody
     sees) stops with a message instead of hanging silently."""
     print("  " + DIM + "git pull   " + where + RST, flush=True)
+    p = subprocess.Popen(["git", "-C", where, "pull", "--ff-only"])
     try:
-        r = subprocess.run(["git", "-C", where, "pull", "--ff-only"], timeout=PULL_TIMEOUT)
+        rc = p.wait(timeout=PULL_TIMEOUT)
     except subprocess.TimeoutExpired:
+        # git's own children (ssh, a credential helper) outlive a plain kill of
+        # git and keep its output open: take the whole tree down. Not a new
+        # process group: git has to keep the terminal to ask for a passphrase.
+        import screens
+        for pid in reversed(screens.descendants(p.pid)):
+            try:
+                os.kill(pid, 9)
+            except OSError:
+                pass
+        p.wait()
         print(row(BAD, "git pull", "no answer in %ds" % PULL_TIMEOUT,
                   note="try it by hand: git -C %s pull" % where))
         return False
-    return r.returncode == 0
+    return rc == 0
 
 def from_git():
     if not is_clone(REPO):

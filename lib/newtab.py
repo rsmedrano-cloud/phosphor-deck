@@ -276,7 +276,7 @@ def layout(prof, keep):
         blk = k.block(name, tab["panes"], tab["split"])
         if k.save(name, blk):
             subprocess.run([sys.executable, PHOSPHOR, "gen"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    d = os.path.expanduser("~/.cache/phosphor/layouts")
+    d = os.path.join(deckconf.cache_dir(), "layouts")
     os.makedirs(d, exist_ok=True)
     lay = os.path.join(d, "%s.kdl" % name.lower())
     with open(lay, "w") as f:

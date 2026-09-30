@@ -38,7 +38,6 @@ CHAT   = "COMMS"                # or a tab with this name, whatever runs in it
 KEEP   = 300
 MARK   = " ●"
 PREP   = os.path.join(deckconf.cache_dir(), "prepare")
-WORK   = os.path.join(deckconf.data_dir(), "work.md")
 PROMPT = """You are preparing briefing notes for the person who received this chat
 notification. Do NOT reply to anyone and do not post or send anything anywhere:
 only write notes for them. If the working folder has a GEMINI.md, AGENTS.md,
@@ -242,7 +241,7 @@ def prepare(t):
     if rc == 0 and out:
         import notes
         title = "@%s: %s" % (e.get("from", "?"), e.get("message", "")[:70])
-        notes.append(WORK, "summary", c.get("by", "assistant"), title, out)
+        notes.append(os.path.join(notes.notes_dir(), "work.md"), "summary", c.get("by", "assistant"), title, out)
         set_state(t, "ready")
         with open(EVENTS, "a") as f:
             f.write("\twork notes ready: @%s\n" % e.get("from", "?"))

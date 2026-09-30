@@ -6,6 +6,19 @@ before it updates.
 
 ## Unreleased
 
+## 1.1.14 — fixes from the 1.2 audit
+
+- Fixed: `c` in NOTES (a CHAT tab from a note) opened the tab and then crashed the notes
+  screen.
+- Fixed: `phosphor triage HOST --assistant NAME` ignored the assistant when it came after the
+  host; it now works on either side.
+- Fixed: with `[notes] folder` set, "prepare notes" in mentions wrote WORK NOTES outside that
+  folder, where `phosphor notes --book work` never looked.
+- Fixed: a `phosphor update` whose pull timed out left git's ssh or credential helper running.
+- `phosphor demo` keeps its temporary layouts and chat briefs in its own state too, and its
+  WORK NOTES there instead of the machine's.
+- `phosphor version` recognizes a source folder that is a git worktree.
+
 ## 1.1.13 — a pushed notice opens the deck
 
 - A pushed notice now opens the deck: with browser access on (`phosphor web on`, over

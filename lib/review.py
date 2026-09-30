@@ -176,7 +176,7 @@ def try_branch(prov, item):
     prof, _ = deckconf.load()
     label = ("MR" if prov == "gitlab" else "PR") + str(item["id"])
     name = newtab.unique(label, newtab.taken_names())
-    d = os.path.expanduser("~/.cache/phosphor/apps")
+    d = os.path.join(deckconf.cache_dir(), "apps")
     os.makedirs(d, exist_ok=True)
     lay = os.path.join(d, "%s-%s.kdl" % (name.lower(), time.strftime("%Y%m%d-%H%M%S")))
     with open(lay, "w") as f:

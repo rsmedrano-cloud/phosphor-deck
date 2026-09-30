@@ -32,7 +32,7 @@ def panes():
         return []
 
 def state_path(tab_id):
-    d = os.path.expanduser("~/.cache/phosphor/edit")
+    d = os.path.join(deckconf.cache_dir(), "edit")
     os.makedirs(d, exist_ok=True)
     return os.path.join(d, "%s-%s.json" % (os.environ.get("ZELLIJ_SESSION_NAME", "deck"), tab_id))
 

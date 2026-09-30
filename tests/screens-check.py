@@ -51,6 +51,11 @@ try:
     check("includes self", mid.pid in d)
     check("includes the grandchild sleep, not just the shell", grandchild and grandchild in d)
 finally:
+    if grandchild:                  # or its sleep holds check.sh's $(...) open for 30s
+        try:
+            os.kill(grandchild, 9)
+        except OSError:
+            pass
     mid.kill(); mid.wait()
 
 # 3. is_deck_client(): a real process whose argv says zellij attach <session>

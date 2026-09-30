@@ -41,7 +41,7 @@ def current():
         except (OSError, ValueError):
             rec = {}
         src = rec.get("src")
-        if src and os.path.isdir(os.path.join(src, ".git")):
+        if src and os.path.exists(os.path.join(src, ".git")):  # a worktree's .git is a file
             cur["source"], cur["copied"] = src, rec.get("commit") or None
             cur["upstream"] = git("rev-parse", "--abbrev-ref", "@{u}", where=src)
     # the channel is the branch the clone follows: dev is nightly, the rest stable

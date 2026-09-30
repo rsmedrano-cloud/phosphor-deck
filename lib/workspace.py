@@ -188,7 +188,7 @@ def open_tab(name, spec=None):
         zj("go-to-tab-name", tab); return
     if spec:
         prof, _ = deckconf.load()
-        d = os.path.expanduser("~/.cache/phosphor/workspace")
+        d = os.path.join(deckconf.cache_dir(), "workspace")
         os.makedirs(d, exist_ok=True)
         lay = os.path.join(d, "%s-%s.kdl" % (name.lower(), time.strftime("%Y%m%d-%H%M%S")))
         with open(lay, "w") as f:

@@ -29,7 +29,7 @@ def notes_dir():
     vault you already sync), else the private default under ~/.local/share."""
     import deckconf
     folder = ((deckconf.load()[0] or {}).get("notes") or {}).get("folder")
-    return os.path.expanduser(folder) if folder else os.path.expanduser("~/.local/share/phosphor")
+    return os.path.expanduser(folder) if folder else deckconf.data_dir()
 
 PATH = os.environ.get("PHOSPHOR_NOTES") or os.path.join(notes_dir(), "notes.md")
 BOOK = "NOTES"
@@ -499,20 +499,19 @@ CHATS = list(FIRST.items())
 
 def chat(e):
     """A new tab where an assistant starts from this note."""
-    import newtab
+    import deckconf, gen, newtab
     if not os.environ.get("ZELLIJ"):
         return "chat opens a tab: only inside the deck"
     found = next((b for b, _ in CHATS if newtab.have(b)), None)
     if not found:
         return "no assistant installed: " + ", ".join(b for b, _ in CHATS)
-    d = os.path.expanduser("~/.cache/phosphor/chat")
+    d = os.path.join(deckconf.cache_dir(), "chat")
     os.makedirs(d, exist_ok=True)
     stamp = time.strftime("%Y%m%d-%H%M%S")
     brief = os.path.join(d, stamp + ".md")
     with open(brief, "w") as f:
         f.write("This is a note from my Phosphor notebook (%s). I want to talk it over "
                 "before doing anything: don't change files yet.\n\n%s\n" % (PATH, e["raw"]))
-    import deckconf, gen
     prof, _ = deckconf.load()
     line = assistant_first_cmd(found, "\"$(cat %s)\"" % shlex.quote(brief))
     tab = {"name": "CHAT", "panes": [{"cmd": "bash", "args": ["-lc", line]}]}
@@ -521,7 +520,7 @@ def chat(e):
         f.write(gen.tab_kdl(tab, gen.Ctx(prof or {}), "phosphor notes (chat)"))
     name = newtab.unique("CHAT", newtab.taken_names())
     newtab.zj("new-tab", "--layout", lay, "--name", name)
-    return "opened " + name + " with " + b
+    return "opened " + name + " with " + found
 
 def to_workspace(e):
     """A workspace from this note, after showing which note it is."""

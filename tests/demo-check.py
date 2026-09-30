@@ -84,8 +84,8 @@ finally:
 #    (a demo on a machine with a real chat feed once showed a real name)
 import subprocess
 real_home = os.path.expanduser("~")
-probe = ("import sys; sys.path.insert(0, %r); import mentions, adjutant, fleet, glance, pulse, dlog, version, panel;"
-         "print(*[mentions.FEED, mentions.SEEN, mentions.EVENTS, mentions.WORK, adjutant.CACHE, fleet.CACHE,"
+probe = ("import sys; sys.path.insert(0, %r); import os, notes, mentions, adjutant, fleet, glance, pulse, dlog, version, panel;"
+         "print(*[mentions.FEED, mentions.SEEN, mentions.EVENTS, os.path.join(notes.notes_dir(), 'work.md'), adjutant.CACHE, fleet.CACHE,"
          " glance.CACHE, pulse.CACHE, dlog.DIR, version.CACHE, panel.STEPS], sep=' ')" % os.path.join(ROOT, "lib"))
 out = subprocess.run([sys.executable, "-c", probe], env=env, capture_output=True, text=True).stdout.split()
 check("every state path is read", len(out) == 11)

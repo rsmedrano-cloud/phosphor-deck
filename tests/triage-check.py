@@ -172,6 +172,17 @@ finally:
     sys.stdout = real_stdout
 check("--assistant with nothing after it: usage error, not a crash", rc == 1)
 
+# --assistant NAME before or after HOST (the docstring puts it after)
+real_run_host = triage.run_host
+for argv in (["--assistant", "gemini", "atlas"], ["atlas", "--assistant", "gemini"]):
+    calls = []
+    triage.run_host = lambda host, assistant: calls.append((host, assistant)) or 0
+    try:
+        run(argv)
+    finally:
+        triage.run_host = real_run_host
+    check("%s reaches gemini on atlas" % " ".join(argv), calls == [("atlas", "gemini")])
+
 if fails:
     print("triage-check FAILED:\n  " + "\n  ".join(fails)); sys.exit(1)
 print("triage-check ok")

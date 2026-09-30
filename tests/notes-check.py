@@ -113,6 +113,29 @@ out, row, col = notes.draw_note("todo", "COMMS", [long, ""], 40)
 check("the drawn note fits the width", all(notes.vlen(l) <= 40 for l in out))
 check("the hint is said once", sum("saves" in notes.STRIP.sub("", l) for l in out) == 2)
 
+# c: a CHAT tab from a note, with zellij and the assistant faked
+import newtab, tempfile
+saved = (os.environ.get("ZELLIJ"), os.environ.get("PHOSPHOR_CACHE"), newtab.have, newtab.taken_names, newtab.zj)
+tabs = []
+try:
+    os.environ["ZELLIJ"] = "0"
+    os.environ["PHOSPHOR_CACHE"] = tempfile.mkdtemp()
+    newtab.have = lambda b: b == notes.CHATS[0][0]
+    newtab.taken_names = lambda: set()
+    newtab.zj = lambda *a, **k: tabs.append(a)
+    msg = notes.chat({"raw": "## a note\n\nbody\n"})
+    check("c opens a CHAT tab and says with what",
+          msg == "opened CHAT with " + notes.CHATS[0][0] and tabs and tabs[0][0] == "new-tab")
+    check("its brief lands in PHOSPHOR_CACHE",
+          os.listdir(os.path.join(os.environ["PHOSPHOR_CACHE"], "chat")))
+finally:
+    for k, v in (("ZELLIJ", saved[0]), ("PHOSPHOR_CACHE", saved[1])):
+        if v is None:
+            os.environ.pop(k, None)
+        else:
+            os.environ[k] = v
+    newtab.have, newtab.taken_names, newtab.zj = saved[2:]
+
 if fail:
     print("FAIL: " + "; ".join(fail)); sys.exit(1)
 print("ok")
