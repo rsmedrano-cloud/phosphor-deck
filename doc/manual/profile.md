@@ -18,7 +18,7 @@ Files that gen writes say
 |---|---|---|
 | session | "deck" | the session's name; it shows in the tab bar |
 | command | "deck" | the one-word command that gets you in (`~/.local/bin/<it>`) |
-| theme | "p31" | p31 green, p3 amber, p4 white, paper (e-ink) |
+| theme | "p31" | p31 green, p3 amber, p4 white, paper (e-ink); `phosphor theme` previews them |
 | mount_root | "~/fleet" | where the fleet's files appear |
 | projects | "~/projects" | where workspaces are made (`phosphor workspace`) |
 | mesh | auto | tailscale, headscale, none (plain ssh), or auto: detect |

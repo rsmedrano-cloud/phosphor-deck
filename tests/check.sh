@@ -106,6 +106,9 @@ out=$(python3 tests/newtab-folder-check.py 2>&1) && ok || bad "$out"
 step "commands: category/leaf picker, only safe ones auto-run"
 out=$(python3 tests/commands-menu-check.py 2>&1) && ok || bad "$out"
 
+step "theme: preview per palette, picker writes nothing until Enter"
+out=$(python3 tests/theme-check.py 2>&1) && ok || bad "$out"
+
 step "tail: journalctl/docker/podman through phosphor run --reconnect"
 out=$(python3 tests/tail-check.py 2>&1) && ok || bad "$out"
 

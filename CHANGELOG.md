@@ -6,6 +6,15 @@ before it updates.
 
 ## Unreleased
 
+## 1.1.12 — phosphor theme: the color, previewed
+
+- New: `phosphor theme` picks the deck's color with a preview. Moving through p31, p3, p4 and
+  paper (arrows, j/k, a number or a tap) paints a small deck -- tab bar, fleet cards, a note --
+  in that phosphor, on its own background, before anything is written. Enter keeps it, runs
+  `phosphor gen` and asks before restarting; q leaves the profile as it was. `phosphor theme
+  NAME` sets it straight away, `--list` shows them. `phosphor setup`'s "change the color" (m in
+  the DECK tab) opens the same picker.
+
 ## 1.1.11 — FLEET: temperature, battery, SMART
 
 - New: FLEET cards show the CPU's temperature, a laptop's battery, and whether a disk says it's

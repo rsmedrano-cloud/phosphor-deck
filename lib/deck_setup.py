@@ -215,12 +215,16 @@ def color(prof, text):
     print("\n" + rule("color"))
     cur = theme_name(prof)
     keys = [k for k, _ in THEMES]
-    opts = ["%-6s %s  %s" % (k, swatch(k), DIM + d + RST) for k, d in THEMES]
-    i = pick("pick a phosphor", opts, keys.index(cur) if cur in keys else 0)
-    if keys[i] == cur:
+    if sys.stdin.isatty():
+        import theme                      # the same picker as phosphor theme, with its preview
+        new = theme.pick(cur) or cur
+    else:
+        opts = ["%-6s %s  %s" % (k, swatch(k), DIM + d + RST) for k, d in THEMES]
+        new = keys[pick("pick a phosphor", opts, keys.index(cur) if cur in keys else 0)]
+    if new == cur:
         return text, False
-    t2 = set_theme_text(text, keys[i])
-    if save(t2, lambda p: (p.get("deck") or {}).get("theme") == keys[i]):
+    t2 = set_theme_text(text, new)
+    if save(t2, lambda p: (p.get("deck") or {}).get("theme") == new):
         return t2, True
     return text, False
 

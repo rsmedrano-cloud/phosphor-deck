@@ -66,6 +66,7 @@ CATEGORIES = [
         ("tabs", "phosphor tabs", "the tabs your profile brings back: forget one, reorder, reopen"),
         ("recipe", "phosphor recipe", "starter tab bundles: homelab, dev, bubble, workbench"),
         ("shortcuts", "phosphor shortcuts", "the deck's keys, yours to change; updates never reset them"),
+        ("theme", "phosphor theme", "the deck's color: p31, p3, p4, paper, previewed before it's saved"),
         ("edit", "phosphor edit", "what Alt-r runs: unlock a tab, change it, save it or put it back"),
         ("mentions", "phosphor mentions", "read-only feed of chat notifications; --setup hooks matterhorn"),
         ("clip", "phosphor clip FILE", "a file or a pipe onto your device's clipboard"),

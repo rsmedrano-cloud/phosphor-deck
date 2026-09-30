@@ -90,6 +90,8 @@
     "note": "--kdl and non-tty are read-only; the interactive picker writes [keys] and regenerates once a new key is captured."},
   "store": {"mutates": false, "needs_deck": false,
     "note": "listing is read-only; picking an uninstalled app in the interactive picker downloads and installs it immediately, no confirm ('d', remove, does ask first)."},
+  "theme": {"mutates": true, "needs_deck": false,
+    "note": "--list, and the picker until Enter, are read-only; `theme NAME` writes [deck] theme (backup kept) and applies nothing; the picker's Enter saves, runs gen and asks before a restart."},
   "tabs": {"mutates": false, "needs_deck": false,
     "note": "listing is read-only; `--forget NAME` mutates unconditionally, and the interactive view's forget/reorder/reopen keys mutate on one keypress."},
   "tail": {"mutates": false, "needs_deck": false,

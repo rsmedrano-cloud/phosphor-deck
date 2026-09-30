@@ -444,7 +444,7 @@ Files that gen writes say
 |---|---|---|
 | session | "deck" | the session's name; it shows in the tab bar |
 | command | "deck" | the one-word command that gets you in (`~/.local/bin/<it>`) |
-| theme | "p31" | p31 green, p3 amber, p4 white, paper (e-ink) |
+| theme | "p31" | p31 green, p3 amber, p4 white, paper (e-ink); `phosphor theme` previews them |
 | mount_root | "~/fleet" | where the fleet's files appear |
 | projects | "~/projects" | where workspaces are made (`phosphor workspace`) |
 | mesh | auto | tailscale, headscale, none (plain ssh), or auto: detect |
@@ -885,6 +885,12 @@ and in the `+` menu, and open in a tab of their own.
   afterwards, same as any tabs.d tab. `phosphor recipe --remove NAME` takes it back out (the
   file, and any place `phosphor tabs` gave its tabs). `phosphor init`'s "which shape" question builds `homelab`,
   `revived` (leaner: no CLOUD tab) or `dev` right into the profile from the start.
+- `phosphor theme [NAME | --list]` — the deck's color. With no `NAME`, a picker: arrows, j/k,
+  a number or a tap preview each theme as a small deck painted in it, on its own background,
+  before anything is written; Enter keeps it (then `phosphor gen`, and it asks before a
+  restart), q leaves it as it was. `NAME` (p31, p3, p4, paper) writes it straight away and
+  applies nothing: `phosphor gen && phosphor restart`, or `f` in the DECK tab. `phosphor setup`'s
+  "change the color" opens the same picker.
 - `phosphor shortcuts [--kdl]` — the deck's keys, yours to change (also `c` in the DECK tab); `--kdl` prints the block
   for a zellij config of your own.
 - `phosphor edit` — what Alt-r runs: unlock the tab you're in, change it, then save it or put it back (see keys).

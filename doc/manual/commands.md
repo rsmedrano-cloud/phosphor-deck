@@ -139,6 +139,12 @@
   afterwards, same as any tabs.d tab. `phosphor recipe --remove NAME` takes it back out (the
   file, and any place `phosphor tabs` gave its tabs). `phosphor init`'s "which shape" question builds `homelab`,
   `revived` (leaner: no CLOUD tab) or `dev` right into the profile from the start.
+- `phosphor theme [NAME | --list]` — the deck's color. With no `NAME`, a picker: arrows, j/k,
+  a number or a tap preview each theme as a small deck painted in it, on its own background,
+  before anything is written; Enter keeps it (then `phosphor gen`, and it asks before a
+  restart), q leaves it as it was. `NAME` (p31, p3, p4, paper) writes it straight away and
+  applies nothing: `phosphor gen && phosphor restart`, or `f` in the DECK tab. `phosphor setup`'s
+  "change the color" opens the same picker.
 - `phosphor shortcuts [--kdl]` — the deck's keys, yours to change (also `c` in the DECK tab); `--kdl` prints the block
   for a zellij config of your own.
 - `phosphor edit` — what Alt-r runs: unlock the tab you're in, change it, then save it or put it back (see keys).

@@ -64,6 +64,7 @@ USAGE = """phosphor - Phosphor Deck
     phosphor keep [TAB] keep a tab you arranged by hand in your profile
     phosphor edit       Alt-r: unlock the tab, change it, then save it or put it back
     phosphor shortcuts  the deck's keys, yours to change ([keys] in the profile)
+    phosphor theme      the deck's color, with a preview before it's saved
     phosphor tabs       the tabs your profile brings back: forget, reorder, reopen
     phosphor recipe [NAME]  starter tab bundles (homelab, dev, bubble, workbench)
     phosphor demo       a throwaway session, made-up machines: safe for a screenshot
@@ -123,7 +124,7 @@ USAGE = """phosphor - Phosphor Deck
 TOOLS = ("fleet", "pulse", "keys", "store", "adjutant", "notes", "privacy", "phone", "newtab", "clip", "send",
          "mentions", "run", "web", "tunnels", "completion", "update", "panel", "version",
          "keep", "workspace", "edit", "shortcuts", "tabs", "prom", "logs", "trace", "ci", "recipe", "tts", "demo",
-         "services", "glance", "review", "push", "screens", "ask", "commands", "receive", "tail", "triage", "broadcast")
+         "services", "glance", "review", "push", "screens", "ask", "commands", "receive", "tail", "triage", "broadcast", "theme")
 
 def main():
     cmd = sys.argv[1] if len(sys.argv) > 1 else "help"
