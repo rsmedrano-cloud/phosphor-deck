@@ -242,8 +242,8 @@ sidebar:
   screenshot or a recording: never your real profile, session or ssh. `phosphor demo --stop`
   kills it. `Ctrl-c` or a normal exit from a pane leaves the session running in the background,
   same as any zellij session. It reads and writes nothing of the machine's own: the notebook,
-  the chat feed, the adjutant's events, the fleet's readings and the log live in
-  `~/.cache/phosphor/demo-state` (`--stop` removes it). What it can't hide is where it runs: the
+  the chat feed, the adjutant's events, the fleet's readings, the log and its workspaces
+  folder live in `~/.cache/phosphor/demo-state` (`--stop` removes it). What it can't hide is where it runs: the
   machine's user and host name still show in paths and prompts, so for a public screenshot run
   it on a machine whose user name you're happy to show.
   `phosphor demo --tour` is the same demo with a guide: a small floating pane on every tab that

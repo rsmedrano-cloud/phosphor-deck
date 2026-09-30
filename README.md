@@ -289,7 +289,7 @@ A profile from before 1.2.5 still has the key guide beside the panel: the
 deck card offers **1** ("one pane"), which writes the tab as one pane (a backup is kept;
 `f` applies it).
 
-![The DECK tab: next steps, every action, and the key guide](doc/img/readme/deck-tab.png)
+![The DECK tab: the deck's state, next steps and every action, as cards](doc/img/readme/deck-tab.png)
 
 **Machines and color** (`m` there, or `phosphor setup`):
 

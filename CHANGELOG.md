@@ -6,6 +6,14 @@ before it updates.
 
 ## Unreleased
 
+## 1.2.7 — the DECK tab uses a wide screen
+
+- The DECK tab on a wide screen spreads its cards over as many columns as still show every
+  action's note (two at 200 columns, three at 240), instead of one long column stretched across
+  the whole width with the right half empty.
+- `phosphor demo` no longer shows this machine's own workspaces (it has a projects folder of its
+  own under `demo-state`), and its DECK tab no longer warns "watchdog OFF": the demo never has one.
+
 ## 1.2.6 — one pane is 1
 
 - The DECK tab's "this tab in one pane" is `1` now, not `D`: `D` and `d` (doctor) told apart only

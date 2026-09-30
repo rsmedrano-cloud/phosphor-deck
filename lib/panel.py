@@ -44,6 +44,7 @@ GROUPS = [("screens",  [("v", "screens",          "who's attached; kick one loos
 ACTIONS = [a for _, acts in GROUPS for a in acts]
 NOTE_W = max(len(a[2]) for a in ACTIONS)
 CARD_W = 34                   # the narrowest a card gets: key, label, a little air
+WIDE = 23 + NOTE_W            # wide enough for every note: past this, another column fits
 GAP = 2
 
 def mark(step):
@@ -80,7 +81,9 @@ def state(prof):
     s = {"session": sess, "web": running, "web_local": running and not w["published"],
          "web_mismatch": w["flag"] != running,
          "screens": None,
-         "timer": out("systemctl", "--user", "is-active", sess + ".timer").strip() == "active",
+         # the demo has no watchdog of its own: no line, rather than a warning that's always on
+         "timer": None if d.get("demo") else
+                  out("systemctl", "--user", "is-active", sess + ".timer").strip() == "active",
          "tunnels": [tunnels.active(t["host"]) for t in deckconf.tunnels(prof)],
          "dirty_workspaces": len(workspace.dirty_workspaces()),
          "profile_changed": deckconf.profile_changed(),
@@ -129,7 +132,8 @@ def cards(prof, st, with_steps=True):
     deck = []
     if st["screens"] is not None:
         deck.append(("v", "%d screen%s in" % (st["screens"], "" if st["screens"] == 1 else "s"), "", False))
-    deck.append(("", "watchdog " + ("on" if st["timer"] else "OFF"), "", not st["timer"]))
+    if st["timer"] is not None:
+        deck.append(("", "watchdog " + ("on" if st["timer"] else "OFF"), "", not st["timer"]))
     web = ("web half on" if st.get("web_mismatch") else
            "web " + (("local" if st.get("web_local") else "on") if st["web"] else "off"))
     deck.append(("w", web, "", bool(st.get("web_mismatch"))))
@@ -161,9 +165,11 @@ def item(it, cw, notes):
 
 def layout(cs, w, avail):
     """The fewest columns that show every card at once, so the notes get
-    room; as many as fit if none does (then it scrolls)."""
+    room; as many as fit if none does (then it scrolls). A wide screen gets
+    as many columns as still keep the notes, not one long stretched one."""
     most = max(1, min(len(cs), (w + GAP) // (CARD_W + GAP)))
-    for n in range(1, most + 1):
+    least = max(1, min(most, (w + GAP) // (WIDE + GAP)))
+    for n in range(least, most + 1):
         cw = (w - GAP * (n - 1)) // n
         cols = [[] for _ in range(n)]
         for c in cs:                      # each card into the shortest column
@@ -191,7 +197,7 @@ def draw(prof, st, w, rows, off=0, with_steps=True):
         L.append(" " + DIM + "a key or a tap" + RST)
     avail = max(3, rows - 3)
     cols, cw = layout(cards(prof, st, with_steps), w, avail)
-    notes = cw >= 23 + NOTE_W
+    notes = cw >= WIDE
     body, spots = [], []                  # spots: (body row, x0, x1, key)
     for c, col in enumerate(cols):
         x0, r = c * (cw + GAP), 0

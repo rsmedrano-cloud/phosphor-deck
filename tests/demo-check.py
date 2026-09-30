@@ -94,6 +94,18 @@ check("no state path is under the real ~/.local/share/phosphor or ~/.cache/phosp
                       p.startswith(os.path.join(real_home, ".cache/phosphor")) for p in out))
 check("they are under the demo's state", out and all(p.startswith(demo.STATE) for p in out))
 
+# 8. Its workspaces and its watchdog are the demo's own: not this machine's ~/projects, and no
+#    "watchdog OFF" for a session that never has one
+demo.COPY = os.path.join(demo.STATE, "deck.toml")
+demo.write_copy(False)
+copy = demo.load_profile(demo.COPY)
+import workspace
+check("workspaces live under the demo's state", workspace.root(copy).startswith(demo.STATE))
+import panel
+panel.marked = lambda step: False
+lines = panel.draw(copy, dict(panel.state(copy), screens=1), 60, 60)[0]
+check("no watchdog line in the demo", not any("watchdog" in l for l in lines))
+
 if fails:
     print("FAILED:\n  " + "\n  ".join(fails))
     sys.exit(1)

@@ -50,6 +50,8 @@ check("a tablet gets two columns and no scrolling",
       columns(panel.draw({}, st, 100, 30)[0]) == 2 and panel.draw({}, st, 100, 30)[2] == 0)
 check("a wide screen gets the notes", "every phosphor command, by category"
       in "".join(map(plain, panel.draw({}, st, 160, 45)[0])))
+check("a tall wide screen spreads out instead of one stretched column",
+      columns(panel.draw({}, st, 200, 60)[0]) >= 2 and columns(panel.draw({}, st, 240, 60)[0]) >= 3)
 check("scrolled past the end: clamped, not blank",
       panel.draw({}, st, 40, 35, 999)[0][2] == panel.draw({}, st, 40, 35, panel.draw({}, st, 40, 35)[2])[0][2])
 

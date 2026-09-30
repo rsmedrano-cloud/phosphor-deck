@@ -36,6 +36,9 @@ def write_copy(tour):
     """The demo's own profile, from the repo's, fresh every time the session is built."""
     os.makedirs(STATE, exist_ok=True)
     text = open(PROFILE).read()
+    # its own projects folder: workspaces are this machine's real work, never the demo's
+    os.makedirs(os.path.join(STATE, "projects"), exist_ok=True)
+    text = text.replace("[deck]\n", '[deck]\nprojects = "%s"\n' % os.path.join(STATE, "projects"), 1)
     if tour:
         text = text.replace("[deck]\n", "[deck]\ntour = true          # phosphor demo --tour: a guide on every tab\n", 1)
     with open(COPY, "w") as f:
