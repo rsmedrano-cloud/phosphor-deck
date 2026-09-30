@@ -6,6 +6,13 @@ before it updates.
 
 ## Unreleased
 
+## 1.2.8 — remove a workspace
+
+- A workspace you're done with can go now: `x` twice in the workspaces panel (`z` in the DECK
+  tab), or `phosphor workspace rm NAME`. Its tab leaves your profile and closes, and its folder
+  moves into `~/.local/share/phosphor/trash` rather than being deleted, so a dirty one's
+  uncommitted work can still be brought back.
+
 ## 1.2.7 — the DECK tab uses a wide screen
 
 - The DECK tab on a wide screen spreads its cards over as many columns as still show every

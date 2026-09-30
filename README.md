@@ -377,7 +377,7 @@ more depth on every one of these.
 
 | | |
 |---|---|
-| `phosphor workspace` | a tab per idea: folder, git, its assistants; bare, every workspace's git state, open, diff or a new one |
+| `phosphor workspace` | a tab per idea: folder, git, its assistants; bare, every workspace's git state, open, diff, a new one or remove one |
 | `phosphor ask Q` | a one-shot question to whichever assistant CLI is installed, no tab; `-c` adds your latest decisions and summaries |
 
 ### Notes

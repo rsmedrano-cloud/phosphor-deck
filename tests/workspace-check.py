@@ -141,6 +141,53 @@ if shutil.which("git"):
     finally:
         ws.root = real_root
 
+# remove(): its tab out of the profile (forget() patched: gen never runs
+# here), the folder into the trash, not deleted -- dirty work is kept.
+import tabs
+rroot = os.path.join(d, "rm-root")
+data = os.path.join(d, "rm-data")
+gone = os.path.join(rroot, "gone")
+os.makedirs(gone)
+open(os.path.join(gone, "NOTES.md"), "w").write("# gone\n")
+open(os.path.join(gone, "wip.txt"), "w").write("not committed\n")
+rprof = os.path.join(d, "rm.toml")
+open(rprof, "w").write('[deck]\nprojects = "%s"\n\n[[tabs]]\nname = "GONE"\npanes = [ { cwd = "%s" } ]\n\n'
+                       '[[tabs]]\nname = "SHOP"\npanes = [ {} ]\n' % (rroot, gone))
+forgot = []
+real_forget, real_root = tabs.forget, ws.root
+saved = {k: os.environ.get(k) for k in ("PHOSPHOR_PROFILE", "PHOSPHOR_DATA", "ZELLIJ")}
+os.environ.update(PHOSPHOR_PROFILE=rprof, PHOSPHOR_DATA=data); os.environ.pop("ZELLIJ", None)
+tabs.forget = lambda name: (forgot.append(name), None)[1]
+ws.root = lambda prof=None: rroot
+try:
+    ok, msg = ws.remove("gone")
+    check("remove: says it worked", ok)
+    check("remove: its own tab goes out of the profile", forgot == ["GONE"])
+    check("remove: the folder leaves the projects folder", not os.path.exists(gone))
+    trashed = [x for x in os.listdir(os.path.join(data, "trash")) if x.startswith("gone-")]
+    check("remove: into the trash, uncommitted work and all",
+          len(trashed) == 1 and os.path.isfile(os.path.join(data, "trash", trashed[0], "wip.txt")))
+    check("remove: says where it went", "trash" in msg)
+    ok, msg = ws.remove("gone")
+    check("remove: a name that isn't a workspace (any more) is refused", not ok)
+    os.makedirs(os.path.join(rroot, "shop"))
+    open(os.path.join(rroot, "shop", "NOTES.md"), "w").write("")
+    forgot.clear()
+    ws.remove("shop")
+    check("remove: a profile tab with its name that isn't this workspace is left alone", forgot == [])
+finally:
+    tabs.forget, ws.root = real_forget, real_root
+    for k, v in saved.items():
+        if v is None: os.environ.pop(k, None)
+        else: os.environ[k] = v
+os.makedirs(os.path.join(rroot, "keep"))
+open(os.path.join(rroot, "keep", "NOTES.md"), "w").write("")
+renv = dict(env, PHOSPHOR_PROFILE=rprof, PHOSPHOR_DATA=data)
+r = subprocess.run([sys.executable, os.path.join(REPO, "phosphor"), "workspace", "rm", "keep"],
+                   env=renv, capture_output=True, text=True, stdin=subprocess.DEVNULL)
+check("rm without a terminal asks for --yes and removes nothing",
+      r.returncode == 1 and "--yes" in r.stdout and os.path.isdir(os.path.join(rroot, "keep")))
+
 if fail:
     print("FAIL: " + "; ".join(fail)); sys.exit(1)
 print("ok")

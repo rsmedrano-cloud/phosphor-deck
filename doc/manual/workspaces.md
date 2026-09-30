@@ -98,6 +98,10 @@ hand, same as any other git repo.
   `--folder-only` writes the folder and leaves the profile and tabs alone (an assistant can use it).
 - `phosphor workspace open NAME` — go to its tab, or open it (inside the deck).
 - `phosphor workspace list` — the workspaces in your projects folder.
+- `phosphor workspace rm NAME [--yes]` — done with one: its tab out of your profile (and closed,
+  if it's open in the deck), its folder moved into `~/.local/share/phosphor/trash/NAME-DATE`
+  instead of deleted -- a dirty one still has work in it, so getting it back is moving that
+  folder back. It asks first; without a terminal only `--yes` does it. Empty the trash by hand.
 - `phosphor workspace` — the same, as a panel (also `z` in the DECK tab): each one's git state
   (dirty, ↑ ahead, ↓ behind), Enter opens its tab, `d` shows its diff and any commits not pushed,
-  `n` makes a new one.
+  `n` makes a new one, `x` (twice) removes it the same way as `rm`.

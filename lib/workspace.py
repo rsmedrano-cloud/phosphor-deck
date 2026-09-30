@@ -10,8 +10,10 @@
         --folder-only                  write the folder, don't touch the profile or tabs
     phosphor workspace open NAME       its tab (from inside the deck)
     phosphor workspace list            the workspaces under your projects folder
+    phosphor workspace rm NAME [--yes] its tab out of the profile (and closed), its folder
+                                       into the trash (~/.local/share/phosphor/trash)
     phosphor workspace                 on a terminal: every workspace and its git state
-                                       (Enter its tab, d its diff, n a new one)
+                                       (Enter its tab, d its diff, n a new one, x twice removes it)
 
 A workspace lives in [deck] projects (default ~/projects)/NAME. Every assistant
 folder gets an AGENTS.md saying what it owns; the workspace keeps its own
@@ -396,13 +398,82 @@ def diff(base):
         if un.strip(): out += "\nnot pushed:\n" + un
     return out if out.strip() else "nothing to show\n"
 
-PANEL_KEYS = [("\r", "Enter", "open its tab"), ("d", "d", "diff"), ("n", "n", "new"), ("q", "q", "quit")]
+def trash_dir():
+    return os.path.join(deckconf.data_dir(), "trash")
+
+def remove(name):
+    """Take a workspace away: its tab out of the profile (so a restart
+    doesn't bring it back) and closed if it's open, its folder moved into
+    the trash -- not deleted, since a dirty one still has work in it.
+    Returns (ok, what happened)."""
+    import tabs
+    base = os.path.join(root(), name)
+    if name not in names():
+        return False, "%s isn't a workspace in %s" % (name, tilde(root()))
+    tab = name.upper()
+    done = []
+    prof, _ = deckconf.load()
+    if any(t.get("name") == tab for t in (prof or {}).get("tabs", [])) and not taken_tab(prof, tab, base):
+        err = tabs.forget(tab)
+        if err:
+            return False, "its tab: " + err
+        done.append("tab out of the profile")
+    if os.environ.get("ZELLIJ"):
+        me, _ = tabs.mine()
+        try:
+            open_tabs = json.loads(zj("list-tabs", "-j") or "[]")
+        except ValueError:
+            open_tabs = []
+        for t in open_tabs:
+            if tabs.bare(t.get("name")) == tab:
+                if me == tab:
+                    done.append("its tab stays open: this is it")
+                else:
+                    zj("close-tab-by-id", str(t.get("tab_id")))
+                    done.append("tab closed")
+    os.makedirs(trash_dir(), exist_ok=True)
+    dest = os.path.join(trash_dir(), "%s-%s" % (name, time.strftime("%Y%m%d-%H%M%S")))
+    try:
+        shutil.move(base, dest)
+    except OSError as e:
+        return False, "couldn't move the folder: %s" % e
+    done.append("folder in " + tilde(dest))
+    return True, "; ".join(done)
+
+def rm(argv):
+    names_ = [a for a in argv if not a.startswith("-")]
+    if len(names_) != 1:
+        print("usage: phosphor workspace rm NAME [--yes]"); return 1
+    name = names_[0]
+    if name not in names():
+        name = slug(name)
+    if name not in names():
+        print("  " + BAD + " %s isn't a workspace in %s" % (names_[0], tilde(root()))); return 1
+    st = git_status(os.path.join(root(), name))
+    if "--yes" not in argv:
+        if not sys.stdin.isatty():
+            print("  " + BAD + " removing a workspace asks first: --yes to do it without a terminal"); return 1
+        print("  remove " + BLOOM + name + RST + DIM + " (" + state(st) + ")" + RST)
+        if st and any(st):
+            print("  " + AMB + "what isn't committed or pushed goes with it, into the trash" + RST)
+        try:
+            if input("  its tab out of the profile, the folder into the trash? (y/N) ").strip().lower() not in ("y", "yes"):
+                print("  nothing removed"); return 0
+        except (EOFError, KeyboardInterrupt):
+            print(); return 1
+    ok, m = remove(name)
+    print("  " + (OK if ok else BAD) + " " + m)
+    return 0 if ok else 1
+
+PANEL_KEYS = [("\r", "Enter", "open its tab"), ("d", "d", "diff"), ("n", "n", "new"), ("x", "x", "remove"),
+              ("q", "q", "quit")]
 
 def panel():
-    """Every workspace and its git state; Enter opens its tab, d its diff, n a new one."""
+    """Every workspace and its git state; Enter opens its tab, d its diff,
+    n a new one, x twice removes it."""
     import form
     INV = "\x1b[7m"
-    sel, msg = 0, ""
+    sel, msg, confirm = 0, "", None
     def load():
         r = root()
         return [(n, os.path.join(r, n), git_status(os.path.join(r, n))) for n in names()]
@@ -449,6 +520,7 @@ def panel():
                 k = hit[0]
             if k is None: continue
             if k in ("q", "Q", "\x03", "\x1b"): break
+            if k != "x": confirm = None
             if k in ("j", "\x1b[B"): sel, msg = min(max(0, len(rows) - 1), sel + 1), ""; continue
             if k in ("k", "\x1b[A"): sel, msg = max(0, sel - 1), ""; continue
             if k == "n":
@@ -472,6 +544,17 @@ def panel():
                 form.pager(diff(base))
                 sys.stdout.write(on); sys.stdout.flush()
                 rows = load()
+            elif k == "x":
+                if confirm != n:
+                    confirm = n
+                    st = rows[sel][2]
+                    lost = " -- what isn't committed or pushed goes too" if st and any(st) else ""
+                    msg = AMB + "x again removes %s: tab out, folder into the trash%s" % (n, lost) + RST
+                    continue
+                confirm = None
+                ok, m = remove(n)
+                msg = (PH + "✓ " if ok else RED + "✗ ") + RST + FG + m + RST
+                rows = load(); sel = min(sel, max(0, len(rows) - 1))
     except KeyboardInterrupt:
         pass
     finally:
@@ -531,6 +614,8 @@ def main():
         open_tab(slug(argv[1])); return 0
     if sub == "list":
         return listing()
+    if sub in ("rm", "remove"):
+        return rm(argv[1:])
     print(__doc__); return 1
 
 if __name__ == "__main__":

@@ -68,9 +68,10 @@ sidebar:
   if anything of the old deck is still alive.
 
 ## Workspaces
-- `phosphor workspace new|open|list` — a tab per idea with its own folder and assistants; see workspaces.
+- `phosphor workspace new|open|list|rm` — a tab per idea with its own folder and assistants; see workspaces.
+  `rm NAME` takes its tab out and moves its folder into phosphor's trash (asks first).
   Bare, on a terminal (or `z` in the DECK tab): every workspace and its git state, Enter opens its tab,
-  `d` its diff, `n` a new one.
+  `d` its diff, `n` a new one, `x` twice removes it.
 - `phosphor ask [--assistant NAME] [-c] QUESTION` — a one-shot question, no tab: shells out to whichever
   assistant CLI is already installed (claude, gemini, codex, opencode, aider, agy -- the same
   list `phosphor workspace` knows, tried in that order) with a headless, single-answer flag of

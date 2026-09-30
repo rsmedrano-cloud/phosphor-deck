@@ -28,7 +28,7 @@ _phosphor() {
         tts) COMPREPLY=( $(compgen -W "install status on off --voice --list" -- "$cur") ); return ;;
         --voice) COMPREPLY=( $(compgen -W "glados adjutant hal synth system" -- "$cur") ); return ;;
         note|notes) COMPREPLY=( $(compgen -W "--kind --by --book --file --tab --here --archive" -- "$cur") ); return ;;
-        workspace) COMPREPLY=( $(compgen -W "new open list" -- "$cur") ); return ;;
+        workspace) COMPREPLY=( $(compgen -W "new open list rm" -- "$cur") ); return ;;
         --kind) COMPREPLY=( $(compgen -W "note idea decision todo summary" -- "$cur") ); return ;;
         completion) COMPREPLY=( $(compgen -W "bash zsh" -- "$cur") ); return ;;
     esac
@@ -57,7 +57,7 @@ _phosphor() {
         push) compadd -- on off --qr ;;
         trace) compadd -- off ;;
         note|notes) compadd -- --kind --by --book --file --tab --here --archive ;;
-        workspace) compadd -- new open list ;;
+        workspace) compadd -- new open list rm ;;
         tts) compadd -- install status on off --voice --list ;;
         completion) compadd -- bash zsh ;;
         *) _files ;;
