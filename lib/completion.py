@@ -23,6 +23,8 @@ _phosphor() {
         help) COMPREPLY=( $(compgen -W "%(topics)s" -- "$cur") ); return ;;
         web) COMPREPLY=( $(compgen -W "on off status token" -- "$cur") ); return ;;
         tunnel) COMPREPLY=( $(compgen -W "on off" -- "$cur") ); return ;;
+        push) COMPREPLY=( $(compgen -W "on off --qr" -- "$cur") ); return ;;
+        trace) COMPREPLY=( $(compgen -W "off" -- "$cur") ); return ;;
         tts) COMPREPLY=( $(compgen -W "install status on off --voice --list" -- "$cur") ); return ;;
         --voice) COMPREPLY=( $(compgen -W "glados adjutant hal synth system" -- "$cur") ); return ;;
         note|notes) COMPREPLY=( $(compgen -W "--kind --by --book --file --tab --here --archive" -- "$cur") ); return ;;
@@ -52,6 +54,8 @@ _phosphor() {
         help) compadd -- $topics ;;
         web) compadd -- on off status token ;;
         tunnel) compadd -- on off ;;
+        push) compadd -- on off --qr ;;
+        trace) compadd -- off ;;
         note|notes) compadd -- --kind --by --book --file --tab --here --archive ;;
         workspace) compadd -- new open list ;;
         tts) compadd -- install status on off --voice --list ;;

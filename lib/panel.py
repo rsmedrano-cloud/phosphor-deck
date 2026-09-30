@@ -23,10 +23,11 @@ ACTIONS = [("e", "explore commands",  "every phosphor command, by category"),
            ("t", "tunnels",          "keep your ssh LocalForward tunnels up"),
            ("i", "install tools",    "TUIs from their releases, no sudo"),
            ("k", "keep a tab",       "the way you arranged it, into your profile"),
-           ("g", "triage a host",    "pick a flagged one (or none flagged: back), ask an assistant"),
+           ("g", "triage a host",    "pick a flagged one (or any), ask an assistant"),
            ("j", "tail logs",        "pick a host and service, stream its logs (Ctrl-C back)"),
            ("y", "services",         "systemd units: the deck's own and yours"),
            ("x", "review",           "merge/pull requests of a repo, CI and diff"),
+           ("n", "notices & traces", "phone notices, spoken ones, verbose logs: on or off"),
            ("c", "shortcuts",        "the deck's keys, yours to change"),
            ("b", "tabs",             "the ones that come back: forget, reorder"),
            ("a", "recipes",          "starter tab bundles: homelab, dev, bubble, workbench"),
@@ -227,6 +228,16 @@ def act(k, st):
                 P("restart"); pause()
         elif k == "h":
             P("help"); pause()
+        elif k == "n":
+            import dlog, edit, push, tts
+            traces = dlog.active_traces()
+            got = edit.pick("notices & traces", [
+                ("push", ("on" if push.get_config()["enabled"] else "off") + " -- notices on a phone (ntfy)"),
+                ("voice", ("on" if tts.get_config()["enabled"] else "off") + " -- notices spoken aloud"),
+                ("trace", ("%d on" % len(traces) if traces else "none on") + " -- a tool's verbose log")])
+            sys.stdout.write("\x1b[?1049l\x1b[2J\x1b[H"); sys.stdout.flush()
+            if got:
+                P({"push": "push", "voice": "tts", "trace": "trace"}[got[0]])
         elif k == "c":
             P("shortcuts")
         elif k == "b":

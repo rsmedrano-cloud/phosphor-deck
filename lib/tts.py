@@ -659,25 +659,30 @@ def status():
 
 def set_enabled(enable=True):
     """Enable or disable TTS in profile."""
-    prof, prof_path = deckconf.load()
-    if deckconf.example():
+    if not deckconf.set_key("tts", "enabled", "true" if enable else "false"):
         print("No profile yet: phosphor init writes yours.")
         return 1
-    text = open(prof_path).read()
-    if "[tts]" in text:
-        if re.search(r"\[tts\][^\[]*\benabled\s*=\s*\w+", text):
-            text = re.sub(r"(\[tts\][^\[]*\benabled\s*=\s*)\w+", r"\g<1>%s" % ("true" if enable else "false"), text)
-        else:
-            text = text.replace("[tts]", "[tts]\nenabled = %s" % ("true" if enable else "false"))
-    else:
-        text += "\n[tts]\nenabled = %s\nvoice = \"glados\"\n" % ("true" if enable else "false")
-    open(prof_path, "w").write(text)
-    print("TTS %s in %s" % ("enabled" if enable else "disabled", prof_path))
+    print("TTS %s in %s" % ("enabled" if enable else "disabled", deckconf.path()))
     return 0
+
+
+def interactive():
+    """No arguments, on a terminal: the status, and on/off one key away."""
+    import form
+    while True:
+        on = get_config()["enabled"]
+        status()
+        k = form.choice([("o", "turn it off" if on else "turn it on")])
+        if k != "o":
+            return 0
+        set_enabled(not on)
+        print()
 
 
 def main():
     argv = sys.argv[1:]
+    if not argv and sys.stdin.isatty() and sys.stdout.isatty():
+        return interactive()
     if not argv or argv[0] in ("-h", "--help", "help"):
         print("usage: phosphor tts [\"message to speak\"]")
         print("       phosphor tts --voice VOICE \"message\"")

@@ -4,7 +4,7 @@ Everything that needs to know which machines exist (fleet, path, gen, setup)
 asks here: the profile is the only source of truth, and no host list is
 written into the code.
 """
-import os, shutil, subprocess
+import os, re, shutil, subprocess
 
 # tomllib is 3.11+. Ubuntu 22.04, Debian 11 and older Raspberry Pi OS ship
 # 3.9/3.10, and that's exactly the hardware this project wants to reuse.
@@ -41,6 +41,32 @@ def backup(p, old_text):
     if os.path.exists(b2): shutil.move(b2, b3)
     if os.path.exists(b1): shutil.move(b1, b2)
     open(b1, "w").write(old_text)
+
+def set_key(section, key, value):
+    """`key = value` in [section] of the profile (value a TOML literal,
+    quoted already), replacing that line or adding it, and the table too if
+    it's missing; the profile as it was goes to .bak first. False when
+    there's no profile yet (the example is never written)."""
+    if example():
+        return False
+    p = path()
+    text = open(p).read()
+    lines = text.split("\n")
+    line = "%s = %s" % (key, value)
+    start = next((i for i, l in enumerate(lines) if l.strip() == "[%s]" % section), None)
+    if start is None:
+        new = text.rstrip("\n") + "\n\n[%s]\n%s\n" % (section, line)
+    else:
+        end = next((i for i in range(start + 1, len(lines)) if lines[i].lstrip().startswith("[")), len(lines))
+        at = next((i for i in range(start + 1, end) if re.match(r"\s*%s\s*=" % re.escape(key), lines[i])), None)
+        if at is None:
+            lines.insert(start + 1, line)
+        else:
+            lines[at] = line
+        new = "\n".join(lines)
+    backup(p, text)
+    open(p, "w").write(new)
+    return True
 
 def load():
     """(profile, path). profile is None when there's no parser or it can't be read."""

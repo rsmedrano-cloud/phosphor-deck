@@ -151,6 +151,11 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
   command, or `/` to search them all by name or word; a read-only one runs right
   there, anything else shows its usage and copies the invocation for you instead
   of guessing at missing arguments.
+- **Commands that ask instead of quitting.** Run bare on a terminal (or from
+  `phosphor commands`, or the DECK tab), `ask`, `broadcast`, `send`, `clip`,
+  `receive`, `triage`, `face`, `push`, `tts` and `trace` open a small screen for
+  what they need -- a question, hosts to tick, a file to pick, on or off -- all
+  by tap on a phone. With their arguments, or piped, nothing changes.
 - **Tabs that stay put.** Tabs are locked; Alt-r unlocks the one you're in,
   lets you resize, split or swap what runs in a pane, and then asks: save it
   into your profile, or put it back.
@@ -379,7 +384,7 @@ more depth on every one of these.
 | `phosphor glance` | read-only: fleet, unread mentions, open todos -- for a small screen, no zellij needed |
 | `phosphor adjutant` | the SYS panel that speaks up: `phosphor notify MESSAGE` makes it announce something |
 | `phosphor notify --push` | the same notice on your phone (ntfy), for a brain nobody sits near: `[push]` in the profile |
-| `phosphor push --qr` | `[push]`'s status, or a QR to subscribe on the phone without typing the server/topic in |
+| `phosphor push [--qr\|on\|off]` | `[push]`'s status, on or off, or a QR to subscribe on the phone without typing the server/topic in |
 | `phosphor tts` | speak notifications aloud with selectable voices (GLaDOS, Adjutant, HAL, Synth, System) |
 | `phosphor ci` | GitLab/GitHub pipeline status cards (see `[ci]` in the profile) |
 | `phosphor services` | systemd units and their state: Phosphor's own, plus any you add (see `[services]` in the profile) |
@@ -401,12 +406,12 @@ more depth on every one of these.
 | `phosphor web` | on / off / status / token: the deck in a browser, tailnet only |
 | `phosphor path` | turns `~/fleet/x/y` into `host:/y` |
 | `phosphor tail HOST [SVC]` | stream a fleet host's journalctl/docker/podman logs, reconnecting on its own |
-| `phosphor triage [HOST]` | a diagnostic snapshot of a host, piped straight to phosphor ask; no HOST: lists what's flagged |
+| `phosphor triage [HOST]` | a diagnostic snapshot of a host, piped straight to phosphor ask; no HOST: picks from what's flagged (or any host) |
 | `phosphor broadcast -- CMD` | one command on every fleet host at once, output grouped by host; asks first |
 | `phosphor tunnel` | keep your ssh config's LocalForward tunnels up |
 | `phosphor face` | turn an image into the adjutant's face |
 | `phosphor logs` | the deck's own log: crashes with traceback, hangs, exits, restarts; `-f` follows |
-| `phosphor trace` | verbose logging for one tool, for about 30 minutes, then it turns itself off |
+| `phosphor trace` | verbose logging for one tool, for about 30 minutes, then it turns itself off (`off TOOL` sooner) |
 
 ### Before you push a fork
 

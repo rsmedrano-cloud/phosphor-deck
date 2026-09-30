@@ -14,7 +14,7 @@ Reachable on your tailnet if you have one, on your LAN otherwise -- never
 the internet, and gone as soon as it's used. The file lands in ~/received
 (or --dir), never overwriting one that's already there.
 """
-import os, re, secrets, sys, time
+import os, re, secrets, subprocess, sys, time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
@@ -137,11 +137,12 @@ def handler_for(path, upload_path, dest_dir, result):
     return OneShot
 
 
-def receive(prof, dest_dir=DEFAULT_DIR, timeout=DEFAULT_TIMEOUT):
+def receive(prof, dest_dir=DEFAULT_DIR, timeout=DEFAULT_TIMEOUT, result=None):
+    """0 once a file landed (result["path"] says where), 1 on the timeout."""
     secret = secrets.token_urlsafe(12)
     path, upload_path = "/%s" % secret, "/%s/upload" % secret
     ip, where = send.pick_address(prof)
-    result = {}
+    result = {} if result is None else result
 
     httpd = HTTPServer(("0.0.0.0", 0), handler_for(path, upload_path, dest_dir, result))
     url_ = "http://%s:%d%s" % (ip, httpd.server_port, path)
@@ -162,6 +163,7 @@ def receive(prof, dest_dir=DEFAULT_DIR, timeout=DEFAULT_TIMEOUT):
 
     if httpd.RequestHandlerClass.served:
         print(row(OK, "received", result["name"], note="%d bytes -> %s" % (result["size"], tilde(dest_dir))))
+        result["path"] = os.path.join(dest_dir, result["name"])
         return 0
     print(row(WARN, "timed out", "nobody sent anything")); return 1
 
@@ -185,7 +187,32 @@ def main():
         dest = os.path.expanduser(a[i + 1])
         del a[i:i + 2]
     prof, _ = deckconf.load()
-    return receive(prof, dest, timeout)
+    if not (sys.argv[1:] == [] and sys.stdin.isatty() and sys.stdout.isatty()):
+        return receive(prof, dest, timeout)
+    return interactive(prof, dest, timeout)
+
+
+def interactive(prof, dest, timeout):
+    """No arguments, on a terminal: the QR on a screen of its own, then what
+    to do with the file that landed -- open it in yazi, or back."""
+    sys.stdout.write("\x1b[H\x1b[2J"); sys.stdout.flush()
+    print("\n" + BLOOM + "  phosphor receive" + RST + DIM + "   send a file here from the device that has it" + RST + "\n")
+    got = {}
+    rc = receive(prof, dest, timeout, got)
+    if rc or not got.get("path"):
+        back(); return rc
+    yazi = deckconf.exe("yazi")
+    if not yazi:
+        back(); return 0
+    sys.stdout.write("\n  " + AMB + "y" + RST + FG + " open it in yazi" + RST + DIM + "   q · Enter: back " + RST)
+    sys.stdout.flush()
+    while True:
+        k = getkey()
+        if k == "y":
+            print()
+            return subprocess.run([yazi, got["path"]]).returncode
+        if k is None or k in BACK_KEYS:
+            print(); return 0
 
 
 if __name__ == "__main__":

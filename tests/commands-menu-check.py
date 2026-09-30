@@ -59,7 +59,7 @@ sys.modules["clip"] = FakeClip
 
 def press(keys):
     it = iter(keys)
-    commands.getkey = lambda timeout=None: next(it, "q")
+    commands.getkey = lambda timeout=None, text=False: next(it, "q")
 
 try:
     with contextlib.redirect_stdout(io.StringIO()):
@@ -74,8 +74,16 @@ try:
         # 'q' right after actually exits the loop)
         ran.clear()
         press(["\r", "q"])
-        commands.detail("send", "phosphor send FILE", "note", {"send": {"mutates": True}})
+        commands.detail("restart", "phosphor restart", "note", {"restart": {"mutates": True}})
         check("mutating command: Enter never runs it", not ran)
+
+        # a command that asks for what it needs (lib/form.py): Enter runs it
+        # bare, even though it can mutate -- its own screens ask the rest
+        ran.clear()
+        press(["\r"])
+        commands.detail("send", "phosphor send FILE", "note", {"send": {"mutates": True}})
+        check("a command that asks: Enter runs it with no arguments", ran and ran[-1][2:] == ["send"])
+        check("every command that asks is a real one", commands.ASKS <= in_menu)
 
         # unknown command (not in the manifest at all): treated as unsafe, never auto-run
         ran.clear()
@@ -107,6 +115,8 @@ try:
         # ask_query(): typing, Backspace, Enter returns it; Esc cancels
         press(list("logx") + ["\x7f", "s", "\r"])
         check("ask_query returns what was typed", commands.ask_query() == "logs")
+        press(["journal", "\r"])                         # pasted: one read, many chars
+        check("ask_query takes a paste whole", commands.ask_query() == "journal")
         press(["a", "\x1b"])
         check("ask_query: Esc cancels", commands.ask_query() is None)
 

@@ -9,6 +9,9 @@ one-time link behind a random token, prints it with a QR to scan, and shuts
 itself down the moment someone downloads it (or after the timeout, default
 3 minutes, if nobody does). Reachable on your tailnet if you have one, on
 your LAN otherwise -- never the internet, and gone as soon as it's used.
+
+With no FILE, on a terminal, it asks which: folders from here, ~ and
+~/fleet one key away.
 """
 import mimetypes, os, secrets, socket, sys, time
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -108,7 +111,14 @@ def send(file_path, prof, timeout=DEFAULT_TIMEOUT):
     print(row(WARN, "timed out", "nobody came for it")); return 1
 
 def main():
+    import form
     a = sys.argv[1:]
+    if form.wanted(a):
+        picked = form.file("phosphor send -- which file?")
+        form.leave()
+        if not picked:
+            return 0
+        a = [picked]
     if not a or a[0] in ("-h", "--help"):
         print("usage: phosphor send FILE [--timeout SECONDS]"); return 1
     timeout = DEFAULT_TIMEOUT

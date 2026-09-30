@@ -92,17 +92,32 @@ import glance
 real_cache = glance.CACHE
 glance.CACHE = os.path.join(tempfile.mkdtemp(), "fleet.json")
 picker_shown = []
-edit.pick = lambda title, items: picker_shown.append(1)
+edit.pick = lambda title, items: (picker_shown.append((title, items)), items[-1])[1]
+real_load0 = triage.deckconf.load
+triage.deckconf.load = lambda: (PROF, "t")
 try:
     buf = io.StringIO(); sys.stdout = buf
     try:
         host = triage.pick_flagged()
     finally:
         sys.stdout = real_stdout
-    check("nothing flagged: no picker opened, no host", host is None and not picker_shown)
+    check("nothing flagged: the picker offers every host of the profile instead",
+          picker_shown and [i[0] for i in picker_shown[0][1]] == ["brain", "db-box"]
+          and "nothing flagged" in picker_shown[0][0])
+    check("nothing flagged: the host picked there comes back", host == "db-box")
+    # and no hosts at all: no picker, no host
+    picker_shown.clear()
+    triage.deckconf.load = lambda: ({}, "t")
+    buf = io.StringIO(); sys.stdout = buf
+    try:
+        host = triage.pick_flagged()
+    finally:
+        sys.stdout = real_stdout
+    check("no hosts at all: no picker opened, no host", host is None and not picker_shown)
 finally:
     edit.pick = real_edit_pick
     glance.CACHE = real_cache
+    triage.deckconf.load = real_load0
 
 # main(): unknown host never reaches ssh or ask
 real_load = triage.deckconf.load

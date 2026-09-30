@@ -77,13 +77,21 @@ def list_flagged():
 
 def pick_flagged():
     """The arrow-key picker over flagged hosts (same one phosphor commands
-    uses) -- the chosen host name, or None (nothing flagged, or backed out)."""
-    bad = flagged()
-    if not bad:
-        print(DIM + "  nothing the fleet panel is flagging right now." + RST)
-        return None
+    uses); with nothing flagged, over every host of the profile instead --
+    a second look is sometimes wanted before anything turns red. The chosen
+    host name, or None (no hosts at all, or backed out)."""
     import edit
-    picked = edit.pick("phosphor triage -- pick a flagged host", bad)
+    bad = flagged()
+    title = "phosphor triage -- pick a flagged host"
+    if not bad:
+        bad = [(h["name"], h.get("role", "")) for h in deckconf.hosts(deckconf.load()[0] or {})
+               if h.get("role") != "viewer"]
+        title = "phosphor triage -- nothing flagged; pick any host"
+        if not bad:
+            print(DIM + "  no hosts in your profile." + RST)
+            return None
+    picked = edit.pick(title, bad)
+    if sys.stdout.isatty(): sys.stdout.write("\x1b[?1006l\x1b[?1000l\x1b[?1049l\x1b[?25h"); sys.stdout.flush()
     return picked[0] if picked else None
 
 

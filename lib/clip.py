@@ -7,6 +7,7 @@ looking at the deck from, or what you paste into a file.
 
 It writes OSC 52 to the terminal. zellij forwards it to every attached
 device, so a phone and a PC on the deck at the same time both get it.
+With nothing at all, on a terminal, it asks which file.
 """
 import base64, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -58,6 +59,16 @@ def main():
             say(row(BAD, a[0], str(e))); return 1
     elif not sys.stdin.isatty():
         data = sys.stdin.buffer.read()
+    elif not a and sys.stdout.isatty():             # nothing at all, on a terminal: ask
+        import form
+        picked = form.file("phosphor clip -- which file onto the clipboard?")
+        form.leave()
+        if not picked:
+            return 0
+        try:
+            data = open(picked, "rb").read()
+        except OSError as e:
+            say(row(BAD, picked, str(e))); return 1
     else:
         say("usage: phosphor clip FILE | cmd | phosphor clip | phosphor clip --save FILE")
         return 1

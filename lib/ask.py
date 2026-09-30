@@ -18,6 +18,9 @@ With no question at all, the piped text alone is the prompt.
 so the answer knows what you've already settled: "why did we drop X" has
 something to go on. Off unless asked: those notes go to the assistant's
 provider along with the question.
+
+Run with nothing at all on a terminal it asks instead: a box for the
+question, whether the notebook goes along, and the answer in a pager.
 """
 import os, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -80,6 +83,47 @@ def prompt(argv, piped, notes=""):
     return notes + "\n\n" + body if notes and body else body
 
 
+def no_assistant(assistant):
+    if assistant:
+        print(BAD + " %r isn't installed, or isn't one phosphor ask knows (%s)" %
+              (assistant, ", ".join(ONESHOT)) + RST)
+    else:
+        print(BAD + " no assistant installed: " + ", ".join(ONESHOT) + RST)
+    return 1
+
+
+def interactive(assistant, with_notes):
+    """No question and a terminal: a box for it, the notebook or not, the
+    answer in a pager."""
+    import form, edit
+    chosen = pick(assistant)
+    if chosen is None:
+        return no_assistant(assistant)
+    q = form.line("phosphor ask", "a question for %s -- Enter asks, Esc goes back" % chosen)
+    if not (q or "").strip():
+        form.leave(); return 0
+    if not with_notes:
+        how = edit.pick("send your notebook along?",
+                        [("just ask", "only the question"),
+                         ("with notes", "its 5 latest decisions and summaries go too, to %s's provider" % chosen)])
+        if how is None:
+            form.leave(); return 0
+        with_notes = how[0] == "with notes"
+    notes_text = ""
+    if with_notes:
+        import notes
+        notes_text = recent_notes(notes.entries())
+    form.leave()
+    print(DIM + "  asking " + chosen + "..." + RST)
+    try:
+        r = subprocess.run(command(chosen, prompt([q], "", notes_text)),
+                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    except OSError as e:
+        print(BAD + " couldn't run %s: %s" % (chosen, e) + RST); return 1
+    form.pager("  " + q + "\n\n" + r.stdout.decode("utf-8", "replace"))
+    return r.returncode
+
+
 def main():
     a = sys.argv[1:]
     assistant, with_notes = None, False
@@ -92,6 +136,8 @@ def main():
             with_notes, a = True, a[1:]
     piped = sys.stdin.read().strip() if not sys.stdin.isatty() else ""
     if not (a or piped):
+        if sys.stdin.isatty() and sys.stdout.isatty():
+            return interactive(assistant, with_notes)
         print(BAD + " usage: phosphor ask [--assistant NAME] [-c] \"question\"   (or pipe one in)" + RST); return 1
     notes_text = ""
     if with_notes:
@@ -103,12 +149,7 @@ def main():
     question = prompt(a, piped, notes_text)
     chosen = pick(assistant)
     if chosen is None:
-        if assistant:
-            print(BAD + " %r isn't installed, or isn't one phosphor ask knows (%s)" %
-                  (assistant, ", ".join(ONESHOT)) + RST)
-        else:
-            print(BAD + " no assistant installed: " + ", ".join(ONESHOT) + RST)
-        return 1
+        return no_assistant(assistant)
     try:
         return subprocess.run(command(chosen, question)).returncode
     except OSError as e:

@@ -150,12 +150,51 @@ def qr(cfg=None):
     return 0
 
 
+def set_enabled(on):
+    """[push] enabled = on. Turning it on with no topic makes one up: long
+    and random, since on a public server the name is the only lock."""
+    cfg = get_config()
+    if on and not cfg["topic"]:
+        import secrets
+        if not deckconf.set_key("push", "topic", '"deck-%s"' % secrets.token_hex(8)):
+            print(row(BAD, "push", "no profile yet", note="phosphor init writes yours")); return 1
+    if not deckconf.set_key("push", "enabled", "true" if on else "false"):
+        print(row(BAD, "push", "no profile yet", note="phosphor init writes yours")); return 1
+    print(row(OK, "push", "on" if on else "off", note=deckconf.path()))
+    if on and not cfg["topic"]:
+        print(DIM + "  a new topic: phosphor push --qr subscribes the phone to it" + RST)
+    return 0
+
+
+def interactive():
+    """No arguments, on a terminal: the status, on/off and the QR one key away."""
+    import form
+    while True:
+        cfg = get_config()
+        status(cfg)
+        opts = [("o", "turn it off" if cfg["enabled"] else "turn it on")]
+        if cfg["topic"]:
+            opts.append(("s", "subscribe a phone (QR)"))
+        k = form.choice(opts)
+        if k == "o":
+            set_enabled(not cfg["enabled"])
+        elif k == "s":
+            print(); qr(cfg)
+        else:
+            return 0
+        print()
+
+
 def main():
     a = sys.argv[1:]
     if a and a[0] in ("-h", "--help"):
-        print("usage: phosphor push [--qr]"); return 0
+        print("usage: phosphor push [--qr | on | off]"); return 0
     if "--qr" in a:
         return qr()
+    if a and a[0] in ("on", "off"):
+        return set_enabled(a[0] == "on")
+    if not a and sys.stdin.isatty() and sys.stdout.isatty():
+        return interactive()
     return status()
 
 

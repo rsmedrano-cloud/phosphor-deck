@@ -105,6 +105,24 @@ def start_trace(tool, minutes=30):
     open(tracefile(tool), "a").close()
 
 
+def stop_trace(tool):
+    try:
+        os.remove(flag(tool))
+        return True
+    except OSError:
+        return False
+
+
+def tools_seen():
+    """The tool names deck.log has lines for, most recent first."""
+    out = []
+    for l in reversed(tail(LOG, 2000)):
+        parts = l.split()
+        if len(parts) >= 3 and parts[2].isupper() and parts[2] not in out:
+            out.append(parts[2])
+    return out
+
+
 _throttled = {}
 
 def event_throttled(tool, what, detail="", every=300):

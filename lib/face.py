@@ -4,6 +4,9 @@ Uses ImageMagick: each frame is shrunk to a tiny grayscale grid and mapped
 to characters by density. The result is a JSON of frames the adjutant plays.
 
     phosphor face head.webp --name adjutant --w 24 --h 13
+
+With no IMAGE, on a terminal, it asks which (folders from here, ~ and
+~/fleet one key away) and uses the defaults for the rest.
 """
 import json, os, re, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -74,7 +77,16 @@ def grid(src, idx, w, h, gamma, crop=None, half=False, thr=0.45, mode="thr"):
             rows.append(s.rstrip() or " ")
     return rows
 
+IMAGES = (".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp")
+
 def run(argv):
+    import form
+    if form.wanted(argv):
+        picked = form.file("phosphor face -- which image?", exts=IMAGES)
+        form.leave()
+        if not picked:
+            return 0
+        argv = [picked]
     if not argv:
         print("usage: phosphor face IMAGE [--name N] [--w 24] [--h 13]")
         print("           [--max-frames 24] [--gamma G] [--crop GEOM] [--half] [--thr 0.45]")

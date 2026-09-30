@@ -6,6 +6,21 @@ before it updates.
 
 ## Unreleased
 
+## 1.2.2 — commands that ask instead of quitting
+
+- Commands that ask instead of quitting: run with nothing on a terminal -- or with Enter in
+  `phosphor commands` -- `ask`, `broadcast`, `send`, `clip`, `receive`, `triage`, `face`, `push`,
+  `tts` and `trace` open a small screen for what they need, by key or by tap. `ask`: a box for the
+  question, the notebook or not, the answer in a pager. `broadcast`: the hosts to tick (or a
+  whole role), the command, then the usual confirmation. `send`, `clip`, `face`: the file, walked
+  to by folders with `~` and `~/fleet` one key away. `receive`: once the file lands, `y` opens it
+  in yazi. `triage` with nothing flagged: any host. Piped or with arguments, nothing changes.
+- `push`, `tts` and `trace`: their status, and on or off one key away -- also from the DECK tab's
+  new `n` (notices & traces). New: `phosphor push on|off` (on with no topic makes up a long random
+  one) and `phosphor trace off TOOL`.
+- A line you type into the deck's screens (the search in `phosphor commands`, the new ones) takes
+  a paste whole; before, only its first character got through.
+
 ## 1.2.1 — the blind spots: services, review, theme one tap away; install without git
 
 - `services` and `review` open from the `+` menu (review when `glab` or `gh` is installed) and

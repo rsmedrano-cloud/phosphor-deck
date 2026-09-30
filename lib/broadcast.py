@@ -15,6 +15,9 @@ It can change anything on those machines, so it shows the command and the
 hosts and asks first. Without a terminal it refuses unless `--yes` says the
 run was meant to be unattended (a script, a cron). Exits 0 only if every
 host answered 0.
+
+Run with nothing at all on a terminal it asks: the hosts to tick (or a
+whole role), then the command, then the same confirmation.
 """
 import os, subprocess, sys, time
 from concurrent.futures import ThreadPoolExecutor
@@ -98,15 +101,46 @@ def parse(a):
     return names, role, timeout, yes, " ".join(a)
 
 
+def interactive(prof):
+    """The hosts ticked, then the command -- (names, command) or None."""
+    import form
+    fleet = targets(prof)[0]
+    if not fleet:
+        print(DIM + "  no machines in the fleet to run it on." + RST)
+        return None
+    roles = {}
+    for h in fleet:
+        roles.setdefault(h.get("role") or "-", []).append(h["name"])
+    names = form.ticks("phosphor broadcast -- where?",
+                       [(h["name"], (h.get("role") or "") + ("  (here)" if h.get("local") else "")) for h in fleet],
+                       groups=roles if len(roles) > 1 else None)
+    if not names:
+        form.leave(); return None
+    command = form.line("phosphor broadcast -- what?",
+                        "a command for %d host%s -- Enter, then it asks once more"
+                        % (len(names), "" if len(names) == 1 else "s"))
+    form.leave()
+    if not (command or "").strip():
+        return None
+    return names, command.strip()
+
+
 def main():
-    p = parse(sys.argv[1:])
-    if p is None:
+    import form
+    asking = form.wanted(sys.argv[1:])
+    p = None if asking else parse(sys.argv[1:])
+    if not asking and p is None:
         print(USAGE); return 1
-    names, role, timeout, yes, command = p
     if deckconf.example():
         print(BAD + " no profile yet: phosphor init first (broadcast never runs on the example's machines)" + RST)
         return 1
     prof, _ = deckconf.load()
+    if asking:
+        got = interactive(prof)
+        if got is None:
+            return 0
+        p = (got[0], None, 60, False, got[1])
+    names, role, timeout, yes, command = p
     hs, unknown = targets(prof, names, role)
     if unknown:
         print(BAD + " not in the fleet: " + ", ".join(unknown) + RST); return 1

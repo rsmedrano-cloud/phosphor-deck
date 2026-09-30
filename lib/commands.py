@@ -99,6 +99,12 @@ CATEGORIES = [
 SHORT_CATEGORY = {"Before you push a fork": "Before you push"}
 
 
+# Run with nothing on a terminal, these ask for what they need on a screen
+# of their own (lib/form.py), and any change still asks before it happens:
+# Enter runs them even though they can mutate something.
+ASKS = {"ask", "broadcast", "send", "clip", "receive", "triage", "face", "push", "tts", "trace"}
+
+
 def manifest():
     try:
         return json.load(open(os.path.join(REPO, "share", "commands.json")))
@@ -131,14 +137,14 @@ def ask_query():
         screen(["", "  " + BLOOM + "search every command" + RST,
                 "  " + DIM + "a name or a word -- Enter searches, Esc goes back" + RST, "",
                 "  " + AMB + "/" + RST + FG + q + RST + "\x1b[?25h"])
-        k = getkey(None)
+        k = getkey(None, text=True)
         if k is None or isinstance(k, tuple):
             continue
         if k in ("\r", "\n"): return q
         if k in ("\x03", "\x1b"): return None
         if k in ("\x7f", "\x08"): q = q[:-1]
         elif k == "\x15": q = ""                          # Ctrl-u
-        elif len(k) == 1 and k >= " ": q += k
+        elif k[0] >= " ": q += k                           # typed, or pasted at once
 
 
 def screen(lines):
@@ -149,20 +155,22 @@ def screen(lines):
 def detail(cmd, usage, note, man):
     entry = man.get(cmd) or {}
     safe = entry.get("mutates") is False
+    asks = cmd in ASKS
     while True:
         lines = ["", "  " + BLOOM + usage + RST, "", "  " + FG + note + RST]
         if entry.get("note"):
             lines += ["", "  " + DIM + entry["note"] + RST]
         lines.append("")
-        if safe:
-            lines.append("  " + AMB + "Enter" + RST + FG + " runs it now" + RST)
+        if safe or asks:
+            lines.append("  " + AMB + "Enter" + RST + FG + (" runs it: it asks for the rest" if asks
+                                                           else " runs it now") + RST)
         lines.append("  " + AMB + "c" + RST + FG + " copies `" + usage + "` to every screen's clipboard" + RST)
         lines.append("  " + AMB + "b" + RST + FG + " back" + DIM + "   (q)" + RST)
         screen(lines)
         k = getkey(None)
         if k in ("q", "\x1b", "b"):
             return
-        if k in ("\r", "\n") and safe:
+        if k in ("\r", "\n") and (safe or asks):
             sys.stdout.write("\x1b[?1049l\x1b[?25h"); sys.stdout.flush()
             subprocess.run([sys.executable, PHOSPHOR, cmd])
             back()

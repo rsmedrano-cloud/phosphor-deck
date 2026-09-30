@@ -61,14 +61,15 @@ def vlen(s): return len(_ANSI.sub("", s))
 def pad(s, w): return s + " " * max(0, w - vlen(s))
 def width(cap=100): return min(shutil.get_terminal_size((80, 24)).columns, cap)
 
-def getkey(timeout=None):
+def getkey(timeout=None, text=False):
     """One key from the terminal, read straight from the fd.
 
     Reading through sys.stdin buffers a whole escape sequence on the first
     read(1), so a following select() sees nothing and an arrow key looks
     like a lone Esc. Returns None on timeout, the full sequence for
     special keys ("\x1b[A" up, "\x1b[B" down...), "\x1b" for Esc,
-    ("MOUSE", button, x, y, pressed) for SGR mouse events, else the char."""
+    ("MOUSE", button, x, y, pressed) for SGR mouse events, else the char --
+    or, with text=True, every char that came at once (a paste)."""
     fd = sys.stdin.fileno(); old = termios.tcgetattr(fd)
     try:
         tty.setraw(fd)
@@ -85,6 +86,8 @@ def getkey(timeout=None):
         return ("MOUSE", int(m.group(1)), int(m.group(2)), int(m.group(3)), m.group(4) == "M")
     if s.startswith("\x1b[") or s.startswith("\x1bO"):
         return s[:3] if len(s) >= 3 else s
+    if text and s and s[0] >= " ":
+        return s
     return s[:1] if s else None
 
 BACK_KEYS = ("q", "Q", "\x1b", "\r", "\n", "\x03", "\x04")   # q, Esc, Enter, Ctrl-C, Ctrl-D

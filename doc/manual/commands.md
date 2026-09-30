@@ -7,19 +7,30 @@
   (also: `m` in the DECK tab).
 - `phosphor panel` — the DECK tab: the deck's state, the next steps while you set up, and every
   action one key or tap away (add a screen, machines, theme, web, tunnels, tools, keep a tab, triage
-  a host, tail logs, services, review, tabs, shortcuts, a shell here, doctor, logs, update, restart,
-  manual). Actions
+  a host, tail logs, services, review, notices & traces, tabs, shortcuts, a shell here, doctor,
+  logs, update, restart, manual). `n` (notices & traces) opens `phosphor push`, `phosphor tts` or
+  `phosphor trace` on their own screen: what's on, and on or off one key away. Actions
   run in the same pane and come back the same way from every one: q, Esc or Enter (the ones
   that print and wait say "q · Enter: back", the TUIs take q) -- `tail`'s stream is the one
   exception: it takes over the pane until you Ctrl-C, the same way "a shell here" does.
   After a hand edit of the profile, its status line says "profile changed: f applies it":
   `f` asks, then runs `phosphor gen` and `phosphor restart`.
 - `phosphor commands` — every phosphor command, browsable by category (also: `e` in the DECK
-  tab). Pick a category, then a command: a read-only one runs right there when you pick it,
-  anything else shows its usage and copies the invocation to every screen's clipboard instead
+  tab). Pick a category, then a command: a read-only one runs right there when you pick it, and
+  so does one that asks for what it needs (see "Commands that ask" below); anything else shows its usage and copies the invocation to every screen's clipboard instead
   of guessing at missing arguments (a file, a host, a message) for you. `/` searches every
   command at once, by name or by a word from its description (`/logs`, `/tailnet`): the name
   matching comes first.
+- **Commands that ask.** Run with nothing at all on a terminal, these open a small screen for
+  what they need instead of printing their usage line -- by key or by tap, `q`/Esc or
+  "< back" to leave without doing anything; piped, or with their arguments, they behave as always:
+  `ask` (a box for the question, whether the notebook goes along, the answer in a pager),
+  `broadcast` (the hosts to tick, or a whole role with `g`, then the command, then its usual
+  confirmation), `send`, `clip` and `face` (the file, walked to by folders: `~` and `~/fleet` one
+  key away; `face` only lists images), `receive` (the QR on its own screen, and `y` opens the
+  file that landed in yazi), `triage` (with nothing flagged, any host of the profile), `push`,
+  `tts` and `trace` (their status, and on or off one key away). A line of text takes a paste
+  whole.
 - `phosphor phone` — how to add a screen (phone, another computer, anything with ssh), with the
   phone's line as a QR; piped (`ssh … phosphor phone | sh`) it is the Termux kit. `--qr` prints only the code.
 - `phosphor screen` — the same kit for a computer without Termux: a key and a `deck` in ~/.local/bin.
@@ -53,7 +64,8 @@
   assistant CLI is already installed (claude, gemini, codex, opencode, aider, agy -- the same
   list `phosphor workspace` knows, tried in that order) with a headless, single-answer flag of
   its own (`claude -p`, `gemini -p`, `codex exec`, `opencode run`, `aider --message`, `agy -p`)
-  and prints the answer.
+  and prints the answer. With no question and nothing piped, on a terminal, it asks for one (see
+  "Commands that ask").
   `--assistant` picks one by name instead of the first installed. For "what was that command
   again" -- not a replacement for a workspace or a chat tab. Piped input is context, not a
   replacement for the question: `git diff | phosphor ask "what changed here"` sends both
@@ -103,8 +115,10 @@
   `ssh -t you@brain ~/.local/bin/phosphor glance` needs no zellij attach at all (see screens);
   refreshes every 5s, Ctrl-C to leave.
 - `phosphor notify [--tab TAB] [--voice VOICE] [--tts|--no-tts] [--push|--no-push] MESSAGE` — the adjutant announces it, speaks it if TTS is enabled, and pushes it to your phone if `[push]` is on. The tab it names (or SYS with no `--tab`) also reads "`<TAB> ●N`" until you look, whether or not `[deck] notifier` is on (see profile).
-- `phosphor tts [MESSAGE]` — speak a message aloud with selectable voices (glados, adjutant, hal, synth, system); `phosphor tts install glados` assists with installing GLaDOS-TTS.
-- `phosphor push [--qr]` — `[push]`'s status (on/off, server, topic, the "open the deck" button); `--qr` prints the subscribe
+- `phosphor tts [MESSAGE]` — speak a message aloud with selectable voices (glados, adjutant, hal, synth, system); `phosphor tts install glados` assists with installing GLaDOS-TTS. `on`/`off` switch `[tts]`; with nothing, on a terminal, its status with on/off one key away.
+- `phosphor push [--qr | on | off]` — `[push]`'s status (on/off, server, topic, the "open the deck" button); `on`/`off`
+  switch it (`on` with no topic makes up a long random one); with nothing, on a terminal, the same status with
+  on/off and the QR one key away. `--qr` prints the subscribe
   link as a QR (also onto every screen's clipboard) so the phone's ntfy app can scan it instead of
   you typing the server and topic in by hand.
 - `phosphor review` — open merge/pull requests, from the deck: detects GitLab or GitHub from this
@@ -152,16 +166,17 @@
   for a zellij config of your own.
 - `phosphor edit` — what Alt-r runs: unlock the tab you're in, change it, then save it or put it back (see keys).
 - `phosphor mentions [--setup]` — the chat feed; `--setup` hooks matterhorn.
-- `phosphor clip FILE` | `cmd | phosphor clip` | `phosphor clip --save FILE [--force]`.
+- `phosphor clip FILE` | `cmd | phosphor clip` | `phosphor clip --save FILE [--force]`. With nothing, on a terminal, it asks which file.
 - `phosphor send FILE [--timeout SECONDS]` — one real file (any size or type), as a one-time
   link and QR on your tailnet (or LAN without one). Gone the moment it's downloaded, or after
-  the timeout (default 180s) if nobody comes for it. See clipboard.
+  the timeout (default 180s) if nobody comes for it. No `FILE`, on a terminal: it asks which. See clipboard.
 - `phosphor receive [--dir FOLDER] [--timeout SECONDS]` — the other way: a one-time upload
   link and QR, same tailnet-or-LAN reach as `send`. The file lands in `~/received` (or `--dir`),
   never overwriting one that's already there, and the link is gone the moment it's used or
   after the timeout. For getting a real file (a photo, a screenshot) from whatever device
   you're actually holding onto this machine -- an AI assistant running in a pane here can then
-  read it directly. See clipboard.
+  read it directly. Run bare on a terminal, the QR gets a screen of its own and, once the file
+  lands, `y` opens it in yazi. See clipboard.
 - `phosphor web on|off|status|token` — browser access, tailnet only.
 - `phosphor path PATH` — `~/fleet/x/y` → `host:/y`.
 - `phosphor tail HOST [SERVICE]` — stream a fleet host's logs: `journalctl -f` with no `SERVICE`,
@@ -177,7 +192,7 @@
   doctor` already flagged something and you want a second look before digging by hand -- not
   something to run on a timer. With no `HOST` on a real terminal, it opens the same arrow-key
   picker `phosphor commands` uses, over whatever the fleet panel is currently flagging (the same
-  hosts `phosphor glance` calls out); piped or scripted, it just lists them instead (also: `g` in
+  hosts `phosphor glance` calls out) -- or, with nothing flagged, over every host of the profile; piped or scripted, it just lists them instead (also: `g` in
   the DECK tab).
 - `phosphor broadcast [--host NAME]... [--role ROLE] [--timeout S] [--yes] -- COMMAND` — one
   command on every host `phosphor fleet` watches, at once: over ssh (BatchMode, a key, never a
@@ -186,9 +201,11 @@
   ssh never got there) and how long it took; it exits 0 only if every host answered 0. `--host`
   (repeatable) and `--role` narrow it down; `--timeout` (default 60s) is per host. It can change
   anything on those machines, so it shows the command and the hosts and asks first; without a
-  terminal it refuses unless `--yes` says the run was meant to be unattended.
+  terminal it refuses unless `--yes` says the run was meant to be unattended. With nothing at all,
+  on a terminal, it asks: the hosts to tick, the command, then the same confirmation.
 - `phosphor tunnel [on|off HOST]` — keep your ssh config's LocalForward tunnels up.
-- `phosphor face IMAGE [--name N] [--w 24] [--h 13] [--half] [--mode thr|dither|edge]`.
+- `phosphor face IMAGE [--name N] [--w 24] [--h 13] [--half] [--mode thr|dither|edge]`. No `IMAGE`, on a
+  terminal: it asks which, listing only images.
 - `phosphor run [--name N] [--reconnect] [--wait S] [--alt] -- CMD` — the watcher every pane uses:
   a crash, a hang or a non-zero exit goes into the deck's log; `l` on an "ended" pane reads it back.
   `--reconnect` (ssh panes) retries a dropped link (ssh's own exit 255) starting at 3s, doubling
@@ -198,7 +215,9 @@
   traceback, hangs, exits, restarts. `TOOL` narrows to it (its trace file if `phosphor trace` turned
   one on, else its lines from the base log); `-f` follows, like `tail -f`. Also `l` in the DECK tab.
 - `phosphor trace TOOL` — verbose logging for that tool alone, into `trace-TOOL.log`; turns itself
-  off after about 30 minutes. No `TOOL`: lists whatever is tracing right now.
+  off after about 30 minutes, or sooner with `phosphor trace off TOOL`. No `TOOL`: lists whatever is
+  tracing right now, and on a terminal `t` starts one (the tools deck.log has lines for) and `x`
+  stops one.
 
 ## Before you push a fork
 - `phosphor demo` — a throwaway session over made-up machines and a made-up notebook, for a
