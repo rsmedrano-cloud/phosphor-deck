@@ -85,6 +85,12 @@
 - `phosphor fleet`, `phosphor pulse`, `phosphor adjutant`, `phosphor prom`, `phosphor ci`, `phosphor services` — the SYS panels; prom draws your Prometheus queries, ci draws your GitLab/GitHub pipeline statuses,
   services lists systemd units and their state (see `[prometheus]`, `[ci]` and `[services]` in profile; `--once` prints one frame).
   `fleet` also calls `phosphor notify` itself when a host's ok/not-ok flips (down, or back) -- at most once a minute per host even if the link flaps.
+  A card also shows the CPU's temperature and a laptop's battery (from sysfs, when the kernel has
+  them) and disks failing SMART: that needs `smartctl` there, answering without a password (root,
+  or a sudoers line like `you ALL=(root) NOPASSWD: /usr/sbin/smartctl`; sudo is only tried by a
+  user in sudo, wheel or admin). It's asked at most every 30 minutes, with `-n standby` so a
+  sleeping disk stays asleep; the answer waits in `$XDG_RUNTIME_DIR/phosphor-smart` on that
+  machine, and "not allowed" waits a day. A disk starting to fail alerts like a host going down.
   In `fleet`, pick a machine's card (arrows, Tab or a tap; Esc lets go) and open something on it in a tab of
   its own: `s` a shell there (ssh, or a plain shell for the brain), `l` its logs (what `phosphor tail HOST`
   runs), `t` a `phosphor triage` of it. The keys show on the bottom line and tapping them works too; none

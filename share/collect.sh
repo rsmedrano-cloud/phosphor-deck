@@ -55,3 +55,67 @@ else
     printf "GPU=%s|%s|%s|%s|%s\n" "$n" "$u" "$mu" "$mt" "$t"
   done
 fi
+
+# Sensors the kernel already exposes (sysfs, no tools): the CPU's own
+# temperature (its hottest reading) and a laptop's battery -- an old
+# laptop is a common brain. PHOSPHOR_SYS only moves /sys for the tests.
+S=${PHOSPHOR_SYS:-/sys}
+t=0
+for h in "$S"/class/hwmon/hwmon*; do
+  case "$(cat "$h/name" 2>/dev/null)" in
+    coretemp|k10temp|zenpower|cpu_thermal|soc_thermal) ;;
+    *) continue ;;
+  esac
+  for f in "$h"/temp*_input; do
+    v=$(cat "$f" 2>/dev/null); [ "${v:-0}" -gt "$t" ] 2>/dev/null && t=$v
+  done
+done
+if [ "$t" -eq 0 ]; then
+  for z in "$S"/class/thermal/thermal_zone*; do
+    case "$(cat "$z/type" 2>/dev/null)" in
+      x86_pkg_temp|cpu-thermal|cpu_thermal|soc-thermal|soc_thermal) ;;
+      *) continue ;;
+    esac
+    v=$(cat "$z/temp" 2>/dev/null); [ "${v:-0}" -gt "$t" ] 2>/dev/null && t=$v
+  done
+fi
+[ "$t" -gt 0 ] && echo "TEMP=$((t/1000))"
+for b in "$S"/class/power_supply/*; do
+  [ "$(cat "$b/type" 2>/dev/null)" = Battery ] || continue
+  [ "$(cat "$b/scope" 2>/dev/null)" = Device ] && continue   # a mouse, a headset
+  [ -r "$b/capacity" ] || continue
+  echo "BAT=$(cat "$b/capacity")|$(cat "$b/status" 2>/dev/null)"
+  break
+done
+
+# SMART: a disk that says it's failing, before it does. Only where
+# smartctl answers without a password (root, or a NOPASSWD sudoers rule
+# for it; sudo is only tried by a user in sudo/wheel/admin, never one sudo
+# would report). `-n standby` never spins up a sleeping disk. Asked every
+# 30 minutes at most, not every poll: the answer waits in a small file on
+# that machine, and "not allowed here" waits a day.
+if command -v smartctl >/dev/null 2>&1; then
+  c=${XDG_RUNTIME_DIR:-$HOME/.cache}
+  mkdir -p "$c" 2>/dev/null; c=$c/phosphor-smart
+  age=30; [ -f "$c" ] && [ ! -s "$c" ] && age=1440
+  if [ ! -f "$c" ] || [ -z "$(find "$c" -mmin -$age 2>/dev/null)" ]; then
+    if [ "$(id -u)" = 0 ]; then sc=smartctl
+    elif id -Gn 2>/dev/null | grep -qwE 'sudo|wheel|admin'; then sc="sudo -n smartctl"
+    else sc=smartctl; fi
+    f=0; n=0; out=-
+    for dev in $(ls "$S"/block 2>/dev/null); do
+      case "$dev" in loop*|ram*|zram*|dm-*|md*|sr*|fd*|nbd*) continue ;; esac
+      o=$($sc -H -n standby "/dev/$dev" 2>&1); r=$?
+      case "$o" in
+        *STANDBY*|*SLEEP*) continue ;;
+        *"ermission denied"*|*"password is required"*|*"not allowed"*|*"sudoers"*) out=""; break ;;
+      esac
+      [ $((r & 2)) -ne 0 ] && continue   # no SMART there (a USB bridge, a virtual disk)
+      n=$((n+1)); [ $((r & 8)) -ne 0 ] && f=$((f+1))
+    done
+    [ -n "$out" ] && [ "$n" -gt 0 ] && out="SMART=$f|$n"
+    if [ -n "$out" ]; then echo "$out" > "$c"; else : > "$c"; fi 2>/dev/null
+  fi
+  grep '^SMART=' "$c" 2>/dev/null
+fi
+exit 0

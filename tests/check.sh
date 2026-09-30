@@ -175,6 +175,9 @@ out=$(python3 tests/review-check.py 2>&1) && ok || bad "$out"
 step "phosphor screens: who's attached, kick one"
 out=$(python3 tests/screens-check.py 2>&1) && ok || bad "$out"
 
+step "fleet: CPU temperature, battery, SMART"
+out=$(python3 tests/fleet-sensors-check.py 2>&1) && ok || bad "$out"
+
 step "fleet: a slow poll tags itself and logs"
 out=$(python3 tests/fleet-timing-check.py 2>&1) && ok || bad "$out"
 

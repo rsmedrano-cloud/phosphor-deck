@@ -7,6 +7,9 @@ sidebar:
 
 - No listening daemon, no agents on watched machines, no telemetry. Fleet
   metrics come from a shell script piped over ssh; files travel over SFTP.
+  The one thing it leaves there: where `smartctl` exists, a one-line file
+  (`$XDG_RUNTIME_DIR/phosphor-smart`) holding the last SMART answer, so the
+  disks aren't asked every 15 seconds.
 - The session and everything it shows live on the brain: it is the valuable
   machine now (updates, backups, who can log in). On a shared brain other users
   may reach what the deck reaches.

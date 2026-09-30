@@ -14,6 +14,7 @@ import json, os, shutil, sys, textwrap, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import DIM, MUTE, FG, PH, AMB, RED, RST, rule
 import deckconf
+import health
 import mentions
 import notes
 import workspace
@@ -48,6 +49,7 @@ def fleet_state():
             bad.append((name, "%d service%s failed" % (svcfail, "" if svcfail == 1 else "s")))
         if h.get("REBOOT"):
             bad.append((name, "reboot pending"))
+        bad += [(name, p) for p in health.sensor_problems(h)]
     return ok, len(hosts), (bad if not stale else [("*", "stale data")])
 
 def wrapped(text, w, color=FG, indent="    "):

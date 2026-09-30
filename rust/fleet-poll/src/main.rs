@@ -232,6 +232,15 @@ fn fail(err: &str) -> serde_json::Value {
     serde_json::json!({"ok": false, "err": err})
 }
 
+/// Disks failing SMART from collect.sh's `SMART=failing|checked`, or None
+/// when that host didn't say (no smartctl, not allowed, nothing checked).
+fn smart_failing(r: &serde_json::Value) -> Option<i64> {
+    let (f, n) = r.get("SMART")?.as_str()?.split_once('|')?;
+    let n: i64 = n.trim().parse().ok()?;
+    if n == 0 { return None; }
+    f.trim().parse().ok()
+}
+
 /// KEY=VALUE lines -> the same shape lib/fleet.py's collect() builds.
 fn parse(stdout: &str) -> serde_json::Value {
     let mut d = serde_json::Map::new();
@@ -324,6 +333,7 @@ fn main() {
     let mut fails: HashMap<String, u32> = HashMap::new();
     let mut prev_ok: HashMap<String, bool> = HashMap::new();
     let mut prev_svcfail: HashMap<String, i64> = HashMap::new();
+    let mut prev_smart: HashMap<String, i64> = HashMap::new();
     let mut last_alert: HashMap<String, Instant> = HashMap::new();
     let mut throttled: HashMap<&str, Instant> = HashMap::new();
     let mut first = true;
@@ -390,6 +400,18 @@ fn main() {
                     }
                 }
                 prev_svcfail.insert(name.clone(), svcfail);
+                // A disk failing SMART only alerts going bad (1:1 with
+                // update_host()): back to 0 is a disk swapped out, not news.
+                if let Some(bad) = smart_failing(&r) {
+                    let was = prev_smart.get(&name).copied().unwrap_or(bad);
+                    let cooled = last_alert.get(&name).map(|t| t.elapsed() >= ALERT_COOLDOWN).unwrap_or(true);
+                    if bad > was && cooled {
+                        last_alert.insert(name.clone(), Instant::now());
+                        let unit = if bad == 1 { "disk" } else { "disks" };
+                        notify(&format!("{}: {} {} failing SMART", name, bad, unit));
+                    }
+                    prev_smart.insert(name.clone(), bad);
+                }
             }
             state.insert(name, r);
         }
@@ -475,6 +497,16 @@ mod tests {
         assert_eq!(d["ok"], serde_json::json!(true));
         let (d, _ms) = collect(&None, false);
         assert_eq!(d["ok"], serde_json::json!(true));
+    }
+
+    #[test]
+    fn smart_failing_reads_collect_sh_and_ignores_the_rest() {
+        let d = parse("SMART=1|4\n");
+        assert_eq!(smart_failing(&d), Some(1));
+        assert_eq!(smart_failing(&parse("SMART=0|3\n")), Some(0));
+        assert_eq!(smart_failing(&parse("SMART=0|0\n")), None, "nothing checked says nothing");
+        assert_eq!(smart_failing(&parse("SMART=garbled\n")), None);
+        assert_eq!(smart_failing(&parse("CPU=3\n")), None);
     }
 
     #[test]

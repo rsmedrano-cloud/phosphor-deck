@@ -6,6 +6,16 @@ before it updates.
 
 ## Unreleased
 
+## 1.1.11 — FLEET: temperature, battery, SMART
+
+- New: FLEET cards show the CPU's temperature, a laptop's battery, and whether a disk says it's
+  failing SMART. Temperature and battery come straight from the kernel, nothing to install. SMART
+  needs `smartctl` on that machine, answering without a password (you ssh in as root, or a
+  sudoers `NOPASSWD` rule for it); it's asked every 30 minutes at most, never wakes a sleeping
+  disk, and a machine where it isn't allowed is left alone for a day. A disk that starts failing
+  pushes and speaks up like a host going down; `phosphor glance` also calls out a CPU at 90°C or
+  more and a battery at 10% or less that's running down.
+
 ## 1.1.10 — FLEET: s ssh, l logs, t triage
 
 - New: keys in the FLEET panel. Pick a machine's card with the arrows, Tab or a tap, then `s` opens a

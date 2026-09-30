@@ -135,7 +135,8 @@ brain itself, on another computer (`phosphor gen` writes it there), on a phone
 (the phone kit writes it).
 
 **The fleet** is your other machines. The deck watches them (CPU, RAM, disks,
-containers, failed systemd units, a pending reboot, over ssh; nothing is
+containers, failed systemd units, a pending reboot, CPU temperature, a
+battery, SMART, over ssh; nothing is
 installed on them) and shows their files as
 folders under `~/fleet` on the brain: `~/fleet/<machine>/...`. Nothing is
 copied or moved; you see the files where they are (rclone sftp mounts, or
@@ -830,6 +831,12 @@ and in the `+` menu, and open in a tab of their own.
 - `phosphor fleet`, `phosphor pulse`, `phosphor adjutant`, `phosphor prom`, `phosphor ci`, `phosphor services` — the SYS panels; prom draws your Prometheus queries, ci draws your GitLab/GitHub pipeline statuses,
   services lists systemd units and their state (see `[prometheus]`, `[ci]` and `[services]` in profile; `--once` prints one frame).
   `fleet` also calls `phosphor notify` itself when a host's ok/not-ok flips (down, or back) -- at most once a minute per host even if the link flaps.
+  A card also shows the CPU's temperature and a laptop's battery (from sysfs, when the kernel has
+  them) and disks failing SMART: that needs `smartctl` there, answering without a password (root,
+  or a sudoers line like `you ALL=(root) NOPASSWD: /usr/sbin/smartctl`; sudo is only tried by a
+  user in sudo, wheel or admin). It's asked at most every 30 minutes, with `-n standby` so a
+  sleeping disk stays asleep; the answer waits in `$XDG_RUNTIME_DIR/phosphor-smart` on that
+  machine, and "not allowed" waits a day. A disk starting to fail alerts like a host going down.
   In `fleet`, pick a machine's card (arrows, Tab or a tap; Esc lets go) and open something on it in a tab of
   its own: `s` a shell there (ssh, or a plain shell for the brain), `l` its logs (what `phosphor tail HOST`
   runs), `t` a `phosphor triage` of it. The keys show on the bottom line and tapping them works too; none
@@ -1492,6 +1499,9 @@ device's mount or another copy step.
 
 - No listening daemon, no agents on watched machines, no telemetry. Fleet
   metrics come from a shell script piped over ssh; files travel over SFTP.
+  The one thing it leaves there: where `smartctl` exists, a one-line file
+  (`$XDG_RUNTIME_DIR/phosphor-smart`) holding the last SMART answer, so the
+  disks aren't asked every 15 seconds.
 - The session and everything it shows live on the brain: it is the valuable
   machine now (updates, backups, who can log in). On a shared brain other users
   may reach what the deck reaches.
@@ -1546,6 +1556,12 @@ device's mount or another copy step.
   after that (the first two still get the full 6s/25s -- a real blip
   deserves the benefit of the doubt), so a chronically unreachable host
   stops dragging every refresh on its own.
+- **A card shows no SMART line**: that machine has no `smartctl`, or it
+  won't answer without a password. `ssh HOST smartctl -H /dev/sda` (or
+  with `sudo -n`) shows which; after fixing it, remove
+  `$XDG_RUNTIME_DIR/phosphor-smart` there, or it waits out the day it
+  remembers "not allowed". No TEMP or BAT line: the kernel exposes neither
+  (a VM, a board without a sensor driver).
 - **A folder in `~/fleet` is empty** (yazi shows nothing, or won't go in):
   its mount isn't up. `phosphor doctor` says which ones are mounted;
   `journalctl --user -u fleet-NAME` says why. Mounts use your own ssh, so

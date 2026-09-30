@@ -17,6 +17,7 @@ from concurrent.futures import ThreadPoolExecutor
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
 import deckconf
+from health import sensors, LOW_BAT
 
 HOME     = os.path.expanduser("~")
 COLLECT  = share("collect.sh")
@@ -31,15 +32,16 @@ CACHE    = os.path.join(deckconf.cache_dir(), "fleet.json")
 DEMO_BASE = {
     "nebula": {"cpu": 16, "mem": 0.34, "memt": 32768,
                "mnt": [("/", 41, "512G"), ("/home", 63, "1.8T")],
-               "ctr": ("docker", 7, 0)},
+               "ctr": ("docker", 7, 0), "temp": 48},
     "forge":  {"cpu": 52, "mem": 0.61, "memt": 65536,
                "mnt": [("/", 77, "930G")],
                "gpu": [{"name": "NVIDIA GeForce RTX 4070", "util": "38",
-                        "used": "4200", "total": "12288", "temp": "57"}]},
+                        "used": "4200", "total": "12288", "temp": "57"}], "temp": 71},
     "atlas":  {"cpu": 9,  "mem": 0.22, "memt": 16384,
-               "mnt": [("/home", 28, "460G")]},
+               "mnt": [("/home", 28, "460G")], "temp": 44, "bat": "83|Discharging"},
     "vault":  {"cpu": 3,  "mem": 0.12, "memt": 8192,
-               "mnt": [("/mnt/data", 88, "14T"), ("/mnt/backup", 95, "8T")]},
+               "mnt": [("/mnt/data", 88, "14T"), ("/mnt/backup", 95, "8T")],
+               "smart": "0|4"},
     "relay":  {"cpu": 29, "mem": 0.44, "memt": 4096,
                "mnt": [("/", 52, "58G")],
                "ctr": ("podman", 3, 1)},
@@ -62,6 +64,11 @@ def demo_collect(name):
         try: g["util"] = str(int(wobble(int(g["util"]), 15)))
         except ValueError: pass
         d["gpu"].append(g)
+    if b.get("temp"):
+        d["TEMP"] = str(int(wobble(b["temp"], 3)))
+    for k in ("bat", "smart"):
+        if b.get(k):
+            d[k.upper()] = b[k]
     return d
 
 def tone(p): return PH if p < 60 else (AMB if p < 85 else RED)
@@ -132,6 +139,7 @@ STATE        = {}
 FAILS        = {}   # consecutive failed polls, per host
 PREV_OK      = {}   # last known ok/not-ok per host, so a level (still down) never refires
 PREV_SVCFAIL = {}   # last known failed-service count per host, same reason
+PREV_SMART   = {}   # last known count of disks failing SMART per host, same reason
 LAST_ALERT   = {}   # last alert time per host, so a flapping link doesn't flood the phone
 
 def _alert(name, ok, text=None):
@@ -195,6 +203,13 @@ def update_host(n, r):
             elif was_fails and not fails:
                 _alert(n, True, "%s: services back to normal" % n)
         PREV_SVCFAIL[n] = fails
+        # A disk failing SMART only ever alerts going bad: a count going
+        # back to 0 is a disk swapped out, not news worth a push.
+        smart = sensors(r)[2]
+        if smart is not None:
+            if smart[0] > PREV_SMART.get(n, smart[0]):
+                _alert(n, False, "%s: %d disk%s failing SMART" % (n, smart[0], "" if smart[0] == 1 else "s"))
+            PREV_SMART[n] = smart[0]
     STATE[n] = r
 
 def poller():
@@ -381,6 +396,27 @@ def card(name, w, d):
             body.append(RED + "● %d failed" % svcfail + RST)
         if d.get("REBOOT"):
             body.append(AMB + "⟳ reboot pending" + RST)
+        temp, bat, smart = sensors(d)
+        parts, width = [], 0
+        if temp is not None:
+            t = "%d°C" % temp
+            parts.append(MUTE + "TEMP " + RST + (PH if temp < 70 else AMB if temp < 85 else RED) + t + RST)
+            width += 5 + len(t)
+        if bat:
+            p, st = bat
+            arrow = {"Charging": "↑", "Discharging": "↓"}.get(st, "")
+            low = st == "Discharging" and p <= 30
+            t = "%d%%%s" % (p, arrow)
+            parts.append(MUTE + "BAT " + RST + ((RED if p <= LOW_BAT else AMB) if low else PH) + t + RST)
+            width += 4 + len(t) + (2 if width else 0)
+        if smart and not smart[0] and width + 10 <= inner:
+            parts.append(DIM + "SMART ok" + RST)
+        if parts:
+            body.append("  ".join(parts))
+        if smart and smart[0]:
+            body.append(RED + "● %d disk%s failing SMART" % (smart[0], "" if smart[0] == 1 else "s") + RST)
+        elif smart and width + 10 > inner:
+            body.append(DIM + "SMART ok" + RST)
         if d.get("ms", 0) > SLOW_POLL_MS:
             body.append(AMB + "slow poll: %.1fs" % (d["ms"] / 1000.0) + RST)
         for g in d.get("gpu", []):

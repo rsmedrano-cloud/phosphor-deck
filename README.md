@@ -76,7 +76,8 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
   assistants side by side in a few taps). Mark "keep" and
   the tab is written into your profile, so it survives restarts.
 - **Fleet panel.** One card per machine: CPU, RAM, load, GPU, disks,
-  containers, failed services and a pending reboot, collected over SSH.
+  containers, failed services, a pending reboot, the CPU's temperature, a
+  laptop's battery and disks failing SMART, collected over SSH.
   Nothing gets installed on the other side. A host going down (or a service
   failing on one that's still up) pushes and speaks up on its own, the same
   as any other notification. See something worth a closer look? `phosphor

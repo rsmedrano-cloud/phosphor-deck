@@ -35,6 +35,12 @@
   after that (the first two still get the full 6s/25s -- a real blip
   deserves the benefit of the doubt), so a chronically unreachable host
   stops dragging every refresh on its own.
+- **A card shows no SMART line**: that machine has no `smartctl`, or it
+  won't answer without a password. `ssh HOST smartctl -H /dev/sda` (or
+  with `sudo -n`) shows which; after fixing it, remove
+  `$XDG_RUNTIME_DIR/phosphor-smart` there, or it waits out the day it
+  remembers "not allowed". No TEMP or BAT line: the kernel exposes neither
+  (a VM, a board without a sensor driver).
 - **A folder in `~/fleet` is empty** (yazi shows nothing, or won't go in):
   its mount isn't up. `phosphor doctor` says which ones are mounted;
   `journalctl --user -u fleet-NAME` says why. Mounts use your own ssh, so
