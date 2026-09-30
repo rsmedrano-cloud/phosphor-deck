@@ -139,7 +139,7 @@ def cards(prof, st, with_steps=True):
         n = st["dirty_workspaces"]
         deck.append(("z", "%d workspace%s dirty" % (n, "" if n == 1 else "s"), "", True))
     if st.get("two_panes"):
-        deck.append(("D", "this tab in one pane", "", True))
+        deck.append(("1", "this tab in one pane", "", True))
     cs = [("deck", deck)]
     todo = steps(prof)
     if with_steps and not all(done for _, done in todo):
@@ -333,7 +333,7 @@ def act(k, st):
             P("recipe")
         elif k == "?":
             P("keys")
-        elif k == "D":
+        elif k == "1":
             one_pane(); pause()
         elif k == "f":
             # a hand edit of deck.toml (or tabs.d) only shows after gen and a
@@ -376,7 +376,7 @@ def main():
             step = {"\x1b[B": 1, "\x1b[A": -1, "\x1b[6~": rows - 4, "\x1b[5~": 4 - rows}.get(k)
             if step:
                 off = max(0, min(maxoff, off + step))
-            elif k in keys or (k == "f" and st.get("profile_changed")) or (k == "D" and st.get("two_panes")):
+            elif k in keys or (k == "f" and st.get("profile_changed")) or (k == "1" and st.get("two_panes")):
                 act(k, st); last = 0
     except KeyboardInterrupt:
         pass

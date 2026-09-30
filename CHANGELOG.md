@@ -6,6 +6,11 @@ before it updates.
 
 ## Unreleased
 
+## 1.2.6 — one pane is 1
+
+- The DECK tab's "this tab in one pane" is `1` now, not `D`: `D` and `d` (doctor) told apart only
+  by Shift, which on a phone keyboard is one slip away.
+
 ## 1.2.5 — the DECK tab follows your screen
 
 - The DECK tab is one screen of cards that follows the width you look at it from: one column on

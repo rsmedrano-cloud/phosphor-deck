@@ -16,7 +16,7 @@ sidebar:
   logs, update, restart, manual, and `?` for the keys of every installed tool). Laid out as cards that
   follow the pane's width: one column on a phone (arrows or two fingers scroll it), more on a
   wider screen, with a line about each action once there's room. A profile whose DECK tab still has
-  the key guide beside the panel gets **D** in the deck card: it writes that tab as one pane
+  the key guide beside the panel gets **1** in the deck card: it writes that tab as one pane
   (a backup is kept, `f` applies it). `n` (notices & traces) opens `phosphor push`, `phosphor tts` or
   `phosphor trace` on their own screen: what's on, and on or off one key away. Actions
   run in the same pane and come back the same way from every one: q, Esc or Enter (the ones

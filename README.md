@@ -286,7 +286,7 @@ upkeep (notices, doctor, logs, update, restart, the manual). Every action
 comes back the same way: q, Esc or Enter.
 
 A profile from before 1.2.5 still has the key guide beside the panel: the
-deck card offers **D**, which writes the tab as one pane (a backup is kept;
+deck card offers **1** ("one pane"), which writes the tab as one pane (a backup is kept;
 `f` applies it).
 
 ![The DECK tab: next steps, every action, and the key guide](doc/img/readme/deck-tab.png)

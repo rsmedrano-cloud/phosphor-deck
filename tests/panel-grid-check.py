@@ -60,9 +60,9 @@ two = {"tabs": [{"name": "SYS", "panes": [{"cmd": "phosphor fleet"}]},
 check("the two-pane DECK tab is found", panel.two_panes(two) == "DECK")
 check("a one-pane one isn't", panel.two_panes({"tabs": [{"name": "DECK", "panes": [{"cmd": "phosphor panel"}]}]}) is None)
 lines, hit, _ = panel.draw({}, dict(st, two_panes=True), 100, 30)
-check("the deck card offers D", "this tab in one pane" in "".join(map(plain, lines))
-      and any(k == "D" for s in hit.values() for _, _, k in s))
-check("without it, no D", all(k != "D" for s in panel.draw({}, st, 100, 30)[1].values() for _, _, k in s))
+check("the deck card offers 1", "this tab in one pane" in "".join(map(plain, lines))
+      and any(k == "1" for s in hit.values() for _, _, k in s))
+check("without it, no 1", all(k != "1" for s in panel.draw({}, st, 100, 30)[1].values() for _, _, k in s))
 
 d = tempfile.mkdtemp()
 prof = os.path.join(d, "deck.toml")
