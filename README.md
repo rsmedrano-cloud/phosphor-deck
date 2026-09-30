@@ -191,8 +191,8 @@ again, `x` closes the tab. A mistyped exit costs one key. If `phosphor` isn't
 found, `~/.local/bin` isn't in your PATH yet: the installer prints the line to
 add.
 
-A newer version: `phosphor update` in a git clone, or `phosphor update FOLDER`
-with a copy. It installs what's new and restarts the deck. The steps by hand
+A newer version: `phosphor update` in a git clone (or a download, on a
+machine without git), or `phosphor update FOLDER` with a copy. It installs what's new and restarts the deck. The steps by hand
 and how to remove it: `phosphor help install`.
 
 `init` reads your tailscale peers and `~/.ssh/config`, leaves phones and
@@ -267,9 +267,10 @@ The deck's own tab, and the one place every phosphor command lives, even
 when all your other tabs are ssh sessions somewhere else. On the left: its
 state (screens in, watchdog, browser access, tunnels), the next steps while
 you're still setting it up, and one key or tap per action: add a screen,
-machines and color, browser access, tunnels, install tools, keep a tab,
-triage a flagged host, tail a host's logs, tabs, shortcuts, a shell on the
-brain, doctor, update, restart, the manual. Every action comes back the
+machines, the color, browser access, tunnels, install tools, keep a tab,
+triage a flagged host, tail a host's logs, services, merge requests to
+review, tabs, shortcuts, a shell on the brain, doctor, update, restart, the
+manual. Every action comes back the
 same way: q, Esc or Enter. On the right: the keys of every installed tool, with the deck's own as you set them.
 
 ![The DECK tab: next steps, every action, and the key guide](doc/img/readme/deck-tab.png)

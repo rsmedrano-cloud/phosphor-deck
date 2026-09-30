@@ -67,6 +67,11 @@ def entries(prof):
     if (prof or {}).get("ci"):
         out.append(("ci", "CI/CD pipelines status", "CI", [sys.executable, PHOSPHOR, "ci"],
                     {"cmd": "phosphor ci"}))
+    out.append(("services", "systemd units and their state", "SERVICES", [sys.executable, PHOSPHOR, "services"],
+                {"cmd": "phosphor services"}))
+    if deckconf.exe("glab") or deckconf.exe("gh"):
+        out.append(("review", "merge/pull requests", "REVIEW", [sys.executable, PHOSPHOR, "review"],
+                    {"cmd": "phosphor review"}))
     if any(have(b) for b in ("claude", "gemini", "codex", "opencode")):
         out.append(("workspace", "a project folder with assistants", "WORKSPACE",
                     [sys.executable, PHOSPHOR, "workspace", "new", "--pause-on-error"], None))
@@ -246,6 +251,24 @@ def where(label, prof, rows):
         sys.stdout.write("\x1b[%d;1H\x1b[K " % rows + WARN + " not a folder: " + text); sys.stdout.flush()
         time.sleep(1.5)
 
+def review_folder(prof, rows):
+    """The repo phosphor review opens on: this folder if its remote is GitLab
+    or GitHub, else one picked like an assistant's. None for back."""
+    import review
+    cwd = os.getcwd()
+    if review.provider():
+        return cwd
+    while True:
+        p = where("review", prof, rows)
+        if p is None: return None
+        try:
+            os.chdir(p); ok = review.provider()
+        finally:
+            os.chdir(cwd)
+        if ok: return p
+        sys.stdout.write("\x1b[%d;1H\x1b[K " % rows + WARN + " no GitLab or GitHub remote in " + p.replace(HOME, "~", 1))
+        sys.stdout.flush(); time.sleep(1.5)
+
 # (label, picture, slots, how the slots make a tab)
 SHAPES = [
     ("2 columns", "▌▐", 2, lambda s: {"split": "cols", "panes": s}),
@@ -372,13 +395,14 @@ def main():
             if spec is None:                  # a wizard, not a tab of its own: it opens the real one
                 sys.stdout.write("\x1b[?1006l\x1b[?1000l\x1b[?1049l\x1b[?25h\x1b[2J\x1b[H"); sys.stdout.flush()
                 os.execv(argv[0], argv)
-            if note == "assistant":
-                folder = where(label, prof, rows)
+            if note == "assistant" or label == "review":
+                folder = review_folder(prof, rows) if label == "review" else where(label, prof, rows)
                 if folder is None:
                     sys.stdout.write("\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h"); continue
                 if folder != os.getcwd():
-                    name = (os.path.basename(folder) or name).upper()[:12]
-                    os.chdir(folder)          # the assistant starts here; keep_tab() saves it as cwd
+                    if note == "assistant":   # review keeps its own name: the repo shows in its header
+                        name = (os.path.basename(folder) or name).upper()[:12]
+                    os.chdir(folder)          # it starts here; keep_tab() saves it as cwd
             launch(name, argv, spec, keep)
     except KeyboardInterrupt:
         return 0

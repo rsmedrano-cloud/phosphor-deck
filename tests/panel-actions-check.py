@@ -88,6 +88,36 @@ try:
     check("j: Ctrl-C at the service prompt still runs tail with no service",
           ran and ran[-1][-2:] == ["tail", "nimbus"])
 
+    # o, y, x: theme, services and review have a key of their own (1.3's blind spots)
+    for k, want in (("o", "theme"), ("y", "services")):
+        check("%s is in the action list" % k, k in keys)
+        ran.clear()
+        run_act(k)
+        check("%s runs phosphor %s" % (k, want), ran and ran[-1][-1:] == [want])
+    check("x is in the action list", "x" in keys)
+    import newtab
+    real_exe, real_rf = panel.deckconf.exe, newtab.review_folder
+    runs = []
+    panel.subprocess.run = lambda cmd, **kw: runs.append((cmd, kw.get("cwd")))
+    try:
+        panel.deckconf.exe = lambda name: None
+        runs.clear()
+        run_act("x")
+        check("x with neither glab nor gh: says so, runs nothing", not runs)
+        panel.deckconf.exe = lambda name: "/usr/bin/" + name if name == "gh" else None
+        newtab.review_folder = lambda prof, rows: "/srv/repo"
+        runs.clear()
+        run_act("x")
+        check("x: runs phosphor review in the picked repo",
+              runs and runs[-1][0][-1:] == ["review"] and runs[-1][1] == "/srv/repo")
+        newtab.review_folder = lambda prof, rows: None
+        runs.clear()
+        run_act("x")
+        check("x: backing out of the folder picker runs nothing", not runs)
+    finally:
+        panel.deckconf.exe, newtab.review_folder = real_exe, real_rf
+        panel.subprocess.run = lambda cmd, **kw: ran.append(cmd)
+
     # every action goes back the same way: the ones that end on their own
     # output wait on back() (q, Esc, Enter), never on an "Enter to go back"
     # input(); the rest open a TUI that takes q itself.
@@ -100,6 +130,7 @@ try:
     panel.back = lambda *a, **kw: backs.append(1)
     panel.getkey = lambda timeout=None: "q"
     edit.pick = lambda title, items: None
+    newtab.review_folder = lambda prof, rows: None     # git runs through the mocked subprocess.run
     waits = {"p", "k", "g", "d", "l", "u", "r", "h", "w"}
     try:
         for k in keys:
@@ -116,6 +147,7 @@ try:
               not backs and ran and ran[-1][-2:] == ["web", "status"])
     finally:
         init.yes, tunnels.interactive, panel.back = real_yes, real_tunnels, real_back
+        newtab.review_folder = real_rf
         panel.getkey = __import__("ui").getkey
 finally:
     panel.subprocess.run, panel.deckconf.load, panel.deckconf.hosts = real_run, real_load, real_hosts

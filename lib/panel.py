@@ -17,13 +17,16 @@ STOCK_TABS = {"COMMS", "WORK", "SYS", "CLOUD", "DECK", "HELP", "NOTES"}
 ACTIONS = [("e", "explore commands",  "every phosphor command, by category"),
            ("v", "screens",          "who's attached; kick one loose"),
            ("p", "add a screen",     "a phone, a tablet, another computer"),
-           ("m", "machines & color", "add or remove machines, pick the phosphor"),
+           ("m", "machines & setup", "add or remove machines, phone, notebook"),
+           ("o", "theme",            "the deck's color, previewed before it's kept"),
            ("w", "browser access",   "the deck in a browser, tailnet only"),
            ("t", "tunnels",          "keep your ssh LocalForward tunnels up"),
            ("i", "install tools",    "TUIs from their releases, no sudo"),
            ("k", "keep a tab",       "the way you arranged it, into your profile"),
            ("g", "triage a host",    "pick a flagged one (or none flagged: back), ask an assistant"),
            ("j", "tail logs",        "pick a host and service, stream its logs (Ctrl-C back)"),
+           ("y", "services",         "systemd units: the deck's own and yours"),
+           ("x", "review",           "merge/pull requests of a repo, CI and diff"),
            ("c", "shortcuts",        "the deck's keys, yours to change"),
            ("b", "tabs",             "the ones that come back: forget, reorder"),
            ("a", "recipes",          "starter tab bundles: homelab, dev, bubble, workbench"),
@@ -196,6 +199,18 @@ def act(k, st):
                     except (EOFError, KeyboardInterrupt):
                         svc = ""
                     P(*(["tail", picked[0]] + ([svc] if svc else [])))
+        elif k == "o":
+            P("theme")
+        elif k == "y":
+            P("services")
+        elif k == "x":
+            if not (deckconf.exe("glab") or deckconf.exe("gh")):
+                print(DIM + "  review needs glab (GitLab) or gh (GitHub; i installs it)." + RST); pause()
+            else:
+                import newtab
+                folder = newtab.review_folder(deckconf.load()[0] or {}, shutil.get_terminal_size((60, 20)).lines)
+                if folder:
+                    subprocess.run([sys.executable, PHOSPHOR, "review"], cwd=folder)
         elif k == "s":
             print(DIM + "  a shell on this machine. exit (or Ctrl-d) comes back to the panel." + RST)
             subprocess.run([deckconf.shell(deckconf.load()[0]), "-l"])

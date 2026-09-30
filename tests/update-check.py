@@ -139,6 +139,19 @@ finally:
     if home is not None: os.environ["HOME"] = home
     shutil.rmtree(repo, ignore_errors=True)
 
+# installed from the tarball (no git): update hands the download to install.sh
+tb = tempfile.mkdtemp()
+real_tb = update.TARBALL
+update.TARBALL = os.path.join(tb, ".phosphor-tarball")
+try:
+    with contextlib.redirect_stdout(io.StringIO()):
+        need("not a tarball install: from_tarball says so (None)", update.from_tarball() is None)
+        open(update.TARBALL, "w").write("https://example.org/main.tar.gz\n")
+        need("a tarball install: update goes on, the installer downloads", update.from_tarball() is True)
+finally:
+    update.TARBALL = real_tb
+    shutil.rmtree(tb, ignore_errors=True)
+
 if fails:
     print("failed: " + "; ".join(fails)); sys.exit(1)
 print("ok")

@@ -6,6 +6,17 @@ before it updates.
 
 ## Unreleased
 
+## 1.2.1 — the blind spots: services, review, theme one tap away; install without git
+
+- `services` and `review` open from the `+` menu (review when `glab` or `gh` is installed) and
+  from the DECK tab (`y` and `x`). Outside a GitLab or GitHub repo, review asks which folder,
+  the same way an assistant does.
+- `theme` has its own key in the DECK tab, `o`; `m` is now "machines & setup".
+- Installer: `curl … | sh` run from a folder that happens to hold a file called `phosphor` no
+  longer installs that folder instead of Phosphor.
+- Installer: a machine without git downloads the release tarball instead of stopping. Running
+  the installer again, or `phosphor update`, brings the newer one the same way.
+
 ## 1.2.0 — the fleet up close: broadcast, health, theme, a guided tour
 
 - Stable channel: everything from 1.1.1 to 1.1.14 lands at once. The highlights:

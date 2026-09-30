@@ -86,6 +86,16 @@ def from_git():
     print(row(OK, "git pull", ("%s → %s" % (before, after)) if before != after else "already up to date (%s)" % after))
     return True
 
+TARBALL = os.path.join(REPO, ".phosphor-tarball")
+
+def from_tarball():
+    """Installed by downloading (no git on the machine): install.sh, which
+    runs next, downloads the newer copy over this one. None if it wasn't."""
+    if not os.path.isfile(TARBALL):
+        return None
+    print(row(OK, "download", "the installer brings the newest copy", note="no git: a tarball"))
+    return True
+
 def from_folder(src):
     src = os.path.abspath(os.path.expanduser(src))
     if not os.path.isfile(os.path.join(src, "phosphor")):
@@ -151,6 +161,8 @@ def main():
             print(row(OK if ok else WARN, "git pull", src,
                       note="" if ok else "failed: installing what's there"))
     ok = from_folder(src) if src else from_git()
+    if ok is None:
+        ok = from_tarball()
     if ok is None:
         print(row(BAD, "no source", "this isn't a git clone: phosphor update FOLDER"))
         return 1

@@ -31,6 +31,40 @@ os.makedirs(other)
 prof = {"deck": {"projects": proj}}
 here = os.path.join(tmp, "elsewhere")
 
+# services always in the + menu; review only with glab or gh, and it asks for a
+# repo unless the pane's folder already is one with a GitLab or GitHub remote
+import time as _time
+labels = [e[0] for e in newtab.entries(prof)]
+need("services is in the + menu", "services" in labels)
+real_exe = newtab.deckconf.exe
+newtab.deckconf.exe = lambda name: None
+need("no glab/gh: no review in the + menu", "review" not in [e[0] for e in newtab.entries(prof)])
+newtab.deckconf.exe = lambda name: "/usr/bin/gh" if name == "gh" else None
+need("gh installed: review in the + menu", "review" in [e[0] for e in newtab.entries(prof)])
+newtab.deckconf.exe = real_exe
+repo = os.path.join(tmp, "repo")
+os.makedirs(repo)
+import review   # the check image has no git: a GitLab remote is "being in repo"
+real_provider = review.provider
+review.provider = lambda url=None: "gitlab" if os.getcwd() == repo else None
+cwd0 = os.getcwd()
+os.chdir(repo)
+need("review in a GitLab repo: no folder question", newtab.review_folder(prof, 20) == repo)
+os.chdir(here)
+picks = [os.path.join(proj, "alpha"), repo]
+real_where, real_sleep = newtab.where, _time.sleep
+newtab.where = lambda label, prof, rows: picks.pop(0) if picks else None
+newtab.time.sleep = lambda s: None
+real_out = sys.stdout; sys.stdout = open(os.devnull, "w")
+try:
+    got = newtab.review_folder(prof, 20)
+finally:
+    sys.stdout = real_out; newtab.where = real_where; newtab.time.sleep = real_sleep
+need("review outside a repo: a folder without a remote is refused, the repo taken",
+     got == repo and not picks and os.getcwd() == here)
+os.chdir(cwd0)
+review.provider = real_provider
+
 ps = newtab.places(here, prof)
 need("here comes first", ps[0][0] == "here" and ps[0][2] == here)
 labels = [p[0] for p in ps]

@@ -16,6 +16,11 @@ the two optional Rust rewrites (see CONTRIBUTING.md) -- best-effort, same as
 the rest: missing one, or a 32-bit ARM install, just means the Python
 fallback runs, same as before either existed.
 
+No git on the machine: `curl … | sh` downloads the code as a tarball
+instead of cloning it. Running the installer again, or `phosphor update`,
+downloads the newer one the same way (always the stable channel: switching
+to nightly needs a git clone).
+
 The same steps by hand:
 
     phosphor doctor     # optional: can this machine run it? warnings are fine
@@ -132,6 +137,7 @@ and only asks when it's actually attached to a terminal).
 ## Updating
 
     phosphor update              # the code is a git clone: pull, install, restart
+                                 # (a download without git: download it again)
     phosphor update FOLDER       # you copied a newer version into FOLDER
 
 An install that came from a folder remembers it: the next time, a plain

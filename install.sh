@@ -17,6 +17,8 @@ REPO="${PHOSPHOR_REPO:-}"
 # actually finishes instead of downloading binaries with no `phosphor` to
 # run them.
 DEFAULT_REPO="https://github.com/rsmedrano-cloud/phosphor-deck.git"
+# The same code as a tarball, for a machine without git. main, like the clone.
+TARBALL="${PHOSPHOR_TARBALL:-https://github.com/rsmedrano-cloud/phosphor-deck/archive/refs/heads/main.tar.gz}"
 # New installs go to a hidden folder; an install that already exists keeps
 # its place, so updating never moves anything under your feet.
 DEST="${PHOSPHOR_DEST:-}"
@@ -79,6 +81,22 @@ fetch() {
   g "  + $name"
 }
 
+# untar <dest>: the tarball's code into dest, over what's there. A marker says
+# where it came from, so running the installer again (still no git) refreshes it.
+untar() {
+  tmp=$(mktemp -d)
+  if ! curl -fsSL $RETRY -o "$tmp/src.tar.gz" "$TARBALL" \
+     || ! mkdir -p "$tmp/src" || ! tar xzf "$tmp/src.tar.gz" -C "$tmp/src" --strip-components=1 \
+     || [ ! -f "$tmp/src/phosphor" ]; then
+    rm -rf "$tmp"; return 1
+  fi
+  mkdir -p "$1"
+  if need rsync; then rsync -a --delete --exclude .phosphor-tarball "$tmp/src"/ "$1"/
+  else (cd "$tmp/src" && tar -cf - .) | (cd "$1" && tar -xf -); fi
+  printf '%s\n' "$TARBALL" > "$1/.phosphor-tarball"
+  rm -rf "$tmp"
+}
+
 printf '\n'
 g "  PHOSPHOR DECK"
 d "  installer — none of this needs root"
@@ -101,8 +119,13 @@ elif [ -n "$REPO" ]; then
   need git || { r "  git is missing"; exit 1; }
   git clone -q "$REPO" "$DEST" && g "  + cloned into $DEST"
 else
-  SRC=$(cd "$(dirname "$0")" 2>/dev/null && pwd)
-  if [ -f "$SRC/phosphor" ] && [ "$SRC" != "$DEST" ]; then
+  # run as a file (sh install.sh): its folder may be a copy to install. Piped
+  # (curl | sh), $0 is the shell, and the folder you happen to be in isn't one.
+  SRC=""
+  case "$0" in
+    install.sh|*/install.sh) [ -f "$0" ] && SRC=$(cd "$(dirname "$0")" 2>/dev/null && pwd) ;;
+  esac
+  if [ -n "$SRC" ] && [ -f "$SRC/phosphor" ] && [ "$SRC" != "$DEST" ]; then
     # run from a copy: install it, or update what's already there
     # never the .git: a copy with someone else's .git is a clone that lies
     if [ -e "$DEST" ]; then
@@ -118,12 +141,19 @@ else
       printf '{"src": "%s", "commit": "%s"}\n' "$SRC" "$(git -C "$SRC" rev-parse HEAD 2>/dev/null)" \
         > "$DEST/.phosphor-source"
     fi
+  elif [ -f "$DEST/.phosphor-tarball" ]; then
+    # installed from the tarball: this run brings the newer one
+    if untar "$DEST"; then g "  + updated $DEST (a download, no git)"
+    else a "  ! couldn't download a newer copy: $DEST stays as it was"; fi
   elif [ -f "$DEST/phosphor" ]; then
     say "using $DEST"
-  else
-    need git || { r "  git is missing"; exit 1; }
+  elif need git; then
     say "no local copy and no PHOSPHOR_REPO: cloning the public repo"
     git clone -q "$DEFAULT_REPO" "$DEST" && g "  + cloned into $DEST"
+  else
+    say "no git here: downloading the public repo instead"
+    untar "$DEST" || { r "  couldn't download Phosphor (GitHub busy? run it again)"; exit 1; }
+    g "  + downloaded into $DEST"
   fi
 fi
 

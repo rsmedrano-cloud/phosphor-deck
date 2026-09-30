@@ -65,13 +65,33 @@ $X test -x /home/deck/.local/bin/deck || fail "the deck command is missing"
 echo "   update brought the code, and the deck command is there"
 
 step "curl | sh on a clean machine (no local copy, no PHOSPHOR_REPO): clones the public repo"
-out=$(docker exec -i -u deck -e HOME=/home/deck -e PHOSPHOR_DEST=/home/deck/clean-install \
+# run from a folder that holds a file called phosphor: piped, that folder isn't a copy to install
+out=$(docker exec -i -u deck -w /home/deck/phosphor-src -e HOME=/home/deck -e PHOSPHOR_DEST=/home/deck/clean-install \
       -e PHOSPHOR_PROFILE=/home/deck/no-such-profile.toml -e PHOSPHOR_NO_WIZARD=1 $C sh < install.sh 2>&1) \
       || fail "curl | sh from a clean machine"
 $X test -d /home/deck/clean-install/.git || fail "it didn't clone the public repo"
 $X test -f /home/deck/clean-install/phosphor || fail "the clone has no phosphor command"
 echo "$out" | grep -q "cloning the public repo" || fail "it didn't say it was cloning the public repo"
+echo "$out" | grep -q "copied" && fail "piped, it installed the folder it ran from"
 echo "   cloned the public mirror and left a working phosphor command"
+
+step "no git on the machine: curl | sh downloads the tarball instead"
+git archive --format=tar.gz --prefix=phosphor-deck-main/ HEAD | docker exec -i $C sh -c 'cat > /home/deck/main.tar.gz'
+docker exec $C sh -c 'mv "$(command -v git)" /root/git.off' || fail "hiding git"
+NG="docker exec -i -u deck -e HOME=/home/deck -e PHOSPHOR_DEST=/home/deck/nogit-install \
+    -e PHOSPHOR_TARBALL=file:///home/deck/main.tar.gz -e PHOSPHOR_PROFILE=/home/deck/no-such-profile.toml \
+    -e PHOSPHOR_NO_WIZARD=1 $C sh"
+out=$($NG < install.sh 2>&1) || { docker exec $C mv /root/git.off /usr/bin/git; fail "curl | sh without git: $out"; }
+echo "$out" | grep -q "no git here" || fail "it didn't say it was downloading instead"
+$X test -f /home/deck/nogit-install/phosphor || fail "the download has no phosphor command"
+$X test -f /home/deck/nogit-install/.phosphor-tarball || fail "the download isn't marked as one"
+$X test ! -e /home/deck/nogit-install/.git || fail "a download with a .git"
+docker exec -i $C sh -c 'cd /home/deck && mkdir -p t/phosphor-deck-main && tar xzf main.tar.gz -C t \
+  && echo "# tarball-marker" >> t/phosphor-deck-main/README.md && tar czf main.tar.gz -C t phosphor-deck-main && rm -rf t'
+out=$($NG < install.sh 2>&1) || { docker exec $C mv /root/git.off /usr/bin/git; fail "second run without git"; }
+docker exec $C mv /root/git.off /usr/bin/git
+$X grep -q "tarball-marker" /home/deck/nogit-install/README.md || fail "running it again didn't bring the newer download"
+echo "   downloaded without git, and a second run refreshed it"
 
 printf '\n\033[38;2;51;255;68mPASS\033[0m: installed from zero, deck up with %s tabs\n' "$tabs"
 [ -n "${KEEP:-}" ] && echo "container left up: docker exec -it -u deck $C bash" || docker rm -f $C >/dev/null

@@ -6,8 +6,9 @@
 - `phosphor setup` — add/remove machines, color, editor and shell, phone, browser access, tunnels, notebook
   (also: `m` in the DECK tab).
 - `phosphor panel` — the DECK tab: the deck's state, the next steps while you set up, and every
-  action one key or tap away (add a screen, machines, web, tunnels, tools, keep a tab, triage a
-  host, tail logs, tabs, shortcuts, a shell here, doctor, logs, update, restart, manual). Actions
+  action one key or tap away (add a screen, machines, theme, web, tunnels, tools, keep a tab, triage
+  a host, tail logs, services, review, tabs, shortcuts, a shell here, doctor, logs, update, restart,
+  manual). Actions
   run in the same pane and come back the same way from every one: q, Esc or Enter (the ones
   that print and wait say "q · Enter: back", the TUIs take q) -- `tail`'s stream is the one
   exception: it takes over the pane until you Ctrl-C, the same way "a shell here" does.
@@ -84,6 +85,7 @@
 ## In the deck
 - `phosphor fleet`, `phosphor pulse`, `phosphor adjutant`, `phosphor prom`, `phosphor ci`, `phosphor services` — the SYS panels; prom draws your Prometheus queries, ci draws your GitLab/GitHub pipeline statuses,
   services lists systemd units and their state (see `[prometheus]`, `[ci]` and `[services]` in profile; `--once` prints one frame).
+  services also opens from the `+` menu and with `y` in the DECK tab.
   `fleet` also calls `phosphor notify` itself when a host's ok/not-ok flips (down, or back) -- at most once a minute per host even if the link flaps.
   A card also shows the CPU's temperature and a laptop's battery (from sysfs, when the kernel has
   them) and disks failing SMART: that needs `smartctl` there, answering without a password (root,
@@ -106,7 +108,8 @@
   link as a QR (also onto every screen's clipboard) so the phone's ntfy app can scan it instead of
   you typing the server and topic in by hand.
 - `phosphor review` — open merge/pull requests, from the deck: detects GitLab or GitHub from this
-  repo's remote and drives `glab`/`gh`. Per request: CI status (reusing `phosphor ci`'s own fetchers),
+  repo's remote and drives `glab`/`gh`. Also in the `+` menu (with `glab` or `gh` installed) and `x`
+  in the DECK tab: outside a GitLab or GitHub repo they ask which folder first. Per request: CI status (reusing `phosphor ci`'s own fetchers),
   whether it has conflicts, `d` for the diff (through `delta` if you have it, else `less`), `t` checks
   the branch out into its own worktree under `~/.cache/phosphor/review/` and opens a tab there if
   you're inside the deck -- your working copy is never touched, same spirit as `tests/mrs-check.py`;
@@ -143,8 +146,8 @@
   a number or a tap preview each theme as a small deck painted in it, on its own background,
   before anything is written; Enter keeps it (then `phosphor gen`, and it asks before a
   restart), q leaves it as it was. `NAME` (p31, p3, p4, paper) writes it straight away and
-  applies nothing: `phosphor gen && phosphor restart`, or `f` in the DECK tab. `phosphor setup`'s
-  "change the color" opens the same picker.
+  applies nothing: `phosphor gen && phosphor restart`, or `f` in the DECK tab. `o` in the DECK
+  tab and `phosphor setup`'s "change the color" open the same picker.
 - `phosphor shortcuts [--kdl]` — the deck's keys, yours to change (also `c` in the DECK tab); `--kdl` prints the block
   for a zellij config of your own.
 - `phosphor edit` — what Alt-r runs: unlock the tab you're in, change it, then save it or put it back (see keys).

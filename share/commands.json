@@ -55,7 +55,7 @@
   "notify": {"mutates": false, "needs_deck": false,
     "note": "writes one ephemeral events-file line; pushes or speaks only if [push]/[tts] are already on -- no session, systemd or profile change."},
   "panel": {"mutates": false, "needs_deck": false,
-    "note": "the DECK tab: needs a tty, and every action needs its own keypress; the riskiest ones (restart, update, web on, f: apply a hand-edited profile) ask to confirm first."},
+    "note": "the DECK tab: needs a tty, and every action needs its own keypress; the riskiest ones (restart, update, web on, f: apply a hand-edited profile) ask to confirm first; o (theme) writes the profile only on Enter in its picker."},
   "path": {"mutates": false, "needs_deck": false,
     "note": "pure string translation, no I/O."},
   "phone": {"mutates": false, "needs_deck": false,
