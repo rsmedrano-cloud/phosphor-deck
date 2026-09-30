@@ -74,7 +74,9 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
   machine, an installed assistant, files, or any command. **layout** opens
   several at once: pick a shape, then what goes in each pane (four
   assistants side by side in a few taps). Mark "keep" and
-  the tab is written into your profile, so it survives restarts.
+  the tab is written into your profile, so it survives restarts. `/` in it
+  searches everything at once: open tabs, workspaces, installed tools, every
+  command.
 - **Fleet panel.** One card per machine: CPU, RAM, load, GPU, disks,
   containers, failed services, a pending reboot, the CPU's temperature, a
   laptop's battery and disks failing SMART, collected over SSH.
@@ -393,7 +395,7 @@ more depth on every one of these.
 | `phosphor screens` | who's attached (phone, tablet, another computer); `x` twice kicks one loose |
 | `phosphor keys` | key guide, updates itself when you install a tool |
 | `phosphor store` | install TUIs from their releases, no sudo; open what you have, and your own apps |
-| `phosphor new` | the + menu (also Alt-n): a shell, a machine, an assistant (in the folder you pick), your apps, a layout |
+| `phosphor new` | the + menu (also Alt-n): a shell, a machine, an assistant (in the folder you pick), your apps, a layout; `/` searches everything |
 | `phosphor keep` | write a tab you arranged by hand into your profile |
 | `phosphor tabs` | the tabs your profile brings back: forget one, reorder, reopen |
 | `phosphor recipe [NAME]` | starter tab bundles: homelab, dev, bubble, workbench; `--remove NAME` undoes one |

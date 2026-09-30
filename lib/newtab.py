@@ -83,6 +83,28 @@ def entries(prof):
                     {"cmd": "yazi", "args": ["@mount_root"], "needs_size": True}))
     return out
 
+HINT_SHOWS = 20     # opens of the + menu with the deck's keys at its foot; then it's learned
+
+def hint(prof):
+    """One line of the deck's own keys (as [keys] has them) for someone
+    who's never seen it, the first HINT_SHOWS times the menu opens; after
+    that, None. The DECK tab keeps the whole list."""
+    p = os.path.join(deckconf.data_dir(), "hint-shown")
+    try:
+        n = int(open(p).read().strip() or 0)
+    except (OSError, ValueError):
+        n = 0
+    if n >= HINT_SHOWS: return None
+    try:
+        os.makedirs(os.path.dirname(p), exist_ok=True); open(p, "w").write(str(n + 1))
+    except OSError:
+        pass
+    import shortcuts
+    k = shortcuts.current(prof)
+    parts = [(k["edit"], "edit tab"), (k["note"], "note"), (k["zoom"], "zoom"),
+             (k["tabs"] + " 1-9" if k["tabs"] else "", "tabs"), (k["leave"], "leave")]
+    return "  ".join("%s %s" % (shortcuts.dash(key), what) for key, what in parts if key)
+
 def getkey():
     """A key, ("CLICK", row) for a tap/left click, or None for other mouse events."""
     k = ui_getkey(None)
@@ -90,7 +112,7 @@ def getkey():
         return ("CLICK", k[3]) if k[1] == 0 and k[4] else None
     return k
 
-def render(its, sel, keep, w):
+def render(its, sel, keep, w, msg=None, tip=None):
     """Lines plus what each screen row does: an entry index, "cmd", "keep" or None."""
     rows, acts = [], []
     def add(text, act=None): rows.append(text); acts.append(act)
@@ -104,21 +126,30 @@ def render(its, sel, keep, w):
     n = len(its)
     line = " +  a command..."
     add((INV + pad(line, w - 1) + RST) if sel == n else (" " + AMB + "+" + RST + "  " + FG + "a command..." + RST), "cmd")
+    line = " /  search everything..."
+    add((INV + pad(line, w - 1) + RST) if sel == n + 1 else
+        (" " + AMB + "/" + RST + "  " + FG + "search everything..." + RST + DIM + "  tabs, workspaces, tools, commands" + RST), "search")
     add("")
     box = "[x]" if keep else "[ ]"
     line = " %s keep this tab after restarts" % box
-    add((INV + pad(line, w - 1) + RST) if sel == n + 1 else
+    add((INV + pad(line, w - 1) + RST) if sel == n + 2 else
         (" " + (PH if keep else DIM) + box + RST + " " + MUTE + "keep this tab after restarts" + RST), "keep")
     add("")
+    if msg: add(" " + WARN + " " + msg)
     add(DIM + " q / Esc: close this tab" + RST)
+    if tip: add(" " + MUTE + tip[:max(0, w - 2)] + RST)
     return rows, acts
 
-def taken_names():
-    names = set()
+def open_tabs():
+    """[(tab id, name)] of the session, in order."""
+    out = []
     for l in zj("list-tabs").splitlines()[1:]:
         f = l.split(None, 2)
-        if len(f) == 3: names.add(f[2].strip())
-    return names
+        if len(f) == 3: out.append((f[0], f[2].strip()))
+    return out
+
+def taken_names():
+    return {name for _, name in open_tabs()}
 
 def unique(name, names):
     if name not in names: return name
@@ -176,6 +207,115 @@ def launch(name, argv, spec, keep):
     opts = ["--name", name] + (["--reconnect"] if argv[0] == "ssh" else []) \
         + (["--wait", "1"] if spec.get("needs_size") else []) + (["--alt"] if spec.get("alt") else [])
     os.execv(sys.executable, [sys.executable, PHOSPHOR, "run"] + opts + ["--"] + argv)
+
+# What `/` in the + menu searches, in this order when two match as well.
+KINDS = ("tab", "entry", "workspace", "app", "command")
+
+def search_items(prof, its):
+    """Everything `/` can find: [(label, note, kind, payload)]. Open tabs
+    (not this one), the menu's own entries, workspaces without an open tab,
+    installed tools the menu doesn't already list, then every command."""
+    import commands, workspace
+    out, mine = [], my_tab_id() if os.environ.get("ZELLIJ_PANE_ID") else None
+    tabs = open_tabs() if os.environ.get("ZELLIJ") else []
+    for tid, name in tabs:
+        if tid != mine:
+            out.append((name, "open tab: go there", "tab", name))
+    for i, (label, note, *_r) in enumerate(its):
+        out.append((label, note, "entry", i))
+    import tabs as tabs_
+    open_names = {tabs_.bare(n) for _, n in tabs}
+    for w in workspace.names():
+        if w.upper() not in open_names:
+            out.append((w, "workspace: open its tab", "workspace", w))
+    listed = {a[3][0] for a in its if a[3]} | {os.path.basename(a[3][0]) for a in its if a[3]}
+    try:
+        catalog = json.load(open(share("store.json")))
+    except (OSError, ValueError):
+        catalog = []
+    for a in catalog:
+        if a.get("action"): continue                  # a voice or a model, not a program
+        p = apps.have(apps.exe(a))
+        if p and p not in listed and os.path.basename(p) not in listed:
+            out.append((a["n"], "installed: " + a.get("d", ""), "app", a))
+    for _cat, cmds in commands.CATEGORIES:
+        for cmd, usage, note in cmds:
+            out.append((cmd, "command: " + note, "command", (cmd, usage, note)))
+    return out
+
+def find(items, q):
+    """Items whose label or note has every word of q (case-insensitive):
+    the label equal to q first, then starting with it, then containing it,
+    then only the note; KINDS order within each."""
+    words = q.lower().split()
+    if not words: return list(items)
+    q = " ".join(words)
+    def rank(it):
+        l = it[0].lower()
+        return (0 if l == q else 1 if l.startswith(q) else 2 if q in l else 3, KINDS.index(it[2]))
+    return sorted([it for it in items if all(w in (it[0] + " " + it[1]).lower() for w in words)], key=rank)
+
+def search(items, rows, cols, q=""):
+    """Type to narrow, arrows or a tap to pick, Enter takes it. The item, or
+    None for Esc."""
+    sel, top = 0, 0
+    while True:
+        found = find(items, q)
+        sel = max(0, min(sel, len(found) - 1))
+        w = min(cols, 80)
+        room = max(3, rows - 5)
+        top = min(max(top, sel - room + 1), sel)
+        lines = [BLOOM + " SEARCH" + RST + DIM + "   tabs, the menu, workspaces, tools, commands" + RST,
+                 " " + AMB + "/" + RST + FG + q + RST + DIM + "_" + RST,
+                 RULE + " " + "─" * max(0, w - 2) + RST]
+        shown = found[top:top + room]
+        for i, (label, note, *_r) in enumerate(shown, top):
+            line = " %-16s %s" % (label[:16], note)
+            lines.append((INV + pad(line[:w - 1], w - 1) + RST) if i == sel else
+                         (" " + FG + "%-16s" % label[:16] + RST + " " + DIM + note[:max(0, w - 19)] + RST))
+        if not found:
+            lines.append(" " + DIM + "nothing matches: Backspace, or Esc to go back" + RST)
+        lines += [""] * max(0, rows - 1 - len(lines))
+        lines.append(DIM + " type to search · ↑↓ or tap · Enter opens it · Esc back" + RST)
+        sys.stdout.write("\x1b[H" + "\x1b[K\n".join(lines[:rows]) + "\x1b[K\x1b[J"); sys.stdout.flush()
+        k = ui_getkey(None, text=True)
+        if isinstance(k, tuple):
+            if not k[4] or k[1] not in (0, 64, 65): continue
+            if k[1] == 64: sel = max(0, sel - 3); continue          # wheel / touch scroll
+            if k[1] == 65: sel = min(len(found) - 1, sel + 3); continue
+            r = k[3] - 4
+            if 0 <= r < len(shown): return shown[r]
+            continue
+        if k is None: continue
+        if k in ("\x1b", "\x03"): return None
+        if k in ("\r", "\n"):
+            if found: return found[sel]
+        elif k == "\x1b[B": sel += 1
+        elif k == "\x1b[A": sel = max(0, sel - 1)
+        elif k in ("\x7f", "\x08"): q, sel = q[:-1], 0
+        elif k == "\x15": q, sel = "", 0                          # Ctrl-u
+        elif k[0] >= " " and not k.startswith("\x1b"): q, sel = q + k, 0
+
+def run_command(cmd, usage, note, keep):
+    """A command found by `/`: a read-only one, or one that asks for what it
+    needs, runs in this tab; anything else shows its usage (commands.detail)
+    and comes back. False when it came back."""
+    import commands
+    man = commands.manifest()
+    if (man.get(cmd) or {}).get("mutates") is False or cmd in commands.ASKS:
+        launch(cmd.upper()[:10], [sys.executable, PHOSPHOR, cmd], {"cmd": "phosphor " + cmd}, keep)
+    commands.detail(cmd, usage, note, man)
+    sys.stdout.write("\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h"); sys.stdout.flush()
+    return False
+
+def open_workspace(name):
+    """Its tab, from the layout gen wrote; False (and why) when there's none."""
+    import workspace
+    lay = os.path.expanduser("~/.config/zellij/layouts/tab-%s.kdl" % name.upper().lower())
+    if not os.path.exists(lay):
+        return "no layout for %s yet: phosphor gen" % name.upper()
+    workspace.open_tab(name)
+    return None
 
 def ask_command(rows, prompt="command: "):
     sys.stdout.write("\x1b[?1006l\x1b[?1000l\x1b[?25h\x1b[%d;1H\x1b[K " % rows + AMB + prompt + RST)
@@ -358,13 +498,13 @@ def main():
     if not sys.stdin.isatty():
         for label, note, name, argv, _s in its: print("%-14s %-16s %s" % (label, note, " ".join(argv)))
         return 0
-    sel, keep, n = 0, False, len(its)
+    sel, keep, n, items, msg, tip = 0, False, len(its), None, None, hint(prof)
     sys.stdout.write("\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h")
     try:
         while True:
             cols, rows = shutil.get_terminal_size((60, 20))
             w = min(cols, 80)
-            lines, acts = render(its, sel, keep, w)
+            lines, acts = render(its, sel, keep, w, msg, tip)
             sys.stdout.write("\x1b[H" + "\x1b[K\n".join(lines[:rows]) + "\x1b[K\x1b[J"); sys.stdout.flush()
             k = getkey()
             act = None
@@ -374,13 +514,31 @@ def main():
                 if act is None: continue
             elif k in ("q", "\x1b", "\x03"):
                 return 0
-            elif k in ("j", "\x1b[B"): sel = min(n + 1, sel + 1); continue
+            elif k in ("j", "\x1b[B"): sel = min(n + 2, sel + 1); continue
             elif k in ("k", "\x1b[A"): sel = max(0, sel - 1); continue
             elif k and k.isdigit() and 0 < int(k) <= min(9, n): act = int(k) - 1
-            elif k in ("\r", "\n", " "): act = sel if sel < n else ("cmd" if sel == n else "keep")
+            elif k == "/": act = "search"
+            elif k in ("\r", "\n", " "): act = sel if sel < n else ("cmd", "search", "keep")[sel - n]
             else: continue
             if act == "keep":
                 keep = not keep; continue
+            if act == "search":
+                if items is None: items = search_items(prof, its)
+                it = search(items, rows, cols)
+                if it is None: continue
+                label, note, kind, what = it
+                if kind == "tab":
+                    zj("go-to-tab-name", what); return 0        # there: this menu's tab closes
+                if kind == "workspace":
+                    err = open_workspace(what)
+                    if err is None: return 0
+                    msg = err; continue
+                if kind == "app":
+                    p = apps.have(apps.exe(what))
+                    launch(apps.tab_name(what), [p] + what.get("args", []), apps.spec(what), keep)
+                if kind == "command":
+                    run_command(*what, keep); continue
+                act = what                                      # one of the menu's own entries
             if act == "cmd":
                 text = ask_command(rows)
                 if text:

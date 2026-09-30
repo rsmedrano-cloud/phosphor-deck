@@ -6,6 +6,17 @@ before it updates.
 
 ## Unreleased
 
+## 1.2.4 — one place to find anything
+
+- `/` in the `+` menu (also a row to tap, "search everything...") finds anything in one place:
+  the tabs you have open, the menu's own entries, your workspaces, the tools you've installed and
+  every phosphor command. Type a few letters -- every word counts, in names and descriptions --
+  then Enter (or a tap) goes to that tab, opens it, or runs it; a command that could change
+  something shows its usage instead, as in `phosphor commands`.
+- The `+` menu's first twenty openings end with one line of the deck's own keys (edit tab, note,
+  zoom, tabs, leave), as your `[keys]` has them, for someone who's never seen the deck; then it
+  stops. The DECK tab keeps the whole list.
+
 ## 1.2.3 — panels you can act from
 
 - `phosphor services` is something you act from now, not only look at: pick a unit (j/k or a

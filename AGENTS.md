@@ -906,6 +906,12 @@ and in the `+` menu, and open in a tab of their own.
   An **assistant** in it asks which folder it starts in: here, a folder of `[deck] projects`
   (workspaces say so), one you typed before, or `/` to type another (`~` and relative paths
   work); the tab takes that folder's name.
+  **`/`** in it (or tap "search everything...") searches, as you type, the tabs open now, the
+  menu's own entries, your workspaces, the tools you've installed and every phosphor command:
+  every word counts, in names and descriptions, the name matching first. Enter or a tap goes to
+  that tab, opens the workspace or the tool, or runs the command in this tab -- a command that
+  could change something shows its usage and copies it instead, as in `phosphor commands`.
+  Its first twenty openings end with one line of the deck's own keys, as `[keys]` has them.
 - `phosphor keep [TAB]` — read the tab as it is now (splits, sizes, what runs in each pane)
   and write it into your profile; `--pick` chooses the tab, `--dry-run` only shows it.
   Also `k` in the DECK tab.
@@ -1026,7 +1032,7 @@ except these.
 | Alt-g | take and give back zellij's controls (same key) |
 | Alt-1 … Alt-9 | go to a tab, in the order of your profile |
 | tap | a tab to switch, a pane to focus it |
-| + (tab bar) | new tab: a shell here or on a machine, an assistant, files... |
+| + (tab bar) | new tab: a shell here or on a machine, an assistant, files... / searches everything |
 | select (drag) | copies to the clipboard of every device on the deck |
 | phosphor clip F | a file or a pipe onto that clipboard (up to ~70 KB) |
 | Alt-← ↑ ↓ → | move between panes; left/right past the edge: the next tab |

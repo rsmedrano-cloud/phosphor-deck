@@ -150,6 +150,12 @@ sidebar:
   An **assistant** in it asks which folder it starts in: here, a folder of `[deck] projects`
   (workspaces say so), one you typed before, or `/` to type another (`~` and relative paths
   work); the tab takes that folder's name.
+  **`/`** in it (or tap "search everything...") searches, as you type, the tabs open now, the
+  menu's own entries, your workspaces, the tools you've installed and every phosphor command:
+  every word counts, in names and descriptions, the name matching first. Enter or a tap goes to
+  that tab, opens the workspace or the tool, or runs the command in this tab -- a command that
+  could change something shows its usage and copies it instead, as in `phosphor commands`.
+  Its first twenty openings end with one line of the deck's own keys, as `[keys]` has them.
 - `phosphor keep [TAB]` — read the tab as it is now (splits, sizes, what runs in each pane)
   and write it into your profile; `--pick` chooses the tab, `--dry-run` only shows it.
   Also `k` in the DECK tab.
