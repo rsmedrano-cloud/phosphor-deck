@@ -769,7 +769,11 @@ and in the `+` menu, and open in a tab of their own.
 - `phosphor panel` — the DECK tab: the deck's state, the next steps while you set up, and every
   action one key or tap away (add a screen, machines, theme, web, tunnels, tools, keep a tab, triage
   a host, tail logs, services, workspaces, review, notices & traces, tabs, shortcuts, a shell here, doctor,
-  logs, update, restart, manual). `n` (notices & traces) opens `phosphor push`, `phosphor tts` or
+  logs, update, restart, manual, and `?` for the keys of every installed tool). Laid out as cards that
+  follow the pane's width: one column on a phone (arrows or two fingers scroll it), more on a
+  wider screen, with a line about each action once there's room. A profile whose DECK tab still has
+  the key guide beside the panel gets **D** in the deck card: it writes that tab as one pane
+  (a backup is kept, `f` applies it). `n` (notices & traces) opens `phosphor push`, `phosphor tts` or
   `phosphor trace` on their own screen: what's on, and on or off one key away. Actions
   run in the same pane and come back the same way from every one: q, Esc or Enter (the ones
   that print and wait say "q · Enter: back", the TUIs take q) -- `tail`'s stream is the one
@@ -1111,8 +1115,8 @@ Tap a tab to switch, a pane to focus it; `+` in the tab bar opens the new-tab
 menu. On phones, taps go to the deck, so the keyboard needs its own key (the
 phone kit adds KEYBOARD, EDIT, ZOOM and EXIT).
 
-The DECK tab lists the keys of every installed tool, next to the panel with
-every phosphor action (a key or a tap each).
+The DECK tab has every phosphor action (a key or a tap each), and `?` there
+lists the keys of every installed tool.
 
 ## Screens
 

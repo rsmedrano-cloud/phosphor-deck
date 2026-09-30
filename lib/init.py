@@ -493,9 +493,7 @@ def render(hosts, theme, comms, net="auto", web=False, tun=(), editor=None, shel
               '      { cmd = "btop", args = ["-p", "1"], size = "55%" },',
               '      { cmd = "ctop", alt = true, args = ["-s", "cpu"], size = "45%", needs_size = true },',
               "  ]},", "]", ""]
-    L += ["[[tabs]]", 'name  = "DECK"', 'split = "cols"', "panes = [",
-          '  { cmd = "phosphor panel", size = "50%" },',
-          '  { cmd = "phosphor keys" },', "]", ""]
+    L += ["[[tabs]]", 'name  = "DECK"', 'panes = [ { cmd = "phosphor panel" } ]', ""]
     L += ["[[tabs]]", 'name  = "NOTES"', 'panes = [ { cmd = "phosphor notes" } ]', ""]
     for t in tun:
         L += ["[[tunnels]]", 'host = "%s"' % t, ""]

@@ -132,6 +132,9 @@ out=$(python3 tests/broadcast-check.py 2>&1) && ok || bad "$out"
 step "panel: DECK tab actions (host pickers; q, Esc, Enter go back from every one)"
 out=$(python3 tests/panel-actions-check.py 2>&1) && ok || bad "$out"
 
+step "panel: cards reflow with the width"
+out=$(python3 tests/panel-grid-check.py 2>&1) && ok || bad "$out"
+
 step "a hand-edited profile says so (DECK tab f, doctor)"
 out=$(python3 tests/profile-changed-check.py 2>&1) && ok || bad "$out"
 

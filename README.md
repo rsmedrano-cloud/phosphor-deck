@@ -267,19 +267,27 @@ Alt-g          take zellij's controls, and give them back
 They were picked so they don't collide with `matterhorn`, which uses a lot of
 Ctrl and Alt keys, and every one can be changed: `phosphor shortcuts` (or `c`
 in the DECK tab). Your keys live in the profile, so updates never reset them.
-The DECK tab lists the keys of every installed tool.
+`?` in the DECK tab lists the keys of every installed tool.
 
 ## The DECK tab
 
 The deck's own tab, and the one place every phosphor command lives, even
-when all your other tabs are ssh sessions somewhere else. On the left: its
-state (screens in, watchdog, browser access, tunnels), the next steps while
-you're still setting it up, and one key or tap per action: add a screen,
-machines, the color, browser access, tunnels, install tools, keep a tab,
-triage a flagged host, tail a host's logs, services, merge requests to
-review, tabs, shortcuts, a shell on the brain, doctor, update, restart, the
-manual. Every action comes back the
-same way: q, Esc or Enter. On the right: the keys of every installed tool, with the deck's own as you set them.
+when all your other tabs are ssh sessions somewhere else. It's laid out as
+cards that follow the screen's width -- one column on a phone (it scrolls:
+arrows or two fingers), two or more on a tablet or a computer, with a line
+about each action once there's room: the deck's state (screens in, watchdog,
+browser access, tunnels), the next steps while you're still setting it up,
+and one key or tap per action, grouped: screens, machines (setup, triage a
+flagged host, tail a host's logs, services, tunnels), work (every command,
+workspaces, merge requests to review, install tools, a shell on the brain),
+tabs & keys (keep a tab, tabs, recipes, the color, shortcuts, and `?`, the
+keys of every installed tool with the deck's own as you set them) and
+upkeep (notices, doctor, logs, update, restart, the manual). Every action
+comes back the same way: q, Esc or Enter.
+
+A profile from before 1.2.5 still has the key guide beside the panel: the
+deck card offers **D**, which writes the tab as one pane (a backup is kept;
+`f` applies it).
 
 ![The DECK tab: next steps, every action, and the key guide](doc/img/readme/deck-tab.png)
 

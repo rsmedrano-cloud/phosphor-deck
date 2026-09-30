@@ -6,6 +6,17 @@ before it updates.
 
 ## Unreleased
 
+## 1.2.5 — the DECK tab follows your screen
+
+- The DECK tab is one screen of cards that follows the width you look at it from: one column on
+  a phone (arrows or two fingers scroll it), two or more on a tablet or a computer, each action
+  with a line about it once there's room. The actions come in groups (screens, machines, work,
+  tabs & keys, upkeep), and the deck's state is a card of its own: a tap on "web off" or
+  "tunnels 1/2 up" opens it.
+- The key guide that sat beside the panel is `?` now, so the panel gets the whole tab. A profile
+  from before keeps its two panes until you say so: the deck card offers **D**, which writes the
+  tab as one pane (a backup is kept) and `f` applies it.
+
 ## 1.2.4 — one place to find anything
 
 - `/` in the `+` menu (also a row to tap, "search everything...") finds anything in one place:

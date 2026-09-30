@@ -96,14 +96,25 @@ else:
         z.pump(2)
         z.action("go-to-tab-name", "SH"); z.pump(1)
         before = z.tabs()
-        z.action("new-tab"); z.pump(3)                     # the + menu
+        def search_for(q):
+            """+ -> / -> q, each step once the screen shows it took the last
+            one: fixed waits typed into a menu still starting on a busy runner."""
+            z.out = b""; z.action("new-tab")
+            ok = z.wait(lambda: b"everything" in z.out, 10)
+            z.out = b""; z.keys("/", 0.2)
+            ok = z.wait(lambda: b"SEARCH" in z.out, 8) and ok
+            for ch in q:                  # zellij redraws only what changed: one letter each
+                z.out = b""; z.keys(ch, 0.1)
+                ok = z.wait(lambda: ch.encode() in z.out, 8) and ok
+            return ok
+        need("+ opens the menu, / its search", search_for("logbo"))
         need("+ opens the menu in a tab of its own", len(z.tabs()) == len(before) + 1)
-        z.keys("/", 1); z.keys("logbo", 1); z.keys("\r", 2)
+        z.keys("\r", 2)
         need("an open tab: Enter goes there", z.wait(lambda: active(z) == "LOGBOOK", 8))
         need("and the menu's tab closes", z.wait(lambda: len(z.tabs()) == len(before), 8))
 
-        z.action("new-tab"); z.pump(3)
-        z.keys("/", 1); z.keys("keys", 1); z.keys("\r", 3)
+        need("again, for a command", search_for("keys"))
+        z.keys("\r", 3)
         need("a read-only command: Enter runs it in that tab, named after it",
              z.wait(lambda: "KEYS" in z.tabs(), 8))
 

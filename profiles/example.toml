@@ -133,11 +133,7 @@ panes = [
 
 [[tabs]]
 name  = "DECK"
-split = "cols"
-panes = [
-  { cmd = "phosphor panel", size = "50%" },
-  { cmd = "phosphor keys" },
-]
+panes = [ { cmd = "phosphor panel" } ]
 
 [[tabs]]
 name  = "NOTES"

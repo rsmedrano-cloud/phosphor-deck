@@ -67,5 +67,5 @@ Tap a tab to switch, a pane to focus it; `+` in the tab bar opens the new-tab
 menu. On phones, taps go to the deck, so the keyboard needs its own key (the
 phone kit adds KEYBOARD, EDIT, ZOOM and EXIT).
 
-The DECK tab lists the keys of every installed tool, next to the panel with
-every phosphor action (a key or a tap each).
+The DECK tab has every phosphor action (a key or a tap each), and `?` there
+lists the keys of every installed tool.

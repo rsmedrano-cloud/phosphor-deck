@@ -60,11 +60,11 @@ need("a new tabs.d file is noticed too", changed() == "True")
 import panel, init
 st = {"session": "deck", "version": "1", "channel": "stable", "news": "", "screens": None,
       "timer": True, "web": False, "tunnels": [], "profile_changed": True}
-lines, hit = panel.draw({}, st, 100, 60)
+lines, hit, _ = panel.draw({}, st, 100, 60)
 need("the status line says it", "profile changed: f applies it" in lines[1])
-need("a tap on that line is f", hit.get(2) == "f")
-lines, hit = panel.draw({}, dict(st, profile_changed=False), 100, 60)
-need("unchanged: the status line doesn't mention it", "profile changed" not in lines[1] and "f" not in hit.values())
+need("a tap on that line is f", panel.at(hit, 5, 2) == "f")
+lines, hit, _ = panel.draw({}, dict(st, profile_changed=False), 100, 60)
+need("unchanged: the status line doesn't mention it", "profile changed" not in lines[1] and all(k != "f" for spots in hit.values() for _, _, k in spots))
 
 ran, rc = [], {"gen": 0}
 panel.subprocess.run = lambda cmd, **kw: ran.append(cmd[-1]) or types.SimpleNamespace(returncode=rc.get(cmd[-1], 0))
