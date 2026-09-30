@@ -111,6 +111,9 @@ out=$(python3 tests/commands-menu-check.py 2>&1) && ok || bad "$out"
 step "commands ask instead of quitting"
 out=$(python3 tests/asks-check.py 2>&1) && ok || bad "$out"
 
+step "panels you act from: services and workspace"
+out=$(python3 tests/act-check.py 2>&1) && ok || bad "$out"
+
 step "theme: preview per palette, picker writes nothing until Enter"
 out=$(python3 tests/theme-check.py 2>&1) && ok || bad "$out"
 

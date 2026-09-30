@@ -98,3 +98,6 @@ hand, same as any other git repo.
   `--folder-only` writes the folder and leaves the profile and tabs alone (an assistant can use it).
 - `phosphor workspace open NAME` — go to its tab, or open it (inside the deck).
 - `phosphor workspace list` — the workspaces in your projects folder.
+- `phosphor workspace` — the same, as a panel (also `z` in the DECK tab): each one's git state
+  (dirty, ↑ ahead, ↓ behind), Enter opens its tab, `d` shows its diff and any commits not pushed,
+  `n` makes a new one.

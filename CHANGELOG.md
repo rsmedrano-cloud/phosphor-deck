@@ -6,6 +6,16 @@ before it updates.
 
 ## Unreleased
 
+## 1.2.3 — panels you can act from
+
+- `phosphor services` is something you act from now, not only look at: pick a unit (j/k or a
+  tap), `l` reads its logs, `r` restarts it and `s` starts or stops it -- both ask first. A system
+  unit goes through sudo, whose password prompt shows as usual; the deck's own service and timer
+  are left to `phosphor restart`. `--once` and a pipe still print a plain frame.
+- `phosphor workspace`, on a terminal with nothing after it, is a panel: every workspace with its
+  git state (dirty, ahead, behind), Enter opens its tab, `d` shows its diff (and what isn't
+  pushed), `n` makes a new one. Also `z` in the DECK tab. `phosphor workspace list` still prints.
+
 ## 1.2.2 — commands that ask instead of quitting
 
 - Commands that ask instead of quitting: run with nothing on a terminal -- or with Enter in

@@ -25,7 +25,8 @@ ACTIONS = [("e", "explore commands",  "every phosphor command, by category"),
            ("k", "keep a tab",       "the way you arranged it, into your profile"),
            ("g", "triage a host",    "pick a flagged one (or any), ask an assistant"),
            ("j", "tail logs",        "pick a host and service, stream its logs (Ctrl-C back)"),
-           ("y", "services",         "systemd units: the deck's own and yours"),
+           ("y", "services",         "systemd units: logs, restart, start or stop"),
+           ("z", "workspaces",       "every workspace, its git state; open, diff, new"),
            ("x", "review",           "merge/pull requests of a repo, CI and diff"),
            ("n", "notices & traces", "phone notices, spoken ones, verbose logs: on or off"),
            ("c", "shortcuts",        "the deck's keys, yours to change"),
@@ -204,6 +205,8 @@ def act(k, st):
             P("theme")
         elif k == "y":
             P("services")
+        elif k == "z":
+            P("workspace")
         elif k == "x":
             if not (deckconf.exe("glab") or deckconf.exe("gh")):
                 print(DIM + "  review needs glab (GitLab) or gh (GitHub; i installs it)." + RST); pause()

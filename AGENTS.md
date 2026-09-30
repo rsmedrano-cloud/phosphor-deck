@@ -731,6 +731,14 @@ panel. `inactive` isn't shown as a problem -- a tunnel you turned off is
 supposed to sit there -- only `failed` or a unit that doesn't exist gets a
 loud color.
 
+On a terminal the panel is a picker too: j/k or a tap picks a unit, `l`
+reads its last 300 log lines, `r` restarts it and `s` starts or stops it,
+each asking first (`y`). A system unit goes through `sudo`, and its
+password prompt shows as usual; one of yours (`user:`) doesn't need it. The
+deck's own service and timer are the exception: stopping them from a pane
+inside the deck would take that pane down mid-answer, so it points you at
+`phosphor restart` instead.
+
 ### apps.toml
 
 Programs of your own, next to the profile (`~/.config/phosphor/apps.toml`,
@@ -760,7 +768,7 @@ and in the `+` menu, and open in a tab of their own.
   (also: `m` in the DECK tab).
 - `phosphor panel` — the DECK tab: the deck's state, the next steps while you set up, and every
   action one key or tap away (add a screen, machines, theme, web, tunnels, tools, keep a tab, triage
-  a host, tail logs, services, review, notices & traces, tabs, shortcuts, a shell here, doctor,
+  a host, tail logs, services, workspaces, review, notices & traces, tabs, shortcuts, a shell here, doctor,
   logs, update, restart, manual). `n` (notices & traces) opens `phosphor push`, `phosphor tts` or
   `phosphor trace` on their own screen: what's on, and on or off one key away. Actions
   run in the same pane and come back the same way from every one: q, Esc or Enter (the ones
@@ -813,6 +821,8 @@ and in the `+` menu, and open in a tab of their own.
 
 ### Workspaces
 - `phosphor workspace new|open|list` — a tab per idea with its own folder and assistants; see workspaces.
+  Bare, on a terminal (or `z` in the DECK tab): every workspace and its git state, Enter opens its tab,
+  `d` its diff, `n` a new one.
 - `phosphor ask [--assistant NAME] [-c] QUESTION` — a one-shot question, no tab: shells out to whichever
   assistant CLI is already installed (claude, gemini, codex, opencode, aider, agy -- the same
   list `phosphor workspace` knows, tried in that order) with a headless, single-answer flag of
@@ -850,7 +860,8 @@ and in the `+` menu, and open in a tab of their own.
 ### In the deck
 - `phosphor fleet`, `phosphor pulse`, `phosphor adjutant`, `phosphor prom`, `phosphor ci`, `phosphor services` — the SYS panels; prom draws your Prometheus queries, ci draws your GitLab/GitHub pipeline statuses,
   services lists systemd units and their state (see `[prometheus]`, `[ci]` and `[services]` in profile; `--once` prints one frame).
-  services also opens from the `+` menu and with `y` in the DECK tab.
+  services also opens from the `+` menu and with `y` in the DECK tab; on a terminal, pick a unit: `l` its logs,
+  `r` restart it, `s` start or stop it, each asking first (see `[services]` in profile).
   `fleet` also calls `phosphor notify` itself when a host's ok/not-ok flips (down, or back) -- at most once a minute per host even if the link flaps.
   A card also shows the CPU's temperature and a laptop's battery (from sysfs, when the kernel has
   them) and disks failing SMART: that needs `smartctl` there, answering without a password (root,
@@ -1281,6 +1292,9 @@ hand, same as any other git repo.
   `--folder-only` writes the folder and leaves the profile and tabs alone (an assistant can use it).
 - `phosphor workspace open NAME` — go to its tab, or open it (inside the deck).
 - `phosphor workspace list` — the workspaces in your projects folder.
+- `phosphor workspace` — the same, as a panel (also `z` in the DECK tab): each one's git state
+  (dirty, ↑ ahead, ↓ behind), Enter opens its tab, `d` shows its diff and any commits not pushed,
+  `n` makes a new one.
 
 ## Mentions (read-only)
 

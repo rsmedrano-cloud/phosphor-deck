@@ -93,7 +93,8 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
   five runs underneath, so an idle repo still tells you what happened.
 - **Services, at a glance.** `phosphor services` lists the brain's own systemd
   units -- Phosphor's own plus any of your homelab's you add -- colored by
-  state, in the SYS tab.
+  state, in the SYS tab. Pick one to read its logs, restart, start or stop it
+  (it asks first).
 - **Review from the deck.** `phosphor review` lists open merge/pull requests
   (GitLab or GitHub, detected from the remote): CI status, conflicts, the diff,
   and a key to check the branch out into its own worktree and try it, without
@@ -366,7 +367,7 @@ more depth on every one of these.
 
 | | |
 |---|---|
-| `phosphor workspace` | a tab per idea: folder, git, its assistants |
+| `phosphor workspace` | a tab per idea: folder, git, its assistants; bare, every workspace's git state, open, diff or a new one |
 | `phosphor ask Q` | a one-shot question to whichever assistant CLI is installed, no tab; `-c` adds your latest decisions and summaries |
 
 ### Notes
@@ -387,7 +388,7 @@ more depth on every one of these.
 | `phosphor push [--qr\|on\|off]` | `[push]`'s status, on or off, or a QR to subscribe on the phone without typing the server/topic in |
 | `phosphor tts` | speak notifications aloud with selectable voices (GLaDOS, Adjutant, HAL, Synth, System) |
 | `phosphor ci` | GitLab/GitHub pipeline status cards (see `[ci]` in the profile) |
-| `phosphor services` | systemd units and their state: Phosphor's own, plus any you add (see `[services]` in the profile) |
+| `phosphor services` | systemd units and their state: Phosphor's own, plus any you add (see `[services]` in the profile); pick one for its logs, restart, start/stop |
 | `phosphor review` | open merge/pull requests: CI, conflicts, diff, try the branch in its own worktree |
 | `phosphor screens` | who's attached (phone, tablet, another computer); `x` twice kicks one loose |
 | `phosphor keys` | key guide, updates itself when you install a tool |

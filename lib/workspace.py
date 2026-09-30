@@ -10,6 +10,8 @@
         --folder-only                  write the folder, don't touch the profile or tabs
     phosphor workspace open NAME       its tab (from inside the deck)
     phosphor workspace list            the workspaces under your projects folder
+    phosphor workspace                 on a terminal: every workspace and its git state
+                                       (Enter its tab, d its diff, n a new one)
 
 A workspace lives in [deck] projects (default ~/projects)/NAME. Every assistant
 folder gets an AGENTS.md saying what it owns; the workspace keeps its own
@@ -370,6 +372,112 @@ def dirty_workspaces():
             out.append((name,) + st)
     return out
 
+def state(st):
+    """A workspace's git state in a few characters."""
+    if st is None: return "no git"
+    dirty, ahead, behind = st
+    bits = (["dirty"] if dirty else []) + (["↑%d" % ahead] if ahead else []) + (["↓%d" % behind] if behind else [])
+    return " ".join(bits) or "clean"
+
+def diff(base):
+    """What `d` shows: status, the uncommitted diff, and commits not pushed."""
+    def sh(*a):
+        try:
+            r = subprocess.run(["git", "-C", base, "-c", "color.ui=always"] + list(a),
+                               capture_output=True, text=True, timeout=10)
+            return r.stdout
+        except (OSError, subprocess.TimeoutExpired):
+            return ""
+    out = sh("status", "--short", "--branch")
+    d = sh("diff", "HEAD")
+    if d.strip(): out += "\n" + d
+    if sh("rev-parse", "--abbrev-ref", "@{u}").strip():
+        un = sh("log", "--oneline", "@{u}..HEAD")
+        if un.strip(): out += "\nnot pushed:\n" + un
+    return out if out.strip() else "nothing to show\n"
+
+PANEL_KEYS = [("\r", "Enter", "open its tab"), ("d", "d", "diff"), ("n", "n", "new"), ("q", "q", "quit")]
+
+def panel():
+    """Every workspace and its git state; Enter opens its tab, d its diff, n a new one."""
+    import form
+    INV = "\x1b[7m"
+    sel, msg = 0, ""
+    def load():
+        r = root()
+        return [(n, os.path.join(r, n), git_status(os.path.join(r, n))) for n in names()]
+    rows = load()
+    on = "\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h"
+    sys.stdout.write(on); sys.stdout.flush()
+    try:
+        while True:
+            cols, trows = shutil.get_terminal_size((80, 24))
+            w = max(30, cols)
+            out = [RULE + " WORKSPACES " + "─" * max(0, w - 12) + RST]
+            if not rows:
+                out.append(DIM + "  none in %s yet: n makes one" % tilde(root()) + RST)
+            nw = max([len(n) for n, _, _ in rows] + [8])
+            room = max(1, trows - 4)
+            top = max(0, min(sel - room + 1, len(rows) - room)) if len(rows) > room else 0
+            shown = rows[top:top + room]
+            for i, (n, base, st) in enumerate(shown, top):
+                tag = state(st)
+                col = FG if tag == "clean" else AMB
+                if i == sel:
+                    out.append(" " + INV + pad(" %-*s  %-14s %s" % (nw, n, tag, tilde(base)), w - 2)[:w - 2] + RST)
+                else:
+                    out.append("  " + FG + "%-*s" % (nw, n) + RST + "  " + col + "%-14s" % tag + RST
+                               + " " + DIM + tilde(base) + RST)
+            spans, x = [], 2
+            for k, lk, l in PANEL_KEYS:
+                spans.append((x, x + len(lk) + len(l), k)); x += len(lk) + 1 + len(l) + 2
+            out.append(" " + "  ".join(AMB + lk + RST + FG + " " + l + RST for _, lk, l in PANEL_KEYS)
+                       + DIM + "  · j/k pick" + RST)
+            if msg: out.append(" " + msg)
+            sys.stdout.write("\x1b[H" + "\x1b[K\n".join(out) + "\x1b[K\x1b[J"); sys.stdout.flush()
+            k = getkey(None)
+            if isinstance(k, tuple):
+                if k[0] != "MOUSE" or not k[4] or k[1] not in (0, 64, 65): continue
+                if k[1] == 64: sel = max(0, sel - 1); continue
+                if k[1] == 65: sel = min(len(rows) - 1, sel + 1); continue
+                x, y = k[2], k[3]
+                foot = 2 + (len(shown) if rows else 1)
+                if rows and 2 <= y < 2 + len(shown):
+                    sel, msg = top + y - 2, ""; continue
+                hit = [kk for a, b, kk in spans if a <= x <= b] if y == foot else []
+                if not hit: continue
+                k = hit[0]
+            if k is None: continue
+            if k in ("q", "Q", "\x03", "\x1b"): break
+            if k in ("j", "\x1b[B"): sel, msg = min(max(0, len(rows) - 1), sel + 1), ""; continue
+            if k in ("k", "\x1b[A"): sel, msg = max(0, sel - 1), ""; continue
+            if k == "n":
+                form.leave()
+                try:
+                    new([])
+                except (KeyboardInterrupt, EOFError, SystemExit):   # init.ask exits on Ctrl-C
+                    print()
+                back()
+                sys.stdout.write(on); sys.stdout.flush()
+                rows, msg = load(), ""
+                continue
+            if not rows: continue
+            n, base, _ = rows[sel]
+            if k in ("\r", "\n"):
+                if not os.environ.get("ZELLIJ"):
+                    msg = AMB + "open it from inside the deck: phosphor workspace open %s" % n + RST; continue
+                open_tab(n)
+                msg = PH + "✓ " + RST + FG + n.upper() + RST
+            elif k == "d":
+                form.pager(diff(base))
+                sys.stdout.write(on); sys.stdout.flush()
+                rows = load()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        sys.stdout.write("\x1b[?1006l\x1b[?1000l\x1b[?1049l\x1b[?25h"); sys.stdout.flush()
+    return 0
+
 NOTES_SEEN = os.path.join(deckconf.cache_dir(), "workspace-notes-seen.json")
 
 def watch_notes(sess):
@@ -409,6 +517,8 @@ def watch_notes(sess):
 
 def main():
     argv = sys.argv[1:]
+    if not argv and sys.stdin.isatty() and sys.stdout.isatty():
+        return panel()
     sub = argv[0] if argv else "list"
     if sub == "new":
         pause = "--pause-on-error" in argv            # the + menu: its tab would vanish with the error

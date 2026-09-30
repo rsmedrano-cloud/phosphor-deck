@@ -299,6 +299,14 @@ panel. `inactive` isn't shown as a problem -- a tunnel you turned off is
 supposed to sit there -- only `failed` or a unit that doesn't exist gets a
 loud color.
 
+On a terminal the panel is a picker too: j/k or a tap picks a unit, `l`
+reads its last 300 log lines, `r` restarts it and `s` starts or stops it,
+each asking first (`y`). A system unit goes through `sudo`, and its
+password prompt shows as usual; one of yours (`user:`) doesn't need it. The
+deck's own service and timer are the exception: stopping them from a pane
+inside the deck would take that pane down mid-answer, so it points you at
+`phosphor restart` instead.
+
 ## apps.toml
 
 Programs of your own, next to the profile (`~/.config/phosphor/apps.toml`,

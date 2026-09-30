@@ -7,7 +7,7 @@
   (also: `m` in the DECK tab).
 - `phosphor panel` — the DECK tab: the deck's state, the next steps while you set up, and every
   action one key or tap away (add a screen, machines, theme, web, tunnels, tools, keep a tab, triage
-  a host, tail logs, services, review, notices & traces, tabs, shortcuts, a shell here, doctor,
+  a host, tail logs, services, workspaces, review, notices & traces, tabs, shortcuts, a shell here, doctor,
   logs, update, restart, manual). `n` (notices & traces) opens `phosphor push`, `phosphor tts` or
   `phosphor trace` on their own screen: what's on, and on or off one key away. Actions
   run in the same pane and come back the same way from every one: q, Esc or Enter (the ones
@@ -60,6 +60,8 @@
 
 ## Workspaces
 - `phosphor workspace new|open|list` — a tab per idea with its own folder and assistants; see workspaces.
+  Bare, on a terminal (or `z` in the DECK tab): every workspace and its git state, Enter opens its tab,
+  `d` its diff, `n` a new one.
 - `phosphor ask [--assistant NAME] [-c] QUESTION` — a one-shot question, no tab: shells out to whichever
   assistant CLI is already installed (claude, gemini, codex, opencode, aider, agy -- the same
   list `phosphor workspace` knows, tried in that order) with a headless, single-answer flag of
@@ -97,7 +99,8 @@
 ## In the deck
 - `phosphor fleet`, `phosphor pulse`, `phosphor adjutant`, `phosphor prom`, `phosphor ci`, `phosphor services` — the SYS panels; prom draws your Prometheus queries, ci draws your GitLab/GitHub pipeline statuses,
   services lists systemd units and their state (see `[prometheus]`, `[ci]` and `[services]` in profile; `--once` prints one frame).
-  services also opens from the `+` menu and with `y` in the DECK tab.
+  services also opens from the `+` menu and with `y` in the DECK tab; on a terminal, pick a unit: `l` its logs,
+  `r` restart it, `s` start or stop it, each asking first (see `[services]` in profile).
   `fleet` also calls `phosphor notify` itself when a host's ok/not-ok flips (down, or back) -- at most once a minute per host even if the link flaps.
   A card also shows the CPU's temperature and a laptop's battery (from sysfs, when the kernel has
   them) and disks failing SMART: that needs `smartctl` there, answering without a password (root,

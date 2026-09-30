@@ -15,12 +15,19 @@ sudo for a read-only status); prefix it "user:" for one of yours.
 
     phosphor services           the panel, redrawn every interval
     phosphor services --once    one frame on stdout
+
+On a terminal the panel is also a picker: j/k or a tap picks a unit, `l`
+reads its logs, `r` restarts it and `s` starts or stops it -- both ask
+first. A system unit goes through sudo (its password prompt shows as
+usual); the deck's own service and timer are left to `phosphor restart`.
 """
 import os, shutil, subprocess, sys, time
 from concurrent.futures import ThreadPoolExecutor
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from ui import DIM, MUTE, PH, AMB, RED, RULE, RST, FG, vlen
+from ui import DIM, MUTE, PH, AMB, RED, RULE, RST, FG, vlen, pad, getkey
+
+INV = "\x1b[7m"
 import deckconf, gen
 
 INTERVAL = 5
@@ -108,18 +115,23 @@ def fetch(units):
         return [(scope, name, f.result()) for (scope, name), f in zip(units, futs)]
 
 
-def frame(prof, cols, rows):
-    units = [("user", n) for n in phosphor_units(prof)] + extra_units(prof)
-    w = max(20, cols)
-    out = [RULE + " SERVICES " + "─" * max(0, w - 10) + RST]
-    results = fetch(units)
+def all_units(prof):
+    return [("user", n) for n in phosphor_units(prof)] + extra_units(prof)
+
+
+def lines(results, w, sel=None):
+    """One line per unit; sel: the picked one, in reverse video."""
     if not results:
-        out.append(DIM + "  nothing to watch" + RST)
-        return out[:max(1, rows)]
+        return [DIM + "  nothing to watch" + RST]
     name_w = min(max(vlen(label(n)) for _, n, _ in results), max(6, w - 20))
-    for _, name, info in results:
+    out = []
+    for i, (_, name, info) in enumerate(results):
         col, tag = classify(info)
         mem = mem_str(info)
+        if i == sel:
+            txt = " ● " + ("%-*s" % (name_w, label(name)))[:name_w] + " " + "%-10s" % tag + mem.rjust(6 if mem else 0)
+            out.append(" " + INV + pad(txt, w - 2)[:w - 2] + RST)
+            continue
         line = "  " + col + "●" + RST + " " + FG + ("%-*s" % (name_w, label(name)))[:name_w] + RST \
             + " " + col + ("%-10s" % tag) + RST
         if mem:
@@ -127,7 +139,149 @@ def frame(prof, cols, rows):
         if vlen(line) > w:
             line = line[:w]
         out.append(line)
+    return out
+
+
+def frame(prof, cols, rows):
+    w = max(20, cols)
+    out = [RULE + " SERVICES " + "─" * max(0, w - 10) + RST]
+    out += lines(fetch(all_units(prof)), w)
     return out[:max(1, rows)]
+
+
+# ── acting on one ─────────────────────────────────────────────
+KEYS = [("l", "logs"), ("r", "restart"), ("s", "start/stop"), ("q", "quit")]
+
+
+def own(prof, name):
+    """The deck's own service or watchdog: stopping it from a pane inside
+    it would take the pane down mid-question. phosphor restart does it
+    properly (and brings every screen back)."""
+    sess = ((prof or {}).get("deck") or {}).get("session", "deck")
+    return name in (sess + ".service", sess + ".timer")
+
+
+def systemctl(scope, *a):
+    cmd = ["systemctl"] + (["--user"] if scope == "user" else []) + list(a)
+    if scope == "system" and os.geteuid() != 0 and shutil.which("sudo"):
+        cmd = ["sudo"] + cmd
+    return cmd
+
+
+def logs(scope, name):
+    cmd = ["journalctl"] + (["--user"] if scope == "user" else []) + ["-u", name, "-n", "300", "--no-pager"]
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+        text = r.stdout + r.stderr
+    except (OSError, subprocess.TimeoutExpired) as e:
+        text = "journalctl: %s\n" % e.__class__.__name__
+    return text.strip() + "\n" if text.strip() else "no log lines for %s\n" % name
+
+
+def run_verb(scope, name, verb):
+    """Off the panel's screen, so sudo's password prompt shows. (ok, msg)"""
+    sys.stdout.write("\x1b[?1006l\x1b[?1000l\x1b[?1049l\x1b[?25h")
+    cmd = systemctl(scope, verb, name)
+    print("\n  " + DIM + "$ " + " ".join(cmd) + RST); sys.stdout.flush()
+    try:
+        rc = subprocess.run(cmd, timeout=120).returncode
+    except (OSError, subprocess.TimeoutExpired):
+        rc = -1
+    except KeyboardInterrupt:
+        rc = -2
+    sys.stdout.write("\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h"); sys.stdout.flush()
+    past = {"restart": "restarted", "start": "started", "stop": "stopped"}[verb]
+    if rc == 0:
+        return True, "%s %s" % (past, label(name))
+    return False, "%s %s failed%s" % (verb, label(name), "" if rc < 0 else " (exit %d)" % rc)
+
+
+def panel(prof):
+    import form
+    interval = settings(prof)
+    units = all_units(prof)
+    results, last = [], 0.0
+    sel, ask, msg = 0, None, ""
+    sys.stdout.write("\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h"); sys.stdout.flush()
+    try:
+        while True:
+            if time.time() - last >= interval:
+                results, last = fetch(units), time.time()
+                sel = min(sel, max(0, len(results) - 1))
+            cols, rows = shutil.get_terminal_size((80, 24))
+            w = max(20, cols)
+            out = [RULE + " SERVICES " + "─" * max(0, w - 10) + RST]
+            body = lines(results, w, sel if results else None)
+            room = max(1, rows - 4)
+            top = max(0, min(sel - room + 1, len(body) - room)) if len(body) > room else 0
+            shown = body[top:top + room]
+            out += shown
+            first = 2                                       # screen row of body[top]
+            foot = " " + "  ".join(AMB + k + RST + FG + " " + l + RST for k, l in KEYS) + DIM + "  · j/k pick" + RST
+            spans, x = [], 2
+            for k, l in KEYS:
+                spans.append((x, x + len(k) + 1 + len(l), k)); x += len(k) + 1 + len(l) + 2
+            out.append(foot)
+            if ask:
+                out.append(" " + AMB + "%s %s?" % (ask[0], label(ask[2])) + RST + FG + "  y yes · any other key: no" + RST)
+            elif msg:
+                out.append(" " + msg)
+            sys.stdout.write("\x1b[H" + "\x1b[K\n".join(out) + "\x1b[K\x1b[J"); sys.stdout.flush()
+
+            k = getkey(max(0.2, interval - (time.time() - last)))
+            if k is None:
+                continue
+            if isinstance(k, tuple):
+                if k[0] != "MOUSE" or not k[4] or k[1] not in (0, 64, 65):
+                    continue
+                if k[1] == 64: sel = max(0, sel - 1); continue
+                if k[1] == 65: sel = min(len(results) - 1, sel + 1); continue
+                x, y = k[2], k[3]
+                if ask:
+                    ask = None; msg = DIM + "left alone" + RST; continue
+                if first <= y < first + len(shown) and results:
+                    sel, msg = top + y - first, ""; continue
+                if y == first + len(shown):
+                    hit = [kk for a, b, kk in spans if a <= x <= b]
+                    if not hit: continue
+                    k = hit[0]
+                else:
+                    continue
+            if ask:
+                verb, scope, name = ask
+                ask = None
+                if k in ("y", "Y"):
+                    ok, m = run_verb(scope, name, verb)
+                    msg = (PH + "✓ " if ok else RED + "✗ ") + m + RST
+                    last = 0.0
+                else:
+                    msg = DIM + "left alone" + RST
+                continue
+            if k in ("q", "Q", "\x03", "\x1b"):
+                break
+            if k in ("j", "\x1b[B"): sel, msg = min(len(results) - 1, sel + 1), ""; continue
+            if k in ("k", "\x1b[A"): sel, msg = max(0, sel - 1), ""; continue
+            if not results or k not in ("l", "r", "s"):
+                continue
+            scope, name, info = results[sel]
+            if k == "l":
+                form.pager(logs(scope, name))
+                sys.stdout.write("\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h"); sys.stdout.flush()
+                continue
+            if own(prof, name):
+                msg = AMB + "that's the deck itself: phosphor restart (r in the DECK tab)" + RST; continue
+            if info.get("LoadState") == "not-found":
+                msg = AMB + "%s isn't installed here" % label(name) + RST; continue
+            if k == "r":
+                ask = ("restart", scope, name)
+            else:
+                ask = ("stop" if info.get("ActiveState") in ("active", "activating", "reloading") else "start",
+                       scope, name)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        sys.stdout.write("\x1b[?1006l\x1b[?1000l\x1b[?1049l\x1b[?25h\n"); sys.stdout.flush()
+    return 0
 
 
 def main():
@@ -137,6 +291,8 @@ def main():
         cols = shutil.get_terminal_size((80, 24)).columns
         print("\n".join(frame(prof, cols, 10000)))
         return 0
+    if sys.stdin.isatty() and sys.stdout.isatty():
+        return panel(prof)
     sys.stdout.write("\x1b[?1049h\x1b[?25l")
     try:
         while True:
