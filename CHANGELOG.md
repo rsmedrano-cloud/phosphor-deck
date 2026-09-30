@@ -6,6 +6,18 @@ before it updates.
 
 ## Unreleased
 
+## 1.2.0 — the fleet up close: broadcast, health, theme, a guided tour
+
+- Stable channel: everything from 1.1.1 to 1.1.14 lands at once. The highlights:
+  `phosphor broadcast` (one command on the whole fleet, asking first); the FLEET panel shows CPU
+  temperature, battery and disks failing SMART, and `s`/`l`/`t` ssh, tail or triage a picked
+  card; `phosphor theme` picks the deck's color with a preview; `phosphor demo --tour` guides a
+  first look; `phosphor commands` searches every command with `/`; `phosphor ask -c` sends the
+  notebook's latest decisions along; an assistant from `+` asks which folder it starts in; a
+  pushed notice opens the deck in the browser when tapped; unconfigured panels explain
+  themselves; `phosphor update` never hangs on a silent pull. Plus the fixes from an outside
+  audit (1.1.14). The per-patch notes below have the details.
+
 ## 1.1.14 — fixes from the 1.2 audit
 
 - Fixed: `c` in NOTES (a CHAT tab from a note) opened the tab and then crashed the notes
