@@ -127,6 +127,14 @@ TOOLS = ("fleet", "pulse", "keys", "store", "adjutant", "notes", "privacy", "pho
          "keep", "workspace", "edit", "shortcuts", "tabs", "prom", "logs", "trace", "ci", "recipe", "tts", "demo",
          "services", "glance", "review", "push", "screens", "ask", "commands", "receive", "tail", "triage", "broadcast", "theme", "usage")
 
+def crash_name(cmd):
+    """The name a crash is logged under: the pane's, when phosphor run
+    started this tool itself (PHOSPHOR_RUN is "PID NAME" of that run), so
+    l on the ended pane finds it; else the tool's own. A tool typed in a
+    shell pane inherits the variable, but its parent is the shell."""
+    pid, _, name = os.environ.get("PHOSPHOR_RUN", "").partition(" ")
+    return name if name and pid == str(os.getppid()) else cmd.upper()
+
 def main():
     cmd = sys.argv[1] if len(sys.argv) > 1 else "help"
 
@@ -571,9 +579,15 @@ def main():
         return mentions.hook()
 
     if cmd in TOOLS:
-        mod = __import__(cmd)
         sys.argv = ["phosphor-" + cmd] + sys.argv[2:]
-        return mod.main() or 0
+        try:
+            return __import__(cmd).main() or 0
+        except Exception:
+            # the pane shows the traceback, but phosphor run only sees exit 1:
+            # keep it in deck.log, where l on the ended pane reads it back
+            import dlog
+            dlog.crash(crash_name(cmd))
+            raise
 
     print("unknown command: %s\n" % cmd)
     print(USAGE)

@@ -1684,8 +1684,9 @@ device's mount or another copy step.
 
 - **Start with** `phosphor doctor`. Red is blocking, amber isn't.
 - **A pane says "ended"**: its program exited. Enter reopens it, x closes the
-  tab, l shows what phosphor logged for it (also `phosphor logs TOOL`). A tab
-  you closed comes back with `phosphor restart`.
+  tab, l shows what phosphor logged for it (also `phosphor logs TOOL`): for a
+  phosphor panel that crashed, its traceback. A tab you closed comes back
+  with `phosphor restart`.
 - **A tab I closed keeps coming back after a restart**: it's kept in your
   profile. `phosphor tabs` (b in the DECK tab) forgets it, or press f instead
   of x when its last program ends.

@@ -140,7 +140,7 @@ def append(path, kind, by, title, body="", tab=""):
     """One entry at the end of a notebook (created with its header if new)."""
     with locked(path):
         fresh = not os.path.exists(path)
-        with open(path, "a") as f:
+        with open(path, "a", encoding="utf-8") as f:
             if fresh:
                 f.write(PREAMBLE)
             f.write(header(time.strftime("%Y-%m-%d %H:%M"), kind, by, title, tab) + "\n")
@@ -204,7 +204,10 @@ def parse(raw):
 
 def read(path):
     try:
-        return split(open(path).read())
+        # never the locale's encoding, and a broken byte (a write still
+        # landing, a hand edit) is one odd character, not a crashed tab
+        with open(path, encoding="utf-8", errors="replace") as f:
+            return split(f.read())
     except FileNotFoundError:
         return "", []
 
@@ -212,7 +215,7 @@ def write(path, pre, blocks):
     pre = pre.strip("\n")
     text = (pre + "\n\n" if pre else PREAMBLE) + "".join(b + "\n\n" for b in blocks)
     tmp = path + ".tmp"
-    with open(tmp, "w") as f:
+    with open(tmp, "w", encoding="utf-8") as f:
         f.write(text)
     os.replace(tmp, path)
 
@@ -475,7 +478,7 @@ def edit(e):
     """The note in $EDITOR: first line the title, the rest the body."""
     me = os.environ.get("USER", "me")
     fd, tmp = tempfile.mkstemp(prefix="phosphor-note-", suffix=".md")
-    with os.fdopen(fd, "w") as f:
+    with os.fdopen(fd, "w", encoding="utf-8") as f:
         f.write(e["title"] + "\n" + ("\n" + "\n".join(e["body"]) + "\n" if e["body"] else ""))
     import deckconf
     cmd = shlex.split(deckconf.editor(deckconf.load()[0], ask_login=False))
@@ -484,7 +487,7 @@ def edit(e):
     sys.stdout.write("\x1b[?1006l\x1b[?1000l\x1b[?25h"); sys.stdout.flush()
     try:
         subprocess.call(cmd + [tmp])
-        new = edited(e["raw"], open(tmp).read(), me)
+        new = edited(e["raw"], open(tmp, encoding="utf-8", errors="replace").read(), me)
     finally:
         os.unlink(tmp)
         sys.stdout.write("\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h\x1b[2J"); sys.stdout.flush()
@@ -540,7 +543,7 @@ def to_workspace(e):
     msg = "left as it was"
     if ok in ("", "y", "yes", "s", "si", "sí"):
         fd, tmp = tempfile.mkstemp(prefix="phosphor-note-", suffix=".md")
-        with os.fdopen(fd, "w") as f: f.write(e["raw"] + "\n")
+        with os.fdopen(fd, "w", encoding="utf-8") as f: f.write(e["raw"] + "\n")
         env = dict(os.environ, PHOSPHOR_NOTES=PATH)
         try:
             r = subprocess.call([sys.executable, os.path.join(REPO, "phosphor"), "workspace", "new",

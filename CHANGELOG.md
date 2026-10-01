@@ -6,6 +6,16 @@ before it updates.
 
 ## Unreleased
 
+## 1.2.14 — crashed panels keep their traceback
+
+- A phosphor panel that crashes (NOTES, fleet, the DECK tab...) now leaves its traceback in
+  `phosphor logs`, and `l` on its "ended" pane shows it. Until now the log only said "exit 1"
+  and the reason scrolled off with the pane.
+- NOTES no longer crashes reading a notebook with a broken character in it -- one being written
+  at that very moment by `phosphor note` or an assistant, or a hand edit -- or on a machine whose
+  locale isn't UTF-8: the notebook is always read and written as UTF-8, and a bad byte shows as
+  one odd character.
+
 ## 1.2.13 — panels stop echoing the mouse
 
 - Moving the mouse or the wheel over the CI, Prometheus, usage, glance or pulse panels no longer

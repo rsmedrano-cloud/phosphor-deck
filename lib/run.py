@@ -135,6 +135,7 @@ def main():
     if not a:
         print("usage: phosphor run [--name N] [--reconnect] [--wait S] [--alt] -- CMD ARGS..."); return 2
     name = name or os.path.basename(a[0]).upper()
+    os.environ["PHOSPHOR_RUN"] = "%d %s" % (os.getpid(), name)   # see crash_name() in phosphor
     if wait: time.sleep(wait)          # some TUIs read the size once, before zellij settles it
     fails = 0    # consecutive drops with no real connection in between; backs off --reconnect
     while True:

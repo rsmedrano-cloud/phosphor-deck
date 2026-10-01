@@ -136,6 +136,22 @@ finally:
             os.environ[k] = v
     newtab.have, newtab.taken_names, newtab.zj = saved[2:]
 
+# a notebook that's mid-write (a multibyte char cut in two) or hand-edited
+# with a stray byte reads with one odd character instead of crashing the tab,
+# and the C locale doesn't change how "·" in every header is read
+import subprocess
+broken = os.path.join(d, "broken.md")
+with open(broken, "wb") as f:
+    f.write(notes.PREAMBLE.encode() + "## 2026-09-13 10:00 · note · me · Caf\u00e9\n\nbody \xff\n\n".encode("utf-8")
+            + "## 2026-09-14 10:00 · note · me · cut \u00b7".encode("utf-8")[:-1])
+check("a broken byte doesn't crash read()", [e["title"] for e in notes.entries(broken)][-1] == "Café")
+LIB = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "lib")
+r = subprocess.run([sys.executable, "-c", "import sys; sys.path.insert(0, sys.argv[1]); import notes; "
+                    "print(ascii([e['title'] for e in notes.entries(sys.argv[2])]))", LIB, broken],
+                   capture_output=True, text=True,
+                   env=dict(os.environ, LC_ALL="C", LANG="C", PYTHONUTF8="0", PYTHONCOERCECLOCALE="0"))
+check("an ASCII locale reads it too (%s)" % r.stderr.strip()[-80:], r.returncode == 0 and "Caf\\xe9" in r.stdout)
+
 if fail:
     print("FAIL: " + "; ".join(fail)); sys.exit(1)
 print("ok")

@@ -302,6 +302,8 @@ fn main() {
         let tty = tty_rdev();
         let mut cmd = Command::new(&args.cmd[0]);
         cmd.args(&args.cmd[1..]);
+        // a phosphor tool it starts directly logs a crash's traceback under this name
+        cmd.env("PHOSPHOR_RUN", format!("{} {}", std::process::id(), name));
         unsafe {
             cmd.pre_exec(|| {
                 libc::signal(libc::SIGINT, libc::SIG_DFL);

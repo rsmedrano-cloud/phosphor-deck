@@ -154,6 +154,37 @@ FROZEN = "import signal,time; signal.pthread_sigmask(signal.SIG_BLOCK,{signal.SI
 probe("REALHANG", FROZEN, 6, resize=True)
 check("a hang lands in deck.log", any("REALHANG" in l and "hung" in l for l in dlog.tail(dlog.LOG, 20)))
 
+
+# a phosphor tool that crashes under phosphor run: the pane shows the
+# traceback, and deck.log keeps it under the pane's name (l reads it back)
+open(dlog.LOG, "w").close()
+badnb = os.path.join(tmp, "bad-notes.md")
+open(badnb, "w").write("## 2026-09-10 10:00 · note · me · x\n")
+os.chmod(badnb, 0)                                   # PermissionError: an uncaught crash
+def tool_probe(name, argv, seconds=3):
+    pid, fd = pty.fork()
+    if pid == 0:
+        os.execve(sys.executable, [sys.executable, os.path.join(ROOT, "phosphor"), "run", "--name", name, "--",
+                                   sys.executable, os.path.join(ROOT, "phosphor")] + argv, os.environ)
+    end = time.time() + seconds
+    while time.time() < end:
+        if select.select([fd], [], [], 0.1)[0]:
+            try: os.read(fd, 4096)
+            except OSError: break
+    try: os.killpg(pid, 9); os.waitpid(pid, 0)
+    except (ProcessLookupError, ChildProcessError): pass
+if os.geteuid() != 0:                                # root reads a mode-0 file anyway
+    tool_probe("MYNOTES", ["notes", "--file", badnb])
+    got = dlog.tail_for("MYNOTES")
+    check("a phosphor tool's crash lands under the pane's name",
+          any("crash" in l and "PermissionError" in l for l in got))
+    check("with its traceback", any("Traceback" in l for l in got))
+    # typed in a shell pane, it inherits PHOSPHOR_RUN but its parent is the shell
+    r = subprocess.run([sys.executable, os.path.join(ROOT, "phosphor"), "notes", "--file", badnb],
+                       capture_output=True, text=True, env=dict(os.environ, PHOSPHOR_RUN="1 SHELL"))
+    check("not under a pane it didn't start", not dlog.tail_for("SHELL") and
+          any("crash" in l for l in dlog.tail_for("NOTES")))
+
 # -- phosphor logs / trace, from the command line --
 out = subprocess.run([sys.executable, os.path.join(ROOT, "phosphor"), "logs", "realexit"],
                       capture_output=True, text=True, env=os.environ).stdout
