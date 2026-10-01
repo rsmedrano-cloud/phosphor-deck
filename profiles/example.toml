@@ -19,6 +19,7 @@ bar     = "tabs"         # tabs (with the + menu) | compact | full (adds key hin
 # graphs  = "blocks"     # if your font lacks Braille and graphs look like hex boxes
 # editor  = "nano"       # what panes open files with; default: your $EDITOR, else nano
 # connect = "ssh"        # how other computers attach: ssh (mouse, touch) | mosh
+# splash  = false        # skip the second of warm-up on the way in
 # web     = false        # the deck in a browser, tailnet only: phosphor web on
 
 # The notebook: private by default (~/.local/share/phosphor/notes.md). Point

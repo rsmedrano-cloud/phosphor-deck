@@ -248,6 +248,11 @@ it doesn't carry the mouse, so touch stops working. Plain ssh carries touch;
 if the connection drops, you tap the icon again and land exactly where you
 were, because the session never left the brain.
 
+**On the way in**, a second of warm-up, like an old monitor powering on: the
+name glows and settles into your color, with which deck and version you're
+entering. Any key skips it; a screen reconnecting within a minute, the
+`paper` theme and `splash = false` in `[deck]` never show it.
+
 ## Keys
 
 zellij runs in **locked mode**: it intercepts nothing, every key goes to the

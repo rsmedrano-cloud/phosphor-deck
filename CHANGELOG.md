@@ -6,6 +6,14 @@ before it updates.
 
 ## Unreleased
 
+## 1.2.10 — a warm-up on the way in
+
+- Coming into the deck now starts with a second of warm-up, like an old monitor powering on:
+  a dot, a line, the name glowing and settling into your color, and which deck and version
+  you're walking into. Any key skips it (and isn't typed into the deck). It stays away when the
+  same screen reconnects within a minute (a phone's dropped link), on the `paper` theme, and
+  with `splash = false` in `[deck]`.
+
 ## 1.2.9 — one header for every panel
 
 - Every panel now opens the same way: its name, what it is and a count on one line, a rule under

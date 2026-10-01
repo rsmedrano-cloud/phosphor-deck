@@ -14,6 +14,8 @@ sidebar:
   of x when its last program ends.
 - **"isn't installed"**: run the installer again (`sh ~/.phosphor/install.sh`);
   it fetches only what's missing.
+- **The warm-up screen when you get in**: any key skips it; `splash = false`
+  in `[deck]` turns it off for good.
 - **"the deck is starting..."**: `deck` found the session not up yet (right
   after boot or `phosphor up`) and waits for it, up to a minute and a half.
 - **The deck is gone**: the watchdog brings it back within a minute; `phosphor

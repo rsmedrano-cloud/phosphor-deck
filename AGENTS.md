@@ -463,6 +463,7 @@ Files that gen writes say
 | notifier | false | floating adjutant on every tab; off by default -- see notifier below |
 | graphs | "braille" | "blocks" draws the graphs with block characters, for fonts without Braille |
 | face | "" | adjutant face (see `phosphor face`) |
+| splash | true | a second of warm-up on the way in (any key skips it; never on paper, or when the same screen reconnects within a minute) |
 | notify_seconds | 8 | how long a floating notice stays (notifier = true) |
 | demo | false | fleet fakes its readings instead of polling ssh (what `phosphor demo` sets) |
 | tour | false | a guide in a floating pane on every tab (what `phosphor demo --tour` sets; demo only) |
@@ -1596,6 +1597,8 @@ device's mount or another copy step.
   of x when its last program ends.
 - **"isn't installed"**: run the installer again (`sh ~/.phosphor/install.sh`);
   it fetches only what's missing.
+- **The warm-up screen when you get in**: any key skips it; `splash = false`
+  in `[deck]` turns it off for good.
 - **"the deck is starting..."**: `deck` found the session not up yet (right
   after boot or `phosphor up`) and waits for it, up to a minute and a half.
 - **The deck is gone**: the watchdog brings it back within a minute; `phosphor

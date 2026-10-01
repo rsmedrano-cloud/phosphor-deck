@@ -365,7 +365,9 @@ def main():
         # First time in: thirty seconds of orientation, then never again.
         mark = os.path.expanduser("~/.local/share/phosphor/.welcomed")
         if os.path.exists(mark):
-            import panel; panel.mark("returned")
+            import panel, splash
+            panel.mark("returned")
+            splash.show(prof)
         elif sys.stdin.isatty():
             import welcome
             for l in welcome.lines(prof): print(l)
