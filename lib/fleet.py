@@ -623,14 +623,20 @@ def main():
     HOSTS = deckconf.fleet_hosts(prof)
     DEMO = bool(((prof or {}).get("deck") or {}).get("demo", False))
 
-    rust_poller = start_poller()
-    sess = ((deckconf.load()[0] or {}).get("deck") or {}).get("session", "deck")
+    # A kind of screen's own session (deck-phone) only reads fleet.json: the
+    # deck's fleet polls and sweeps the mounts, once, not once per screen.
+    screen = bool(os.environ.get("PHOSPHOR_SCREEN"))
+    rust_poller = None if screen else start_poller()
+    # its own session: a kind of screen's (deck-phone) marks its own tabs
+    sess = os.environ.get("ZELLIJ_SESSION_NAME") or \
+        ((deckconf.load()[0] or {}).get("deck") or {}).get("session", "deck")
     threading.Thread(target=unfreezer, args=(sess,), daemon=True).start()
     import mentions
     threading.Thread(target=mentions.marker, args=(sess,), daemon=True).start()
     mount_names = [h["name"] for h in deckconf.mount_hosts(prof)]
-    threading.Thread(target=mount_watchdog, args=(mount_names, deckconf.mount_root(prof)),
-                     daemon=True).start()
+    if not screen:
+        threading.Thread(target=mount_watchdog, args=(mount_names, deckconf.mount_root(prof)),
+                         daemon=True).start()
     tty = sys.stdin.isatty()
     sys.stdout.write("\x1b[?1049h\x1b[?25l" + ("\x1b[?1000h\x1b[?1006h" if tty else ""))
     sel, msg, msg_until, geo = None, "", 0, None

@@ -49,13 +49,44 @@ Narrow screens: Alt-z (ZOOM) gives one pane the whole screen. With headscale,
 the phone's Tailscale app must log into your headscale server; `phosphor
 phone` prints which.
 
+## A deck for each kind of screen
+
+zellij sizes a tab to the smallest screen looking at it, so a phone and a
+desktop in the same tabs squeeze each other. Give a kind of screen a block
+in the profile and it gets a deck of its own, laid out for it:
+
+    [screens.phone]
+    tabs   = ["SYS", "NOTES", "COMMS"]   # which tabs, in this order (default: all)
+    land   = "NOTES"                     # the tab you arrive on (default: the first)
+    graphs = "blocks"                    # default: the deck's
+
+    [screens.eink]
+    theme  = "paper"
+
+Then `phosphor gen` (no restart needed). The screen says which kind it is
+when it comes in: the phone kit's `deck` already says `phone`; for another
+computer, an e-ink reader or a Pi on a shelf, `phosphor screen --as eink`
+writes a `deck` that says `eink`, and on anything with only ssh it's
+`ssh -t you@brain '~/.local/bin/deck --screen eink'`. A phone set up before
+this: run its kit again.
+
+Each kind is its own zellij session on the brain (`deck-phone`,
+`deck-eink`), made the first time a screen of that kind comes in. The
+notebook, the fleet, `~/fleet`, your workspaces and the profile are the
+same everywhere; the panes aren't -- a shell on the phone isn't the one on
+the desktop, and a tab you open on one doesn't show on the other. The
+fleet is polled once, by the deck's own session, and every kind's FLEET
+card reads that. `phosphor restart` and `down` take every kind's session
+along, and each screen goes back into its own by itself. A kind with no
+block, or a screen that says nothing, gets the deck as always.
+
 ## Managing screens from the deck
 
 zellij ties a tab's whole grid to the smallest attached client's viewport,
 with no setting to change that -- so a phone looking at the same tab as
 your PC squeezes everyone's pane down to phone size. `phosphor screens`
 (also `v` in the DECK tab) lists every screen actually attached (where
-it's from, how long it's been idle) and lets you kick one loose with `x`
+it's from, how long it's been idle, which deck it's in) and lets you kick one loose with `x`
 (twice, on purpose): it just ends that one ssh connection, and the `deck`
 wrapper above notices the drop and reconnects on its own in a few seconds.
 Not a way to ban a device -- a way to force one reconnect without walking

@@ -6,6 +6,18 @@ before it updates.
 
 ## Unreleased
 
+## 1.2.11 — a deck for each kind of screen
+
+- A deck for each kind of screen. A phone and a desktop looking at the same tabs squeeze each
+  other, since a tab fits the smallest screen on it. Now a `[screens.phone]` block in the profile
+  (which tabs, the one you land on, its theme and graphs) gives phones a deck of their own, next
+  to the main one: the same notebook, fleet, files and workspaces, laid out for that screen. The
+  phone kit's `deck` already says it's a phone (run the kit again on a phone set up before);
+  `phosphor screen --as eink` does the same for an e-ink reader or a Pi on a shelf, and `deck
+  --screen KIND` works from anything with ssh. `phosphor restart` takes every screen's deck along,
+  `phosphor screens` says which deck each screen is in, and `phosphor doctor` checks the blocks.
+  Without a block, everything stays as it was.
+
 ## 1.2.10 — a warm-up on the way in
 
 - Coming into the deck now starts with a second of warm-up, like an old monitor powering on:

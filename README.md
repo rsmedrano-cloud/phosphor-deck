@@ -237,6 +237,14 @@ keyboard back (taps go to the deck), `EDIT` edits the tab you're in, `ZOOM`
 gives one pane the whole screen, `EXIT` leaves. `phosphor phone` on the brain (or `p` in the DECK tab) prints these lines for
 you, with the phone's one as a QR code to scan with the camera — no typing.
 
+**A deck for each kind of screen.** A phone and a desktop looking at the
+same tabs squeeze each other (zellij fits a tab to the smallest screen). A
+`[screens.phone]` block in the profile (which tabs, the one you land on,
+its theme and graphs) gives phones a deck of their own, beside the main
+one: same notebook, fleet and files, laid out for that screen. The phone
+kit already says it's a phone; `phosphor screen --as eink` does the same
+for an e-ink reader or a Pi on a shelf.
+
 **tailscale, headscale, or neither.** Headscale is a self-hosted control
 server for the same tailscale client, so the deck works the same with both;
 `init` detects which one you use (`mesh` in the profile) and `phosphor phone`

@@ -45,7 +45,8 @@ def read_state():
     return min(1.0, max(0.05, load)), lvl, why
 
 def main():
-    braille = ((deckconf.load()[0] or {}).get("deck") or {}).get("graphs", "braille") != "blocks"
+    import kinds
+    braille = kinds.graphs(deckconf.load()[0]) != "blocks"      # a screen's own, else the deck's
     cols, rows = shutil.get_terminal_size((80, 8))
     hist = deque(maxlen=400)
     phase, last, load, lvl, why = 0.0, 0.0, 0.2, 0, "nominal"

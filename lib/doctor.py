@@ -199,6 +199,22 @@ def run(profile=None):
                       "%s · %d/%d listening" % ("up" if up else "down", live, len(ports))))
             if not up: issues.append("tunnel %s is down: journalctl --user -u %s" % (h, tunnels.unit_name(h)))
 
+    if profile and profile.get("screens"):
+        import kinds
+        print("\n" + rule("screens", w))
+        zj = have("zellij")
+        live = sh("%s list-sessions -n" % zj)[1].splitlines() if zj else []
+        for k in kinds.kinds(profile):
+            s_ = kinds.session(profile, k)
+            on = any(l.split()[:1] == [s_] and "EXITED" not in l for l in live)
+            made = os.path.exists(kinds.layout(profile, k))
+            print(row(OK if made else WARN, k, "%s · %s" % (s_, "up" if on else "made when one comes in"),
+                      note="" if made else "no layout yet: phosphor gen"))
+            if not made: issues.append("screens.%s has no layout yet: phosphor gen" % k)
+        for k, what in kinds.problems(profile):
+            print(row(WARN, "screens." + k, what))
+            issues.append("screens.%s: %s" % (k, what))
+
     print("\n" + rule("summary", w))
     if blockers:
         for b in blockers: print("  " + BAD + " " + RED + b + RST)

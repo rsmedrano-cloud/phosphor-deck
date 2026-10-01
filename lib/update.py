@@ -206,15 +206,21 @@ def refresh(before_files, full):
     unexpected -- never silently skips the restart on a surprise)."""
     if full:
         return True
-    session = ((deckconf.load()[0] or {}).get("deck") or {}).get("session", "deck")
-    try:
-        swapped, reason = hotswap.apply(session, before_files, hotswap.snapshot())
-    except Exception as e:
-        print(row(WARN, "hotswap", "skipped", note="unexpected: %s" % str(e)[:60]))
-        return True
-    if reason:
-        print(row(WARN, "hotswap", "skipped", note=reason))
-        return True
+    import kinds
+    prof = deckconf.load()[0]
+    session = ((prof or {}).get("deck") or {}).get("session", "deck")
+    swapped = []
+    # the deck's own session, then any kind of screen's (deck-phone...) that's up
+    for s in [session] + kinds.all_sessions(prof):
+        try:
+            got, reason = hotswap.apply(s, before_files, hotswap.snapshot())
+        except Exception as e:
+            print(row(WARN, "hotswap", "skipped", note="unexpected: %s" % str(e)[:60]))
+            return True
+        if reason and s == session:
+            print(row(WARN, "hotswap", "skipped", note=reason))
+            return True
+        swapped += got or []
     if swapped:
         for pid, tool in swapped:
             print(row(OK, "hotswap", tool, note="pane %d refreshed live, no restart" % pid))

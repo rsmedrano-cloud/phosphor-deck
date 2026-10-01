@@ -58,21 +58,25 @@ def descendants(pid):
 
 
 def is_deck_client(pid, session):
-    """True if `pid` (an sshd login) has a `zellij ... attach <session>`
-    descendant -- the phone/screen kit's `deck` wrapper always execs one."""
+    """The session `pid` (an sshd login) is attached to, if it has a `zellij
+    ... attach <session>` descendant -- the phone/screen kit's `deck` wrapper
+    always execs one -- else None. `session` can be a list of them."""
+    want = [session] if isinstance(session, str) else list(session)
     for d in descendants(pid):
         try:
             cmdline = open("/proc/%d/cmdline" % d, "rb").read()
         except OSError:
             continue
         parts = [p.decode("utf-8", "replace") for p in cmdline.split(b"\0") if p]
-        if parts and os.path.basename(parts[0]) == "zellij" and "attach" in parts and session in parts:
-            return True
-    return False
+        if parts and os.path.basename(parts[0]) == "zellij" and "attach" in parts:
+            hit = next((s for s in want if s in parts), None)
+            if hit:
+                return hit
+    return None
 
 
 def screens(session):
-    """Every attached screen, as {tty, from, login, idle, pid}. None if
+    """Every attached screen, as {tty, from, login, idle, pid, session}. None if
     `who` isn't installed (rare, but not every image has util-linux)."""
     who = deckconf.exe("who")
     if not who:
@@ -88,10 +92,11 @@ def screens(session):
             continue
         _, tty, date, time_, idle, pid, frm = m.groups()
         pid = int(pid)
-        if not is_deck_client(pid, session):
+        on = is_deck_client(pid, session)
+        if not on:
             continue
         rows.append({"tty": tty, "from": frm or "local", "login": "%s %s" % (date, time_),
-                     "idle": "now" if idle in (".", "0") else idle, "pid": pid})
+                     "idle": "now" if idle in (".", "0") else idle, "pid": pid, "session": on})
     return rows
 
 
@@ -113,7 +118,12 @@ def raw_screen(on):
 
 def main():
     prof, _ = deckconf.load()
-    session = ((prof or {}).get("deck") or {}).get("session", "deck")
+    import kinds
+    base = ((prof or {}).get("deck") or {}).get("session", "deck")
+    # the deck's own session and every kind of screen's (deck-phone...)
+    session = [base] + kinds.all_sessions(prof)
+    def kind(r):
+        return "deck" if r["session"] == base else r["session"][len(base) + 1:]
 
     if "--list" in sys.argv[1:] or not sys.stdin.isatty():
         rows = screens(session)
@@ -122,8 +132,8 @@ def main():
         if not rows:
             print("no screens attached"); return 0
         for r in rows:
-            print("%-10s %-16s %-16s idle %-8s pid %d" %
-                  (r["tty"], r["from"], r["login"], r["idle"], r["pid"]))
+            print("%-10s %-16s %-8s %-16s idle %-8s pid %d" %
+                  (r["tty"], r["from"], kind(r), r["login"], r["idle"], r["pid"]))
         return 0
 
     rows = screens(session)
@@ -135,11 +145,11 @@ def main():
         while True:
             cols, _ = shutil.get_terminal_size((90, 30))
             w = min(cols, 90)
-            out = topbar("SCREENS", "who's attached", "%d · %s" % (len(rows), session), w)
+            out = topbar("SCREENS", "who's attached", "%d · %s" % (len(rows), base), w)
             if not rows:
                 out.append(" " + DIM + "no screens attached" + RST)
             for i, r in enumerate(rows):
-                nm = "%-16s %-16s idle %-8s" % (r["from"], r["tty"], r["idle"])
+                nm = "%-16s %-8s %-12s idle %-8s" % (r["from"], kind(r), r["tty"], r["idle"])
                 line = " " + FG + nm + RST
                 if confirm == i:
                     line = pad(line, w - 14) + AMB + "x again to kick" + RST

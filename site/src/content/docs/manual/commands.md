@@ -42,11 +42,15 @@ sidebar:
   whole.
 - `phosphor phone` — how to add a screen (phone, another computer, anything with ssh), with the
   phone's line as a QR; piped (`ssh … phosphor phone | sh`) it is the Termux kit. `--qr` prints only the code.
-- `phosphor screen` — the same kit for a computer without Termux: a key and a `deck` in ~/.local/bin.
+- `phosphor screen [--as KIND]` — the same kit for a computer without Termux: a key and a `deck` in ~/.local/bin.
+  `--as eink` (or any kind with a `[screens.KIND]` block) makes that `deck` come into the kind's own
+  deck; the phone kit says `phone` by itself (see phones).
 - `phosphor gen [--dry-run]` — profile → layouts, zellij theme, units, mounts, links, and the color
   of yazi, btop, gping and ctop (see `theme` in profile).
 - `phosphor up` — start the deck and enable it at boot (with the fleet mounts).
-- `phosphor attach` (alias `phosphor deck`, or just `deck`) — get in from the brain.
+- `phosphor attach [--screen KIND]` (alias `phosphor deck`, or just `deck`) — get in from the brain.
+  `--screen KIND` goes into that kind's own deck when the profile has a `[screens.KIND]` block
+  (made the first time one comes in), else into the deck.
 - `phosphor update [FOLDER]` — newer version: git pull or copy from FOLDER, run the installer, then
   get the panes onto the new code -- a real `phosphor restart` only when the pull touched shared
   code; a pull that only touched one tool's own module refreshes just that tool's panes, live, in

@@ -308,6 +308,26 @@ deck's own service and timer are the exception: stopping them from a pane
 inside the deck would take that pane down mid-answer, so it points you at
 `phosphor restart` instead.
 
+## [screens]
+
+A deck for each kind of screen: one block per kind (lowercase letters and
+digits), in its own zellij session. See phones for how a screen says
+which kind it is.
+
+| key | default | what |
+|---|---|---|
+| tabs | every tab | which tabs, by name, in this order |
+| land | the first | the tab you arrive on |
+| theme | the deck's | p31, p3, p4, paper |
+| graphs | the deck's | braille or blocks |
+
+    [screens.phone]
+    tabs = ["SYS", "NOTES"]
+    graphs = "blocks"
+
+`phosphor gen` writes each kind's layout; `phosphor doctor` says which
+kinds have a session up, and warns about a tab name that doesn't exist.
+
 ## apps.toml
 
 Programs of your own, next to the profile (`~/.config/phosphor/apps.toml`,

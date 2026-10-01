@@ -8,6 +8,11 @@ one last time, the `deck` command, a Termux:Widget icon and the extra keys
 that make touch comfortable (KEYBOARD brings the keyboard back, EDIT, ZOOM, EXIT).
 
 It uses plain ssh on purpose: mosh doesn't carry the mouse, so no touch.
+
+`--as KIND` says what kind of screen it is (the phone kit says `phone`
+unless told otherwise): its `deck` attaches with `--screen KIND`, and a
+[screens.KIND] block in the profile gives that kind a deck of its own
+(see lib/kinds.py). Without the block it's the deck as always.
 """
 import getpass, os, shutil, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -147,8 +152,8 @@ esac
 say "done. Type: deck"
 """
 
-def screen_script(prof):
-    return POSIX_SCRIPT.replace("@T@", target(prof)).replace("@C@", launcher(prof))
+def screen_script(prof, kind=""):
+    return POSIX_SCRIPT.replace("@T@", target(prof)).replace("@C@", launcher(prof, kind))
 
 def zellij_path():
     p = os.path.join(HOME, ".local/bin/zellij")
@@ -172,10 +177,12 @@ def address(prof):
         return sc[2]
     return brain(prof).get("name") or os.uname().nodename
 
-def launcher(prof):
+def launcher(prof, kind=""):
     """The brain's `deck`, by path: a plain `ssh host cmd` gets no login
-    shell, so ~/.local/bin isn't in PATH and a bare `deck` isn't found."""
-    return "~/.local/bin/" + ((prof or {}).get("deck") or {}).get("command", "deck")
+    shell, so ~/.local/bin isn't in PATH and a bare `deck` isn't found.
+    With a kind, the screen says what it is every time it attaches."""
+    return "~/.local/bin/" + ((prof or {}).get("deck") or {}).get("command", "deck") + \
+        (" --screen %s" % kind if kind else "")
 
 def target(prof):
     return "%s@%s" % (getpass.getuser(), address(prof))    # not $USER: may be unset
@@ -190,9 +197,9 @@ def keys_row(prof):
             row.append('{macro: "%s", display: "%s"}' % (shortcuts.phone_macro(k[action]), label))
     return "[[" + ", ".join(row) + "]]"
 
-def script(prof):
+def script(prof, kind="phone"):
     sess = ((prof or {}).get("deck") or {}).get("session", "deck")
-    cmd = launcher(prof)
+    cmd = launcher(prof, kind)
     return (SCRIPT.replace("@T@", target(prof)).replace("@Z@", zellij_path())
                   .replace("@S@", sess).replace("@C@", cmd).replace("@OLDKEYS@", " ".join("'%s'" % k for k in OLD_KEYS)).replace("@KEYS@", keys_row(prof)))
 
@@ -237,6 +244,14 @@ def instructions(prof):
     print("  " + FG + "Anything that only has ssh" + RST
           + DIM + " (an old terminal, an ssh app, a pocket one):" + RST)
     print("    " + PH + "ssh -t %s %s" % (t, cmd) + RST)
+    print()
+    import kinds
+    ks = list(kinds.kinds(prof))
+    print("  " + FG + "A deck of its own" + RST + DIM + " for a kind of screen ([screens.KIND] in the profile%s):"
+          % ((": " + ", ".join(ks)) if ks else "") + RST)
+    print("    " + PH + "ssh %s '%s screen --as eink' | sh" % (t, phosphor_cmd()) + RST
+          + DIM + "   or  " + RST + PH + "%s --screen eink" % cmd + RST)
+    print("  " + DIM + "The phone kit already says phone. Without the block it's this deck." + RST)
     kind, control = mesh.current(prof)
     if kind == "tailscale":
         print("  " + DIM + "Phones reach the brain through the Tailscale app, in the same tailnet." + RST)
@@ -251,8 +266,19 @@ def main():
     prof, _ = deckconf.load()
     argv = sys.argv[1:]
     posix = "--screen" in argv
+    import kinds
+    kind = ""
+    if "--as" in argv:
+        i = argv.index("--as")
+        kind = (argv[i + 1] if i + 1 < len(argv) else "").strip().lower()
+        if not kinds.NAME.match(kind):
+            print("  --as takes a kind of screen: phone, tablet, eink... (letters and digits)")
+            return 1
+    elif not posix:
+        kind = "phone"
     if "--qr" in argv:
-        line = "ssh %s '%s %s' | sh" % (target(prof), phosphor_cmd(), "screen" if posix else "phone")
+        line = "ssh %s '%s %s%s' | sh" % (target(prof), phosphor_cmd(), "screen" if posix else "phone",
+                                          (" --as " + kind) if kind and kind != "phone" else "")
         q = qr_lines(line, width())
         print("\n  " + PH + line + RST + "\n")
         for l in q:
@@ -263,7 +289,7 @@ def main():
     if "--script" in argv or not sys.stdout.isatty():
         import panel
         panel.mark("phone")
-        sys.stdout.write(screen_script(prof) if posix else script(prof))
+        sys.stdout.write(screen_script(prof, kind) if posix else script(prof, kind))
         return 0
     instructions(prof)
     return 0

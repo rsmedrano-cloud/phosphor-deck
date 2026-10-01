@@ -45,6 +45,9 @@ out=$(python3 tests/run-reconnect-check.py 2>&1) && ok || bad "$out"
 step "welcome invites, not a key list"
 out=$(python3 tests/welcome-check.py 2>&1) && ok || bad "$out"
 
+step "a deck for each kind of screen"
+out=$(python3 tests/screen-kinds-check.py 2>&1) && ok || bad "$out"
+
 step "a warm-up on the way in, skippable"
 out=$(python3 tests/splash-check.py 2>&1) && ok || bad "$out"
 

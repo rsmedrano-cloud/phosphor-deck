@@ -252,10 +252,14 @@ def main():
             # The timer first: otherwise it recreates the session mid-cleanup
             # and you end up with two of everything.
             R("systemctl", "--user", "stop", "%s.timer" % sess, "%s.service" % sess)
-            R(zj, "kill-session", sess)
-            poll_until(lambda: not session_live(zj, sess), 2)
-            R(zj, "delete-session", sess)
-            gone = poll_until(lambda: session_gone(zj, sess), 5)
+            import kinds
+            screens_ = kinds.all_sessions(prof)       # deck-phone, deck-eink...
+            for s_ in [sess] + screens_:
+                R(zj, "kill-session", s_)
+            poll_until(lambda: not any(session_live(zj, s_) for s_ in [sess] + screens_), 2)
+            for s_ in [sess] + screens_:
+                R(zj, "delete-session", s_)
+            gone = poll_until(lambda: all(session_gone(zj, s_) for s_ in [sess] + screens_), 5)
             # This process and its whole parent chain match the patterns too.
             protect, cur = set(), os.getpid()
             while cur and cur != 1:
@@ -266,12 +270,12 @@ def main():
                     break
             import reap
             for sg in (_sig.SIGTERM, _sig.SIGKILL):
-                tgt = [pid for pid, _a in reap.targets(procs(), sess, protect)]
+                tgt = [pid for s_ in [sess] + screens_ for pid, _a in reap.targets(procs(), s_, protect)]
                 for pid in tgt:
                     try: os.kill(pid, sg)
                     except Exception: pass
-                poll_until(lambda: not reap.targets(procs(), sess, protect), 2)
-            left = reap.targets(procs(), sess, protect)
+                poll_until(lambda: not any(reap.targets(procs(), s_, protect) for s_ in [sess] + screens_), 2)
+            left = [t for s_ in [sess] + screens_ for t in reap.targets(procs(), s_, protect)]
             # Proof that the old deck is really gone before a new one starts:
             # otherwise new code on disk runs next to old panes still alive.
             svc = R("systemctl", "--user", "is-active", "%s.service" % sess).stdout.strip()
@@ -287,7 +291,10 @@ def main():
                 try: os.remove(RESTARTING)
                 except OSError: pass
                 return 1
-            print("  session down · leftovers: 0")
+            for s_ in screens_:
+                kinds.forget(s_)          # a screen's `deck` makes it again when it comes back
+            print("  session down%s · leftovers: 0" % (
+                (" (and %s)" % ", ".join(screens_)) if screens_ else ""))
             if cmd == "down":
                 dlog.event("deck", "down", "leftovers=0")
                 print("  " + DIM_ + "the timer is stopped: phosphor up brings it back" + RST_)
@@ -354,9 +361,15 @@ def main():
         if os.environ.get("ZELLIJ"):
             print("  you're already inside a zellij session (the deck?): no need to attach")
             return 1
-        import shutil as _sh
+        import shutil as _sh, kinds
         prof, _ = load_profile()
         sess = ((prof or {}).get("deck") or {}).get("session", "deck")
+        # `deck --screen phone`: a kind with a [screens.phone] block gets its
+        # own session (see lib/kinds.py); any other kind, the deck's.
+        kind = kinds.arg(sys.argv[2:])[0]
+        if kind not in kinds.kinds(prof):
+            kind = ""
+        target = kinds.session(prof, kind) if kind else sess
         zj = os.path.expanduser("~/.local/bin/zellij")
         if not os.path.exists(zj): zj = _sh.which("zellij")
         if not zj:
@@ -394,8 +407,19 @@ def main():
                 ["systemctl", "--user", "is-active", "-q", "%s.service" % sess, "%s.timer" % sess]).returncode == 0:
             print("  the deck is starting...")
             poll_until(lambda: session_live(zj, sess), 90)
+        def screen_up():
+            """A kind's session comes with the deck: made the first time
+            that screen comes in (and again after a restart took it down),
+            only while the deck itself is up."""
+            if not kind or session_live(zj, target) or not session_live(zj, sess):
+                return
+            if not kinds.create(zj, prof, kind):
+                print("  couldn't make the %s session: phosphor gen, then deck again" % kind)
+                return
+            poll_until(lambda: session_live(zj, target), 15)
         while True:
-            rc = _sp.call([zj, "attach", sess])
+            screen_up()
+            rc = _sp.call([zj, "attach", target])
             if not restarting():
                 return rc
             # kicked out by `phosphor restart`: wait for the new deck, go back in
