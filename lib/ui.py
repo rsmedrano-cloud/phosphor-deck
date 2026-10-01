@@ -4,7 +4,7 @@ The palette comes from `theme` in the profile's [deck]; PHOSPHOR_THEME
 overrides it for a quick try. The names are the phosphors of old monitors:
 P31 green, P3 amber, P4 white.
 """
-import os, re, select, shutil, sys, termios, tty
+import os, re, select, shutil, sys, termios, time, tty
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import deckconf
 
@@ -89,6 +89,34 @@ def getkey(timeout=None, text=False):
     if text and s and s[0] >= " ":
         return s
     return s[:1] if s else None
+
+def quiet():
+    """For a panel that only draws: until the function it returns is
+    called, nothing typed into its pane is echoed. zellij sends a mouse
+    wheel as arrow keys, and an echoed ^[[A lands on the frame until the
+    next redraw. Ctrl-C still stops it. Without a terminal it does nothing."""
+    try:
+        fd = sys.stdin.fileno(); old = termios.tcgetattr(fd)
+    except (termios.error, OSError, ValueError):
+        return lambda: None
+    new = termios.tcgetattr(fd)
+    new[3] &= ~(termios.ECHO | termios.ICANON)
+    termios.tcsetattr(fd, termios.TCSANOW, new)
+    return lambda: termios.tcsetattr(fd, termios.TCSADRAIN, old)
+
+def idle(seconds):
+    """Sleep, throwing away whatever reaches the pane meanwhile, so it
+    never piles up in the terminal's buffer (see quiet)."""
+    end = time.time() + seconds
+    try:
+        fd = sys.stdin.fileno()
+    except (OSError, ValueError):
+        fd = None
+    if fd is None or not os.isatty(fd):
+        time.sleep(seconds); return
+    while (left := end - time.time()) > 0:
+        if select.select([fd], [], [], left)[0] and not os.read(fd, 4096):
+            time.sleep(max(0, end - time.time())); return    # end of input
 
 BACK_KEYS = ("q", "Q", "\x1b", "\r", "\n", "\x03", "\x04")   # q, Esc, Enter, Ctrl-C, Ctrl-D
 

@@ -51,6 +51,9 @@ out=$(python3 tests/screen-kinds-check.py 2>&1) && ok || bad "$out"
 step "a warm-up on the way in, skippable"
 out=$(python3 tests/splash-check.py 2>&1) && ok || bad "$out"
 
+step "panels that draw don't echo keys"
+out=$(python3 tests/passive-input-check.py 2>&1) && ok || bad "$out"
+
 step "notes: a vault folder, migrated"
 out=$(python3 tests/notes-vault-check.py 2>&1) && ok || bad "$out"
 

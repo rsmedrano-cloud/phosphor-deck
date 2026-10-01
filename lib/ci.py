@@ -14,6 +14,7 @@ from concurrent.futures import ThreadPoolExecutor
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import DIM, MUTE, PH, BLOOM, AMB, RED, RULE, RST, FG, vlen, not_set_up, topbar, card as ui_card
 import deckconf
+import ui
 
 
 def settings(prof):
@@ -411,16 +412,18 @@ def main():
         print("\n".join(screen(cols, 10000)[0]))
         return
     sys.stdout.write("\x1b[?1049h\x1b[?25l")
+    loud = ui.quiet()
     try:
         while True:
             cols, rows = shutil.get_terminal_size((80, 24))
             out, interval = screen(cols, rows)
             sys.stdout.write("\x1b[H" + "\x1b[K\n".join(out) + "\x1b[K\x1b[J")
             sys.stdout.flush()
-            time.sleep(interval)
+            ui.idle(interval)
     except KeyboardInterrupt:
         pass
     finally:
+        loud()
         sys.stdout.write("\x1b[?1049l\x1b[?25h\n")
 
 if __name__ == "__main__":

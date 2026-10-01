@@ -12,6 +12,7 @@ HOME  = os.path.expanduser("~")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import DIM, MUTE, PH, BLOOM, AMB, RED, RULE, RST
 import deckconf
+import ui
 
 CACHE = os.path.join(deckconf.cache_dir(), "fleet.json")
 
@@ -51,6 +52,7 @@ def main():
     hist = deque(maxlen=400)
     phase, last, load, lvl, why = 0.0, 0.0, 0.2, 0, "nominal"
     sys.stdout.write("\x1b[?1049h\x1b[?25l")
+    loud = ui.quiet()
     try:
         while True:
             cols, rows = shutil.get_terminal_size((80, 8))
@@ -98,10 +100,11 @@ def main():
             out = out[:max(1, rows)]
             sys.stdout.write("\x1b[H" + "\x1b[K\n".join(out) + "\x1b[K\x1b[J")
             sys.stdout.flush()
-            time.sleep(0.09)
+            ui.idle(0.09)
     except KeyboardInterrupt:
         pass
     finally:
+        loud()
         sys.stdout.write("\x1b[?1049l\x1b[?25h\n")
 
 if __name__ == "__main__":

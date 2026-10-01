@@ -6,6 +6,12 @@ before it updates.
 
 ## Unreleased
 
+## 1.2.13 — panels stop echoing the mouse
+
+- Moving the mouse or the wheel over the CI, Prometheus, usage, glance or pulse panels no longer
+  scribbles over them: they echoed whatever reached their pane (zellij sends the wheel as arrow
+  keys) until the next redraw. They draw now without echoing anything typed into them.
+
 ## 1.2.12 — usage panel, SYS layout, DECK tab f
 
 - `phosphor triage` of the brain no longer times out when a machine of the fleet is down: its disk

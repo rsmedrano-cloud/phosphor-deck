@@ -14,6 +14,7 @@ import json, os, shutil, sys, textwrap, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import DIM, MUTE, FG, PH, AMB, RED, RST, rule
 import deckconf
+import ui
 import health
 import mentions
 import notes
@@ -114,16 +115,18 @@ def main():
         print("\n".join(frame(w, 10000)))
         return 0
     sys.stdout.write("\x1b[?1049h\x1b[?25l")
+    loud = ui.quiet()
     try:
         while True:
             cols, rows = shutil.get_terminal_size((60, 20))
             out = frame(cols, rows)
             sys.stdout.write("\x1b[H" + "\x1b[K\n".join(out) + "\x1b[K\x1b[J")
             sys.stdout.flush()
-            time.sleep(INTERVAL)
+            ui.idle(INTERVAL)
     except KeyboardInterrupt:
         pass
     finally:
+        loud()
         sys.stdout.write("\x1b[?1049l\x1b[?25h\n")
     return 0
 

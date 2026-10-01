@@ -19,6 +19,7 @@ from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import DIM, MUTE, PH, AMB, RED, RULE, RST, cut, topbar, card
+import ui
 
 HOME = os.path.expanduser("~")
 CLAUDE_CREDS = os.path.join(os.environ.get("CLAUDE_CONFIG_DIR") or os.path.join(HOME, ".claude"),
@@ -190,6 +191,7 @@ def main():
         return
     sys.stdout.write("\x1b[?1049h\x1b[?25l")
     last, got = 0, []
+    loud = ui.quiet()
     try:
         while True:
             if time.time() - last >= FETCH_EVERY:
@@ -202,10 +204,11 @@ def main():
             out = frame(got, cols, rows)
             sys.stdout.write("\x1b[H" + "\x1b[K\n".join(out) + "\x1b[K\x1b[J")
             sys.stdout.flush()
-            time.sleep(15)
+            ui.idle(15)
     except KeyboardInterrupt:
         pass
     finally:
+        loud()
         sys.stdout.write("\x1b[?1049l\x1b[?25h\n")
 
 if __name__ == "__main__":
