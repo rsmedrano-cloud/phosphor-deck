@@ -261,6 +261,107 @@ for attempt in range(10):
 print("  round 7: %s after 10 attempts" % ("reproduced" if hit2 else "no wedge"))
 need("round 7 (deck-up.sh's own startup hide loop + tab switching) never wedged the session", not hit2)
 
+# Rounds 8-10: what rounds 1-7 never did, and what the real deck has every
+# day -- a second client of another size (phone + PC on one session, zellij
+# sizes tabs to the smallest), floating panes created/closed/embedded rather
+# than only shown and hidden (upstream #5659: closing a floating pane
+# panicked the screen thread), and a floating pane printing hard while you
+# scroll. When one wedges, say which server thread is spinning: that's the
+# detail the one live diagnosis used.
+import pty
+
+def second_client(z, rows=30, cols=58):
+    pid, fd = pty.fork()
+    if pid == 0:
+        os.execve(z.zj, [z.zj, "attach", z.session], z.env)
+    fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
+    return pid, fd
+
+def drain(fd):
+    while select.select([fd], [], [], 0)[0]:
+        try:
+            if not os.read(fd, 65536): return
+        except OSError:
+            return
+
+def spinning_threads(z):
+    """(thread name, cpu ticks over 1s) of the session's server, busiest first."""
+    out = []
+    for d in os.listdir("/proc"):
+        try:
+            if z.home.encode() not in open("/proc/%s/environ" % d, "rb").read(): continue
+            if b"--server" not in open("/proc/%s/cmdline" % d, "rb").read(): continue
+        except OSError:
+            continue
+        def snap():
+            s = {}
+            for t in os.listdir("/proc/%s/task" % d):
+                try:
+                    f = open("/proc/%s/task/%s/stat" % (d, t)).read()
+                    name = f[f.index("(") + 1:f.rindex(")")]
+                    r = f[f.rindex(")") + 2:].split()
+                    s[t] = (name, int(r[11]) + int(r[12]))
+                except (OSError, ValueError, IndexError):
+                    pass
+            return s
+        a = snap(); time.sleep(1); b = snap()
+        out = sorted(((b[t][0], b[t][1] - a[t][1]) for t in b if t in a), key=lambda x: -x[1])[:3]
+    return out
+
+def report_if_wedged(z, what):
+    if responsive(z, timeout=8):
+        return False
+    print("  REPRODUCED: unresponsive after %s; busiest server threads: %s" % (what, spinning_threads(z)))
+    need("%s never wedged the session" % what, False)
+    return True
+
+import select
+ran8 = 0
+for attempt in range(6):
+    with zjprobe.Probe(MANY_TABS.replace("{SESSION}", "float-probe-multi"), session="float-probe-multi") as z:
+        if not responsive(z):
+            continue
+        cpid, cfd = second_client(z)
+        ran8 += 1
+        time.sleep(1)
+        # Round 8: two clients, different sizes, floats showing/hiding and tabs
+        # switching from both, and the small one resizing (a phone rotating).
+        for i in range(25):
+            subprocess.run([z.zj, "-s", z.session, "action", "new-pane", "--floating"], env=z.env, capture_output=True, timeout=10)
+            os.write(cfd, b"\x1b%d" % (i % 6 + 1))
+            z.keys("\x1b%d" % ((i * 5) % 6 + 1), settle=0)
+            scroll_burst(z, 6)
+            if i % 4 == 0:
+                fcntl.ioctl(cfd, termios.TIOCSWINSZ, struct.pack("HHHH", 20 + i % 3 * 10, 40 + i % 3 * 30, 0, 0))
+                os.kill(cpid, signal.SIGWINCH)
+            drain(cfd)
+            subprocess.run([z.zj, "-s", z.session, "action", "toggle-floating-panes"], env=z.env, capture_output=True, timeout=10)
+        if report_if_wedged(z, "two clients of different sizes + floating panes"): break
+        # Round 9: floating lifecycle -- float, embed, float again, close, while
+        # tabs switch. Includes closing the focused float with its tab hidden.
+        for i in range(25):
+            for a in (["new-pane", "--floating"], ["toggle-pane-embed-or-floating"],
+                      ["toggle-pane-embed-or-floating"], ["toggle-pane-pinned"], ["close-pane"]):
+                subprocess.run([z.zj, "-s", z.session, "action"] + a, env=z.env, capture_output=True, timeout=10)
+                z.keys("\x1b%d" % (i % 6 + 1), settle=0)
+                drain(cfd)
+        if report_if_wedged(z, "floating create/embed/pin/close churn"): break
+        # Round 10: a floating pane printing hard while both clients scroll and
+        # the session switches tabs.
+        subprocess.run([z.zj, "-s", z.session, "action", "new-pane", "--floating", "--", "sh", "-c", "yes 'phosphor wedge hunt' | head -c 30000000"],
+                       env=z.env, capture_output=True, timeout=10)
+        t0 = time.time()
+        while time.time() - t0 < 4:
+            scroll_burst(z, 10)
+            os.write(cfd, b"\x1b[<64;20;10M" * 10)
+            z.keys("\x1b%d" % (int(time.time() * 10) % 6 + 1), settle=0)
+            drain(cfd)
+        if report_if_wedged(z, "a floating pane under heavy output + scroll from two clients"): break
+        try: os.kill(cpid, signal.SIGKILL); os.waitpid(cpid, 0)
+        except OSError: pass
+print("  rounds 8-10: %s (%d of 6 sessions ran)" % ("a wedge, see above" if fails else "no wedge", ran8))
+need("rounds 8-10 actually ran", ran8 > 0)
+
 if fails:
     print("FAILED (repro found or the harness broke):\n  " + "\n  ".join(fails))
     sys.exit(1)

@@ -90,6 +90,22 @@ check("its graphs reach gping (-s)", '"-s"' in kdl, kdl)
 check("eink: every tab, the deck's graphs", [t["name"] for t in kinds.tabs(prof, "eink")] == ["SYS", "NOTES", "COMMS"])
 check("eink: its theme", kinds.theme(prof, "eink") == "paper" and kinds.zellij_theme(prof, "eink") == "phosphor-paper")
 check("phone: the deck's theme", kinds.theme(prof, "phone") == "p31")
+
+# skip: panes a kind leaves out (the SYS row of pulse + adjutant, as shipped)
+sk = {"tabs": [
+    {"name": "SYS", "panes": [
+        {"split": "cols", "size": 18, "panes": [{"cmd": "phosphor pulse"},
+                                                 {"cmd": "phosphor adjutant", "size": 34}]},
+        {"cmd": "phosphor fleet"}]},
+    {"name": "VIZ", "panes": [{"cmd": "phosphor pulse"}]},
+    {"name": "SH", "panes": [{"cmd": ""}]}],
+    "screens": {"tablet": {"skip": ["phosphor pulse"]}, "plain": {}}}
+st = kinds.tabs(sk, "tablet")
+check("skip: a tab left with no panes goes", [t["name"] for t in st] == ["SYS", "SH"], st)
+check("skip: a split of one becomes the pane, keeping the split's size",
+      st[0]["panes"][0] == {"cmd": "phosphor adjutant", "size": 18}, st[0])
+check("skip: the rest is untouched", st[0]["panes"][1] == {"cmd": "phosphor fleet"}, st[0])
+check("skip: a kind without it keeps every pane", len(kinds.tabs(sk, "plain")) == 3)
 e = kinds.env(prof, "eink")
 check("eink's panes are told", e.get("PHOSPHOR_SCREEN") == "eink" and e.get("PHOSPHOR_THEME") == "paper"
       and "PHOSPHOR_GRAPHS" not in e and "ZELLIJ" not in e, {k: v for k, v in e.items() if "PHOS" in k})

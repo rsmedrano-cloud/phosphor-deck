@@ -54,6 +54,7 @@ CATEGORIES = [
         ("tts", "phosphor tts", "speak notifications aloud with selectable voices"),
         ("push", "phosphor push", "[push] status, or --qr: a subscribe link/QR for the phone's ntfy app"),
         ("ci", "phosphor ci", "GitLab/GitHub pipeline status cards"),
+        ("usage", "phosphor usage", "how much of your Claude Code / Antigravity plan is used, and when it refills"),
         ("prom", "phosphor prom", "Prometheus gauge dashboard (see [prometheus] in the profile)"),
         ("services", "phosphor services", "systemd units and their state: phosphor's own, plus any you add"),
         ("review", "phosphor review", "open merge/pull requests: CI, conflicts, diff, try the branch"),

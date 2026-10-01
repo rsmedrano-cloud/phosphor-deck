@@ -55,6 +55,9 @@ in the profile and it gets a deck of its own, laid out for it:
     land   = "NOTES"                     # the tab you arrive on (default: the first)
     graphs = "blocks"                    # default: the deck's
 
+    [screens.tablet]
+    skip   = ["phosphor pulse"]          # panes it doesn't need, by their cmd
+
     [screens.eink]
     theme  = "paper"
 

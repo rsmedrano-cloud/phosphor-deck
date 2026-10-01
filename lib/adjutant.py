@@ -19,16 +19,33 @@ FACES_DIR = os.path.join(deckconf.data_dir(), "faces")
 
 NOISE = "▒▓█░▚▞▙▟▛▜▗▖▘▝╳╱╲┃━"
 
-def load_face(name):
-    """A face made by `phosphor face`: a list of frames."""
+def _read_face(path, name):
     try:
-        with open(os.path.join(FACES_DIR, name + ".json")) as f:
-            d = json.load(f)
-        return d.get("frames") or []
+        with open(path) as f:
+            return json.load(f)
     except Exception:
         import dlog
         dlog.event("ADJUTANT", "face-load-failed", name)   # never the exception text: it quotes the full path
-        return []
+        return {}
+
+def load_face(name):
+    """A face made by `phosphor face`: a list of character frames."""
+    return _read_face(os.path.join(FACES_DIR, name + ".json"), name).get("frames") or []
+
+def load_bitmap(name=None):
+    """A bitmap face (`phosphor face --bitmap`): NAME's, else the bundled one.
+    None when it isn't one (or doesn't load): the character faces take over."""
+    import facebmp
+    path = os.path.join(FACES_DIR, name + ".json") if name else share("adjutant-face.json")
+    bm = _read_face(path, name or "adjutant-face").get("bitmap")
+    if not isinstance(bm, dict) or not bm.get("open"):
+        return None
+    try:
+        return facebmp.Face(bm, PALETTES[THEME])
+    except Exception:
+        import dlog
+        dlog.event("ADJUTANT", "face-load-failed", name or "adjutant-face")
+        return None
 
 # Fallback when there's no face file: a helmet with a visor.
 FACE = [
@@ -76,12 +93,7 @@ def read_events(pos):
 
 _fleet_cache = {"mtime": None, "data": None}
 
-def fleet_alert():
-    """Checked every tick of the main loop (every 20ms, tty_ok) -- a stat()
-    call is cheap, re-opening and re-parsing fleet.json isn't, especially
-    on a slow SD card (the "revived" shape's whole reason to exist). Only
-    actually re-reads it when its mtime moves, which is once a poll round
-    (~15s), not fifty times a second."""
+def _read_fleet():
     try:
         mtime = os.path.getmtime(FLEET)
     except OSError:
@@ -95,7 +107,15 @@ def fleet_alert():
             import dlog
             dlog.event_throttled("ADJUTANT", "fleet-json-failed")
             return None
-    d = _fleet_cache["data"]
+    return _fleet_cache["data"]
+
+def fleet_alert():
+    """Checked every tick of the main loop (every 20ms, tty_ok) -- a stat()
+    call is cheap, re-opening and re-parsing fleet.json isn't, especially
+    on a slow SD card (the "revived" shape's whole reason to exist). Only
+    actually re-reads it when its mtime moves, which is once a poll round
+    (~15s), not fifty times a second."""
+    d = _read_fleet()
     if d is None:
         return None
     if time.time() - d.get("t", 0) > 120: return None
@@ -105,6 +125,30 @@ def fleet_alert():
         for _, pct, _ in h.get("mnt", []):
             if pct >= 92: return (2, "%s disk %d%%" % (name, pct))
     return None
+
+def fleet_health():
+    """(lvl, why).
+    lvl: 0 nominal, 1 warning, 2 alert.
+    why: text for idle display (e.g. "nominal", "web disk 88%", "stale data"), or "" if no fleet.
+    """
+    d = _read_fleet()
+    if d is None:
+        return 0, ""
+    hosts = d.get("hosts", {})
+    if not hosts:
+        return 0, ""
+    if time.time() - d.get("t", 0) > 120:
+        return 1, "stale data"
+    lvl, why = 0, "nominal"
+    for name, h in hosts.items():
+        if not h.get("ok"):
+            return 2, "%s unreachable" % name
+        for _, pct, _ in h.get("mnt", []):
+            if pct >= 92:
+                return 2, "%s disk %d%%" % (name, pct)
+            elif pct >= 85 and lvl < 1:
+                lvl, why = 1, "%s disk %d%%" % (name, pct)
+    return lvl, why
 
 def corrupt(line, amount):
     """Swap characters at random: the static."""
@@ -116,10 +160,14 @@ def corrupt(line, amount):
     return "".join(out)
 
 def main():
-    anim, tick = [], 0
+    anim, tick, bmp = [], 0, None
     if "--face" in sys.argv:
-        try: anim = load_face(sys.argv[sys.argv.index("--face") + 1])
-        except IndexError: anim = []
+        try: fname = sys.argv[sys.argv.index("--face") + 1]
+        except IndexError: fname = None
+        bmp = load_bitmap(fname) if fname else None
+        if not bmp and fname: anim = load_face(fname)
+    else:
+        bmp = load_bitmap()                 # the bundled one
     speed = 4
     if "--speed" in sys.argv:
         try: speed = max(1, int(sys.argv[sys.argv.index("--speed") + 1]))
@@ -149,7 +197,7 @@ def main():
     try:
         while True:
             cols, rows = shutil.get_terminal_size((34, 14))
-            w = max(20, min(cols, 40))
+            w = max(20, min(cols, 100 if bmp else 40))
 
             new, pos = read_events(pos)
             if new:
@@ -170,27 +218,39 @@ def main():
                 msg, lvl, target = "", 0, ""
 
             burst = max(0.0, burst - 0.055)
-            col  = (PH, AMB, RED)[min(lvl, 2)]
+            h_lvl, h_why = fleet_health()
+            disp_lvl = max(lvl, h_lvl if not msg else 0)
+            col  = (PH, AMB, RED)[min(disp_lvl, 2)]
             idle = burst <= 0 and not msg
 
-            face_room = max(0, rows - 4)       # minus borders, gap and message
-            if anim:
-                tick += 1
-                cur = anim[(tick // speed) % len(anim)]
+            now = time.time() - t0
+            if bmp:
+                # the picture takes the whole pane: borders and the message line stay
+                lines = bmp.draw(w - 2, max(2, rows - 3),
+                                 "closed" if (now % 5.3) < 0.16 and burst <= 0 else "open",
+                                 min(disp_lvl, 2), now, burst,
+                                 sweep=(now * 0.22) % 1.6 if idle else None)
+                out = [RULE + "╭" + "─" * (w - 2) + "╮" + RST]
+                out += [RULE + "│" + RST + ln + RULE + "│" + RST for ln in lines]
             else:
-                cur = FACE
-            face = cur if face_room >= len(cur) else cur[:face_room]
-            out = [RULE + "╭" + "─" * (w - 2) + "╮" + RST]
-            fw = max((len(r) for r in face), default=13)
-            pad_l = max(0, (w - 2 - fw) // 2)
-            drift = int((time.time() - t0) * 6) % (len(face) + 4) if face else 0
-            for i, row_s in enumerate(face):
-                line = corrupt(row_s, burst * 0.55)
-                c = BLOOM if (i == drift and idle) else col     # a scanline sweeping by
-                out.append(RULE + "│" + RST + " " * (pad_l + 1) + c + line + RST
-                           + " " * max(0, w - 2 - pad_l - 1 - len(line)) + RULE + "│" + RST)
-            if rows > len(face) + 3:
-                out.append(RULE + "│" + RST + " " * (w - 2) + RULE + "│" + RST)
+                face_room = max(0, rows - 4)       # minus borders, gap and message
+                if anim:
+                    tick += 1
+                    cur = anim[(tick // speed) % len(anim)]
+                else:
+                    cur = FACE
+                face = cur if face_room >= len(cur) else cur[:face_room]
+                out = [RULE + "╭" + "─" * (w - 2) + "╮" + RST]
+                fw = max((len(r) for r in face), default=13)
+                pad_l = max(0, (w - 2 - fw) // 2)
+                drift = int(now * 6) % (len(face) + 4) if face else 0
+                for i, row_s in enumerate(face):
+                    line = corrupt(row_s, burst * 0.55)
+                    c = BLOOM if (i == drift and idle) else col     # a scanline sweeping by
+                    out.append(RULE + "│" + RST + " " * (pad_l + 1) + c + line + RST
+                               + " " * max(0, w - 2 - pad_l - 1 - len(line)) + RULE + "│" + RST)
+                if rows > len(face) + 3:
+                    out.append(RULE + "│" + RST + " " * (w - 2) + RULE + "│" + RST)
 
             if msg:
                 txt = corrupt(msg, burst * 0.8)
@@ -198,9 +258,24 @@ def main():
                 out.append(RULE + "│" + RST + " " * pad_m + col + txt + RST
                            + " " * max(0, w - 2 - pad_m - len(msg)) + RULE + "│" + RST)
             else:
-                idle_txt = "· listening ·"
+                if h_why:
+                    idle_col = (DIM, AMB, RED)[min(h_lvl, 2)]
+                    full = "· listening · %s ·" % h_why
+                    short = "· %s ·" % h_why
+                    room = max(1, w - 2)
+                    if len(full) <= room:
+                        idle_txt = full
+                    elif len(short) <= room:
+                        idle_txt = short
+                    elif len("· listening ·") <= room:
+                        idle_txt = "· listening ·"
+                    else:
+                        idle_txt = short[:room]
+                else:
+                    idle_col = DIM
+                    idle_txt = "· listening ·"[:max(1, w - 2)]
                 pad_m = max(0, (w - 2 - len(idle_txt)) // 2)
-                out.append(RULE + "│" + RST + " " * pad_m + DIM + idle_txt + RST
+                out.append(RULE + "│" + RST + " " * pad_m + idle_col + idle_txt + RST
                            + " " * max(0, w - 2 - pad_m - len(idle_txt)) + RULE + "│" + RST)
             out.append(RULE + "╰" + "─" * (w - 2) + "╯" + RST)
 

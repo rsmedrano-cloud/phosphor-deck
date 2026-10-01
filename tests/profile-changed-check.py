@@ -57,7 +57,8 @@ open(os.path.join(env["PHOSPHOR_TABS_D"], "x.toml"), "w").write('[[tabs]]\nname 
 need("a new tabs.d file is noticed too", changed() == "True")
 
 # the DECK tab: the status line says it (and a tap on it applies it), f asks first
-import panel, init
+os.environ.update(PHOSPHOR_DATA=env["PHOSPHOR_DATA"], PHOSPHOR_CACHE=os.path.join(home, "cache"))
+import panel, init, deckconf
 st = {"session": "deck", "version": "1", "channel": "stable", "news": "", "screens": None,
       "timer": True, "web": False, "tunnels": [], "profile_changed": True}
 lines, hit, _ = panel.draw({}, st, 100, 60)
@@ -80,6 +81,23 @@ need("f, declined: nothing runs", act(False) == [])
 need("f, confirmed: gen, then restart", act(True) == ["gen", "restart"])
 rc["gen"] = 1
 need("f, gen fails: no restart", act(True) == ["gen"])
+
+# gen went through but the restart didn't happen: f still offers it, alone
+rc.update(gen=0, restart=1)
+mark = os.path.join(env["PHOSPHOR_DATA"], "apply-pending")
+need("f, confirmed: gen leaves the apply mark", act(True) == ["gen", "restart"] and os.path.exists(mark))
+deckconf.session_started = lambda sess: os.path.getmtime(mark) - 60       # the deck is older than gen
+need("a deck older than the apply: restart pending", deckconf.restart_pending("deck"))
+deckconf.session_started = lambda sess: os.path.getmtime(mark) + 5        # it did restart
+need("a deck newer than the apply: nothing pending", not deckconf.restart_pending("deck"))
+deckconf.session_started = lambda sess: None                              # no deck at all
+need("no deck running: nothing pending", not deckconf.restart_pending("deck"))
+pend = dict(st, profile_changed=False, restart_pending=True)
+lines, hit, _ = panel.draw({}, pend, 100, 60)
+need("pending: the status line says f restarts", "f restarts it" in lines[1] and panel.at(hit, 5, 2) == "f")
+st = pend
+need("f, pending, confirmed: the restart alone", act(True) == ["restart"])
+need("f, pending, declined: nothing", act(False) == [])
 
 if fails:
     print("profile-changed-check FAILED:\n  " + "\n  ".join(fails)); sys.exit(1)

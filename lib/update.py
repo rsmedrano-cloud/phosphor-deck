@@ -184,6 +184,7 @@ def main():
             print(row(BAD, "install", "failed (exit %d)" % r.returncode, note="the deck wasn't touched"))
             return 1
     # (install.sh regenerates from the profile: layouts, units, rclone.conf)
+    offer_one_pane()
     if restart:
         print()
         if refresh(before_files, full):
@@ -196,6 +197,21 @@ def main():
     else:
         print("  " + DIM + "the panes keep the old code until: phosphor restart" + RST)
     return 0
+
+
+def offer_one_pane():
+    """A profile written before the panel took the whole DECK tab keeps the
+    key guide beside it (gen never rewrites a profile): say so once per
+    update, and how to change it. Only a hint, the profile isn't touched."""
+    try:
+        import panel
+        name = panel.two_panes(deckconf.load()[0] or {})
+    except Exception:
+        return
+    if name:
+        print()
+        print(row(WARN, "%s tab" % name, "still has the key guide beside the panel",
+                  note="press 1 in it to make it one pane (the keys are ? there)"))
 
 
 def refresh(before_files, full):

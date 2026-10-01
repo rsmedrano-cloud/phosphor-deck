@@ -300,7 +300,7 @@ comes back the same way: q, Esc or Enter.
 
 A profile from before 1.2.5 still has the key guide beside the panel: the
 deck card offers **1** ("one pane"), which writes the tab as one pane (a backup is kept;
-`f` applies it).
+`f` applies it). `phosphor update` says so when your profile is one of those.
 
 ![The DECK tab: the deck's state, next steps and every action, as cards](doc/img/readme/deck-tab.png)
 
@@ -405,6 +405,7 @@ more depth on every one of these.
 |---|---|
 | `phosphor fleet` | fleet panel: pick a card, then `s` ssh, `l` logs, `t` triage, each in its own tab |
 | `phosphor pulse` | the heartbeat: a wave tied to real load |
+| `phosphor usage` | how much of your Claude Code and Antigravity plans you've used (5-hour window, week) and when each refills |
 | `phosphor glance` | read-only: fleet, unread mentions, open todos -- for a small screen, no zellij needed |
 | `phosphor adjutant` | the SYS panel that speaks up: `phosphor notify MESSAGE` makes it announce something |
 | `phosphor notify --push` | the same notice on your phone (ntfy), for a brain nobody sits near: `[push]` in the profile |
@@ -433,7 +434,7 @@ more depth on every one of these.
 | `phosphor triage [HOST]` | a diagnostic snapshot of a host, piped straight to phosphor ask; no HOST: picks from what's flagged (or any host) |
 | `phosphor broadcast -- CMD` | one command on every fleet host at once, output grouped by host; asks first |
 | `phosphor tunnel` | keep your ssh config's LocalForward tunnels up |
-| `phosphor face` | turn an image into the adjutant's face |
+| `phosphor face` | turn an image into the adjutant's face (`--bitmap`: drawn at the pane's size, in color) |
 | `phosphor logs` | the deck's own log: crashes with traceback, hangs, exits, restarts; `-f` follows |
 | `phosphor trace` | verbose logging for one tool, for about 30 minutes, then it turns itself off (`off TOOL` sooner) |
 

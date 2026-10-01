@@ -13,6 +13,11 @@
 - The tools you run inside talk to their own services (your chat client --
   matterhorn, iamb, gomuks... -- to its server, an assistant to its
   provider). Phosphor adds no leaks and can't stop theirs.
+- `phosphor usage`, where you put it in a tab, is the one panel that talks
+  to an AI provider itself: it uses the token claude or agy already keeps
+  on this machine to ask that same provider (Anthropic, Google) how much
+  of your plan is used. Nothing else goes with it, and it never refreshes
+  or copies the token.
 - Your profile is personal and lives in `~/.config`, not the repo. Before you
   push a fork: `phosphor privacy` (or `--install` as a pre-commit hook). It
   reads your profile, git email, user, home, tailscale addresses, headscale

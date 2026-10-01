@@ -59,10 +59,23 @@ not in any one assistant's memory.
 - **Start by reading** `phosphor notes` (the latest entries say what was done
   and what's next) and the open issues. **End by leaving** a short
   `phosphor note` saying what changed and what's pending.
-- **Branches:** `main` is what people run; `dev` is where work happens. Work
-  in a checkout of `dev`, never in the one the live deck runs from. Never run
-  a real `phosphor gen`, `up` or `restart` from a `dev` checkout: gen points the
-  live deck at the code it ran from. `--dry-run` and read-only commands are fine.
+- **Branches:** `main` is what people run; `dev` is where work happens.
+  First see which checkout the live deck runs: `readlink -f
+  ~/.local/bin/phosphor`. If it's the one you're in (a maintainer on the
+  nightly channel runs straight from a dev clone), your edits *are* the live
+  deck's code: the next `phosphor update`, restart or reopened pane runs them,
+  finished or not. Keep the tree runnable at every step and end with a commit,
+  never with edits lying around. Never run a real `phosphor gen`, `up`,
+  `update` or `restart` yourself: gen points the live deck at the code it ran
+  from, and when the deck takes a change is the maintainer's call. `--dry-run`
+  and read-only commands are fine.
+- **Say what they'll see, and answer what they asked.** A change to the
+  shipped defaults (`lib/init.py`'s shapes, `profiles/*.toml`) never reaches
+  a profile that already exists, and the deck keeps running the code it
+  started with until it restarts. When the maintainer asked for something on
+  their own deck, say so plainly and offer the matching edit to their profile
+  (a `deck.toml.bak` first) -- in the reply itself, not buried in a summary.
+  A topic isn't closed while one of their questions is still unanswered.
 - **Verify through CI, not by hand:** `sh tests/check.sh` locally (seconds),
   push `dev`, then `python3 tests/ci.py`: it waits for that commit's pipeline
   and prints one line per job, plus the end of the log of any job that failed.
@@ -80,7 +93,8 @@ not in any one assistant's memory.
 - **Privacy:** the pre-commit hook (`phosphor privacy`) blocks IPs, users,
   emails and servers. Never commit a personal email or a real host name as an
   example; commits use the maintainer's noreply address.
-- **Push named refs only** (`dev`, `main`, `vX.Y.Z`), never `--all`, `--mirror`
+- **Push named refs only** (`dev`, `main`, `vX.Y.Z`) to the `gitlab` remote
+  (`git push gitlab dev`; the maintainer's clone has no `origin`), never `--all`, `--mirror`
   or every tag: a checkout may hold local history that must stay local.
 - **Open merge requests, before merging one or cutting a release:**
   `python3 tests/mrs-check.py`. The pipeline only runs on protected refs

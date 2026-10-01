@@ -32,7 +32,10 @@ echo "== memory =="
 free -h 2>/dev/null
 echo
 echo "== disk =="
-df -h 2>/dev/null | grep -Ev '^(tmpfs|devtmpfs|overlay|Filesystem)'
+# network mounts (the brain's own ~/fleet, an NFS share) are skipped: one whose
+# host is down hangs df for as long as the whole snapshot is allowed to take
+T=; command -v timeout >/dev/null && T="timeout 5"
+$T df -h -x fuse.rclone -x fuse.sshfs -x nfs -x nfs4 -x cifs -x smb3 2>/dev/null | grep -Ev '^(tmpfs|devtmpfs|overlay|Filesystem)'
 echo
 echo "== recent kernel messages =="
 dmesg --ctime 2>/dev/null | tail -n 30 || journalctl -k -n 30 --no-pager 2>/dev/null || echo "(no kernel log access)"

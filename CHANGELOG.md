@@ -6,6 +6,41 @@ before it updates.
 
 ## Unreleased
 
+## 1.2.12 — usage panel, SYS layout, DECK tab f
+
+- `phosphor triage` of the brain no longer times out when a machine of the fleet is down: its disk
+  section skipped nothing, so `df` waited on that machine's `~/fleet` mount. Network mounts are left
+  out now, and `df` gets five seconds at most.
+- The DECK tab's `f`: when gen went through but the deck didn't restart, the status line used to go
+  quiet with the change still not showing, and `f` did nothing any more. Now it says "applied, the
+  deck hasn't restarted yet: f restarts it" until the deck really restarts, and each step's answer
+  goes into the deck's log (`phosphor logs panel`).
+- `phosphor usage`: how much of your Claude Code plan (the 5-hour window and the week) and your
+  Antigravity quota (Gemini, and its Claude/GPT pool) you've used, as bars with the time until each
+  refills. It reads the token each CLI already keeps and asks that provider; it never refreshes one.
+  Put it in a tab like any panel: `{ cmd = "phosphor usage" }`.
+- The adjutant reports the fleet's health: when idle, its status line reads `· listening · nominal ·`
+  (a disk filling up in amber, a host down or a full disk in red) instead of plain `listening`, with its helmet lights
+  matching the warning level. Default profiles now place the adjutant in the SYS tab beside `fleet`,
+  replacing the separate synthetic `pulse` wave (which stays available as a standalone command).
+- The adjutant has a new face: a woman in profile, half machine, with the helmet's cables and amber
+  lights. It's drawn at whatever size its pane has (it used to be a fixed 40-column grid of
+  characters), in half blocks and the colors of your theme; the lights pulse, turn red on an alert,
+  the eye blinks, and a new message breaks the picture up into static. It follows `theme` (paper
+  inverts it). `phosphor face IMAGE --bitmap [--closed IMAGE] [--px 96] [--crop WxH+X+Y]` makes one
+  of your own the same way; the character faces still work (`phosphor adjutant --face NAME`).
+- `phosphor face` takes a whole frame out of an animated GIF that was optimized (only the changed
+  rectangle is stored per frame): the faces it made from those were partial pictures. It also
+  writes to the data folder the adjutant reads (`PHOSPHOR_DATA` was ignored).
+- A screen can leave panes out: `skip = ["phosphor pulse"]` in its `[screens.KIND]` block drops
+  those panes from its tabs (a tab left with none goes too; a split left with one becomes that
+  pane). For a small or slow screen, like a Pi's touch display, that doesn't need the animated
+  panes: `pulse` and `adjutant` redraw all the time, and zellij handles them even on a tab you
+  aren't looking at.
+- `phosphor update` now says when your DECK tab still has the key guide beside the panel (a
+  profile from before the panel took the whole tab; `gen` never rewrites a profile): one line
+  after the install, pointing at **1** in the DECK tab, which makes it one pane.
+
 ## 1.2.11 — a deck for each kind of screen
 
 - A deck for each kind of screen. A phone and a desktop looking at the same tabs squeeze each

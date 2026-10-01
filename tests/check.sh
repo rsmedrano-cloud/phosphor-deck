@@ -207,6 +207,12 @@ out=$(python3 tests/fleet-timing-check.py 2>&1) && ok || bad "$out"
 step "adjutant: fleet.json read once per change, not per tick"
 out=$(python3 tests/adjutant-check.py 2>&1) && ok || bad "$out"
 
+step "usage: provider answers to bars, expired tokens stay offline"
+out=$(python3 tests/usage-check.py 2>&1) && ok || bad "$out"
+
+step "adjutant's bitmap face, GIF frames"
+out=$(python3 tests/face-check.py 2>&1) && ok || bad "$out"
+
 step "fleet: rust poller picked when installed, else python"
 out=$(python3 tests/fleet-poller-check.py 2>&1) && ok || bad "$out"
 

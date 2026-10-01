@@ -17,13 +17,15 @@ sidebar:
   follow the pane's width: one column on a phone (arrows or two fingers scroll it), more on a
   wider screen, with a line about each action once there's room. A profile whose DECK tab still has
   the key guide beside the panel gets **1** in the deck card: it writes that tab as one pane
-  (a backup is kept, `f` applies it). `n` (notices & traces) opens `phosphor push`, `phosphor tts` or
+  (a backup is kept, `f` applies it); `phosphor update` points at it too. `n` (notices & traces) opens `phosphor push`, `phosphor tts` or
   `phosphor trace` on their own screen: what's on, and on or off one key away. Actions
   run in the same pane and come back the same way from every one: q, Esc or Enter (the ones
   that print and wait say "q · Enter: back", the TUIs take q) -- `tail`'s stream is the one
   exception: it takes over the pane until you Ctrl-C, the same way "a shell here" does.
   After a hand edit of the profile, its status line says "profile changed: f applies it":
-  `f` asks, then runs `phosphor gen` and `phosphor restart`.
+  `f` asks, then runs `phosphor gen` and `phosphor restart`. If gen went through and the deck
+  didn't restart, the line says "applied, the deck hasn't restarted yet: f restarts it" until it
+  does, and `f` offers the restart alone; `phosphor logs panel` shows what each step answered.
 - `phosphor commands` — every phosphor command, browsable by category (also: `e` in the DECK
   tab). Pick a category, then a command: a read-only one runs right there when you pick it, and
   so does one that asks for what it needs (see "Commands that ask" below); anything else shows its usage and copies the invocation to every screen's clipboard instead
@@ -111,7 +113,7 @@ sidebar:
   profile points it at a folder you already sync (Obsidian, Syncthing, git) -- see profile.
 
 ## In the deck
-- `phosphor fleet`, `phosphor pulse`, `phosphor adjutant`, `phosphor prom`, `phosphor ci`, `phosphor services` — the SYS panels; prom draws your Prometheus queries, ci draws your GitLab/GitHub pipeline statuses,
+- `phosphor fleet`, `phosphor adjutant`, `phosphor prom`, `phosphor ci`, `phosphor services`, `phosphor pulse` — the SYS panels; adjutant watches the fleet's health alongside listening for events, prom draws your Prometheus queries, ci draws your GitLab/GitHub pipeline statuses,
   services lists systemd units and their state (see `[prometheus]`, `[ci]` and `[services]` in profile; `--once` prints one frame).
   services also opens from the `+` menu and with `y` in the DECK tab; on a terminal, pick a unit: `l` its logs,
   `r` restart it, `s` start or stop it, each asking first (see `[services]` in profile).
@@ -126,6 +128,14 @@ sidebar:
   its own: `s` a shell there (ssh, or a plain shell for the brain), `l` its logs (what `phosphor tail HOST`
   runs), `t` a `phosphor triage` of it. The keys show on the bottom line and tapping them works too; none
   of them changes anything on the host.
+- `phosphor usage [--once]` — how much of your AI assistants' plans you've used, one card each:
+  Claude Code (the 5-hour window and the week) and Antigravity (each quota pool -- Gemini, and the
+  Claude/GPT models it also offers), each with a bar and the time until it refills. Only the ones
+  signed in on this machine show. It reads the token each CLI already keeps
+  (`~/.claude/.credentials.json`, `~/.gemini/antigravity-cli/antigravity-oauth-token`) and asks that
+  same provider, every two minutes; it never refreshes a token, so an expired one says "open claude
+  (or agy) once" until that CLI renews it. Antigravity has no separate weekly figure to show: its
+  answer is one fraction per pool.
 - `phosphor glance [--once]` — read-only: the fleet's problem hosts (or "all N ok"), unread
   mentions, open todos, and any workspace with uncommitted changes or commits ahead/behind its
   upstream ("one device, then another" makes those easy to forget). For a small screen:
@@ -228,7 +238,12 @@ sidebar:
   on a terminal, it asks: the hosts to tick, the command, then the same confirmation.
 - `phosphor tunnel [on|off HOST]` — keep your ssh config's LocalForward tunnels up.
 - `phosphor face IMAGE [--name N] [--w 24] [--h 13] [--half] [--mode thr|dither|edge]`. No `IMAGE`, on a
-  terminal: it asks which, listing only images.
+  terminal: it asks which, listing only images. Needs ImageMagick (`convert`).
+  `phosphor face IMAGE --bitmap [--closed IMAGE] [--px 96] [--crop WxH+X+Y]` keeps the picture as a
+  small grid of tones instead of characters, so the adjutant draws it at the size of its pane, in half
+  blocks and the colors of your theme (`phosphor adjutant --face NAME`). Warm bright spots (amber
+  lights) become their own layer that pulses and turns red on an alert; `--closed` is the same picture
+  with the eyes shut, for the blink. The adjutant's own face is one of these.
 - `phosphor run [--name N] [--reconnect] [--wait S] [--alt] -- CMD` — the watcher every pane uses:
   a crash, a hang or a non-zero exit goes into the deck's log; `l` on an "ended" pane reads it back.
   `--reconnect` (ssh panes) retries a dropped link (ssh's own exit 255) starting at 3s, doubling

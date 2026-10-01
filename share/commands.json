@@ -108,6 +108,8 @@
     "note": "enables and starts the session, timer and mount units, unconditionally."},
   "update": {"mutates": true, "needs_deck": false,
     "note": "pulls or copies the new code, runs the installer, and by default restarts the live session (or hotswaps it) with no confirmation; --no-restart is the only opt-out."},
+  "usage": {"mutates": false, "needs_deck": false,
+    "note": "read-only: reads the token claude/agy already keep and asks that provider for its usage; never refreshes a token."},
   "version": {"mutates": false, "needs_deck": false,
     "note": "reads a small local cache; --check also does a `git fetch` (network only, no local mutation)."},
   "web": {"mutates": false, "needs_deck": false,

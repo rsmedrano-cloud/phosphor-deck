@@ -226,6 +226,47 @@ def profile_changed():
     fp = profile_fingerprint()
     return bool(stamp and fp and fp != stamp)
 
+def _apply_mark():
+    return os.path.join(data_dir(), "apply-pending")
+
+def session_started(sess):
+    """When the zellij server of that session started (epoch seconds), or None."""
+    try:
+        boot = next(float(l.split()[1]) for l in open("/proc/stat") if l.startswith("btime"))
+        hz = os.sysconf("SC_CLK_TCK")
+    except (OSError, StopIteration, ValueError):
+        return None
+    for pid in os.listdir("/proc"):
+        if not pid.isdigit():
+            continue
+        try:
+            args = open("/proc/%s/cmdline" % pid, "rb").read().split(b"\0")
+            if b"--server" not in args or not any(a.endswith(b"/" + sess.encode()) for a in args):
+                continue
+            stat = open("/proc/%s/stat" % pid).read()
+            return boot + int(stat.rsplit(")", 1)[1].split()[19]) / hz
+        except (OSError, IndexError, ValueError):
+            continue
+    return None
+
+def mark_applied():
+    """The DECK tab's f ran gen: the deck still has to restart to show it."""
+    try:
+        os.makedirs(data_dir(), exist_ok=True)
+        open(_apply_mark(), "w").close()
+    except OSError:
+        pass
+
+def restart_pending(sess):
+    """f's gen went through but the deck running now is older than it: the
+    restart never happened (or failed), so f must still offer it."""
+    try:
+        at = os.path.getmtime(_apply_mark())
+    except OSError:
+        return False
+    started = session_started(sess)
+    return started is not None and started < at
+
 def exe(name):
     """A program's path: ~/.local/bin first (the zellij server's PATH lacks it)."""
     if not name: return None

@@ -87,6 +87,7 @@ def state(prof):
          "tunnels": [tunnels.active(t["host"]) for t in deckconf.tunnels(prof)],
          "dirty_workspaces": len(workspace.dirty_workspaces()),
          "profile_changed": deckconf.profile_changed(),
+         "restart_pending": deckconf.restart_pending(sess),
          "version": version.current()["version"], "channel": version.current()["channel"],
          "news": version.news(), "two_panes": bool(two_panes(prof))}
     version.check_later()
@@ -190,6 +191,9 @@ def draw(prof, st, w, rows, off=0, with_steps=True):
     if st.get("profile_changed"):
         L.append(" " + AMB + "profile changed: f applies it" + RST)
         hit[len(L)] = [(1, w, "f")]       # a tap on that line applies it too
+    elif st.get("restart_pending"):
+        L.append(" " + AMB + "applied, the deck hasn't restarted yet: f restarts it" + RST)
+        hit[len(L)] = [(1, w, "f")]
     elif st["news"]:
         L.append(" " + AMB + st["news"] + ": u" + RST)
         hit[len(L)] = [(1, w, "u")]
@@ -344,13 +348,29 @@ def act(k, st):
         elif k == "f":
             # a hand edit of deck.toml (or tabs.d) only shows after gen and a
             # restart; never done behind anyone's back: the restart closes every pane
-            print("  the profile changed since the last " + PH + "phosphor gen" + RST
-                  + ": the deck still runs the one before.")
-            if yes("apply it now? phosphor gen, then a restart (every screen comes back by itself)", False):
-                if P("gen").returncode == 0:
-                    P("restart")
-                else:
-                    print(AMB + "  gen failed: nothing restarted. Fix the profile, then f again." + RST)
+            import dlog
+            if st.get("profile_changed"):
+                print("  the profile changed since the last " + PH + "phosphor gen" + RST
+                      + ": the deck still runs the one before.")
+                go = yes("apply it now? phosphor gen, then a restart (every screen comes back by itself)", False)
+                if go:
+                    rc = P("gen").returncode
+                    dlog.event("PANEL", "apply", "gen rc=%d" % rc)
+                    if rc != 0:
+                        print(AMB + "  gen failed (exit %d): nothing restarted. Fix the profile, then f again." % rc + RST)
+                        go = False
+                    else:
+                        deckconf.mark_applied()   # until the deck restarts, f offers the restart alone
+            else:
+                print("  the profile is applied, but the deck running now started before that:")
+                print("  it shows the change once it restarts.")
+                go = yes("restart now? (every screen comes back by itself)", False)
+            if go:
+                rc = P("restart").returncode
+                dlog.event("PANEL", "apply", "restart rc=%d" % rc)
+                if rc != 0:
+                    print(AMB + "  the restart didn't go through (exit %d): f tries again, "
+                          "phosphor logs says why." % rc + RST)
             pause()
     except KeyboardInterrupt:
         print()
@@ -382,7 +402,7 @@ def main():
             step = {"\x1b[B": 1, "\x1b[A": -1, "\x1b[6~": rows - 4, "\x1b[5~": 4 - rows}.get(k)
             if step:
                 off = max(0, min(maxoff, off + step))
-            elif k in keys or (k == "f" and st.get("profile_changed")) or (k == "1" and st.get("two_panes")):
+            elif k in keys or (k == "f" and (st.get("profile_changed") or st.get("restart_pending"))) or (k == "1" and st.get("two_panes")):
                 act(k, st); last = 0
     except KeyboardInterrupt:
         pass

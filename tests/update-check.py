@@ -104,6 +104,22 @@ try:
 finally:
     reset()
 
+# offer_one_pane(): a profile that still has the key guide beside the panel
+# gets one line saying so after an update; any other profile gets nothing.
+def offered(prof):
+    update.deckconf.load = lambda: (prof, "")
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        update.offer_one_pane()
+    reset()
+    return buf.getvalue()
+
+two = {"tabs": [{"name": "DECK", "panes": [{"cmd": "phosphor panel"}, {"cmd": "phosphor keys"}]}]}
+need("an old two-pane DECK tab is offered the one-pane layout", "DECK tab" in offered(two))
+need("a one-pane DECK tab isn't",
+     offered({"tabs": [{"name": "DECK", "panes": [{"cmd": "phosphor panel"}]}]}) == "")
+need("no profile at all isn't", offered({}) == "")
+
 # main(): its exit status is the whole answer for an unattended update. A
 # failed install never restarts the deck; a restart that stopped short (the
 # old deck not fully down, see tests/down-gate-check.py) fails the update.

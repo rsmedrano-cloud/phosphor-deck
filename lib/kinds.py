@@ -13,6 +13,7 @@ on the phone isn't the desktop's).
     land   = "NOTES"                     # the tab you arrive on (default: the first)
     theme  = "paper"                     # default: the deck's
     graphs = "blocks"                    # default: the deck's
+    skip   = ["phosphor pulse"]          # panes left out of its tabs, by their cmd (+ args)
 
 The screen says which kind it is when it attaches (`deck --screen phone`,
 written there by `phosphor phone` / `phosphor screen --as KIND`); a kind
@@ -62,6 +63,9 @@ def problems(prof):
             out.append((k, "land = %s isn't one of its tabs" % v["land"]))
         if v.get("graphs") not in (None, "braille", "blocks"):
             out.append((k, "graphs is braille or blocks"))
+        if v.get("skip") is not None and not (isinstance(v["skip"], list)
+                                              and all(isinstance(c, str) for c in v["skip"])):
+            out.append((k, 'skip is a list of commands: ["phosphor pulse"]'))
     return out
 
 
@@ -75,14 +79,47 @@ def sessions(prof):
     return [session(prof, k) for k in kinds(prof)]
 
 
+def _prune(panes, skip):
+    """panes without the ones whose cmd is in skip. A split left with one pane
+    becomes that pane, in the split's place and size: zellij has no use for a
+    split of one."""
+    out = []
+    for n in panes:
+        if n.get("panes"):
+            kids = _prune(n["panes"], skip)
+            if not kids:
+                continue
+            if len(kids) == 1:
+                n = dict(kids[0], **({"size": n["size"]} if "size" in n else {}))
+            else:
+                n = dict(n, panes=kids)
+        elif str(n.get("cmd") or "").strip() in skip:
+            continue
+        out.append(n)
+    return out
+
+
 def tabs(prof, kind):
-    """The tabs a kind's session lays out: its list, in its order, or all of them."""
+    """The tabs a kind's session lays out: its list, in its order, or all of them,
+    minus the panes it skips (a tab left with none goes too)."""
     every = deckconf.effective_tabs(prof)
-    want = (kinds(prof).get(kind) or {}).get("tabs")
-    if not want:
+    k = kinds(prof).get(kind) or {}
+    want = k.get("tabs")
+    if want:
+        by = {t.get("name"): t for t in every}
+        every = [by[n] for n in want if n in by]
+    skip = {str(c).strip() for c in k.get("skip") or []}
+    if not skip:
         return every
-    by = {t.get("name"): t for t in every}
-    return [by[n] for n in want if n in by]
+    out = []
+    for t in every:
+        if not t.get("panes"):
+            out.append(t)
+            continue
+        left = _prune(t["panes"], skip)
+        if left:
+            out.append(dict(t, panes=left))
+    return out
 
 
 def land(prof, kind):
