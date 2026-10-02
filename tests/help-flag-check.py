@@ -24,7 +24,14 @@ for name in ("zellij", "systemctl", "ssh", "tailscale", "rclone", "fusermount", 
         f.write('#!/bin/sh\necho "%s $*" >> %s\n' % (name, mark))
     os.chmod(p, 0o755)
 notes = os.path.join(tmp, "notes.md")
-env = {"HOME": home, "PATH": stubs + ":/usr/bin:/bin", "PHOSPHOR_NOTES": notes,
+# A session name nothing runs under: if --help ever falls through to
+# restart/down again, their reaper walks /proc (no stub stops that) and
+# would kill the live deck's panes -- it did, once, on the brain.
+prof = os.path.join(tmp, "deck.toml")
+with open(prof, "w") as f:
+    f.write('[deck]\nsession = "help-probe-%d"\n\n[[hosts]]\nname = "probe"\nrole = "brain"\nlocal = true\n'
+            % os.getpid())
+env = {"HOME": home, "PHOSPHOR_PROFILE": prof, "PATH": stubs + ":/usr/bin:/bin", "PHOSPHOR_NOTES": notes,
        "PHOSPHOR_DATA": os.path.join(tmp, "data"), "PHOSPHOR_CACHE": os.path.join(tmp, "cache"),
        "TERM": "dumb", "LANG": "C.UTF-8"}
 

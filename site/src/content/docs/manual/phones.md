@@ -83,6 +83,20 @@ card reads that. `phosphor restart` and `down` take every kind's session
 along, and each screen goes back into its own by itself. A kind with no
 block, or a screen that says nothing, gets the deck as always.
 
+### A touch screen with no keyboard
+
+A Pi with a 7" touch screen on a desk, a tablet on a stand: everything can
+be reached by tap, as long as its kind has the tabs for it. Put `DECK` in
+its `tabs` -- every phosphor action is a tap there -- and the tabs you
+actually look at (`SYS`, `NOTES`). The tab bar's `+` menu, a pane that
+ended (open it again, close it, its log) and the NOTES keys all take a tap.
+Writing text (a note, a search) is the one thing that needs keys: use the
+system's own on-screen keyboard, or skip it on that screen.
+
+    [screens.tablet]
+    tabs = ["SYS", "NOTES", "DECK"]
+    land = "SYS"
+
 ## Managing screens from the deck
 
 zellij ties a tab's whole grid to the smallest attached client's viewport,

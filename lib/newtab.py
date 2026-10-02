@@ -135,7 +135,7 @@ def render(its, sel, keep, w, msg=None, tip=None):
         (" " + (PH if keep else DIM) + box + RST + " " + MUTE + "keep this tab after restarts" + RST), "keep")
     add("")
     if msg: add(" " + WARN + " " + msg)
-    add(DIM + " q / Esc: close this tab" + RST)
+    add(" " + AMB + "x" + RST + "  " + FG + "close this tab" + RST + DIM + "  q / Esc" + RST, "close")   # a tap: no keyboard needed
     if tip: add(" " + MUTE + tip[:max(0, w - 2)] + RST)
     return rows, acts
 
@@ -511,7 +511,7 @@ def main():
                 r = k[1] - 1
                 act = acts[r] if 0 <= r < len(acts) else None
                 if act is None: continue
-            elif k in ("q", "\x1b", "\x03"):
+            elif k in ("q", "x", "\x1b", "\x03"):
                 return 0
             elif k in ("j", "\x1b[B"): sel = min(n + 2, sel + 1); continue
             elif k in ("k", "\x1b[A"): sel = max(0, sel - 1); continue
@@ -519,6 +519,8 @@ def main():
             elif k == "/": act = "search"
             elif k in ("\r", "\n", " "): act = sel if sel < n else ("cmd", "search", "keep")[sel - n]
             else: continue
+            if act == "close":
+                return 0
             if act == "keep":
                 keep = not keep; continue
             if act == "search":

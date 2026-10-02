@@ -59,12 +59,14 @@ after every restart) and this was its last program, a third choice shows:
 **f** closes it and forgets it, out of the profile for good. `phosphor tabs`
 does the same for any kept tab. A program that froze (the pane changed size and it didn't
 answer or do anything for 20 seconds) is closed and the pane says "stopped
-responding": Enter opens it again.
+responding": Enter opens it again. Every one of these choices is a row of
+its own, so a tap answers it too, on a screen with no keyboard.
 
 ## Tapping
 
 Tap a tab to switch, a pane to focus it; `+` in the tab bar opens the new-tab
-menu. On phones, taps go to the deck, so the keyboard needs its own key (the
+menu, and its last row ("close this tab") takes the tab back out if you
+opened it by mistake. On phones, taps go to the deck, so the keyboard needs its own key (the
 phone kit adds KEYBOARD, EDIT, ZOOM and EXIT).
 
 The DECK tab has every phosphor action (a key or a tap each), and `?` there

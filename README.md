@@ -77,7 +77,8 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
   assistants side by side in a few taps). Mark "keep" and
   the tab is written into your profile, so it survives restarts. `/` in it
   searches everything at once: open tabs, workspaces, installed tools, every
-  command.
+  command. On a touch screen with no keyboard, every menu and prompt
+  takes a tap.
 - **Fleet panel.** One card per machine: CPU, RAM, load, GPU, disks,
   containers, failed services, a pending reboot, the CPU's temperature, a
   laptop's battery and disks failing SMART, collected over SSH.

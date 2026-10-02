@@ -40,18 +40,21 @@ def keys(*pairs):
     sys.stdout.write("   " + "      ".join(AMB + k + RST + "  " + FG + v + RST for k, v in pairs) + "\n")
     sys.stdout.flush()
 
-def ask(rows=None, onlog=None):
-    """Enter again, x close, f forget, l the log; rows: {screen row: answer} for taps."""
+def ask(rows=None, onlog=None, forget=False):
+    """Enter again, x close, f forget (a kept tab), l the log; rows: {screen
+    row: answer} for taps, "log" among them."""
     if rows: sys.stdout.write("\x1b[?1000h\x1b[?1006h"); sys.stdout.flush()
     try:
         while True:
             k = getkey(None)
             if isinstance(k, tuple):
-                if rows and k[1] == 0 and k[4] and k[3] in rows: return rows[k[3]]
+                if rows and k[1] == 0 and k[4] and k[3] in rows:
+                    if rows[k[3]] != "log": return rows[k[3]]
+                    if onlog: onlog()
                 continue
             if k in ("\r", "\n", "r"): return "again"
             if k in ("x", "X"): return "close"
-            if rows and k in ("f", "F"): return "forget"
+            if forget and k in ("f", "F"): return "forget"
             if onlog and k in ("l", "L"): onlog()
     finally:
         if rows: sys.stdout.write("\x1b[?1006l\x1b[?1000l"); sys.stdout.flush()
@@ -190,20 +193,18 @@ def main():
                    ("ended" + ("" if rc == 0 else " (exit %d)" % rc))
             banner(name, what, AMB if rc == 0 else RED)
         kept = closing(name)
-        if not kept:
-            keys(("Enter", again), ("x", "close this tab"), ("l", "see the log"))
-            answer = ask(onlog=lambda: show_log(name))
-        else:
-            # it comes back after every restart: say so, and offer to stop that
+        # one row each, so a screen with no keyboard (a touch tablet) taps them
+        options = [("Enter", again, "again"), ("x", "close this tab", "close")]
+        if kept:        # it comes back after every restart: say so, and offer to stop that
             options = [("Enter", again, "again"), ("x", "close it for now (back after a restart)", "close"),
                        ("f", "close it and forget it: out of your profile", "forget")]
-            for k, v, _ in options:
-                sys.stdout.write("   " + AMB + "%-7s" % k + RST + FG + v + RST + "\r\n")
-            sys.stdout.flush()
-            below = cursor_row()
-            rows = {below - len(options) + i: ans for i, (_, _, ans) in enumerate(options)} if below else {}
-            sys.stdout.write("   " + AMB + "%-7s" % "l" + RST + FG + "see the log" + RST + "\r\n"); sys.stdout.flush()
-            answer = ask(rows or {0: None}, onlog=lambda: show_log(name))
+        options.append(("l", "see the log", "log"))
+        for k, v, _ in options:
+            sys.stdout.write("   " + AMB + "%-7s" % k + RST + FG + v + RST + "\r\n")
+        sys.stdout.flush()
+        below = cursor_row()
+        rows = {below - len(options) + i: ans for i, (_, _, ans) in enumerate(options)} if below else {}
+        answer = ask(rows or {0: None}, onlog=lambda: show_log(name), forget=bool(kept))
         if answer == "forget":
             import tabs
             err = tabs.forget(kept)

@@ -39,6 +39,9 @@ out=$(python3 tests/keep-check.py 2>&1) && ok || bad "$out"
 step "a frozen program is closed"
 out=$(python3 tests/hang-check.py 2>&1) && ok || bad "$out"
 
+step "a touch screen is never stuck"
+out=$(python3 tests/touch-check.py 2>&1) && ok || bad "$out"
+
 step "--reconnect backs off instead of hammering a dead link"
 out=$(python3 tests/run-reconnect-check.py 2>&1) && ok || bad "$out"
 

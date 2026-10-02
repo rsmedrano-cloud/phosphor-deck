@@ -1166,12 +1166,14 @@ after every restart) and this was its last program, a third choice shows:
 **f** closes it and forgets it, out of the profile for good. `phosphor tabs`
 does the same for any kept tab. A program that froze (the pane changed size and it didn't
 answer or do anything for 20 seconds) is closed and the pane says "stopped
-responding": Enter opens it again.
+responding": Enter opens it again. Every one of these choices is a row of
+its own, so a tap answers it too, on a screen with no keyboard.
 
 ### Tapping
 
 Tap a tab to switch, a pane to focus it; `+` in the tab bar opens the new-tab
-menu. On phones, taps go to the deck, so the keyboard needs its own key (the
+menu, and its last row ("close this tab") takes the tab back out if you
+opened it by mistake. On phones, taps go to the deck, so the keyboard needs its own key (the
 phone kit adds KEYBOARD, EDIT, ZOOM and EXIT).
 
 The DECK tab has every phosphor action (a key or a tap each), and `?` there
@@ -1256,6 +1258,20 @@ fleet is polled once, by the deck's own session, and every kind's FLEET
 card reads that. `phosphor restart` and `down` take every kind's session
 along, and each screen goes back into its own by itself. A kind with no
 block, or a screen that says nothing, gets the deck as always.
+
+### A touch screen with no keyboard
+
+A Pi with a 7" touch screen on a desk, a tablet on a stand: everything can
+be reached by tap, as long as its kind has the tabs for it. Put `DECK` in
+its `tabs` -- every phosphor action is a tap there -- and the tabs you
+actually look at (`SYS`, `NOTES`). The tab bar's `+` menu, a pane that
+ended (open it again, close it, its log) and the NOTES keys all take a tap.
+Writing text (a note, a search) is the one thing that needs keys: use the
+system's own on-screen keyboard, or skip it on that screen.
+
+    [screens.tablet]
+    tabs = ["SYS", "NOTES", "DECK"]
+    land = "SYS"
 
 ### Managing screens from the deck
 

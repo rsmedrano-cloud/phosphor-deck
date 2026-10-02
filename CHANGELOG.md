@@ -6,6 +6,14 @@ before it updates.
 
 ## Unreleased
 
+## 1.2.21 — a touch screen is never stuck
+
+- A touch screen with no keyboard is never stuck. The `+` menu's "close this tab" is a row
+  you can tap (before, only q or Esc closed it, so a stray tap on `+` left a "Tab #5"
+  behind), and a pane that ended takes a tap on "open it again", "close this tab" or "see
+  the log" -- before, only a kept tab's prompt did. The manual's screens page has a section
+  on setting up a touch screen.
+
 ## 1.2.20 — --help explains, never runs
 
 - `phosphor CMD --help` (or `-h`) now explains the command and does nothing else, for every
