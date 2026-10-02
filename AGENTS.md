@@ -1034,7 +1034,7 @@ and in the `+` menu, and open in a tab of their own.
 - `phosphor face IMAGE [--name N] [--w 24] [--h 13] [--half] [--mode thr|dither|edge]`. No `IMAGE`, on a
   terminal: it asks which, listing only images. Needs ImageMagick (`convert`).
   `phosphor face IMAGE --bitmap [--closed IMAGE] [--px 96] [--crop WxH+X+Y]` keeps the picture as a
-  small grid of tones instead of characters, so the adjutant draws it at the size of its pane, in half
+  small grid of tones instead of characters, so the adjutant draws it at the size of its pane (up to 28 columns, centered in a bigger one), in half
   blocks and the colors of your theme (`phosphor adjutant --face NAME`). Warm bright spots (amber
   lights) become their own layer that pulses and turns red on an alert; `--closed` is the same picture
   with the eyes shut, for the blink. The adjutant's own face is one of these.

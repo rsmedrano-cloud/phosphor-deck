@@ -2,7 +2,8 @@
 """phosphor adjutant at any width: its pane is a share of SYS ("25%"), so
 on a phone it can be a dozen columns. Every line it draws stays inside the
 pane -- the bitmap face, the character one, and a message longer than the
-pane -- instead of wrapping into the rows below.
+pane -- instead of wrapping into the rows below. And a big pane doesn't
+blow the face up: it stays at the size a Pi's 7" screen shows, centered.
 
     python3 tests/adjutant-width-check.py
 """
@@ -69,7 +70,36 @@ if not any("a long" in ln for ln in lines):
 if any(len(ln) > 12 for ln in lines):
     fails.append("12 cols with a message: a line %d wide" % max(len(ln) for ln in lines))
 
+# a big pane: the face stays at its cap and the box sits in the middle
+cache = tempfile.mkdtemp()
+open(os.path.join(cache, "events"), "w").close()
+out = frames(200, 60, [], cache)
+frame = out.split("\x1b[H")[-2] if out.count("\x1b[H") > 1 else out
+lines = [ANSI.sub("", ln).rstrip("\r") for ln in frame.split("\n")]
+box = [i for i, ln in enumerate(lines) if "\u256d" in ln or "\u2570" in ln]
+pic = [ln for ln in lines if "\u2580" in ln]
+if len(box) != 2:
+    fails.append("200x60: no box drawn")
+else:
+    top, bot = box
+    left = lines[top].index("\u256d")
+    right = 200 - len(lines[top])
+    if abs(left - right) > 1:
+        fails.append("200x60: box not centered across (%d left, %d right)" % (left, right))
+    if abs(top - (59 - bot)) > 1:
+        fails.append("200x60: box not centered down (%d above, %d below)" % (top, 59 - bot))
+    widest = max((ln.count("\u2580") for ln in pic), default=0)
+    if not pic or widest > 28:
+        fails.append("200x60: the face is %d columns wide (cap 28)" % widest)
+
+# the Pi's own SYS pane (115x45 screen, 25%): the box still fills it
+out = frames(27, 18, [], cache)
+frame = out.split("\x1b[H")[-2] if out.count("\x1b[H") > 1 else out
+lines = [ANSI.sub("", ln).rstrip("\r") for ln in frame.split("\n")]
+if not lines[0].startswith("\u256d") or len(lines[0]) != 27:
+    fails.append("27x18: the box no longer fills the pane")
+
 if fails:
     print("\n".join(fails))
     sys.exit(1)
-print("ok: the adjutant stays inside its pane from 8 to 90 columns")
+print("ok: the adjutant stays inside its pane from 8 to 90 columns, capped and centered at 200")

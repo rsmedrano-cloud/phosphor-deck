@@ -6,6 +6,12 @@ before it updates.
 
 ## Unreleased
 
+## 1.2.22 — the adjutant keeps its size
+
+- The adjutant's face no longer grows into a poster on a wide screen. It stops at the size a
+  Pi's 7" screen shows in SYS (28 columns) and sits in the middle of a bigger pane, its box
+  wrapped around it; a phone or a narrow pane still gets it as large as fits.
+
 ## 1.2.21 — a touch screen is never stuck
 
 - A touch screen with no keyboard is never stuck. The `+` menu's "close this tab" is a row

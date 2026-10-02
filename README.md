@@ -436,7 +436,7 @@ more depth on every one of these.
 | `phosphor triage [HOST]` | a diagnostic snapshot of a host, piped straight to phosphor ask; no HOST: picks from what's flagged (or any host) |
 | `phosphor broadcast -- CMD` | one command on every fleet host at once, output grouped by host; asks first |
 | `phosphor tunnel` | keep your ssh config's LocalForward tunnels up |
-| `phosphor face` | turn an image into the adjutant's face (`--bitmap`: drawn at the pane's size, in color) |
+| `phosphor face` | turn an image into the adjutant's face (`--bitmap`: drawn at the pane's size, up to 28 columns, in color) |
 | `phosphor logs` | the deck's own log: crashes with traceback, hangs, exits, restarts; `-f` follows |
 | `phosphor trace` | verbose logging for one tool, for about 30 minutes, then it turns itself off (`off TOOL` sooner) |
 

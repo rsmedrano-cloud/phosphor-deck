@@ -10,6 +10,10 @@ import math, random
 
 TONES, ACCENTS = "0123456789abcdef", "ghijklmn"
 
+# The widest the picture gets, in columns: what a Pi's 7" screen (1280x720)
+# shows in SYS. A wide pane beyond that only made it a poster.
+MAX_W = 28
+
 def decode(rows):
     """Rows of TONES/ACCENTS -> (tone, accent) grids, both floats 0..1."""
     tone, acc = [], []
@@ -25,9 +29,10 @@ def decode(rows):
         tone.append(t); acc.append(a)
     return tone, acc
 
-def fit(sw, sh, cols, rows):
-    """Pixel size the picture takes in a cols x rows pane (2 pixels per row)."""
-    s = min(cols / sw, rows * 2 / sh)
+def fit(sw, sh, cols, rows, max_w=MAX_W):
+    """Pixel size the picture takes in a cols x rows pane (2 pixels per row),
+    never wider than max_w."""
+    s = min(cols / sw, rows * 2 / sh, max_w / sw)
     ow = max(1, int(sw * s)); oh = max(2, int(sh * s))
     return ow, oh - oh % 2
 

@@ -200,7 +200,14 @@ def main():
         while True:
             cols, rows = shutil.get_terminal_size((34, 14))
             # never wider than the pane: on a phone it can be a dozen columns
-            w = max(3, min(cols, 100 if bmp else 40))
+            w = max(3, min(cols, 40))
+            box_h = rows
+            if bmp:
+                # the box hugs the picture (room for a message under it),
+                # and a big pane centers it instead of blowing it up
+                fw, fh = bmp.size(cols - 2, max(2, rows - 3))
+                w = max(3, min(cols, max(fw + 6, 48)))
+                box_h = min(rows, fh // 2 + 5)
 
             new, pos = read_events(pos)
             if new:
@@ -232,7 +239,7 @@ def main():
             now = time.time() - t0
             if bmp:
                 # the picture takes the whole pane: borders and the message line stay
-                lines = bmp.draw(w - 2, max(2, rows - 3),
+                lines = bmp.draw(w - 2, max(2, box_h - 3),
                                  "closed" if (now % 5.3) < 0.16 and burst <= 0 else "open",
                                  min(disp_lvl, 2), now, burst,
                                  sweep=(now * 0.22) % 1.6 if idle else None)
@@ -289,6 +296,9 @@ def main():
             # Never more lines than rows: the terminal would scroll and the
             # pane would pile up scrollback forever.
             out = out[:max(1, rows)]
+            # centered in the pane: a wide or tall one leaves it in the middle
+            pad_x = " " * ((cols - w) // 2)
+            out = [""] * ((rows - len(out)) // 2) + [pad_x + ln for ln in out]
             sys.stdout.write("\x1b[H" + "\x1b[K\n".join(out) + "\x1b[K\x1b[J")
             sys.stdout.flush()
             wait = pace.delay(0.08 if tty_ok else 0.1)
