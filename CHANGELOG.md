@@ -6,6 +6,14 @@ before it updates.
 
 ## Unreleased
 
+## 1.4.6 — recipes bring their programs
+
+- `phosphor recipe NAME` brings what the bundle's panes run, not just its tabs: it says which
+  programs aren't installed yet and how to get each one (`npm install -g ...` for the assistant
+  CLIs, your package manager for neomutt and newsboat), and offers to install the ones
+  `phosphor store` carries (gomuks, for `bubble`) -- no sudo, and only after you say yes.
+  `phosphor recipe` alone shows what each one still needs. `--remove` never uninstalls anything.
+
 ## 1.4.5 — change a screen's deck from phosphor screens
 
 - `phosphor screens` (`v` in the DECK tab) changes how a screen sees the deck, right from its

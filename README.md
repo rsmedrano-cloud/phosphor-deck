@@ -171,7 +171,8 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
   moving its content out of that file.
 - **Recipes.** `phosphor recipe` adds a starter bundle this way: `homelab` (prom and ci
   dashboards), `dev` (a two-assistant tab), `bubble` (mail, RSS, Mastodon, Matrix in one tab),
-  `workbench` (four AI CLIs side by side). `phosphor init` also asks which shape fits how you'll
+  `workbench` (four AI CLIs side by side). Adding one says which of its programs aren't installed
+  and how to get them, and offers to install the ones `phosphor store` carries. `phosphor init` also asks which shape fits how you'll
   use it (homelab, a leaner `revived` for one machine, or `dev`) and builds that from the start.
   `phosphor recipe --remove NAME` takes one back out.
 - **Phosphor colors.** P31 green, P3 amber, P4 white, or paper for e-ink.
@@ -426,7 +427,7 @@ more depth on every one of these.
 | `phosphor new` | the + menu (also Alt-n): a shell, a machine, an assistant (in the folder you pick), your apps, a layout; `/` searches everything |
 | `phosphor keep` | write a tab you arranged by hand into your profile |
 | `phosphor tabs` | the tabs your profile brings back: forget one, reorder, reopen |
-| `phosphor recipe [NAME]` | starter tab bundles: homelab, dev, bubble, workbench; `--remove NAME` undoes one |
+| `phosphor recipe [NAME]` | starter tab bundles: homelab, dev, bubble, workbench, and the programs they run; `--remove NAME` undoes one |
 | `phosphor shortcuts` | the deck's keys, yours to change; updates never reset them |
 | `phosphor theme` | the deck's color (p31, p3, p4, ega, paper), previewed before it's saved |
 | `phosphor edit` | what Alt-r runs: unlock a tab, change it, save it or put it back |

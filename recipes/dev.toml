@@ -14,3 +14,9 @@ panes = [
   { cmd = "claude" },
   { cmd = "codex" },
 ]
+
+# How to get what its panes run, for `phosphor recipe` to say (or, for
+# what `phosphor store` carries, to offer). "package": your package manager.
+[recipe.install]
+claude   = "npm install -g @anthropic-ai/claude-code"
+codex    = "npm install -g @openai/codex"

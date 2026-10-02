@@ -66,6 +66,35 @@ check("the stub it left in the profile is gone too",
       not any(t.get("name") in ("PROM", "CI") for t in deckconf.load()[0].get("tabs", [])))
 check("removing what isn't there says so, not a crash", recipe.remove("homelab") == 1)
 
+# -- a recipe brings its programs: the store's it offers, the rest it names --
+bindir = os.path.join(tmp, "nobin"); os.makedirs(bindir)
+os.environ["PATH"] = bindir  # nothing a recipe runs is installed
+miss = dict(recipe.needs(recipes["bubble"][0]))
+check("bubble needs its four programs (%r)" % miss, set(miss) == {"neomutt", "newsboat", "toot", "gomuks"})
+check("gomuks comes from the store", miss.get("gomuks") == "store")
+check("neomutt from the package manager", miss.get("neomutt") == "your package manager")
+check("toot says how", miss.get("toot") == "pipx install toot")
+check("homelab runs only phosphor panels: needs nothing", recipe.needs(recipes["homelab"][0]) == [])
+check("every recipe says how to get each non-store program",
+      all(how for path, _ in recipes.values() for _, how in recipe.needs(path)))
+got, asked = [], []
+def fake_install(app, say):
+    got.append(app["n"])
+    exe = os.path.join(tmp, ".local/bin", app["n"]); os.makedirs(os.path.dirname(exe), exist_ok=True)
+    open(exe, "w").write("#!/bin/sh\n"); os.chmod(exe, 0o755)
+    return "v1"
+check("adding bubble offers the store install", recipe.add("bubble", recipes["bubble"][0],
+      ask=lambda q: asked.append(q) or True, install=fake_install) == 0)
+check("it asked once, naming gomuks (%r)" % asked, len(asked) == 1 and "gomuks" in asked[0])
+check("only the store's program was installed (%r)" % got, got == ["gomuks"])
+check("and now it isn't missing", "gomuks" not in dict(recipe.needs(recipes["bubble"][0])))
+got.clear(); os.remove(os.path.join(tmp, ".local/bin", "gomuks"))
+recipe.add("bubble", recipes["bubble"][0], ask=lambda q: False, install=fake_install)
+check("no to the question installs nothing", got == [])
+fake_install({"n": "gomuks"}, None)
+check("taking it out leaves the program alone", recipe.remove("bubble") == 0
+      and os.path.exists(os.path.join(tmp, ".local/bin", "gomuks")))
+
 # -- the wizard's shapes: what tabs each one builds --
 import init
 hosts = [{"name": "x", "role": "brain", "local": True, "mounts": ["/"]},

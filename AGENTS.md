@@ -995,10 +995,13 @@ and in the `+` menu, and open in a tab of their own.
   its content stays in the file), and `f` on a placed one un-places it instead of deleting it.
 - `phosphor recipe [NAME]` — starter tab bundles: `homelab` (prom and ci dashboards), `dev` (a
   two-assistant tab), `bubble` (mail, RSS, Mastodon, Matrix in one tab), `workbench` (four AI CLIs
-  side by side). No `NAME` lists them, and what's already added. Drops `recipes/NAME.toml` into
+  side by side). No `NAME` lists them, what's already added and which programs each still needs. Drops `recipes/NAME.toml` into
   `~/.config/phosphor/tabs.d/` (see profile) and regenerates: the same file, editable by hand
   afterwards, same as any tabs.d tab. `phosphor recipe --remove NAME` takes it back out (the
-  file, and any place `phosphor tabs` gave its tabs). `phosphor init`'s "which shape" question builds `homelab`,
+  file, and any place `phosphor tabs` gave its tabs; never the programs). Adding one checks
+  what its panes run: what `phosphor store` carries it offers to install (no sudo, into
+  `~/.local/bin`; it asks first, and only on a terminal), the rest it names with how to get it
+  (`npm install -g ...`, your package manager). `phosphor init`'s "which shape" question builds `homelab`,
   `revived` (leaner: no CLOUD tab) or `dev` right into the profile from the start.
 - `phosphor theme [NAME | --list]` — the deck's color. With no `NAME`, a picker: arrows, j/k,
   a number or a tap preview each theme as a small deck painted in it, on its own background,
