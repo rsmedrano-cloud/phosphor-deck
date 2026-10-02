@@ -3,7 +3,7 @@
 ## Getting started
 - `phosphor doctor` — check this machine: systemd, FUSE, locales, binaries, fleet reach.
 - `phosphor init` — the wizard; writes the profile.
-- `phosphor setup` — add/remove machines, color, editor and shell, phone, browser access, tunnels, notebook
+- `phosphor setup` — add/remove machines, color, editor and shell, phone (sharing this deck or a deck of its own), browser access, tunnels, notebook
   (also: `m` in the DECK tab).
 - `phosphor panel` — the DECK tab: the deck's state, the next steps while you set up, and every
   action one key or tap away (add a screen, machines, theme, web, tunnels, tools, keep a tab, triage

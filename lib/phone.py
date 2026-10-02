@@ -251,7 +251,10 @@ def instructions(prof):
           % ((": " + ", ".join(ks)) if ks else "") + RST)
     print("    " + PH + "ssh %s '%s screen --as eink' | sh" % (t, phosphor_cmd()) + RST
           + DIM + "   or  " + RST + PH + "%s --screen eink" % cmd + RST)
-    print("  " + DIM + "The phone kit already says phone. Without the block it's this deck." + RST)
+    print("  " + DIM + "The phone kit says phone (" + RST + PH + "phone --as tablet" + RST + DIM
+          + " for another kind). Without the block it's this deck." + RST)
+    print("  " + DIM + "Its own deck runs every pane it keeps a second time (assistants too):" + RST)
+    print("  " + DIM + "more memory, see phosphor mem. phosphor setup adds or drops the block." + RST)
     kind, control = mesh.current(prof)
     if kind == "tailscale":
         print("  " + DIM + "Phones reach the brain through the Tailscale app, in the same tailnet." + RST)

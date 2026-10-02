@@ -51,6 +51,9 @@ out=$(python3 tests/welcome-check.py 2>&1) && ok || bad "$out"
 step "a deck for each kind of screen"
 out=$(python3 tests/screen-kinds-check.py 2>&1) && ok || bad "$out"
 
+step "setup: a deck of its own, or not"
+out=$(python3 tests/screen-setup-check.py 2>&1) && ok || bad "$out"
+
 step "a warm-up on the way in, skippable"
 out=$(python3 tests/splash-check.py 2>&1) && ok || bad "$out"
 

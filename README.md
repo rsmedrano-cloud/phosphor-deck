@@ -245,7 +245,9 @@ same tabs squeeze each other (zellij fits a tab to the smallest screen). A
 its theme and graphs) gives phones a deck of their own, beside the main
 one: same notebook, fleet and files, laid out for that screen. The phone
 kit already says it's a phone; `phosphor screen --as eink` does the same
-for an e-ink reader or a Pi on a shelf.
+for an e-ink reader or a Pi on a shelf. `phosphor setup` asks, when you
+connect one, whether it shares this deck or gets its own -- and says first
+that its own deck runs its panes a second time, assistants included.
 
 **tailscale, headscale, or neither.** Headscale is a self-hosted control
 server for the same tailscale client, so the deck works the same with both;

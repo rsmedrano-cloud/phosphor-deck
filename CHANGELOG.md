@@ -6,6 +6,14 @@ before it updates.
 
 ## Unreleased
 
+## 1.4.4 — a screen shares this deck or gets its own
+
+- `phosphor setup` → "connect a phone or tablet" now asks how that screen sees the deck: sharing
+  this one (nothing changes), or a deck of its own for its kind (`[screens.KIND]`: the kind and
+  which tabs), and prints what to run on the screen. Before you pick, it says plainly what a deck
+  of its own costs: every pane it keeps runs a second time, assistants included. The same step
+  drops a kind's block again. `phosphor phone` says it too.
+
 ## 1.4.3 — memory per tab and pane
 
 - `phosphor mem`: how much memory each tab and pane of the deck takes, heaviest tab first --

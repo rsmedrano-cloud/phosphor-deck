@@ -811,7 +811,7 @@ and in the `+` menu, and open in a tab of their own.
 ### Getting started
 - `phosphor doctor` — check this machine: systemd, FUSE, locales, binaries, fleet reach.
 - `phosphor init` — the wizard; writes the profile.
-- `phosphor setup` — add/remove machines, color, editor and shell, phone, browser access, tunnels, notebook
+- `phosphor setup` — add/remove machines, color, editor and shell, phone (sharing this deck or a deck of its own), browser access, tunnels, notebook
   (also: `m` in the DECK tab).
 - `phosphor panel` — the DECK tab: the deck's state, the next steps while you set up, and every
   action one key or tap away (add a screen, machines, theme, web, tunnels, tools, keep a tab, triage
@@ -1258,10 +1258,18 @@ in the profile and it gets a deck of its own, laid out for it:
     [screens.eink]
     theme  = "paper"
 
+Or let `phosphor setup` write it: "connect a phone or tablet" ends by
+asking whether that screen shares this deck (nothing to change) or gets a
+deck of its own -- the kind, which tabs -- and says what to run on the
+screen after. It says the cost first: **a deck of its own starts every pane
+it keeps a second time**, assistants included. The same step takes a
+kind's block back out.
+
 Then `phosphor gen` (no restart needed). The screen says which kind it is
 when it comes in: the phone kit's `deck` already says `phone`; for another
 computer, an e-ink reader or a Pi on a shelf, `phosphor screen --as eink`
-writes a `deck` that says `eink`, and on anything with only ssh it's
+writes a `deck` that says `eink` (`phosphor phone --as tablet` is the Termux
+kit for a tablet that should say `tablet`), and on anything with only ssh it's
 `ssh -t you@brain '~/.local/bin/deck --screen eink'`. A phone set up before
 this: run its kit again.
 

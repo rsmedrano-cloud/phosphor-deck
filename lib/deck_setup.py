@@ -87,10 +87,14 @@ def set_notes_text(text, folder):
 
 def remove_notes_text(text):
     """Drop the [notes] table: back to the private default."""
+    return remove_table_text(text, "[notes]")
+
+def remove_table_text(text, header):
+    """Drop one table, `header` and its lines up to the next blank one."""
     lines = text.split("\n")
     out, i = [], 0
     while i < len(lines):
-        if lines[i].strip() == "[notes]":
+        if lines[i].strip() == header:
             i += 1
             while i < len(lines) and lines[i].strip() and not lines[i].lstrip().startswith("["):
                 i += 1
@@ -99,6 +103,16 @@ def remove_notes_text(text):
             continue
         out.append(lines[i]); i += 1
     return "\n".join(out)
+
+def add_screen_text(text, kind, tabs=None):
+    """A [screens.KIND] block at the end. No tabs: every tab."""
+    block = "[screens.%s]\n" % kind
+    if tabs:
+        block += "tabs = [%s]\n" % ", ".join('"%s"' % t for t in tabs)
+    return text.rstrip("\n") + "\n\n" + block
+
+def remove_screen_text(text, kind):
+    return remove_table_text(text, "[screens.%s]" % kind)
 
 _backed = [False]
 def save(text, check):
@@ -263,6 +277,63 @@ def notes_folder(prof, text):
     print(row(OK, "moved" if moved else "nothing to move", ", ".join(moved) or old_path))
     return t2, True
 
+# What a deck of its own costs, said before anyone picks it.
+OWN_DECK = ("A deck of its own runs its own copy of every pane it keeps: the panels,",
+            "the shells and any assistant start a second time there, and that takes",
+            "memory (phosphor mem shows how much). A shell there isn't this deck's one.",
+            "Sharing this deck costs nothing, but zellij sizes each tab to the",
+            "smallest screen looking at it.")
+
+def screen_kind(prof, text):
+    """After the kit instructions: share this deck, or give a kind of
+    screen one of its own ([screens.KIND]), or take that back."""
+    import kinds
+    have = list(kinds.kinds(prof))
+    print("\n" + rule("its own deck?"))
+    for l in OWN_DECK:
+        print("  " + DIM + l + RST)
+    opts = ["share this deck (nothing to change)", "a deck of its own for a kind of screen"]
+    opts += ["stop giving %s a deck of its own" % k for k in have]
+    k = pick("how should it see the deck?", opts, 0)
+    if k == 0:
+        return text, False
+    if k >= 2:
+        kind = have[k - 2]
+        t2 = remove_screen_text(text, kind)
+        if save(t2, lambda p: kind not in ((p.get("screens") or {}))):
+            print("    " + DIM + "its screens come into this deck from their next connection;"
+                  " phosphor restart closes %s-%s" % (kinds.base(prof), kind) + RST)
+            return t2, True
+        return text, False
+    while True:
+        kind = ask("which kind? (lowercase letters and digits: tablet, eink...)", "tablet").lower()
+        if not kinds.NAME.match(kind):
+            print("    " + DIM + "letters and digits, starting with a letter" + RST); continue
+        if kind in have:
+            print("    " + DIM + "%s already has one: [screens.%s] in the profile" % (kind, kind) + RST)
+            return text, False
+        break
+    names = [t.get("name") for t in deckconf.effective_tabs(prof) if t.get("name")]
+    print("    " + DIM + "tabs: " + ", ".join(names) + RST)
+    raw = ask("which tabs, in order? (Enter: all of them)", "")
+    tabs = [n for n in (x.strip() for x in raw.replace(",", " ").split()) if n]
+    up = {n.upper(): n for n in names}
+    tabs = [up.get(t.upper(), t) for t in tabs]
+    bad = [t for t in tabs if t not in names]
+    if bad:
+        print(row(BAD, "not saved", "no tab named " + ", ".join(bad))); return text, False
+    if not yes("give %s a deck of its own? (its panes run twice: above)" % kind, True):
+        return text, False
+    t2 = add_screen_text(text, kind, tabs)
+    if not save(t2, lambda p: kind in (p.get("screens") or {})):
+        return text, False
+    import phone
+    cmd = "ssh %s '%s %%s --as %s' | sh" % (phone.target(prof), phone.phosphor_cmd(), kind)
+    print("    " + DIM + "then, on that screen (once):" + RST)
+    print("      " + PH + cmd % "phone" + RST + DIM + "   with Termux" + RST)
+    print("      " + PH + cmd % "screen" + RST + DIM + "  anything else" + RST)
+    return t2, True
+
 def apply(added, removed):
     print("\n" + rule("apply"))
     for n in removed:
@@ -338,6 +409,8 @@ def run():
         elif k == 3:
             import phone
             phone.instructions(prof)
+            text, ch = screen_kind(prof, text)
+            dirty = dirty or ch
             ask("Enter to go back", "")
         elif k == 4:
             apply(added, removed); return 0
