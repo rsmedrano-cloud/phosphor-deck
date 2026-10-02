@@ -178,7 +178,7 @@ def main():
     msg, lvl, burst, seen, target = "", 0, 0.0, None, ""
     from_fleet, msg_t = False, 0.0
     MSG_TTL = 120          # an old message doesn't stay forever
-    t0 = time.time()
+    t0 = t_frame = time.time()
     import select, termios, tty
     # Only the floating one (--floating) reads keys and talks to zellij. The
     # SYS one is display only: a key pressed there can't trigger anything.
@@ -194,6 +194,8 @@ def main():
             dlog.event("ADJUTANT", "tty-setup-failed", str(e)[:60])
             tty_ok = False
     sys.stdout.write("\x1b[?1049h\x1b[?25l")
+    import relay
+    pace = relay.Pace("ADJUTANT")       # a screen through a relay gets one frame a second
     try:
         while True:
             cols, rows = shutil.get_terminal_size((34, 14))
@@ -217,7 +219,10 @@ def main():
             if msg and not from_fleet and time.time() - msg_t > MSG_TTL:
                 msg, lvl, target = "", 0, ""
 
-            burst = max(0.0, burst - 0.055)
+            # the glitch fades by the clock, not by frames: a slow pace keeps its length
+            tnow = time.time()
+            burst = max(0.0, burst - 0.055 * min(10.0, (tnow - t_frame) / 0.1))
+            t_frame = tnow
             h_lvl, h_why = fleet_health()
             disp_lvl = max(lvl, h_lvl if not msg else 0)
             col  = (PH, AMB, RED)[min(disp_lvl, 2)]
@@ -284,7 +289,8 @@ def main():
             out = out[:max(1, rows)]
             sys.stdout.write("\x1b[H" + "\x1b[K\n".join(out) + "\x1b[K\x1b[J")
             sys.stdout.flush()
-            if tty_ok and select.select([sys.stdin], [], [], 0.08)[0]:
+            wait = pace.delay(0.08 if tty_ok else 0.1)
+            if tty_ok and select.select([sys.stdin], [], [], wait)[0]:
                 ch = sys.stdin.read(1)
                 if ch == "\x1b":
                     seq = ""
@@ -306,7 +312,7 @@ def main():
                     zj("hide-floating-panes")
                     msg, target, burst = "", "", 0.0
             else:
-                time.sleep(0.02 if tty_ok else 0.1)
+                time.sleep(0.02 if tty_ok else wait)
     except KeyboardInterrupt:
         pass
     finally:

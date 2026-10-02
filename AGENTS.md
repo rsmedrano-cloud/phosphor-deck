@@ -953,7 +953,8 @@ and in the `+` menu, and open in a tab of their own.
   ssh connection -- its own `deck` wrapper (see screens) notices and reconnects in a few seconds by
   itself, so this is for the one squeezing everyone's pane down (zellij ties a tab's size to its
   smallest attached client, with no setting to change that), not for banning a device. Also `v` in
-  the DECK tab. `--list` prints it once, no picker.
+  the DECK tab. `--list` prints it once, no picker. A screen that reaches the brain through a
+  tailscale relay is marked "relay": its deck's animations slow to one frame a second (see screens).
 - `phosphor keys` — the key guide; `phosphor store` — install TUIs, no sudo; `d` removes one (only from ~/.local/bin).
   Enter on an installed app opens it in a new tab; `i` shows only what's installed. Your own apps
   (`apps.toml`, see profile) come first, as "yours".
@@ -1266,6 +1267,19 @@ it's from, how long it's been idle, which deck it's in) and lets you kick one lo
 wrapper above notices the drop and reconnects on its own in a few seconds.
 Not a way to ban a device -- a way to force one reconnect without walking
 over to whichever screen is in the way.
+
+### A screen through a relay
+
+A screen with no direct path to the brain reaches it through one of
+tailscale's relay servers (DERP), a much thinner link: ten redraws a
+second of pulse and the adjutant were enough to freeze a Pi that came in
+that way, while the same Pi over the LAN was fine. So while a screen
+attached to a deck comes through a relay, that deck's animations drop to
+one frame a second -- every screen of that deck sees the slower pace, since
+zellij sends the same panes to all of them, so give such a screen a kind of
+its own (`[screens.KIND]`) if the others shouldn't share it. `phosphor
+screens` marks it "relay"; `phosphor logs pulse` says when the pace changed.
+`tailscale ping NAME` shows whether a direct path exists at all.
 
 ### Notifications when you're not attached
 

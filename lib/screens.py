@@ -124,6 +124,11 @@ def main():
     session = [base] + kinds.all_sessions(prof)
     def kind(r):
         return "deck" if r["session"] == base else r["session"][len(base) + 1:]
+    import relay
+    addrs = relay.relayed(relay.ts_status())
+    def link(r):
+        # through a tailscale relay: its deck's animations slow down for it
+        return "relay" if relay.is_relayed(r["from"], addrs) else ""
 
     if "--list" in sys.argv[1:] or not sys.stdin.isatty():
         rows = screens(session)
@@ -132,8 +137,9 @@ def main():
         if not rows:
             print("no screens attached"); return 0
         for r in rows:
-            print("%-10s %-16s %-8s %-16s idle %-8s pid %d" %
-                  (r["tty"], r["from"], kind(r), r["login"], r["idle"], r["pid"]))
+            print("%-10s %-16s %-8s %-16s idle %-8s pid %d%s" %
+                  (r["tty"], r["from"], kind(r), r["login"], r["idle"], r["pid"],
+                   "  " + link(r) if link(r) else ""))
         return 0
 
     rows = screens(session)
@@ -149,7 +155,7 @@ def main():
             if not rows:
                 out.append(" " + DIM + "no screens attached" + RST)
             for i, r in enumerate(rows):
-                nm = "%-16s %-8s %-12s idle %-8s" % (r["from"], kind(r), r["tty"], r["idle"])
+                nm = "%-16s %-8s %-12s idle %-8s %s" % (r["from"], kind(r), r["tty"], r["idle"], link(r))
                 line = " " + FG + nm + RST
                 if confirm == i:
                     line = pad(line, w - 14) + AMB + "x again to kick" + RST
@@ -172,6 +178,7 @@ def main():
                 sel = max(sel - 1, 0); confirm, msg = None, ""
             elif k == "r":
                 rows = screens(session)
+                addrs = relay.relayed(relay.ts_status())
                 sel = min(sel, max(0, len(rows) - 1))
                 confirm, msg = None, PH + "refreshed" + RST
             elif k == "x" and rows:

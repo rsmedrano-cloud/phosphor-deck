@@ -53,6 +53,8 @@ def main():
     phase, last, load, lvl, why = 0.0, 0.0, 0.2, 0, "nominal"
     sys.stdout.write("\x1b[?1049h\x1b[?25l")
     loud = ui.quiet()
+    import relay
+    pace = relay.Pace("PULSE")          # a screen through a relay gets one frame a second
     try:
         while True:
             cols, rows = shutil.get_terminal_size((80, 8))
@@ -100,7 +102,7 @@ def main():
             out = out[:max(1, rows)]
             sys.stdout.write("\x1b[H" + "\x1b[K\n".join(out) + "\x1b[K\x1b[J")
             sys.stdout.flush()
-            ui.idle(0.09)
+            ui.idle(pace.delay(0.09))
     except KeyboardInterrupt:
         pass
     finally:

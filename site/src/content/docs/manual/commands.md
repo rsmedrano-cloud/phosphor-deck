@@ -160,7 +160,8 @@ sidebar:
   ssh connection -- its own `deck` wrapper (see screens) notices and reconnects in a few seconds by
   itself, so this is for the one squeezing everyone's pane down (zellij ties a tab's size to its
   smallest attached client, with no setting to change that), not for banning a device. Also `v` in
-  the DECK tab. `--list` prints it once, no picker.
+  the DECK tab. `--list` prints it once, no picker. A screen that reaches the brain through a
+  tailscale relay is marked "relay": its deck's animations slow to one frame a second (see screens).
 - `phosphor keys` — the key guide; `phosphor store` — install TUIs, no sudo; `d` removes one (only from ~/.local/bin).
   Enter on an installed app opens it in a new tab; `i` shows only what's installed. Your own apps
   (`apps.toml`, see profile) come first, as "yours".

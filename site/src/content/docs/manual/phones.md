@@ -95,6 +95,19 @@ wrapper above notices the drop and reconnects on its own in a few seconds.
 Not a way to ban a device -- a way to force one reconnect without walking
 over to whichever screen is in the way.
 
+### A screen through a relay
+
+A screen with no direct path to the brain reaches it through one of
+tailscale's relay servers (DERP), a much thinner link: ten redraws a
+second of pulse and the adjutant were enough to freeze a Pi that came in
+that way, while the same Pi over the LAN was fine. So while a screen
+attached to a deck comes through a relay, that deck's animations drop to
+one frame a second -- every screen of that deck sees the slower pace, since
+zellij sends the same panes to all of them, so give such a screen a kind of
+its own (`[screens.KIND]`) if the others shouldn't share it. `phosphor
+screens` marks it "relay"; `phosphor logs pulse` says when the pace changed.
+`tailscale ping NAME` shows whether a direct path exists at all.
+
 ## Notifications when you're not attached
 
 A screen only shows what's happening while you're looking at it. For when

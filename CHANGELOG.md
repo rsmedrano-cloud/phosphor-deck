@@ -6,6 +6,12 @@ before it updates.
 
 ## Unreleased
 
+## 1.2.16 — screens through a relay
+
+- A screen that reaches the brain through a tailscale relay (DERP) no longer freezes: while one
+  is attached, that deck's pulse and adjutant draw one frame a second instead of ten.
+  `phosphor screens` marks such a screen "relay".
+
 ## 1.2.15 — taps and search in NOTES
 
 - NOTES no longer closes when you tap a note: a tap on the list ended the tab with a TypeError

@@ -201,6 +201,9 @@ out=$(python3 tests/review-check.py 2>&1) && ok || bad "$out"
 step "phosphor screens: who's attached, kick one"
 out=$(python3 tests/screens-check.py 2>&1) && ok || bad "$out"
 
+step "animations slow down for a screen through a relay"
+out=$(python3 tests/relay-check.py 2>&1) && ok || bad "$out"
+
 step "fleet: CPU temperature, battery, SMART"
 out=$(python3 tests/fleet-sensors-check.py 2>&1) && ok || bad "$out"
 
