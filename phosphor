@@ -135,6 +135,11 @@ def crash_name(cmd):
     pid, _, name = os.environ.get("PHOSPHOR_RUN", "").partition(" ")
     return name if name and pid == str(os.getppid()) else cmd.upper()
 
+# Their own --help, more precise than the generic one; run and mention-hook
+# pass everything through (mention-hook must never print).
+OWN_HELP = {"run", "mention-hook", "theme", "tts", "demo", "broadcast", "push",
+            "receive", "send", "triage", "tail"}
+
 def main():
     cmd = sys.argv[1] if len(sys.argv) > 1 else "help"
 
@@ -150,6 +155,14 @@ def main():
         print(textwrap.fill("the manual:  phosphor help " + " | ".join(completion.TOPICS.split()),
                             width=90, initial_indent="  ", subsequent_indent=" " * 29))
         return 0
+
+    # `phosphor CMD --help` only ever explains: without this, `restart --help`
+    # restarted the deck and `note --help` wrote a note titled "--help".
+    # These answer it themselves, more precisely (or must never print).
+    if len(sys.argv) > 2 and sys.argv[2] in ("-h", "--help") and cmd not in OWN_HELP:
+        import commands
+        if commands.help_for(cmd):
+            return 0
 
     import deckconf
     if deckconf.example() and cmd not in ("init", "docs", "doctor", "completion", "version", "privacy",

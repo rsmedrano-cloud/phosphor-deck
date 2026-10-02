@@ -132,6 +132,9 @@ out=$(python3 tests/theme-check.py 2>&1) && ok || bad "$out"
 step "tail: journalctl/docker/podman through phosphor run --reconnect"
 out=$(python3 tests/tail-check.py 2>&1) && ok || bad "$out"
 
+step "--help explains, never runs"
+out=$(python3 tests/help-flag-check.py 2>&1) && ok || bad "$out"
+
 step "triage: snapshot over ssh, piped into phosphor ask"
 out=$(python3 tests/triage-check.py 2>&1) && ok || bad "$out"
 

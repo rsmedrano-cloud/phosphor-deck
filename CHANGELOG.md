@@ -6,6 +6,12 @@ before it updates.
 
 ## Unreleased
 
+## 1.2.20 — --help explains, never runs
+
+- `phosphor CMD --help` (or `-h`) now explains the command and does nothing else, for every
+  command. Before, most of them just ran: `phosphor note --help` wrote a note titled
+  "--help", and `phosphor restart --help` would have restarted the deck.
+
 ## 1.2.19 — the adjutant fits a phone
 
 - The adjutant in SYS takes a quarter of the row (`size = "25%"`) instead of a fixed 34

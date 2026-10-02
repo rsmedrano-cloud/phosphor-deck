@@ -456,7 +456,7 @@ more depth on every one of these.
 
 | | |
 |---|---|
-| `phosphor help` | the manual, by topic; `phosphor docs` rebuilds AGENTS.md |
+| `phosphor help` | the manual, by topic; `phosphor CMD --help` explains one command without running it; `phosphor docs` rebuilds AGENTS.md |
 
 ## Your data
 

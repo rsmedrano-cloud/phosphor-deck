@@ -275,6 +275,7 @@
 
 ## Help
 - `phosphor help [TOPIC]` — this manual. `phosphor docs [--check]` — rebuild AGENTS.md.
+- `phosphor CMD --help` (or `-h`) — what that command does and its usage; it never runs it.
 - `share/commands.json` — a machine-readable manifest, one entry per command above, saying
   whether it mutates live state (the session, a systemd unit, the profile, or any file phosphor
   generates) and whether it needs the deck already running to do anything -- with a one-line

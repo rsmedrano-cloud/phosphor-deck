@@ -113,6 +113,29 @@ def manifest():
         return {}
 
 
+ALIASES = {"deck": "attach", "tunnels": "tunnel"}
+
+
+def help_for(cmd):
+    """`phosphor CMD --help`: its usage and what it does, from the same
+    table this menu shows. False for a command it doesn't know."""
+    cmd = ALIASES.get(cmd, cmd)
+    hit = next(((u, n) for _, cmds in CATEGORIES for c, u, n in cmds if c == cmd), None)
+    if not hit:
+        return False
+    usage, note = hit
+    print("usage: " + usage)
+    print("  " + note)
+    extra = (manifest().get(cmd) or {}).get("note")
+    if extra:
+        import textwrap
+        print()
+        print(textwrap.fill(extra, width=78, initial_indent="  ", subsequent_indent="  "))
+    print()
+    print("  the manual: phosphor help commands")
+    return True
+
+
 def category_items():
     return [(SHORT_CATEGORY.get(name, name), "%d command%s" % (len(cmds), "" if len(cmds) == 1 else "s"),
               name, cmds) for name, cmds in CATEGORIES]
