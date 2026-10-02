@@ -63,6 +63,23 @@ for (a, b), k in taps.items():
          shown.startswith("Esc" if k == "\x1b" else k))
 need("nothing picked: no hints to tap", fleet.footer(2, None, "")[1] == {})
 
+# grid(): no line wider than the pane, however narrow (a phone's SYS, with
+# the adjutant beside fleet, leaves it ~17 columns); zellij wraps a longer one
+import ui
+d = {"ok": True, "CPU": 37, "MEMU": 40300, "MEMT": 65536, "LOAD": "1.56 1.40 1.25",
+     "mnt": [["/mnt/backup", 95, "8T"]], "UP": "12d"}
+fleet.HOSTS = [("box", None), ("db-box", "db-box-alias"), ("nimbus", None)]
+for cols in (17, 30, 120):
+    lines, cw, per_row, h = fleet.grid(cols, 40, {"box": d, "db-box": d})
+    worst = max(ui.vlen(l) for l in lines)
+    need("grid at %d columns: lines fit (widest %d)" % (cols, worst), worst <= cols)
+    need("grid at %d columns: a card fits the pane" % cols, cw <= cols)
+need("a wide pane still puts the cards side by side", fleet.grid(120, 40, {})[2] == 3)
+need("vcut keeps the colors and cuts by what shows",
+     ui.vlen(ui.vcut(ui.RED + "abcdef" + ui.RST + "gh", 4)) == 4
+     and ui.vcut(ui.RED + "abcdef", 4).startswith(ui.RED + "abcd"))
+need("vcut leaves a short line alone", ui.vcut("abc", 9) == "abc")
+
 # the demo's machines aren't real: no tab, no ssh
 fleet.DEMO = True
 need("demo: refuses", "demo" in fleet.open_action("s", "box", None))

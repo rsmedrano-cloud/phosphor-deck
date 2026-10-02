@@ -59,6 +59,18 @@ OK, WARN, BAD = PH + "✓" + RST, AMB + "⚠" + RST, RED + "✗" + RST
 _ANSI = re.compile(r"\x1b\[[0-9;]*m")
 def vlen(s): return len(_ANSI.sub("", s))
 def pad(s, w): return s + " " * max(0, w - vlen(s))
+def vcut(s, w):
+    """s cut to w visible columns, its colors kept: a line that would
+    otherwise wrap in a pane narrower than it was drawn for."""
+    if vlen(s) <= w:
+        return s
+    out, n, i = [], 0, 0
+    for m in _ANSI.finditer(s):
+        take = s[i:m.start()][:max(0, w - n)]
+        out.append(take); n += len(take)
+        out.append(m.group()); i = m.end()
+    out.append(s[i:][:max(0, w - n)])
+    return "".join(out) + RST
 def width(cap=100): return min(shutil.get_terminal_size((80, 24)).columns, cap)
 
 def getkey(timeout=None, text=False):

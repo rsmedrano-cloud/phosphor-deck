@@ -378,7 +378,7 @@ def card(name, w, d):
             err += "  (%.1fs)" % (d["ms"] / 1000.0)
         body = [RED + "unreachable" + RST, DIM + err + RST]
     else:
-        bw = max(6, min(18, inner - 10))
+        bw = max(3, min(18, inner - 10))
         cpu = d.get("CPU", 0)
         body.append(MUTE + "CPU " + RST + bar(cpu, bw) + " " + pctc(cpu))
         mu, mt = d.get("MEMU", 0), d.get("MEMT", 1) or 1
@@ -506,6 +506,36 @@ def move(sel, k, per_row, n):
     step = {"\x1b[C": 1, "\t": 1, "\x1b[D": -1, "\x1b[B": per_row, "\x1b[A": -per_row}.get(k, 0)
     j = sel + step
     return j if 0 <= j < n else sel
+
+def grid(cols, rows, state, sel=None):
+    """The cards, laid out for a pane cols x rows: (lines, card width,
+    cards per row, card height). No line is wider than the pane."""
+    n, gap = len(HOSTS), 1
+    # never wider than the pane: zellij wraps a longer line, and a
+    # phone's SYS (the adjutant beside fleet) can leave it ~20 columns
+    cw = min(cols, 40, max(24, (cols - (n-1)*gap) // n))
+    raw = [card(h[0], cw, state.get(h[0])) for h in HOSTS]
+    bh = max(len(b) for _, b in raw)
+    inner = cw - 4
+    cards = []
+    for i, (head, body) in enumerate(raw):
+        edge = BLOOM if i == sel else RULE      # the picked card's border lights up
+        body = body + [""]*(bh - len(body))
+        c = [head.replace(RULE, edge, 1)]
+        for b in body:
+            c.append(edge + "│" + RST + " " + pad(vcut(b, inner), inner) + " " + edge + "│" + RST)
+        c.append(edge + "╰" + "─"*(cw-2) + "╯" + RST)
+        cards.append(c)
+    per_row = max(1, (cols + gap) // (cw + gap))
+    h = len(cards[0])
+    out = []
+    for i in range(0, n, per_row):
+        grp = cards[i:i+per_row]
+        for r in range(h):
+            out.append((" "*gap).join(g[r] for g in grp))
+    # Never more lines than the pane has: with many machines the
+    # cards get cut at the bottom but the footer stays visible.
+    return [vcut(o, cols) for o in out[:max(0, rows - 2)]], cw, per_row, h
 
 def footer(n, sel, msg):
     """The bottom line, and {column range: key} for tapping its hints."""
@@ -646,37 +676,14 @@ def main():
                 rust_poller.tick()
             cols, rows = shutil.get_terminal_size((80, 24))
             n, gap = len(HOSTS), 1
-            cw = min(40, max(24, (cols - (n-1)*gap) // n))
-            state = read_state()
-            raw = [card(h[0], cw, state.get(h[0])) for h in HOSTS]
-            bh = max(len(b) for _, b in raw)
-            inner = cw - 4
             if sel is not None and sel >= n:
                 sel = None
-            cards = []
-            for i, (head, body) in enumerate(raw):
-                edge = BLOOM if i == sel else RULE      # the picked card's border lights up
-                body = body + [""]*(bh - len(body))
-                c = [head.replace(RULE, edge, 1)]
-                for b in body:
-                    c.append(edge + "│" + RST + " " + pad(b, inner) + " " + edge + "│" + RST)
-                c.append(edge + "╰" + "─"*(cw-2) + "╯" + RST)
-                cards.append(c)
-            per_row = max(1, (cols + gap) // (cw + gap))
-            h = len(cards[0])
-            out = []
-            for i in range(0, n, per_row):
-                grp = cards[i:i+per_row]
-                for r in range(h):
-                    out.append((" "*gap).join(g[r] for g in grp))
-            # Never more lines than the pane has: with many machines the
-            # cards get cut at the bottom but the footer stays visible.
-            out = out[:max(0, rows - 2)]
+            out, cw, per_row, h = grid(cols, rows, read_state(), sel)
             out.append("")
             if msg and time.time() > msg_until:
                 msg = ""
             line, taps = footer(n, sel, msg)
-            out.append(line)
+            out.append(vcut(line, cols))
             geo = (cw, gap, per_row, h, len(out))
             sys.stdout.write("\x1b[H" + "\x1b[K\n".join(out) + "\x1b[K\x1b[J")
             sys.stdout.flush()

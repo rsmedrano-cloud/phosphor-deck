@@ -6,6 +6,14 @@ before it updates.
 
 ## Unreleased
 
+## 1.2.18 — fleet fits a phone
+
+- FLEET no longer breaks its cards into wrapped lines on a narrow pane: on a phone, the adjutant
+  beside it in SYS leaves fleet ~20 columns, and a card used to keep 24 at least. Cards now
+  narrow to the pane, and a line too long for one is cut instead of spilling onto the next.
+- The README's screenshots show today's SYS tab (fleet and the adjutant), on a desktop, a phone
+  and the paper theme.
+
 ## 1.2.17 — screens kick over ssh
 
 - `phosphor screens`: `x` really kicks a screen that came in over ssh (a phone, another

@@ -28,12 +28,13 @@ Every screenshot below is `phosphor demo`: a throwaway session over
 made-up machines and a made-up notebook, so a screenshot never carries a
 real IP, hostname or note.
 
-![The SYS tab: a pulse graph, the fleet panel, live pings](doc/img/readme/sys-p31.png)
+![The SYS tab: the fleet panel and the adjutant, warning that a disk is filling up](doc/img/readme/sys-p31.png)
 
 The same tab bar, on a phone-width screen: the fleet panel stacks into
-one column instead of a row.
+one column instead of a row, narrowing its cards to whatever room the
+adjutant leaves.
 
-![The SYS tab narrowed to a phone: cards stack in one column, tabs overflow into a menu](doc/img/readme/phone-p31.png)
+![The SYS tab narrowed to a phone: cards stack in one narrow column beside the adjutant, tabs overflow into a menu](doc/img/readme/phone-p31.png)
 
 And on an e-ink screen: the `paper` theme, black on white, no glow.
 
