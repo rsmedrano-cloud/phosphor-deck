@@ -30,7 +30,7 @@ export default defineConfig({
 					tag: 'script',
 					content:
 						"(()=>{try{var t=localStorage.getItem('phosphor-theme');" +
-						"if(['p31','p3','p4','paper'].includes(t))" +
+						"if(['p31','p3','p4','ega','paper'].includes(t))" +
 						"document.documentElement.dataset.phosphorTheme=t;}catch(e){}})();",
 				},
 			],

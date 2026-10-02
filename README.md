@@ -425,7 +425,7 @@ more depth on every one of these.
 | `phosphor tabs` | the tabs your profile brings back: forget one, reorder, reopen |
 | `phosphor recipe [NAME]` | starter tab bundles: homelab, dev, bubble, workbench; `--remove NAME` undoes one |
 | `phosphor shortcuts` | the deck's keys, yours to change; updates never reset them |
-| `phosphor theme` | the deck's color (p31, p3, p4, paper), previewed before it's saved |
+| `phosphor theme` | the deck's color (p31, p3, p4, ega, paper), previewed before it's saved |
 | `phosphor edit` | what Alt-r runs: unlock a tab, change it, save it or put it back |
 | `phosphor mentions` | read-only feed of chat notifications; `--setup` hooks matterhorn |
 | `phosphor clip` | a file or a pipe onto your device's clipboard; `--save` the other way |

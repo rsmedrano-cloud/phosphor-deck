@@ -416,7 +416,8 @@ def web_block(name):
          ("magenta", "bloom"), ("cyan", "bloom"), ("white", "fg"),
          ("bright_black", "dim"), ("bright_red", "bad"), ("bright_green", "bloom"), ("bright_yellow", "warn"),
          ("bright_blue", "fg"), ("bright_magenta", "bloom"), ("bright_cyan", "bloom"), ("bright_white", "bloom")]
-    body = "\n".join('        %s "%s"' % (k, hexc(P[v])) for k, v in m)
+    ansi = ANSI.get(name, {})
+    body = "\n".join('        %s "%s"' % (k, hexc(ansi.get(k) or P[v])) for k, v in m)
     # zellij 0.45 refuses a web client on a session that hasn't opted in
     # ("web_sharing" off by default): without this, `phosphor web on` never
     # actually attaches to a thing you can reach.

@@ -1,8 +1,8 @@
 ---
 // Replaces Starlight's own light/dark/auto ThemeSelect: this site doesn't
-// have a light and a dark mode, it has Phosphor's four screen colors (the
+// have a light and a dark mode, it has Phosphor's five screen colors (the
 // same [deck] theme setting in the profile) -- p31 green, p3 amber, p4
-// white, paper e-ink. See src/styles/phosphor.css for the palettes and
+// white, ega's 16 colors, paper e-ink. See src/styles/phosphor.css for the palettes and
 // astro.config.mjs's `head` for the inline script that applies the saved
 // choice before first paint (no flash of the wrong color).
 import Select from '@astrojs/starlight/components/Select.astro';
@@ -11,6 +11,7 @@ const options = [
 	{ label: 'p31 -- green', value: 'p31', selected: true },
 	{ label: 'p3 -- amber', value: 'p3', selected: false },
 	{ label: 'p4 -- white', value: 'p4', selected: false },
+	{ label: 'ega -- 16 colors', value: 'ega', selected: false },
 	{ label: 'paper', value: 'paper', selected: false },
 ];
 ---
@@ -20,8 +21,8 @@ const options = [
 </phosphor-theme-select>
 
 <script>
-	type PhosphorTheme = 'p31' | 'p3' | 'p4' | 'paper';
-	const THEMES: PhosphorTheme[] = ['p31', 'p3', 'p4', 'paper'];
+	type PhosphorTheme = 'p31' | 'p3' | 'p4' | 'ega' | 'paper';
+	const THEMES: PhosphorTheme[] = ['p31', 'p3', 'p4', 'ega', 'paper'];
 	const STORAGE_KEY = 'phosphor-theme';
 
 	const parse = (v: unknown): PhosphorTheme =>

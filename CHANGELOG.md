@@ -6,6 +6,14 @@ before it updates.
 
 ## Unreleased
 
+## 1.4.1 — an EGA theme
+
+- New theme: `ega`, the 16 colors of an old PC's EGA card -- light grey text, bright green
+  and cyan, blue rules. The only theme in more than one hue: `phosphor theme` previews it
+  next to the others, and gen carries it to zellij, yazi, btop and gping like the rest. In
+  the browser (`phosphor web`) programs get the real 16-color EGA set instead of shades of
+  one phosphor. The site's color picker has it too.
+
 ## 1.4.0 — a deck for each screen
 
 - Stable channel: everything from 1.2.1 to 1.2.22 lands at once -- the 1.3 and 1.4 roadmaps

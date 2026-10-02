@@ -193,7 +193,7 @@ sidebar:
 - `phosphor theme [NAME | --list]` — the deck's color. With no `NAME`, a picker: arrows, j/k,
   a number or a tap preview each theme as a small deck painted in it, on its own background,
   before anything is written; Enter keeps it (then `phosphor gen`, and it asks before a
-  restart), q leaves it as it was. `NAME` (p31, p3, p4, paper) writes it straight away and
+  restart), q leaves it as it was. `NAME` (p31, p3, p4, ega, paper) writes it straight away and
   applies nothing: `phosphor gen && phosphor restart`, or `f` in the DECK tab. `o` in the DECK
   tab and `phosphor setup`'s "change the color" open the same picker.
 - `phosphor shortcuts [--kdl]` — the deck's keys, yours to change (also `c` in the DECK tab); `--kdl` prints the block

@@ -1,7 +1,7 @@
 """phosphor theme - pick the deck's color with a preview. Project Phosphor Deck.
 
     phosphor theme            the picker: ↑↓, j/k or a tap previews, Enter keeps it
-    phosphor theme NAME       set it straight away (p31, p3, p4, paper)
+    phosphor theme NAME       set it straight away (p31, p3, p4, ega, paper)
     phosphor theme --list     the themes, with a swatch each
 
 Moving through the list repaints a small deck in that phosphor, on its own

@@ -15,10 +15,11 @@ fails = []
 def need(what, ok):
     if not ok: fails.append(what)
 
-for t in ("p31", "p3", "p4", "paper"):
+for t in ("p31", "p3", "p4", "ega", "paper"):
     need("yazi theme for " + t, G.yazi_theme(t).startswith(G.GEN_MARK))
     need("btop theme for " + t, G.btop_theme(t).count("theme[") > 30)
 need("themes differ by palette", G.yazi_theme("p31") != G.yazi_theme("p3"))
+need("ega's yazi rules are blue", 'border_style  = { fg = "#0000AA" }' in G.yazi_theme("ega"))
 need("ctop only inverts for paper", G.ctop_extra_args("paper") == ["-i"] and G.ctop_extra_args("p31") == [])
 
 home = tempfile.mkdtemp()

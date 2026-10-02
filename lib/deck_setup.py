@@ -18,6 +18,7 @@ UDIR  = os.path.expanduser("~/.config/systemd/user")
 THEMES = [("p31",   "green phosphor · VT100, oscilloscopes"),
           ("p3",    "amber · IBM 5151, Wyse terminals"),
           ("p4",    "white · black & white terminals"),
+          ("ega",   "EGA · the 16 colors of an old PC"),
           ("paper", "paper · e-ink screens")]
 
 # Roles you can give a new machine. There is only one brain: this one.

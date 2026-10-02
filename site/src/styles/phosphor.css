@@ -1,6 +1,6 @@
 /* Phosphor's own screen colors (rust/run/src/theme.rs, share/themes; the
    [deck] theme setting in the profile) -- p31 green, p3 amber, p4 white,
-   paper e-ink. Picked with the theme select in the nav (top right, gear
+   ega's 16 colors, paper e-ink. Picked with the theme select in the nav (top right, gear
    icon): PhosphorThemeSelect.astro sets data-phosphor-theme on <html> and
    remembers it in localStorage, the same idea as `phosphor gen` recoloring
    yazi/btop/gping/ctop from one setting. p31 (below, on bare :root) is the
@@ -103,6 +103,36 @@
 	--phosphor-glow-rgb: 245, 248, 250;
 	--phosphor-scan-opacity: 0.04;
 	--phosphor-vignette-opacity: 0.5;
+}
+
+/* ega -- the 16-color PC card: light grey text, bright cyan accents,
+   blue rules, the one theme in more than one hue. */
+:root[data-phosphor-theme='ega'] {
+	--sl-color-bg: #000000;
+	--sl-color-bg-nav: #0000aa;
+	--sl-color-bg-sidebar: #000000;
+	--sl-color-bg-inline-code: #0000aa;
+	--sl-color-black: #000000;
+	--sl-color-gray-1: #ffffff;
+	--sl-color-gray-2: #aaaaaa;
+	--sl-color-gray-3: #aaaaaa;
+	--sl-color-gray-4: #555555;
+	--sl-color-gray-5: #0000aa;
+	--sl-color-gray-6: #000055;
+	--sl-color-gray-7: #000033;
+	--sl-color-white: #ffffff;
+	--sl-color-text: #aaaaaa;
+	--sl-color-text-accent: #55ffff;
+	--sl-color-accent-low: #0000aa;
+	--sl-color-accent: #55ffff;
+	--sl-color-accent-high: #ffff55;
+	--sl-color-hairline-light: #5555ff;
+	--sl-color-hairline: #0000aa;
+	--sl-color-hairline-shade: #000055;
+	--sl-color-backdrop-overlay: rgba(0, 0, 0, 0.8);
+	--phosphor-glow-rgb: 85, 255, 255;
+	--phosphor-scan-opacity: 0.04;
+	--phosphor-vignette-opacity: 0.4;
 }
 
 /* paper -- e-ink: the one theme that's light, like the reader it names.

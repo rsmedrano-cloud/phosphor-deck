@@ -357,8 +357,8 @@ def run():
               "dev       a two-assistant tab up front, the rest stays"]
     shape = SHAPES[pick("which shape fits how you'll use it? (phosphor recipe adds more later)", shapes, 0)]
     themes = ["p31    green phosphor (VT100)", "p3     amber (IBM 5151)",
-              "p4     white", "paper  paper (e-ink)"]
-    theme = ["p31", "p3", "p4", "paper"][pick("color", themes, 0)]
+              "p4     white", "ega    EGA (16 colors)", "paper  paper (e-ink)"]
+    theme = ["p31", "p3", "p4", "ega", "paper"][pick("color", themes, 0)]
     editor_pick, shell_pick = tools()
     comms_opts = ["matterhorn (Mattermost)", "iamb (Matrix)", "gomuks (Matrix)", "none"]
     ci = pick("chat app for a COMMS tab (none if you don't use one of these)", comms_opts, 3)

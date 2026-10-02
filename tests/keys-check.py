@@ -70,8 +70,12 @@ need("a web_client of my own is left alone", gen() == mine)
 mine_sharing = _re.sub(r"// ── PHOSPHOR WEB:.*?// ── END PHOSPHOR WEB\n", 'web_sharing "off"\n', c, flags=_re.S)
 open(conf, "w").write(mine_sharing)
 need("a web_sharing of my own is left alone too", gen() == mine_sharing)
-for t in ("p31", "p3", "p4", "paper"):
+for t in ("p31", "p3", "p4", "ega", "paper"):
     need("web block for " + t, G.web_block(t).count('"#') == 22)
+# ega brings a real 16-color ANSI set to the browser; a phosphor keeps its one hue
+need("ega's web blue is EGA blue", 'blue "#0000AA"' in G.web_block("ega")
+     and 'bright_magenta "#FF55FF"' in G.web_block("ega"))
+need("p31's web blue stays green", 'blue "#0000AA"' not in G.web_block("p31"))
 
 open(conf, "w").write("keybinds {\n}\n")
 need("no markers: untouched", gen() == "keybinds {\n}\n")

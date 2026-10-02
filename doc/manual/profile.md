@@ -19,7 +19,7 @@ Files that gen writes say
 |---|---|---|
 | session | "deck" | the session's name; it shows in the tab bar |
 | command | "deck" | the one-word command that gets you in (`~/.local/bin/<it>`) |
-| theme | "p31" | p31 green, p3 amber, p4 white, paper (e-ink); `phosphor theme` previews them |
+| theme | "p31" | p31 green, p3 amber, p4 white, ega (the 16 colors of an old PC), paper (e-ink); `phosphor theme` previews them |
 | mount_root | "~/fleet" | where the fleet's files appear |
 | projects | "~/projects" | where workspaces are made (`phosphor workspace`) |
 | mesh | auto | tailscale, headscale, none (plain ssh), or auto: detect |
@@ -319,7 +319,7 @@ which kind it is.
 |---|---|---|
 | tabs | every tab | which tabs, by name, in this order |
 | land | the first | the tab you arrive on |
-| theme | the deck's | p31, p3, p4, paper |
+| theme | the deck's | p31, p3, p4, ega, paper |
 | graphs | the deck's | braille or blocks |
 | skip | none | panes left out of its tabs, by their `cmd` (`["phosphor pulse"]`): a screen too small or too slow for them; a tab left with none goes too |
 

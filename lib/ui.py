@@ -2,7 +2,8 @@
 
 The palette comes from `theme` in the profile's [deck]; PHOSPHOR_THEME
 overrides it for a quick try. The names are the phosphors of old monitors:
-P31 green, P3 amber, P4 white.
+P31 green, P3 amber, P4 white. EGA is the one that isn't a phosphor: the
+16 colors of a PC's EGA card, so it's the only theme in more than one hue.
 """
 import os, re, select, shutil, sys, termios, time, tty
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -29,12 +30,28 @@ PALETTES = {
     "p4":    {"fg": (200, 208, 214), "dim": (84, 90, 96),    "mute": (130, 138, 146),
               "ph": (236, 242, 248), "bloom": (255, 255, 255), "warn": (255, 176, 0),
               "bad": (255, 51, 68),  "rule": (38, 42, 46),   "bg": (8, 9, 10)},
+    # EGA: the 16-color PC card -- light grey text, bright green and cyan,
+    # blue rules. The only theme in more than one hue.
+    "ega":   {"fg": (170, 170, 170), "dim": (85, 85, 85),    "mute": (0, 170, 170),
+              "ph": (85, 255, 85),   "bloom": (85, 255, 255), "warn": (255, 255, 85),
+              "bad": (255, 85, 85),  "rule": (0, 0, 170),    "bg": (0, 0, 0)},
     # paper: e-ink screens, dark ink on white
     "paper": {"fg": (26, 26, 26),    "dim": (120, 120, 120), "mute": (58, 58, 58),
               "ph": (31, 90, 40),    "bloom": (0, 0, 0),     "warn": (107, 74, 0),
               "bad": (138, 26, 34),  "rule": (180, 180, 180), "bg": (255, 255, 255)},
 }
 ALIASES = {"green": "p31", "amber": "p3", "white": "p4"}
+
+# A terminal's 16 ANSI colors, for a theme that has its own (the web client
+# is a terminal of its own, so programs in it draw with these). The
+# phosphors map those slots onto their one hue instead (gen.web_block).
+ANSI = {
+    "ega": {"black": (0, 0, 0), "red": (170, 0, 0), "green": (0, 170, 0), "yellow": (170, 85, 0),
+            "blue": (0, 0, 170), "magenta": (170, 0, 170), "cyan": (0, 170, 170), "white": (170, 170, 170),
+            "bright_black": (85, 85, 85), "bright_red": (255, 85, 85), "bright_green": (85, 255, 85),
+            "bright_yellow": (255, 255, 85), "bright_blue": (85, 85, 255), "bright_magenta": (255, 85, 255),
+            "bright_cyan": (85, 255, 255), "bright_white": (255, 255, 255)},
+}
 
 def theme_name(prof=None):
     t = os.environ.get("PHOSPHOR_THEME")
