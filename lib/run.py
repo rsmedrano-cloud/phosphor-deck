@@ -128,6 +128,7 @@ def watch(child):
 def main():
     a = sys.argv[1:]
     name, reconnect, wait, alt = None, False, 0.0, False
+    asked = bool(a) and a[0] in ("-h", "--help")
     while a and a[0] != "--":
         o = a.pop(0)
         if o == "--name" and a: name = a.pop(0)
@@ -136,7 +137,7 @@ def main():
         elif o == "--alt": alt = True
     if a and a[0] == "--": a.pop(0)
     if not a:
-        print("usage: phosphor run [--name N] [--reconnect] [--wait S] [--alt] -- CMD ARGS..."); return 2
+        print("usage: phosphor run [--name N] [--reconnect] [--wait S] [--alt] -- CMD ARGS..."); return 0 if asked else 2
     name = name or os.path.basename(a[0]).upper()
     os.environ["PHOSPHOR_RUN"] = "%d %s" % (os.getpid(), name)   # see crash_name() in phosphor
     if wait: time.sleep(wait)          # some TUIs read the size once, before zellij settles it

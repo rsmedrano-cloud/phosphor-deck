@@ -6,6 +6,23 @@ before it updates.
 
 ## Unreleased
 
+## 1.4.0 — a deck for each screen
+
+- Stable channel: everything from 1.2.1 to 1.2.22 lands at once -- the 1.3 and 1.4 roadmaps
+  together. The highlights: a deck for each kind of screen (`[screens.KIND]` in the profile,
+  `phosphor screen --as KIND`), so a phone, a tablet or an e-ink reader gets its own tabs and
+  stops squeezing the desktop; tested on a phone, a Pi with a 7" touch screen and no keyboard,
+  and a Pi with a 3.5" LCD. Everything from inside the deck: `phosphor services` and `phosphor
+  review` panels, commands that ask for what they need instead of quitting, panels you can act
+  from (ssh, tail or triage a fleet card), `/` in the `+` menu searches everything, a DECK tab
+  that follows the screen's width, `phosphor workspace rm`, `phosphor usage` for your AI plans,
+  `phosphor screens` to see and kick attached screens, slower animations for a screen behind a
+  tailscale relay, and every tap a touch screen needs. `phosphor CMD --help` only ever explains.
+  Plus the fixes from an outside audit, below. The per-patch notes further down have the details.
+- `--help` after another option (`phosphor note --kind idea --help`) explains the command
+  instead of running it: that one wrote a note titled "--help". `phosphor tail`, `broadcast`,
+  `send`, `run` and `help` answer `--help` with a zero exit, like the rest.
+
 ## 1.2.22 — the adjutant keeps its size
 
 - The adjutant's face no longer grows into a poster on a wide screen. It stops at the size a

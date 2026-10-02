@@ -12,7 +12,7 @@ Verifies:
 - kick() on a login whose pid isn't ours (sshd's monitor runs as root)
   signals its topmost descendant that is, and that one really ends
 """
-import os, subprocess, sys, time
+import os, signal, subprocess, sys, time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "lib"))
@@ -86,7 +86,10 @@ check("kicking a dead pid reports failure, doesn't raise", ok is False and msg)
 # 5. kick() on a login we can't signal (who -u names sshd's root monitor):
 # it ends our own topmost descendant instead. "Not ours" is faked for the
 # top pid, since CI isn't root; the child really gets the signal.
-top = subprocess.Popen(["sh", "-c", "sh -c 'sleep 30; :' & wait"])
+# Off check.sh's pipe and in a group of its own: the kick orphans the sleep,
+# which otherwise held that pipe open for its whole 30s.
+top = subprocess.Popen(["sh", "-c", "sh -c 'sleep 30; :' & wait"], stdout=subprocess.DEVNULL,
+                       stderr=subprocess.DEVNULL, start_new_session=True)
 try:
     mid = None
     for _ in range(50):
@@ -104,8 +107,9 @@ try:
     top.wait(timeout=5)
     check("the kicked child really ended (and its parent with it)", top.returncode is not None)
 finally:
-    if top.poll() is None:
-        top.kill(); top.wait()
+    try: os.killpg(top.pid, signal.SIGKILL)
+    except OSError: pass
+    top.wait()
 
 if fails:
     print("FAILED:\n  " + "\n  ".join(fails))

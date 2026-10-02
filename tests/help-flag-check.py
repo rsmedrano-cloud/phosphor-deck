@@ -45,6 +45,8 @@ for cmd in cmds:
         except subprocess.TimeoutExpired:
             fails.append("%s %s: still running after 20s" % (cmd, flag)); continue
         out = r.stdout + r.stderr
+        if r.returncode != 0:
+            fails.append("%s %s: exit %d" % (cmd, flag, r.returncode))
         if "phosphor" not in out.lower():
             fails.append("%s %s: says nothing about itself: %r" % (cmd, flag, out[:120]))
         if os.path.exists(mark):
@@ -53,6 +55,15 @@ for cmd in cmds:
         if os.path.exists(notes):
             fails.append("%s %s: wrote the notebook" % (cmd, flag))
             os.remove(notes)
+
+# --help after another option still only explains (it once wrote a note).
+for argv in (["note", "--kind", "idea", "--help"], ["restart", "--dry-run", "-h"]):
+    r = subprocess.run([sys.executable, os.path.join(ROOT, "phosphor")] + argv, env=env,
+                       stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=20)
+    if r.returncode != 0 or os.path.exists(notes) or os.path.exists(mark):
+        fails.append("%s: ran instead of explaining (exit %d)" % (" ".join(argv), r.returncode))
+    for f in (notes, mark):
+        if os.path.exists(f): os.remove(f)
 
 if fails:
     print("\n".join(fails)); sys.exit(1)

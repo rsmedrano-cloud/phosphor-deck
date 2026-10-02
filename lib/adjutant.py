@@ -203,8 +203,9 @@ def main():
             w = max(3, min(cols, 40))
             box_h = rows
             if bmp:
-                # the box hugs the picture (room for a message under it),
-                # and a big pane centers it instead of blowing it up
+                # the box hugs the picture, never under 48 columns so a
+                # message fits under it, and a big pane centers it instead
+                # of blowing it up
                 fw, fh = bmp.size(cols - 2, max(2, rows - 3))
                 w = max(3, min(cols, max(fw + 6, 48)))
                 box_h = min(rows, fh // 2 + 5)

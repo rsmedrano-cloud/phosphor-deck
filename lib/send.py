@@ -120,7 +120,7 @@ def main():
             return 0
         a = [picked]
     if not a or a[0] in ("-h", "--help"):
-        print("usage: phosphor send FILE [--timeout SECONDS]"); return 1
+        print("usage: phosphor send FILE [--timeout SECONDS]"); return 0 if a else 1
     timeout = DEFAULT_TIMEOUT
     if "--timeout" in a:
         i = a.index("--timeout")

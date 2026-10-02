@@ -41,7 +41,7 @@ def find_host(prof, name):
 def main():
     a = sys.argv[1:]
     if not a or a[0] in ("-h", "--help"):
-        print("usage: phosphor tail HOST [SERVICE]"); return 1
+        print("usage: phosphor tail HOST [SERVICE]"); return 0 if a else 1
     host, service = a[0], (a[1] if len(a) > 1 else None)
     prof, _ = deckconf.load()
     h = find_host(prof, host)

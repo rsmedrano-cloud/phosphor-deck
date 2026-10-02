@@ -376,6 +376,7 @@ more depth on every one of these.
 | `phosphor panel` | the DECK tab: state, next steps, every action one key away |
 | `phosphor commands` | every phosphor command, browsable by category (also: `e` in DECK) |
 | `phosphor phone` | put a phone or tablet one tap away from the deck |
+| `phosphor screen` | the same kit for a computer without Termux (`--as KIND`: its own deck) |
 | `phosphor gen` | generate layouts, units and mounts |
 | `phosphor up` | start the deck (and at every boot) |
 | `phosphor update` | a newer version: pull or copy, install, restart; `--channel nightly` or `stable` |
@@ -493,6 +494,7 @@ What Phosphor does **not** control, honestly:
 | Ubuntu 24.04 | as a remote fleet host; as the brain, a clean install in a systemd container (every push) |
 | Fedora | the same container install as the brain, every push; Fedora Atomic as a remote fleet host and a viewer |
 | Android (Termux) | as a viewer, with touch |
+| Raspberry Pi OS (Pi 4) | as a screen with a deck of its own: a 7" HDMI touch screen with no keyboard, and a 3.5" SPI LCD |
 | Arch Linux | as the brain, real use, and the systemd-container install on every push |
 | Alpine, NixOS, macOS, BSD | **never** |
 
@@ -529,7 +531,7 @@ untouched-background run would give a tighter number.
 
 ## Status
 
-1.0, and public since 0.3.0. Day-to-day development happens on a private
+1.4, and public since 0.3.0. Day-to-day development happens on a private
 GitLab (issues, merge requests, CI) -- [GitHub](https://github.com/rsmedrano-cloud/phosphor-deck)
 is where releases land, starting from a single snapshot instead of that
 private history. That's a choice about what's public, not a sign this

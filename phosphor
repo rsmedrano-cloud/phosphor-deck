@@ -75,9 +75,10 @@ USAGE = """phosphor - Phosphor Deck
 
   workspaces
     phosphor workspace new   a project folder, git and a tab with its assistants
-    phosphor workspace open  its tab again (list: the ones you have)
+    phosphor workspace open  its tab again (workspace list: the ones you have)
     phosphor ask Q      a one-shot question to whichever assistant CLI is
-                        installed, no tab (--assistant NAME to pick one)
+                        installed, no tab (--assistant NAME to pick one,
+                        -c to send your latest decisions along)
 
   notes
     phosphor note T     add a note to the shared notebook
@@ -147,7 +148,7 @@ def main():
         cmd = "version"
 
     if cmd in ("-h", "--help", "help"):
-        if len(sys.argv) > 2 and cmd == "help":
+        if len(sys.argv) > 2 and cmd == "help" and sys.argv[2] not in ("-h", "--help"):
             import docs
             return docs.help(sys.argv[2])
         print(USAGE)
@@ -159,7 +160,10 @@ def main():
     # `phosphor CMD --help` only ever explains: without this, `restart --help`
     # restarted the deck and `note --help` wrote a note titled "--help".
     # These answer it themselves, more precisely (or must never print).
-    if len(sys.argv) > 2 and sys.argv[2] in ("-h", "--help") and cmd not in OWN_HELP:
+    # Anywhere before a `--` (`note --kind idea --help` wrote one too), not after
+    # it: there it belongs to the text or the command being passed along.
+    opts = sys.argv[2:sys.argv.index("--")] if "--" in sys.argv else sys.argv[2:]
+    if {"-h", "--help"} & set(opts) and cmd not in OWN_HELP:
         import commands
         if commands.help_for(cmd):
             return 0

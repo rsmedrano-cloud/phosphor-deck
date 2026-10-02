@@ -195,10 +195,12 @@ if not os.environ.get("PANEL_CHECK_ON_PTY"):
         if select.select([m], [], [], 0.2)[0]:
             try: out += os.read(m, 4096)
             except OSError: break
-    if p.poll() is None:
+    try:
+        p.wait(timeout=5)       # EIO comes as the child closes the pty, a hair before it's reaped
+    except subprocess.TimeoutExpired:
         p.kill(); p.wait()
         check("the check itself finishes with a terminal on stdin (something waits for a key)", False)
-    else:
+    if p.returncode >= 0:
         check("the check itself passes with a terminal on stdin: " + out.decode(errors="replace")[-300:],
               p.returncode == 0)
     os.close(m)

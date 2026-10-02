@@ -130,7 +130,7 @@ def main():
     asking = form.wanted(sys.argv[1:])
     p = None if asking else parse(sys.argv[1:])
     if not asking and p is None:
-        print(USAGE); return 1
+        print(USAGE); return 0 if {"-h", "--help"} & set(sys.argv[1:]) else 1
     if deckconf.example():
         print(BAD + " no profile yet: phosphor init first (broadcast never runs on the example's machines)" + RST)
         return 1
