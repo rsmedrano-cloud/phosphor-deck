@@ -207,6 +207,9 @@ out=$(python3 tests/review-check.py 2>&1) && ok || bad "$out"
 step "phosphor screens: who's attached, kick one"
 out=$(python3 tests/screens-check.py 2>&1) && ok || bad "$out"
 
+step "phosphor mem: memory per tab and pane"
+out=$(python3 tests/mem-check.py 2>&1) && ok || bad "$out"
+
 step "animations slow down for a screen through a relay"
 out=$(python3 tests/relay-check.py 2>&1) && ok || bad "$out"
 

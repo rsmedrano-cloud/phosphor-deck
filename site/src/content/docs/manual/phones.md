@@ -81,7 +81,9 @@ the desktop, and a tab you open on one doesn't show on the other. The
 fleet is polled once, by the deck's own session, and every kind's FLEET
 card reads that. `phosphor restart` and `down` take every kind's session
 along, and each screen goes back into its own by itself. A kind with no
-block, or a screen that says nothing, gets the deck as always.
+block, or a screen that says nothing, gets the deck as always. A kind's
+session runs its own copy of every pane it keeps, so it costs memory of
+its own: `phosphor mem` says how much, tab by tab (`SYS · phone`).
 
 ### A touch screen with no keyboard
 

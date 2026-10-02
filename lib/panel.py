@@ -37,6 +37,7 @@ GROUPS = [("screens",  [("v", "screens",          "who's attached; kick one loos
                         ("?", "key guide",        "the keys of every installed tool")]),
           ("upkeep",   [("n", "notices & traces", "phone notices, spoken ones, verbose logs: on or off"),
                         ("d", "doctor",           "check this machine"),
+                        ("M", "memory",           "what each tab and pane holds, heaviest first"),
                         ("l", "logs",             "the deck's own log, and traces per tool"),
                         ("u", "update",           "a newer Phosphor, then a restart"),
                         ("r", "restart",          "every screen comes back by itself"),
@@ -248,6 +249,8 @@ def act(k, st):
             P("commands")
         elif k == "v":
             P("screens")
+        elif k == "M":
+            P("mem")
         elif k == "p":
             P("phone"); pause()
         elif k == "m":

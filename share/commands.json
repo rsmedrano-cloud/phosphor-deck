@@ -44,6 +44,8 @@
     "note": "read-only key guide (its interactive 's' just launches phosphor setup)."},
   "logs": {"mutates": false, "needs_deck": false,
     "note": "read-only tail of the deck's own log."},
+  "mem": {"mutates": false, "needs_deck": false,
+    "note": "read-only: reads /proc and asks zellij for its pane list; with the deck down it says so."},
   "mentions": {"mutates": false, "needs_deck": false,
     "note": "the plain feed is read-only; `--setup` unconditionally writes a hook script and rewrites Mattermost's config.ini; the interactive viewer mutates (marks seen, runs `prepare`) on a keypress."},
   "new": {"mutates": false, "needs_deck": true,

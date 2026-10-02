@@ -297,7 +297,7 @@ flagged host, tail a host's logs, services, tunnels), work (every command,
 workspaces, merge requests to review, install tools, a shell on the brain),
 tabs & keys (keep a tab, tabs, recipes, the color, shortcuts, and `?`, the
 keys of every installed tool with the deck's own as you set them) and
-upkeep (notices, doctor, logs, update, restart, the manual). Every action
+upkeep (notices, doctor, memory per tab and pane, logs, update, restart, the manual). Every action
 comes back the same way: q, Esc or Enter.
 
 A profile from before 1.2.5 still has the key guide beside the panel: the
@@ -417,6 +417,7 @@ more depth on every one of these.
 | `phosphor ci` | GitLab/GitHub pipeline status cards (see `[ci]` in the profile) |
 | `phosphor services` | systemd units and their state: Phosphor's own, plus any you add (see `[services]` in the profile); pick one for its logs, restart, start/stop |
 | `phosphor review` | open merge/pull requests: CI, conflicts, diff, try the branch in its own worktree |
+| `phosphor mem` | how much memory each tab and pane of the deck takes, heaviest first, every kind of screen's deck included |
 | `phosphor screens` | who's attached (phone, tablet, another computer), and which come through a tailscale relay; `x` twice kicks one loose |
 | `phosphor keys` | key guide, updates itself when you install a tool |
 | `phosphor store` | install TUIs from their releases, no sudo; open what you have, and your own apps |

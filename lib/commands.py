@@ -60,6 +60,7 @@ CATEGORIES = [
         ("services", "phosphor services", "systemd units and their state: phosphor's own, plus any you add"),
         ("review", "phosphor review", "open merge/pull requests: CI, conflicts, diff, try the branch"),
         ("screens", "phosphor screens", "who's attached (phone, tablet, another computer); kick one loose"),
+        ("mem", "phosphor mem", "how much memory each tab and pane of the deck takes, heaviest first"),
         ("keys", "phosphor keys", "key guide, updates itself when you install a tool"),
         ("store", "phosphor store", "install TUIs from their releases, no sudo; open what you have"),
         ("new", "phosphor new", "the + menu: a shell, a machine, an assistant, your apps, a layout"),

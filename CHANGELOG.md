@@ -6,6 +6,14 @@ before it updates.
 
 ## Unreleased
 
+## 1.4.3 — memory per tab and pane
+
+- `phosphor mem`: how much memory each tab and pane of the deck takes, heaviest tab first --
+  everything a pane started counts toward it (an assistant's workers, a shell's children), each
+  kind of screen's deck shows under its own name, then zellij itself and the machine. For a
+  brain short on RAM: which tab to close, or which screen kind's second deck costs too much.
+  Also `M` in the DECK tab and in `phosphor commands`. Read-only.
+
 ## 1.4.2 — a pushed notice carries its voice
 
 - A pushed notice carries its voice: with `[tts]` and `[push]` both on, the words the brain

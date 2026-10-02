@@ -93,6 +93,7 @@ USAGE = """phosphor - Phosphor Deck
     phosphor usage      how much of your Claude / Antigravity plan is used
     phosphor services   phosphor's own systemd units, and any you add
     phosphor screens    who's attached (phone, PC...); kick one loose
+    phosphor mem        how much memory each tab and pane of the deck takes
     phosphor review     merge/pull requests: diff, CI, conflicts, try the branch
     phosphor adjutant   the face that announces events
     phosphor notify M   send the adjutant a message (and your phone, with [push])
@@ -126,7 +127,7 @@ USAGE = """phosphor - Phosphor Deck
 TOOLS = ("fleet", "pulse", "keys", "store", "adjutant", "notes", "privacy", "phone", "newtab", "clip", "send",
          "mentions", "run", "web", "tunnels", "completion", "update", "panel", "version",
          "keep", "workspace", "edit", "shortcuts", "tabs", "prom", "logs", "trace", "ci", "recipe", "tts", "demo",
-         "services", "glance", "review", "push", "screens", "ask", "commands", "receive", "tail", "triage", "broadcast", "theme", "usage")
+         "services", "glance", "review", "push", "screens", "ask", "commands", "receive", "tail", "triage", "broadcast", "theme", "usage", "mem")
 
 def crash_name(cmd):
     """The name a crash is logged under: the pane's, when phosphor run

@@ -816,7 +816,7 @@ and in the `+` menu, and open in a tab of their own.
 - `phosphor panel` — the DECK tab: the deck's state, the next steps while you set up, and every
   action one key or tap away (add a screen, machines, theme, web, tunnels, tools, keep a tab, triage
   a host, tail logs, services, workspaces, review, notices & traces, tabs, shortcuts, a shell here, doctor,
-  logs, update, restart, manual, and `?` for the keys of every installed tool). Laid out as cards that
+  memory, logs, update, restart, manual, and `?` for the keys of every installed tool). Laid out as cards that
   follow the pane's width: one column on a phone (arrows or two fingers scroll it), more on a
   wider screen, with a line about each action once there's room. A profile whose DECK tab still has
   the key guide beside the panel gets **1** in the deck card: it writes that tab as one pane
@@ -965,6 +965,12 @@ and in the `+` menu, and open in a tab of their own.
   smallest attached client, with no setting to change that), not for banning a device. Also `v` in
   the DECK tab. `--list` prints it once, no picker. A screen that reaches the brain through a
   tailscale relay is marked "relay": its deck's animations slow to one frame a second (see screens).
+- `phosphor mem [--once]` — how much memory each tab and pane of the deck takes, heaviest tab
+  first, every 5s (j/k scroll, q leaves; also `M` in the DECK tab). A pane counts everything it
+  started -- an assistant's workers, a shell's children -- since every process keeps the
+  `ZELLIJ_PANE_ID` zellij gave its pane; each kind of screen's own deck shows under its name
+  (`SYS · phone`), then zellij itself and the machine as a whole. PSS, so a library two processes
+  share is split between them instead of counted twice. Read-only.
 - `phosphor keys` — the key guide; `phosphor store` — install TUIs, no sudo; `d` removes one (only from ~/.local/bin).
   Enter on an installed app opens it in a new tab; `i` shows only what's installed. Your own apps
   (`apps.toml`, see profile) come first, as "yours".
@@ -1267,7 +1273,9 @@ the desktop, and a tab you open on one doesn't show on the other. The
 fleet is polled once, by the deck's own session, and every kind's FLEET
 card reads that. `phosphor restart` and `down` take every kind's session
 along, and each screen goes back into its own by itself. A kind with no
-block, or a screen that says nothing, gets the deck as always.
+block, or a screen that says nothing, gets the deck as always. A kind's
+session runs its own copy of every pane it keeps, so it costs memory of
+its own: `phosphor mem` says how much, tab by tab (`SYS · phone`).
 
 ### A touch screen with no keyboard
 
