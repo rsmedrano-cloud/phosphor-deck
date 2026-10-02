@@ -119,6 +119,18 @@ wrapper above notices the drop and reconnects on its own in a few seconds.
 Not a way to ban a device -- a way to force one reconnect without walking
 over to whichever screen is in the way.
 
+`o` (twice too) changes which deck a kind of screen gets, from the screen
+in front of you: on a tablet in a deck of its own, every tablet shares this
+deck again (`[screens.tablet]` comes out of the profile and `deck-tablet`
+closes, its panes with it); on a screen that says a kind (`deck (phone)` in
+the list) but shares the deck, that kind gets a deck of its own with every
+tab, which you can trim afterwards in its block. Before the second press it
+says the cost. Either way the screens of that kind are kicked and come back
+where they now belong, and the profile keeps a backup. It's per kind, not
+per device: every screen saying that kind moves. A screen that says no kind
+gets a hint instead -- it has to say one first (`phosphor screen --as KIND`
+on it).
+
 ### A screen through a relay
 
 A screen with no direct path to the brain reaches it through one of

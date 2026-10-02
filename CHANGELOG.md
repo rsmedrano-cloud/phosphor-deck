@@ -6,6 +6,16 @@ before it updates.
 
 ## Unreleased
 
+## 1.4.5 — change a screen's deck from phosphor screens
+
+- `phosphor screens` (`v` in the DECK tab) changes how a screen sees the deck, right from its
+  row: `o` twice on a tablet in a deck of its own makes every tablet share this deck again (its
+  `[screens.tablet]` block comes out of the profile, its session and panes close); on a screen
+  that says a kind but shares the deck, it gives that kind a deck of its own, with every tab.
+  Before the second press it says what that costs (its panes start a second time); the screens
+  of that kind reconnect where they now belong by themselves, and the profile keeps a backup.
+  The list also shows which kind a screen says it is: `deck (phone)`.
+
 ## 1.4.4 — a screen shares this deck or gets its own
 
 - `phosphor setup` → "connect a phone or tablet" now asks how that screen sees the deck: sharing

@@ -11,6 +11,11 @@ Verifies:
 - kick() reports failure instead of raising on a pid that's already gone
 - kick() on a login whose pid isn't ours (sshd's monitor runs as root)
   signals its topmost descendant that is, and that one really ends
+- said() reads the kind off a real `phosphor attach --screen KIND` argv
+- change() / moving(): o on a kind's own deck shares it, on a screen that
+  says a kind with no block gives it one, on one that says none does nothing
+- retype() adds and takes out [screens.KIND] in a temp profile, with a
+  backup, without running a real gen
 """
 import os, signal, subprocess, sys, time
 
@@ -110,6 +115,58 @@ finally:
     try: os.killpg(top.pid, signal.SIGKILL)
     except OSError: pass
     top.wait()
+
+# 6. said(): the kind on a real attach argv, '' with none
+sk = subprocess.Popen(["python3", "-c", "import time; time.sleep(30)", "attach", "--screen", "phone"])
+plain = subprocess.Popen(["python3", "-c", "import time; time.sleep(30)", "attach"])
+try:
+    time.sleep(0.3)
+    check("said() reads --screen KIND off the attach argv", screens.said(sk.pid) == "phone")
+    check("said() is empty for a screen that says no kind", screens.said(plain.pid) == "")
+finally:
+    for p_ in (sk, plain):
+        p_.kill(); p_.wait()
+
+# 7. change() and moving()
+rows = [{"pid": 1, "session": "deck-tablet", "said": "tablet"},
+        {"pid": 2, "session": "deck", "said": "phone"},
+        {"pid": 3, "session": "deck", "said": ""},
+        {"pid": 4, "session": "deck", "said": "phone"},
+        {"pid": 5, "session": "deck-tablet", "said": "tablet"}]
+have = {"tablet": {}}
+check("o on a kind's own deck shares it", screens.change(rows[0], have, "deck") == ("share", "tablet"))
+check("o on a screen saying a kind without a block gives it one",
+      screens.change(rows[1], have, "deck") == ("own", "phone"))
+check("o on a screen saying no kind does nothing", screens.change(rows[2], have, "deck")[0] is None)
+check("o on a kind that just got a block waits for its reconnect",
+      screens.change(rows[1], {"phone": {}}, "deck")[0] is None)
+check("sharing moves every screen of that kind's deck",
+      [r["pid"] for r in screens.moving(rows, "share", "tablet", "deck")] == [1, 5])
+check("a deck of its own moves every screen saying that kind",
+      [r["pid"] for r in screens.moving(rows, "own", "phone", "deck")] == [2, 4])
+
+# 8. retype(): into a temp profile, gen faked
+import tempfile
+tmp = tempfile.mkdtemp()
+prof = os.path.join(tmp, "deck.toml")
+open(prof, "w").write('[deck]\nsession = "deck"\n\n[screens.tablet]\ntabs = ["SYS"]\n\n[keys]\nedit = "Alt r"\n')
+os.environ["PHOSPHOR_PROFILE"] = prof
+import deckconf
+ok, _ = screens.retype("own", "phone", gen=lambda: True)
+p = deckconf.tomllib.loads(open(prof).read())
+check("own adds [screens.phone], every tab", ok and p["screens"].get("phone") == {})
+check("own keeps the other kinds and tables", "tablet" in p["screens"] and p["keys"]["edit"] == "Alt r")
+check("a backup of the profile as it was", os.path.exists(prof + ".bak")
+      and "phone" not in open(prof + ".bak").read())
+ok, _ = screens.retype("share", "tablet", gen=lambda: True)
+p = deckconf.tomllib.loads(open(prof).read())
+check("share takes [screens.tablet] out, the rest stays",
+      ok and "tablet" not in p["screens"] and "phone" in p["screens"] and p["keys"]["edit"] == "Alt r")
+ok, m = screens.retype("own", "phone", gen=lambda: True)
+check("a block that's already there isn't written twice", not ok
+      and open(prof).read().count("[screens.phone]") == 1)
+ok, m = screens.retype("own", "eink", gen=lambda: False)
+check("a failed gen is reported, not hidden", not ok and "gen" in m)
 
 if fails:
     print("FAILED:\n  " + "\n  ".join(fails))

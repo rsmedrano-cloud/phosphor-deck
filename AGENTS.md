@@ -959,7 +959,8 @@ and in the `+` menu, and open in a tab of their own.
   you're inside the deck -- your working copy is never touched, same spirit as `tests/mrs-check.py`;
   `x` drops that worktree. `r` refreshes the list.
 - `phosphor screens` — who's attached (phone, tablet, another computer): where each is from and
-  how long it's been idle, `x` (twice) kicks one loose, `r` refreshes. A kick just ends that one
+  how long it's been idle, `x` (twice) kicks one loose, `o` (twice) changes its kind's deck (see
+  screens), `r` refreshes. A kick just ends that one
   ssh connection -- its own `deck` wrapper (see screens) notices and reconnects in a few seconds by
   itself, so this is for the one squeezing everyone's pane down (zellij ties a tab's size to its
   smallest attached client, with no setting to change that), not for banning a device. Also `v` in
@@ -1310,6 +1311,18 @@ it's from, how long it's been idle, which deck it's in) and lets you kick one lo
 wrapper above notices the drop and reconnects on its own in a few seconds.
 Not a way to ban a device -- a way to force one reconnect without walking
 over to whichever screen is in the way.
+
+`o` (twice too) changes which deck a kind of screen gets, from the screen
+in front of you: on a tablet in a deck of its own, every tablet shares this
+deck again (`[screens.tablet]` comes out of the profile and `deck-tablet`
+closes, its panes with it); on a screen that says a kind (`deck (phone)` in
+the list) but shares the deck, that kind gets a deck of its own with every
+tab, which you can trim afterwards in its block. Before the second press it
+says the cost. Either way the screens of that kind are kicked and come back
+where they now belong, and the profile keeps a backup. It's per kind, not
+per device: every screen saying that kind moves. A screen that says no kind
+gets a hint instead -- it has to say one first (`phosphor screen --as KIND`
+on it).
 
 ### A screen through a relay
 

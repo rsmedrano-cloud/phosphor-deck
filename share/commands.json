@@ -81,7 +81,7 @@
   "screen": {"mutates": false, "needs_deck": false,
     "note": "same as phone: prints a kit script (`--as KIND` only changes what its deck command says); the real changes happen on the remote device that runs it."},
   "screens": {"mutates": false, "needs_deck": false,
-    "note": "listing is read-only; kicking a screen loose needs 'x' pressed twice, on purpose."},
+    "note": "listing is read-only; kicking a screen loose needs 'x' pressed twice, on purpose; 'o' pressed twice writes or removes a [screens.KIND] block in the profile (backup first), runs phosphor gen, kicks that kind's screens and, when sharing again, closes the kind's own session."},
   "send": {"mutates": true, "needs_deck": false,
     "note": "opens a real (if temporary) HTTP listener serving the file until it's downloaded or the timeout passes."},
   "services": {"mutates": false, "needs_deck": false,

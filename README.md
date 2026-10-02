@@ -420,7 +420,7 @@ more depth on every one of these.
 | `phosphor services` | systemd units and their state: Phosphor's own, plus any you add (see `[services]` in the profile); pick one for its logs, restart, start/stop |
 | `phosphor review` | open merge/pull requests: CI, conflicts, diff, try the branch in its own worktree |
 | `phosphor mem` | how much memory each tab and pane of the deck takes, heaviest first, every kind of screen's deck included |
-| `phosphor screens` | who's attached (phone, tablet, another computer), and which come through a tailscale relay; `x` twice kicks one loose |
+| `phosphor screens` | who's attached (phone, tablet, another computer), and which come through a tailscale relay; `x` twice kicks one loose, `o` twice gives its kind a deck of its own or shares this one |
 | `phosphor keys` | key guide, updates itself when you install a tool |
 | `phosphor store` | install TUIs from their releases, no sudo; open what you have, and your own apps |
 | `phosphor new` | the + menu (also Alt-n): a shell, a machine, an assistant (in the folder you pick), your apps, a layout; `/` searches everything |

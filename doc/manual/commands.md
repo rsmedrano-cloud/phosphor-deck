@@ -151,7 +151,8 @@
   you're inside the deck -- your working copy is never touched, same spirit as `tests/mrs-check.py`;
   `x` drops that worktree. `r` refreshes the list.
 - `phosphor screens` — who's attached (phone, tablet, another computer): where each is from and
-  how long it's been idle, `x` (twice) kicks one loose, `r` refreshes. A kick just ends that one
+  how long it's been idle, `x` (twice) kicks one loose, `o` (twice) changes its kind's deck (see
+  screens), `r` refreshes. A kick just ends that one
   ssh connection -- its own `deck` wrapper (see screens) notices and reconnects in a few seconds by
   itself, so this is for the one squeezing everyone's pane down (zellij ties a tab's size to its
   smallest attached client, with no setting to change that), not for banning a device. Also `v` in
