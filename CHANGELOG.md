@@ -6,6 +6,14 @@ before it updates.
 
 ## Unreleased
 
+## 1.2.19 — the adjutant fits a phone
+
+- The adjutant in SYS takes a quarter of the row (`size = "25%"`) instead of a fixed 34
+  columns, so on a phone fleet's cards get most of the width. It also draws inside a pane of
+  any width now: below 20 columns it used to overflow. New profiles get this; an existing one
+  keeps its `size = 34` until you change it in your SYS tab (then `phosphor gen && phosphor
+  restart`, or `f` in the DECK tab).
+
 ## 1.2.18 — fleet fits a phone
 
 - FLEET no longer breaks its cards into wrapped lines on a narrow pane: on a phone, the adjutant

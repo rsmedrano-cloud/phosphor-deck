@@ -477,11 +477,11 @@ def render(hosts, theme, comms, net="auto", web=False, tun=(), editor=None, shel
               'panes = [ { ssh = "@work", reconnect = true } ]', ""]
     if shape == "revived":
         L += ["[[tabs]]", 'name  = "SYS"', 'split = "rows"', "panes = [",
-              '  { split = "cols", panes = [{ cmd = "phosphor fleet" }, { cmd = "phosphor adjutant", size = 34 }], size = "78%" },',
+              '  { split = "cols", panes = [{ cmd = "phosphor fleet" }, { cmd = "phosphor adjutant", size = "25%" }], size = "78%" },',
               '  { cmd = "phosphor services" },', "]", ""]
     else:
         L += ["[[tabs]]", 'name  = "SYS"', 'split = "rows"', "panes = [",
-              '  { split = "cols", panes = [{ cmd = "phosphor fleet" }, { cmd = "phosphor adjutant", size = 34 }], size = "50%" },',
+              '  { split = "cols", panes = [{ cmd = "phosphor fleet" }, { cmd = "phosphor adjutant", size = "25%" }], size = "50%" },',
               '  { cmd = "gping", alt = true, args = ["@hosts"], size = "25%" },',
               '  { cmd = "phosphor services" },', "]", ""]
     if shape != "revived":

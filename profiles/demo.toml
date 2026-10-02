@@ -42,7 +42,7 @@ folder = "~/.cache/phosphor/demo"
 name  = "SYS"
 split = "rows"
 panes = [
-  { split = "cols", panes = [{ cmd = "phosphor fleet" }, { cmd = "phosphor adjutant", size = 34 }] },
+  { split = "cols", panes = [{ cmd = "phosphor fleet" }, { cmd = "phosphor adjutant", size = "25%" }] },
 ]
 
 [[tabs]]

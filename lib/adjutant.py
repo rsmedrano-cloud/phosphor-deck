@@ -199,17 +199,18 @@ def main():
     try:
         while True:
             cols, rows = shutil.get_terminal_size((34, 14))
-            w = max(20, min(cols, 100 if bmp else 40))
+            # never wider than the pane: on a phone it can be a dozen columns
+            w = max(3, min(cols, 100 if bmp else 40))
 
             new, pos = read_events(pos)
             if new:
                 target, m = new[-1]
-                msg, lvl, burst = m[:w-4], 1, 1.0
+                msg, lvl, burst = m[:max(1, w-4)], 1, 1.0
                 from_fleet, msg_t = False, time.time()
             else:
                 al = fleet_alert()
                 if al and al[1] != seen:
-                    seen = al[1]; lvl, msg, burst = al[0], al[1][:w-4], 1.0
+                    seen = al[1]; lvl, msg, burst = al[0], al[1][:max(1, w-4)], 1.0
                     target, from_fleet, msg_t = "SYS", True, time.time()
                 elif not al:
                     # resolved: a fleet alert withdraws itself
@@ -250,7 +251,7 @@ def main():
                 pad_l = max(0, (w - 2 - fw) // 2)
                 drift = int(now * 6) % (len(face) + 4) if face else 0
                 for i, row_s in enumerate(face):
-                    line = corrupt(row_s, burst * 0.55)
+                    line = corrupt(row_s, burst * 0.55)[:max(0, w - 3)]
                     c = BLOOM if (i == drift and idle) else col     # a scanline sweeping by
                     out.append(RULE + "│" + RST + " " * (pad_l + 1) + c + line + RST
                                + " " * max(0, w - 2 - pad_l - 1 - len(line)) + RULE + "│" + RST)
@@ -258,10 +259,11 @@ def main():
                     out.append(RULE + "│" + RST + " " * (w - 2) + RULE + "│" + RST)
 
             if msg:
-                txt = corrupt(msg, burst * 0.8)
-                pad_m = max(0, (w - 2 - len(msg)) // 2)
+                shown = msg[:max(1, w - 2)]          # the pane may have shrunk since
+                txt = corrupt(shown, burst * 0.8)
+                pad_m = max(0, (w - 2 - len(shown)) // 2)
                 out.append(RULE + "│" + RST + " " * pad_m + col + txt + RST
-                           + " " * max(0, w - 2 - pad_m - len(msg)) + RULE + "│" + RST)
+                           + " " * max(0, w - 2 - pad_m - len(shown)) + RULE + "│" + RST)
             else:
                 if h_why:
                     idle_col = (DIM, AMB, RED)[min(h_lvl, 2)]
