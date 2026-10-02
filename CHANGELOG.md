@@ -6,6 +6,12 @@ before it updates.
 
 ## Unreleased
 
+## 1.2.17 — screens kick over ssh
+
+- `phosphor screens`: `x` really kicks a screen that came in over ssh (a phone, another
+  computer). It used to answer "not allowed to signal": the pid `who` gives is sshd's own,
+  which runs as root; the kick now ends that login's part that runs as you.
+
 ## 1.2.16 — screens through a relay
 
 - A screen that reaches the brain through a tailscale relay (DERP) no longer freezes: while one

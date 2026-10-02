@@ -100,14 +100,53 @@ def screens(session):
     return rows
 
 
-def kick(pid):
+def _mine(pid):
     try:
-        os.kill(pid, signal.SIGTERM)
-        return True, "kicked %d -- it should reconnect in a few seconds" % pid
-    except ProcessLookupError:
+        return os.stat("/proc/%d" % pid).st_uid == os.getuid()
+    except OSError:
+        return False
+
+
+def targets(pid, mine=_mine):
+    """What to signal to end the login `pid` stands for. `who -u` names sshd's
+    privileged monitor, which runs as root: we can't signal it, and a kick
+    that tried got "not allowed" on every ssh screen. Its child that runs as
+    us (`sshd: you@pts/N`, or `sshd-session` on newer OpenSSH) is the
+    connection's own end: ending it drops the link and the monitor follows.
+    So: `pid` itself if it's ours (a local login), else the topmost
+    descendants that are ours."""
+    if mine(pid):
+        return [pid]
+    tree = descendants(pid)
+    ours = set(p for p in tree[1:] if mine(p))
+    parent = {}
+    for p in ours:
+        try:
+            stat = open("/proc/%d/stat" % p).read()
+            parent[p] = int(stat[stat.rindex(")") + 2:].split()[1])
+        except (OSError, ValueError, IndexError):
+            parent[p] = None
+    return sorted(p for p in ours if parent[p] not in ours)
+
+
+def kick(pid, mine=_mine):
+    if not os.path.exists("/proc/%d" % pid):
         return False, "already gone"
-    except PermissionError:
+    hit = targets(pid, mine)
+    if not hit:
         return False, "not allowed to signal %d" % pid
+    done = 0
+    for p in hit:
+        try:
+            os.kill(p, signal.SIGTERM)
+            done += 1
+        except ProcessLookupError:
+            done += 1
+        except PermissionError:
+            pass
+    if not done:
+        return False, "not allowed to signal %d" % pid
+    return True, "kicked %d -- it should reconnect in a few seconds" % pid
 
 
 def raw_screen(on):

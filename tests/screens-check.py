@@ -9,6 +9,8 @@ Verifies:
 - is_deck_client() only says yes for a `zellij ... attach <session>`
   descendant, matched on the real argv (a spawned process, not a mock)
 - kick() reports failure instead of raising on a pid that's already gone
+- kick() on a login whose pid isn't ours (sshd's monitor runs as root)
+  signals its topmost descendant that is, and that one really ends
 """
 import os, subprocess, sys, time
 
@@ -80,6 +82,30 @@ gone = subprocess.Popen(["true"])
 gone.wait()
 ok, msg = screens.kick(gone.pid)
 check("kicking a dead pid reports failure, doesn't raise", ok is False and msg)
+
+# 5. kick() on a login we can't signal (who -u names sshd's root monitor):
+# it ends our own topmost descendant instead. "Not ours" is faked for the
+# top pid, since CI isn't root; the child really gets the signal.
+top = subprocess.Popen(["sh", "-c", "sh -c 'sleep 30; :' & wait"])
+try:
+    mid = None
+    for _ in range(50):
+        mid = child_of(top.pid)
+        if mid and child_of(mid):
+            break
+        time.sleep(0.05)
+    notours = lambda p: p != top.pid and screens._mine(p)
+    check("targets() picks the topmost pid that's ours, not the grandchild",
+          screens.targets(top.pid, notours) == [mid])
+    check("targets() is the pid itself when it's ours", screens.targets(top.pid) == [top.pid])
+    check("nothing ours below: no targets", screens.targets(top.pid, lambda p: False) == [])
+    ok, msg = screens.kick(top.pid, notours)
+    check("kick through a root-owned login reports success", ok)
+    top.wait(timeout=5)
+    check("the kicked child really ended (and its parent with it)", top.returncode is not None)
+finally:
+    if top.poll() is None:
+        top.kill(); top.wait()
 
 if fails:
     print("FAILED:\n  " + "\n  ".join(fails))
