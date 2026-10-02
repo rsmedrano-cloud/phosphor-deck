@@ -152,6 +152,40 @@ r = subprocess.run([sys.executable, "-c", "import sys; sys.path.insert(0, sys.ar
                    env=dict(os.environ, LC_ALL="C", LANG="C", PYTHONUTF8="0", PYTHONCOERCECLOCALE="0"))
 check("an ASCII locale reads it too (%s)" % r.stderr.strip()[-80:], r.returncode == 0 and "Caf\\xe9" in r.stdout)
 
+# search reaches into the body (a list of lines), not only the title
+e = {"title": "t", "body": ["one line", "the Cable aisle"], "by": "me", "tab": ""}
+check("search matches a body line", notes.matches(e, "cable"))
+check("and misses without crashing", not notes.matches(e, "zzz"))
+
+# a tap on a note picks it (rows below the top bar): it used to compare the
+# entry regex, which shadowed ui.HEAD, with the row and crash the tab
+import pty, select, time, struct, fcntl, termios
+def tapped(argv, taps):
+    pid, fd = pty.fork()
+    if pid == 0:
+        os.execve(sys.executable, [sys.executable, os.path.join(os.path.dirname(LIB), "phosphor")] + argv,
+                  dict(os.environ, TERM="xterm-256color"))
+    fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", 24, 80, 0, 0))
+    out = b""
+    def drain(t):
+        nonlocal out
+        end = time.time() + t
+        while time.time() < end:
+            if select.select([fd], [], [], 0.05)[0]:
+                try: out += os.read(fd, 65536)
+                except OSError: return
+    drain(1.0)
+    for x, y in taps:
+        os.write(fd, ("\x1b[<0;%d;%dM\x1b[<0;%d;%dm" % (x, y, x, y)).encode()); drain(0.3)
+    gone = os.waitpid(pid, os.WNOHANG)[0] != 0
+    if not gone:
+        os.kill(pid, 9); os.waitpid(pid, 0)
+    return gone, out.decode("utf-8", "replace")
+gone, out = tapped(["notes", "--file", p], [(10, 4), (10, 5), (10, 23)])
+check("a tap on a note doesn't end the tab" + (" (%s)" % out[out.find("Error"):][:120] if gone else ""),
+      not gone and "Traceback" not in out)
+check("and picks it", "\u258c" in out)
+
 if fail:
     print("FAIL: " + "; ".join(fail)); sys.exit(1)
 print("ok")

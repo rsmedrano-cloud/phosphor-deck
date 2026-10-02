@@ -6,6 +6,13 @@ before it updates.
 
 ## Unreleased
 
+## 1.2.15 — taps and search in NOTES
+
+- NOTES no longer closes when you tap a note: a tap on the list ended the tab with a TypeError
+  (the tap's row was compared with the wrong thing). The "errors when clicking in NOTES".
+- Searching NOTES (`/`) no longer closes the tab when a note with a body doesn't match by title;
+  the search now really looks inside the body, as it always said.
+
 ## 1.2.14 — crashed panels keep their traceback
 
 - A phosphor panel that crashes (NOTES, fleet, the DECK tab...) now leaves its traceback in

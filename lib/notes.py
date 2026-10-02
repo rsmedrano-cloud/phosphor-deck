@@ -148,7 +148,7 @@ def append(path, kind, by, title, body="", tab=""):
                 f.write("\n" + body + "\n")
             f.write("\n")
 KINDS = {"note": FG, "idea": BLOOM, "decision": AMB, "todo": RED, "summary": PH, "done": MUTE}
-HEAD = re.compile(r"^## (\S+ \S+) · (\w+) · ([^·]+?)(?: · (.*))?$")
+ENTRY = re.compile(r"^## (\S+ \S+) · (\w+) · ([^·]+?)(?: · (.*))?$")
 STRIP = re.compile(r"\x1b\[[0-9;]*m")
 
 def add(argv):
@@ -183,7 +183,7 @@ def split(text):
     """(preamble, [raw entry text]) in file order, oldest first."""
     pre, blocks = [], []
     for line in text.splitlines():
-        if HEAD.match(line):
+        if ENTRY.match(line):
             blocks.append([line])
         elif blocks:
             blocks[-1].append(line)
@@ -193,7 +193,7 @@ def split(text):
 
 def parse(raw):
     lines = raw.splitlines()
-    m = HEAD.match(lines[0])
+    m = ENTRY.match(lines[0])
     body = lines[1:]
     while body and not body[-1].strip(): body.pop()
     while body and not body[0].strip(): body.pop(0)
@@ -600,7 +600,8 @@ def confirm(q, rows):
 
 def matches(e, q):
     q = q.lower()
-    return any(q in (e.get(f) or "").lower() for f in ("title", "body", "by", "tab"))
+    return any(q in "\n".join(v if isinstance(v, list) else [v or ""]).lower()   # body is a list of lines
+               for v in (e.get(f) for f in ("title", "body", "by", "tab")))
 
 def search_prompt(rows, current):
     """A one-line prompt on the footer's row. Returns the new query (empty
