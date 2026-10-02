@@ -411,7 +411,7 @@ more depth on every one of these.
 | `phosphor usage` | how much of your Claude Code and Antigravity plans you've used (5-hour window, week) and when each refills |
 | `phosphor glance` | read-only: fleet, unread mentions, open todos -- for a small screen, no zellij needed |
 | `phosphor adjutant` | the SYS panel that speaks up: `phosphor notify MESSAGE` makes it announce something |
-| `phosphor notify --push` | the same notice on your phone (ntfy), for a brain nobody sits near: `[push]` in the profile |
+| `phosphor notify --push` | the same notice on your phone (ntfy), for a brain nobody sits near: `[push]` in the profile; with `[tts]` on, what the brain said rides along as audio |
 | `phosphor push [--qr\|on\|off]` | `[push]`'s status, on or off, or a QR to subscribe on the phone without typing the server/topic in |
 | `phosphor tts` | speak notifications aloud with selectable voices (GLaDOS, Adjutant, HAL, Synth, System) |
 | `phosphor ci` | GitLab/GitHub pipeline status cards (see `[ci]` in the profile) |

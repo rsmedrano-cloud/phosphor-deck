@@ -6,6 +6,16 @@ before it updates.
 
 ## Unreleased
 
+## 1.4.2 — a pushed notice carries its voice
+
+- A pushed notice carries its voice: with `[tts]` and `[push]` both on, the words the brain
+  speaks go along to the phone as an audio attachment in the ntfy app -- the brain is often in a
+  rack where nobody hears it. Rendered once, played on both ends. `[push] clip = false` keeps it
+  text only; a self-hosted ntfy needs an attachment cache for it (see profile), else it gets the
+  text as before.
+- GLaDOS voice failing (a missing PortAudio, a broken venv) no longer means silence: the notice
+  is spoken in the synth voice instead, as when GLaDOS isn't installed.
+
 ## 1.4.1 — an EGA theme
 
 - New theme: `ega`, the 16 colors of an old PC's EGA card -- light grey text, bright green

@@ -136,7 +136,7 @@
   upstream ("one device, then another" makes those easy to forget). For a small screen:
   `ssh -t you@brain ~/.local/bin/phosphor glance` needs no zellij attach at all (see screens);
   refreshes every 5s, Ctrl-C to leave.
-- `phosphor notify [--tab TAB] [--voice VOICE] [--tts|--no-tts] [--push|--no-push] MESSAGE` — the adjutant announces it, speaks it if TTS is enabled, and pushes it to your phone if `[push]` is on. The tab it names (or SYS with no `--tab`) also reads "`<TAB> ●N`" until you look, whether or not `[deck] notifier` is on (see profile).
+- `phosphor notify [--tab TAB] [--voice VOICE] [--tts|--no-tts] [--push|--no-push] MESSAGE` — the adjutant announces it, speaks it if TTS is enabled, and pushes it to your phone if `[push]` is on -- with what it said attached as audio when it spoke it (`[push] clip`). The tab it names (or SYS with no `--tab`) also reads "`<TAB> ●N`" until you look, whether or not `[deck] notifier` is on (see profile).
 - `phosphor tts [MESSAGE]` — speak a message aloud with selectable voices (glados, adjutant, hal, synth, system); `phosphor tts install glados` assists with installing GLaDOS-TTS. `on`/`off` switch `[tts]`; with nothing, on a terminal, its status with on/off one key away.
 - `phosphor push [--qr | on | off]` — `[push]`'s status (on/off, server, topic, the "open the deck" button); `on`/`off`
   switch it (`on` with no topic makes up a long random one); with nothing, on a terminal, the same status with

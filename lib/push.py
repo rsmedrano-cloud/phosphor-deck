@@ -13,8 +13,12 @@ message text leaves this machine, so nothing is sent by default.
     phosphor push --qr      the subscribe link as a QR (and on every clipboard):
                              scan it in the phone's ntfy app instead of typing
                              the server and topic in by hand
+
+With [tts] on too, a notice the brain speaks carries what it said: the same
+clip, attached to the push (ntfy's attachments), so the phone plays the
+words instead of a generic ring. [push] clip = false keeps it text only.
 """
-import os, sys, urllib.request, urllib.error
+import os, sys, urllib.parse, urllib.request, urllib.error
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import deckconf
@@ -39,7 +43,15 @@ def get_config(prof=None):
         "priority": str(p.get("priority", "default") or "default"),
         "title": str(p.get("title", "phosphor") or "phosphor"),
         "open_web": p.get("open_web", True) is not False,
+        "clip": p.get("clip", True) is not False,
     }
+
+
+def wants_clip(force=False, cfg=None):
+    """Would a notice now go out with its spoken clip attached? Push on (or
+    forced) with a topic, and [push] clip not turned off."""
+    cfg = cfg or get_config()
+    return bool((force or cfg["enabled"]) and cfg["topic"] and cfg["clip"])
 
 
 def web_url(prof=None):
@@ -58,11 +70,13 @@ def web_url(prof=None):
         return ""
 
 
-def send(text, tab="", cfg=None, force=False, timeout=8, click=""):
+def send(text, tab="", cfg=None, force=False, timeout=8, click="", attach=""):
     """POST the notice. Returns (ok, why): why says what went wrong, or "".
     click: an address the notice opens when tapped, with an "open the deck"
-    button too. Never raises: a notice that can't be pushed must not break
-    the caller."""
+    button too. attach: a wav file (the spoken notice) sent along as an
+    attachment; a server that won't take one (a self-hosted ntfy without
+    an attachment cache) still gets the text. Never raises: a notice that
+    can't be pushed must not break the caller."""
     cfg = cfg or get_config()
     if not (force or cfg["enabled"]):
         return False, "push is off"
@@ -77,9 +91,28 @@ def send(text, tab="", cfg=None, force=False, timeout=8, click=""):
     if click:
         headers["Click"] = click
         headers["Actions"] = "view, open the deck, %s" % click
-    body = text.strip()[:MAX_LEN].encode("utf-8")
-    req = urllib.request.Request("%s/%s" % (cfg["url"], cfg["topic"]),
-                                 data=body, headers=headers, method="POST")
+    msg = text.strip()[:MAX_LEN]
+    target = "%s/%s" % (cfg["url"], cfg["topic"])
+    if attach:
+        try:
+            with open(attach, "rb") as f:
+                data = f.read()
+        except OSError:
+            data = b""
+        if data:
+            # The file is the body, so the message rides in the query string
+            # (ntfy reads ?message= and ?filename= the same as headers).
+            q = urllib.parse.urlencode({"message": msg, "filename": "phosphor.wav"})
+            ok, why = _post(urllib.request.Request(target + "?" + q, data=data,
+                            headers=headers, method="PUT"), timeout)
+            if ok or not why.startswith("HTTP 4"):
+                return ok, why
+            # 4xx: attachments not allowed there, or too big: the text alone
+    return _post(urllib.request.Request(target, data=msg.encode("utf-8"),
+                                        headers=headers, method="POST"), timeout)
+
+
+def _post(req, timeout):
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
             return (200 <= r.status < 300), ("" if 200 <= r.status < 300 else "HTTP %d" % r.status)
@@ -89,15 +122,17 @@ def send(text, tab="", cfg=None, force=False, timeout=8, click=""):
         return False, str(getattr(e, "reason", e))
 
 
-def notify_hook(text, tab="", force=False):
+def notify_hook(text, tab="", force=False, attach=""):
     """Called by `phosphor notify`: push if enabled (or forced by --push).
-    With browser access on, tapping the notice opens the deck."""
+    With browser access on, tapping the notice opens the deck; attach is
+    the spoken clip, when [tts] made one."""
     prof, _ = deckconf.load()
     cfg = get_config(prof)
     if not (force or cfg["enabled"]):
         return False, "push is off"
     return send(text, tab=tab, cfg=cfg, force=force,
-                click=web_url(prof) if cfg["open_web"] else "")
+                click=web_url(prof) if cfg["open_web"] else "",
+                attach=attach if cfg["clip"] else "")
 
 
 def subscribe_url(cfg):
@@ -115,6 +150,9 @@ def status(cfg=None):
     print(row(OK if cfg["topic"] else WARN, "topic", cfg["topic"] or "(none set)"))
     if cfg["token"]:
         print(row(OK, "token", "set"))
+    print(row(OK if cfg["clip"] else DIM + "·" + RST, "voice clip",
+              "attached when [tts] speaks" if cfg["clip"] else "off",
+              note="" if cfg["clip"] else "[push] clip = true attaches it"))
     if cfg["open_web"]:
         u = web_url()
         print(row(OK if u else DIM + "·" + RST, "open the deck", u or "no button",

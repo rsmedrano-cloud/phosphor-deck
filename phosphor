@@ -500,10 +500,20 @@ def main():
         if not no_event:
             with open(os.path.join(d, "events"), "a") as f:
                 f.write("%s\t%s\n" % (tab, txt))
+        # Spoken and pushed both: render the voice once, so the phone gets
+        # the clip the brain plays (tts.notify_hook removes it after).
+        wav = ""
+        if push_opt is not False and tts_opt is not False:
+            try:
+                import push, tts
+                if push.wants_clip(force=bool(push_opt)):
+                    wav = tts.clip(txt, voice=voice_opt, force=bool(tts_opt or voice_opt), fleet=fleet_alert)
+            except Exception:
+                wav = ""
         if push_opt is not False:
             try:
                 import push
-                ok, why = push.notify_hook(txt, tab=tab, force=bool(push_opt))
+                ok, why = push.notify_hook(txt, tab=tab, force=bool(push_opt), attach=wav)
                 if push_opt and not ok:
                     print("push failed: %s" % why, file=sys.stderr)
             except Exception as e:
@@ -512,7 +522,8 @@ def main():
         if tts_opt is not False:
             try:
                 import tts
-                tts.notify_hook(txt, tab=tab, voice=voice_opt, force=bool(tts_opt or voice_opt), fleet=fleet_alert)
+                tts.notify_hook(txt, tab=tab, voice=voice_opt, force=bool(tts_opt or voice_opt),
+                                fleet=fleet_alert, wav=wav)
             except Exception:
                 pass
         zj = os.path.expanduser("~/.local/bin/zellij")

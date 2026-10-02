@@ -95,6 +95,76 @@ finally:
     deckconf.load = real_load
     tts.speak_async = real_speak_async
 
+# 4c. render(): the voice into a file, for the clip a push carries
+import time
+with tempfile.TemporaryDirectory() as td:
+    # a GLaDOS that writes its -o file and records how it was called
+    os.makedirs(os.path.join(td, "glados", "models"))
+    for m in ("glados.onnx", "phomenizer_en.onnx"):
+        open(os.path.join(td, "glados", "models", m), "w").write("x")
+    open(os.path.join(td, "speak.py"), "w").write(
+        "import sys, shutil\n"
+        "open(%r, 'w').write(' '.join(sys.argv[1:]))\n"
+        "a = sys.argv; shutil.copy(%r, a[a.index('-o') + 1])\n"
+        % (os.path.join(td, "argv"), os.path.join(td, "src.wav")))
+    tts.generate_synth_wav("hello", os.path.join(td, "src.wav"))
+    g = {"glados_path": td, "voice": "glados"}
+    out = tts.render("db-box is down", cfg=g)
+    called = open(os.path.join(td, "argv")).read() if os.path.exists(os.path.join(td, "argv")) else ""
+    check("glados renders into a file", out and os.path.getsize(out) > 44)
+    check("glados: quiet, never the speaker", "-q" in called.split())
+    check("glados: the text", "db-box is down" in called)
+    if out: os.remove(out)
+
+    real_sys, real_player = tts.find_system_tts, tts.find_audio_player
+    tts.find_system_tts = lambda: (None, None)
+    try:
+        g = {"glados_path": os.path.join(td, "none"), "voice": "glados"}
+        out = tts.render("db-box is down", cfg=g)
+        check("glados missing: the synth fallback still renders", out and wave.open(out).getnframes() > 0)
+        if out: os.remove(out)
+        tts.find_system_tts = lambda: ("spd-say", "/bin/false")
+        before = set(os.listdir(tempfile.gettempdir()))
+        check("spd-say can't write a file: no clip", tts.render("x", cfg=g) == "")
+        check("no clip leaves no file", not [f for f in set(os.listdir(tempfile.gettempdir())) - before
+                                             if f.startswith("phosphor-tts-")])
+        check("empty text: no clip", tts.render("  ", cfg=g) == "")
+
+        # clip() follows the same gating as speaking
+        real_load = deckconf.load
+        try:
+            deckconf.load = lambda: ({"tts": {"enabled": False}}, "t")
+            check("tts off: no clip", tts.clip("x") == "")
+            deckconf.load = lambda: ({"tts": {"enabled": True, "glados_path": g["glados_path"]}}, "t")
+            check("fleet alert without fleet_alerts: no clip", tts.clip("x", fleet=True) == "")
+            tts.find_system_tts = lambda: (None, None)
+            c = tts.clip("x" * 400)
+            check("tts on: a clip", bool(c))
+
+            # notify_hook plays that same file, then removes it
+            tts.find_audio_player = lambda: ("paplay", "/bin/true")
+            spoke.clear()
+            tts.speak_async = lambda text, voice=None, cfg=None: spoke.append(text)
+            tts.notify_hook("x", wav=c)
+            for _ in range(50):
+                if not os.path.exists(c): break
+                time.sleep(0.1)
+            check("the clip is played, not synthesized again", spoke == [])
+            check("the clip is removed once played", not os.path.exists(c))
+            c = tts.clip("y")
+            tts.find_audio_player = lambda: (None, None)
+            tts.notify_hook("y", wav=c)
+            check("no player: removed, spoken the old way", not os.path.exists(c) and spoke == ["y"])
+            c = tts.clip("z")
+            deckconf.load = lambda: ({"tts": {"enabled": False}}, "t")
+            tts.notify_hook("z", wav=c)
+            check("not spoken: the clip still goes", not os.path.exists(c) and spoke == ["y"])
+        finally:
+            deckconf.load = real_load
+            tts.speak_async = real_speak_async
+    finally:
+        tts.find_system_tts, tts.find_audio_player = real_sys, real_player
+
 # 5. CLI interface
 saved_argv = sys.argv
 try:

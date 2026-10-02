@@ -20,6 +20,12 @@ class H(http.server.BaseHTTPRequestHandler):
         got.append((self.path, self.rfile.read(n).decode(), dict(self.headers)))
         self.send_response(500 if self.path == "/broken" else 200)
         self.end_headers()
+    def do_PUT(self):
+        n = int(self.headers.get("Content-Length", 0))
+        got.append((self.path, self.rfile.read(n), dict(self.headers), "PUT"))
+        # /plain stands for a server with no attachment cache
+        self.send_response(400 if self.path.startswith("/plain") else 200)
+        self.end_headers()
     def log_message(self, *a): pass
 srv = http.server.HTTPServer(("127.0.0.1", 0), H)
 threading.Thread(target=srv.serve_forever, daemon=True).start()
@@ -157,6 +163,43 @@ try:
         push.deckconf.load = real_load
 finally:
     web.usable, web.url = real
+
+# the spoken clip rides along as an ntfy attachment
+import tempfile, urllib.parse
+wav = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+wav.write(b"RIFF" + b"\0" * 60); wav.close()
+c = push.get_config({"push": {"enabled": True, "url": url, "topic": "deck"}})
+check("clip on by default", c["clip"] is True and push.wants_clip(cfg=c))
+check("clip = false: no clip", not push.wants_clip(cfg=push.get_config(
+      {"push": {"enabled": True, "url": url, "topic": "deck", "clip": False}})))
+check("push off: no clip", not push.wants_clip(cfg=push.get_config({"push": {"url": url, "topic": "deck"}})))
+check("forced push: a clip", push.wants_clip(force=True, cfg=push.get_config({"push": {"url": url, "topic": "deck"}})))
+ok, why = push.send("host down: db-box", tab="SYS", cfg=c, attach=wav.name)
+last = got[-1]
+check("attach: sent ok", ok and why == "")
+check("attach: a PUT of the file", len(last) == 4 and last[1] == open(wav.name, "rb").read())
+q = urllib.parse.parse_qs(urllib.parse.urlparse(last[0]).query)
+check("attach: the text in ?message", q.get("message") == ["host down: db-box"])
+check("attach: named phosphor.wav", q.get("filename") == ["phosphor.wav"])
+check("attach: title kept", last[2].get("Title") == "phosphor · SYS")
+c = push.get_config({"push": {"enabled": True, "url": url, "topic": "plain"}})
+n = len(got)
+ok, why = push.send("host down", cfg=c, attach=wav.name)
+check("no attachments there: the text still goes", ok and len(got) == n + 2
+      and len(got[-1]) == 3 and got[-1][1] == "host down")
+ok, _ = push.send("gone file", cfg=c, attach="/nonexistent/x.wav")
+check("missing clip: plain text", ok and len(got[-1]) == 3)
+real_load = push.deckconf.load
+try:
+    push.deckconf.load = lambda: ({"push": {"enabled": True, "url": url, "topic": "deck", "clip": False}}, "t")
+    push.notify_hook("mention", attach=wav.name)
+    check("clip = false: notify sends text only", len(got[-1]) == 3)
+    push.deckconf.load = lambda: ({"push": {"enabled": True, "url": url, "topic": "deck"}}, "t")
+    push.notify_hook("mention", attach=wav.name)
+    check("notify carries the clip", len(got[-1]) == 4)
+finally:
+    push.deckconf.load = real_load
+os.remove(wav.name)
 
 srv.shutdown()
 if fails:

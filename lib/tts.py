@@ -209,32 +209,108 @@ def generate_synth_wav(text, output_wav, style="synth"):
         wf.writeframes(frames)
 
 
+PLAYER_FLAGS = {"paplay": [], "pw-play": [], "aplay": ["-q"],
+                "mpv": ["--no-terminal", "--really-quiet"],
+                "ffplay": ["-nodisp", "-autoexit", "-loglevel", "quiet"], "play": ["-q"]}
+
+
+def player_args(wav_path):
+    """The command that plays wav_path here, or None without a player."""
+    player_name, player_bin = find_audio_player()
+    if not player_name:
+        return None
+    return [player_bin] + PLAYER_FLAGS[player_name] + [wav_path]
+
+
 def play_wav(wav_path):
     """Play a WAV audio file using available system player or ALSA."""
-    player_name, player_bin = find_audio_player()
-    if player_name == "paplay":
-        subprocess.run([player_bin, wav_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20)
+    args = player_args(wav_path)
+    if args:
+        subprocess.run(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20)
         return True
-    if player_name == "pw-play":
-        subprocess.run([player_bin, wav_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20)
-        return True
-    if player_name == "aplay":
-        subprocess.run([player_bin, "-q", wav_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20)
-        return True
-    if player_name == "mpv":
-        subprocess.run([player_bin, "--no-terminal", "--really-quiet", wav_path],
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20)
-        return True
-    if player_name == "ffplay":
-        subprocess.run([player_bin, "-nodisp", "-autoexit", "-loglevel", "quiet", wav_path],
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20)
-        return True
-    if player_name == "play":
-        subprocess.run([player_bin, "-q", wav_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20)
-        return True
-
     dlog.event_throttled("TTS", "no-audio-player")
     return False
+
+
+def _espeak_voice(v_target):
+    """espeak's flags for each of our voices."""
+    return {"adjutant": ["-v", "en+whisper", "-p", "60", "-s", "135"],
+            "hal": ["-v", "en-us", "-p", "22", "-s", "120"],
+            "spanish": ["-v", "es", "-s", "145"],
+            "synth": ["-v", "en+klatt", "-p", "80", "-s", "145"]}.get(v_target, ["-s", "150"])
+
+
+def _glados_python(g_dir):
+    for py in (os.path.join(g_dir, ".venv", "bin", "python"), os.path.join(g_dir, "venv", "bin", "python")):
+        if os.path.isfile(py):
+            return py
+    return sys.executable
+
+
+def render(text, voice=None, cfg=None, out=None):
+    """The same voice speak() would use, into a wav file instead of the
+    speaker: for the clip a push carries. Returns the file's path, or ""
+    when nothing here can write one (spd-say only speaks). A failed render
+    leaves no file behind."""
+    cfg = cfg or get_config()
+    v_target = voice or cfg.get("voice", "glados")
+    clean_txt = re.sub(r"\x1b\[[0-9;]*[mK]", "", text).strip()
+    if not clean_txt:
+        return ""
+    if out is None:
+        fd, out = tempfile.mkstemp(prefix="phosphor-tts-", suffix=".wav")
+        os.close(fd)
+
+    def done(ok):
+        if ok and os.path.exists(out) and os.path.getsize(out) > 44:
+            return out
+        try: os.remove(out)
+        except OSError: pass
+        return ""
+
+    def run(args, **kw):
+        try:
+            return subprocess.run(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                  timeout=30, **kw).returncode == 0
+        except Exception as e:
+            dlog.event("TTS", "render-failed", str(e)[:60])
+            return False
+
+    if v_target in VOICE_MODELS:
+        m_path = os.path.join(get_voices_dir(), VOICE_MODELS[v_target]["file"])
+        piper_bin = find_piper()
+        if os.path.isfile(m_path) and piper_bin:
+            try:
+                ok = subprocess.run([piper_bin, "--model", m_path, "--output_file", out],
+                                    input=clean_txt, text=True, capture_output=True,
+                                    timeout=25).returncode == 0
+            except Exception:
+                ok = False
+            if done(ok):
+                return out
+    if v_target == "glados":
+        g_dir = get_glados_dir(cfg)
+        if is_glados_ready(g_dir)[0] and done(run(
+                [_glados_python(g_dir), os.path.join(g_dir, "speak.py"),
+                 "-q", "-t", clean_txt, "-o", out], cwd=g_dir)):
+            return out
+        v_target = "synth"      # not installed, or it failed (no PortAudio...)
+    sys_tts_name, sys_tts_bin = find_system_tts()
+    if sys_tts_name in ("espeak-ng", "espeak"):
+        return done(run([sys_tts_bin] + _espeak_voice(v_target) + ["-w", out, clean_txt]))
+    if sys_tts_name == "say":
+        voice_opt = {"adjutant": ["-v", "Victoria"], "hal": ["-v", "Fred"],
+                     "spanish": ["-v", "Monica"]}.get(v_target, [])
+        return done(run([sys_tts_bin] + voice_opt + ["--file-format=WAVE",
+                         "--data-format=LEI16@22050", "-o", out, clean_txt]))
+    if sys_tts_name == "spd-say":
+        return done(False)
+    try:
+        generate_synth_wav(clean_txt, out, style=v_target)
+        return done(True)
+    except Exception as e:
+        dlog.event("TTS", "synth-failed", str(e)[:60])
+        return done(False)
 
 
 def speak_piper(text, model_file):
@@ -289,19 +365,20 @@ def speak(text, voice=None, cfg=None, async_mode=False):
         g_dir = get_glados_dir(cfg)
         ready_flag, reason = is_glados_ready(g_dir)
         if ready_flag:
-            py_bin = os.path.join(g_dir, ".venv", "bin", "python")
-            if not os.path.isfile(py_bin):
-                py_bin = os.path.join(g_dir, "venv", "bin", "python")
-            if not os.path.isfile(py_bin):
-                py_bin = sys.executable
+            py_bin = _glados_python(g_dir)
 
             speak_script = os.path.join(g_dir, "speak.py")
             try:
-                subprocess.run([py_bin, speak_script, "-t", clean_txt],
-                               cwd=g_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=30)
-                return
+                if subprocess.run([py_bin, speak_script, "-t", clean_txt], cwd=g_dir,
+                                  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                  timeout=30).returncode == 0:
+                    return
+                # It failed (no PortAudio, a broken venv): the synth voice
+                # instead of silence, same as when it isn't installed.
+                dlog.event("TTS", "glados-run-failed", "exit status")
             except Exception as e:
                 dlog.event("TTS", "glados-run-failed", str(e)[:60])
+            v_target = "synth"
         else:
             dlog.event("TTS", "glados-not-ready", reason[:60])
             v_target = "synth"
@@ -310,16 +387,7 @@ def speak(text, voice=None, cfg=None, async_mode=False):
     sys_tts_name, sys_tts_bin = find_system_tts()
 
     if sys_tts_name in ("espeak-ng", "espeak"):
-        if v_target == "adjutant":
-            args = [sys_tts_bin, "-v", "en+whisper", "-p", "60", "-s", "135", clean_txt]
-        elif v_target == "hal":
-            args = [sys_tts_bin, "-v", "en-us", "-p", "22", "-s", "120", clean_txt]
-        elif v_target == "spanish":
-            args = [sys_tts_bin, "-v", "es", "-s", "145", clean_txt]
-        elif v_target == "synth":
-            args = [sys_tts_bin, "-v", "en+klatt", "-p", "80", "-s", "145", clean_txt]
-        else:
-            args = [sys_tts_bin, "-s", "150", clean_txt]
+        args = [sys_tts_bin] + _espeak_voice(v_target) + [clean_txt]
         try:
             subprocess.run(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20)
             return
@@ -366,21 +434,51 @@ def speak_async(text, voice=None, cfg=None):
     return speak(text, voice=voice, cfg=cfg, async_mode=True)
 
 
-def notify_hook(text, tab="", voice=None, force=False, fleet=False):
-    """Hook invoked on notifications to speak if enabled. A fleet health
-    alert (a machine going down or coming back) only speaks when [tts]
-    fleet_alerts is also on: most people want to hear a message meant for
-    them, not every blip of a machine they're not looking at."""
-    cfg = get_config()
+def _would_speak(cfg, force, fleet):
+    """A fleet health alert (a machine going down or coming back) only
+    speaks when [tts] fleet_alerts is also on: most people want to hear a
+    message meant for them, not every blip of a machine they're not
+    looking at."""
     if fleet and not cfg.get("fleet_alerts"):
+        return False
+    return bool(force or cfg.get("enabled"))
+
+
+def _notice_text(text):
+    clean = text.strip()
+    return clean[:157] + "..." if len(clean) > 160 else clean
+
+
+def clip(text, voice=None, force=False, fleet=False):
+    """The notice as notify_hook would speak it, in a wav file: what a push
+    carries along, so the phone hears the same words. "" when this notice
+    wouldn't be spoken, or nothing here can write a file."""
+    cfg = get_config()
+    if not _would_speak(cfg, force, fleet):
+        return ""
+    return render(_notice_text(text), voice=voice or cfg.get("voice", "glados"), cfg=cfg)
+
+
+def notify_hook(text, tab="", voice=None, force=False, fleet=False, wav=""):
+    """Hook invoked on notifications to speak if enabled. wav: the clip()
+    already made for this notice; played here instead of synthesizing it a
+    second time, then removed (the hook owns it either way)."""
+    cfg = get_config()
+    args = player_args(wav) if wav and _would_speak(cfg, force, fleet) else None
+    if args:
+        # In the background, so `phosphor notify` returns; the file goes
+        # once it's been played.
+        import shlex
+        subprocess.Popen(["/bin/sh", "-c", "%s; rm -f %s" % (shlex.join(args), shlex.quote(wav))],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
         return
-    if not (force or cfg.get("enabled")):
+    if wav:
+        try: os.remove(wav)
+        except OSError: pass
+    if not _would_speak(cfg, force, fleet):
         return
     v_voice = voice or cfg.get("voice", "glados")
-    clean = text.strip()
-    if len(clean) > 160:
-        clean = clean[:157] + "..."
-    speak_async(clean, voice=v_voice, cfg=cfg)
+    speak_async(_notice_text(text), voice=v_voice, cfg=cfg)
 
 
 def download_file_with_progress(url, dest_path):

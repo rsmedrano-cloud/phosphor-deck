@@ -701,10 +701,17 @@ message text leaves the brain**.
 | priority | "default" | min, low, default, high, max (high and max make the phone sound loudly) |
 | title | "phosphor" | the notice's title; the tab it came from is appended |
 | open_web | true | with browser access on (`phosphor web on`), tapping the notice or its "open the deck" button opens the deck in the browser |
+| clip | true | with `[tts]` on too, a notice the brain speaks carries what it said: the same audio, as an attachment the phone plays |
 
     [push]
     enabled = true
     topic   = "deck-9f3k2x7q"      # anyone who knows a public topic can read it: make it long and random
+
+The clip is the voice the brain itself speaks in (`[tts] voice`; the synth
+one when that voice isn't installed or fails), rendered once and played on
+both ends. It follows `[tts]`'s own rules: a fleet alert carries one only
+with `fleet_alerts` on. A server that refuses attachments still gets the
+text.
 
 On the public ntfy.sh a topic is only as private as its name; with your own server (or a token)
 it's yours. Try it with `phosphor notify --push "hello"`: it says why if it can't send.
@@ -715,7 +722,10 @@ ntfy is one Go binary; no Firebase, no account. Download a
 [release](https://github.com/binwiederhier/ntfy/releases) for the brain's
 architecture and run it:
 
-    ./ntfy serve --listen-http <brain's tailscale IP>:8080 --cache-file ~/.local/share/ntfy/cache.db
+    ./ntfy serve --listen-http <brain's tailscale IP>:8080 --cache-file ~/.local/share/ntfy/cache.db \
+        --attachment-cache-dir ~/.local/share/ntfy/attachments --base-url http://<that IP>:8080
+
+(the last two for the voice clip: without them your server takes the text only).
 
 Point `[push] url` at `http://<that IP>:8080`, and the phone's ntfy app at
 the same address instead of ntfy.sh (its server field, not just the topic).
@@ -934,7 +944,7 @@ and in the `+` menu, and open in a tab of their own.
   upstream ("one device, then another" makes those easy to forget). For a small screen:
   `ssh -t you@brain ~/.local/bin/phosphor glance` needs no zellij attach at all (see screens);
   refreshes every 5s, Ctrl-C to leave.
-- `phosphor notify [--tab TAB] [--voice VOICE] [--tts|--no-tts] [--push|--no-push] MESSAGE` — the adjutant announces it, speaks it if TTS is enabled, and pushes it to your phone if `[push]` is on. The tab it names (or SYS with no `--tab`) also reads "`<TAB> ●N`" until you look, whether or not `[deck] notifier` is on (see profile).
+- `phosphor notify [--tab TAB] [--voice VOICE] [--tts|--no-tts] [--push|--no-push] MESSAGE` — the adjutant announces it, speaks it if TTS is enabled, and pushes it to your phone if `[push]` is on -- with what it said attached as audio when it spoke it (`[push] clip`). The tab it names (or SYS with no `--tab`) also reads "`<TAB> ●N`" until you look, whether or not `[deck] notifier` is on (see profile).
 - `phosphor tts [MESSAGE]` — speak a message aloud with selectable voices (glados, adjutant, hal, synth, system); `phosphor tts install glados` assists with installing GLaDOS-TTS. `on`/`off` switch `[tts]`; with nothing, on a terminal, its status with on/off one key away.
 - `phosphor push [--qr | on | off]` — `[push]`'s status (on/off, server, topic, the "open the deck" button); `on`/`off`
   switch it (`on` with no topic makes up a long random one); with nothing, on a terminal, the same status with
