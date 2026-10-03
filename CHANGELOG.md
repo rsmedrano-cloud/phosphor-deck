@@ -6,6 +6,14 @@ before it updates.
 
 ## Unreleased
 
+## 1.4.9 — update knows what the deck runs
+
+- `phosphor update` no longer says "nothing to refresh, no restart needed" when the code had
+  already changed on disk before it ran (a `--no-restart` update, a `git pull` by hand, a commit
+  in the clone the deck runs from): it compares against the code the deck started with, so those
+  changes get their pane refresh or their real restart. The first update after this one restarts
+  the deck, since it has no record of what the deck started with yet.
+
 ## 1.4.8 — pending updates on the fleet
 
 - A FLEET card says how many updates its machine has pending, in amber when some are security

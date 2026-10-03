@@ -213,6 +213,11 @@ def create(zj, prof, kind):
     if r.returncode == 0:
         os.makedirs(made_dir(), exist_ok=True)
         open(os.path.join(made_dir(), s), "w").close()
+        try:
+            import hotswap
+            hotswap.record(s)               # what its panes start with (see update)
+        except Exception:
+            pass
     return r.returncode == 0
 
 

@@ -73,34 +73,44 @@ shutil.rmtree(d, ignore_errors=True)
 # that against the real lib/ directory).
 import update
 real_apply, real_load = update.hotswap.apply, update.deckconf.load
+real_base, real_record = update.hotswap.baseline, update.hotswap.record
 
 def reset():
     update.hotswap.apply = real_apply
     update.deckconf.load = real_load
+    update.hotswap.baseline, update.hotswap.record = real_base, real_record
 
 try:
     reset()
     update.deckconf.load = lambda: ({"deck": {"session": "deck"}}, "")
+    update.hotswap.baseline = lambda session: {}
+    update.hotswap.record = lambda *a: None
 
     update.hotswap.apply = lambda session, before, after: ([], "gen.py is shared code")
-    need("a decline from hotswap means a real restart is needed", update.refresh({}, False) is True)
+    need("a decline from hotswap means a real restart is needed", update.refresh(False) is True)
 
     update.hotswap.apply = lambda session, before, after: ([(3, "fleet")], None)
-    need("a successful swap means no restart is needed", update.refresh({}, False) is False)
+    need("a successful swap means no restart is needed", update.refresh(False) is False)
 
     update.hotswap.apply = lambda session, before, after: ([], None)
-    need("nothing changed at all: still no restart needed", update.refresh({}, False) is False)
+    need("nothing changed at all: still no restart needed", update.refresh(False) is False)
 
     calls = []
     update.hotswap.apply = lambda *a: calls.append(a) or ([], None)
-    need("--full skips hotswap's judgement entirely", update.refresh({}, True) is True)
+    need("--full skips hotswap's judgement entirely", update.refresh(True) is True)
     need("--full never even calls hotswap.apply", calls == [])
+
+    update.hotswap.apply = lambda *a: ([], None)
+    update.hotswap.baseline = lambda session: None
+    need("a deck with no record of the code it started with gets a real restart",
+         update.refresh(False) is True)
+    update.hotswap.baseline = lambda session: {}
 
     def raising(*a):
         raise RuntimeError("zellij isn't installed here")
     update.hotswap.apply = raising
     need("an unexpected error still falls back to a real restart, never crashes update",
-         update.refresh({}, False) is True)
+         update.refresh(False) is True)
 finally:
     reset()
 
@@ -134,7 +144,7 @@ try:
     log = os.path.join(repo, "log")
     os.environ["FAKE_LOG"] = log
     update.REPO, update.from_git = repo, lambda: True
-    update.refresh = lambda before, full: True       # a real restart is needed
+    update.refresh = lambda full: True       # a real restart is needed
     update.hotswap.snapshot = lambda: {}
     def main(install_rc, restart_rc):
         os.environ["FAKE_INSTALL_RC"], os.environ["FAKE_RESTART_RC"] = str(install_rc), str(restart_rc)

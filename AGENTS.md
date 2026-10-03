@@ -323,7 +323,12 @@ deck, and every other tab, is left alone. Anything shared (the layout
 generator, a shortcut zellij itself needs to reread, anything outside
 `lib/`) still gets a real `phosphor restart`, same as always -- that
 judgement call is conservative on purpose: `--full` skips it and always
-restarts, if you'd rather not think about it.
+restarts, if you'd rather not think about it. What counts as changed is
+measured against the code the deck started with, not against what was on
+disk when the update began: code that landed some other way first (a
+`--no-restart` update, a `git pull` by hand, a commit in the clone the deck
+runs from) still gets the panes it touches refreshed, or the restart it
+needs. A deck started before this was recorded gets a real restart.
 
 A real restart only starts the new deck once the old one is proven gone:
 zellij no longer lists the session, its service has stopped, and none of its

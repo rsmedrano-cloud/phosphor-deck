@@ -37,6 +37,30 @@ with tempfile.TemporaryDirectory() as td:
     finally:
         hotswap.REPO, hotswap.LIB = real_repo, real_lib
 
+# 1b. the baseline is the code the session started with, not the disk at
+# update time: on a dev clone the deck runs from, a commit is on disk before
+# `phosphor update` runs and the pull brings nothing -- the change must
+# still show up (it used to read "nothing to refresh, no restart needed").
+with tempfile.TemporaryDirectory() as td:
+    lib = os.path.join(td, "lib")
+    os.makedirs(lib)
+    open(os.path.join(lib, "fleet.py"), "w").write("x = 1\n")
+    real = hotswap.REPO, hotswap.LIB, hotswap.STATE
+    hotswap.REPO, hotswap.LIB, hotswap.STATE = td, lib, os.path.join(td, "state")
+    try:
+        check("no record yet: baseline() says so", hotswap.baseline("deck") is None)
+        hotswap.record("deck")                                      # the session is made
+        open(os.path.join(lib, "fleet.py"), "w").write("x = 2\n")  # a commit, on disk
+        at_update = hotswap.snapshot()                              # the pull brings nothing
+        check("a change committed before the update is still seen",
+              hotswap.changed(hotswap.baseline("deck"), at_update) == ["lib/fleet.py"])
+        hotswap.record("deck", at_update)                           # swapped: panes run it now
+        check("once refreshed, nothing is left to do",
+              hotswap.changed(hotswap.baseline("deck"), hotswap.snapshot()) == [])
+        check("each session has its own record", hotswap.baseline("deck-phone") is None)
+    finally:
+        hotswap.REPO, hotswap.LIB, hotswap.STATE = real
+
 # 2. module_of(): only a bare lib/*.py counts as a tool module.
 check("a lib/ module", hotswap.module_of("lib/fleet.py") == "fleet")
 check("share/ is never a module", hotswap.module_of("share/collect.sh") is None)

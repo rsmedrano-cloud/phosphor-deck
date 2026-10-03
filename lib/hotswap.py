@@ -56,6 +56,40 @@ def snapshot():
     return out
 
 
+# What each session's panes started with: written when the session is made
+# (the generated <session>-up.sh, kinds.create), read back by `phosphor
+# update`. The baseline has to be the code the panes really run, not what's
+# on disk when the update starts: on a dev clone the live deck runs from,
+# a commit lands on disk long before any update, the pull then brings
+# nothing, and a diff against "just before the pull" would see no change.
+STATE = os.environ.get("PHOSPHOR_CACHE") or os.path.expanduser("~/.cache/phosphor")
+
+
+def baseline_path(session):
+    return os.path.join(STATE, "code-%s.json" % session)
+
+
+def record(session, snap=None):
+    """Remember `snap` (default: the code on disk now) as what this
+    session's panes run."""
+    os.makedirs(STATE, exist_ok=True)
+    tmp = baseline_path(session) + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(snapshot() if snap is None else snap, f)
+    os.replace(tmp, baseline_path(session))
+
+
+def baseline(session):
+    """The code this session started with, or None if it was never
+    recorded (a session made before this existed)."""
+    try:
+        with open(baseline_path(session)) as f:
+            got = json.load(f)
+        return got if isinstance(got, dict) else None
+    except (OSError, ValueError):
+        return None
+
+
 def changed(before, after):
     keys = set(before) | set(after)
     return sorted(k for k in keys if before.get(k) != after.get(k))
@@ -220,3 +254,13 @@ def apply(session, before, after):
         swap(session, pid, argv)
         swapped.append((pid, tool))
     return swapped, None
+
+
+if __name__ == "__main__":
+    # `hotswap.py --record SESSION`: what the generated <session>-up.sh runs
+    # right after it makes the session
+    if len(sys.argv) == 3 and sys.argv[1] == "--record":
+        try:
+            record(sys.argv[2])
+        except OSError:
+            pass

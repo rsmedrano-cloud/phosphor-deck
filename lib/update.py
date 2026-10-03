@@ -141,7 +141,6 @@ def main():
     a = [x for x in argv if not x.startswith("-")]
     restart = "--no-restart" not in argv
     full = "--full" in argv
-    before_files = hotswap.snapshot()
     print()
     print(BLOOM + "  phosphor update" + RST + DIM + "   " + REPO + RST)
     if chan is not None:
@@ -187,7 +186,7 @@ def main():
     offer_one_pane()
     if restart:
         print()
-        if refresh(before_files, full):
+        if refresh(full):
             # unattended updates need to know: a restart that stopped short
             # (old deck not fully down, a missing pane) fails the update too
             rc = subprocess.run([sys.executable, os.path.join(REPO, "phosphor"), "restart"]).returncode
@@ -214,9 +213,12 @@ def offer_one_pane():
                   note="press 1 in it to make it one pane (the keys are ? there)"))
 
 
-def refresh(before_files, full):
+def refresh(full):
     """Hot-swap the panes an update actually affects, live, instead of a
-    real restart -- or decide a real restart is still needed. Always
+    real restart -- or decide a real restart is still needed. What changed
+    is measured against the code each session started with (hotswap's
+    record), not against the disk when this update began: on a dev clone
+    the deck runs from, the commits are on disk long before the pull. Always
     prints what it did (or why not); returns True when a restart is
     still needed (--full, hotswap declined, or it hit something
     unexpected -- never silently skips the restart on a surprise)."""
@@ -225,18 +227,29 @@ def refresh(before_files, full):
     import kinds
     prof = deckconf.load()[0]
     session = ((prof or {}).get("deck") or {}).get("session", "deck")
-    swapped = []
+    base = hotswap.baseline(session)
+    if base is None:
+        print(row(WARN, "hotswap", "skipped", note="no record of the code the deck started with"))
+        return True
+    swapped, done = [], []
     # the deck's own session, then any kind of screen's (deck-phone...) that's up
     for s in [session] + kinds.all_sessions(prof):
+        now = hotswap.snapshot()
         try:
-            got, reason = hotswap.apply(s, before_files, hotswap.snapshot())
+            got, reason = hotswap.apply(s, hotswap.baseline(s) or base, now)
         except Exception as e:
             print(row(WARN, "hotswap", "skipped", note="unexpected: %s" % str(e)[:60]))
             return True
-        if reason and s == session:
+        if reason:
             print(row(WARN, "hotswap", "skipped", note=reason))
             return True
         swapped += got or []
+        done.append((s, now))
+    for s, now in done:                     # their panes run this code now
+        try:
+            hotswap.record(s, now)
+        except OSError:
+            pass
     if swapped:
         for pid, tool in swapped:
             print(row(OK, "hotswap", tool, note="pane %d refreshed live, no restart" % pid))

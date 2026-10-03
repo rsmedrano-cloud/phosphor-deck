@@ -4,7 +4,7 @@ Writes the session layout, per-tab layouts, the zellij theme, the systemd
 units, the rclone remotes and the brain's disk links. fleet and path read
 the profile themselves (through deckconf), so there's one source of truth.
 """
-import hashlib, os, re, shutil, subprocess, sys
+import hashlib, os, re, shlex, shutil, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
 import deckconf
@@ -291,6 +291,8 @@ if [ "%(web)s" = "1" ]; then
 else
   $Z --layout "$S" attach --create-background "$S" || exit 1
 fi
+# what the panes start with: phosphor update compares against it
+%(python)s %(repo)s/lib/hotswap.py --record "$S" >/dev/null 2>&1
 # Floating panes only with notifier = true. In real use zellij 0.45.1 wedged
 # its screen thread at 100%% when switching tabs after hiding them by id
 # (-t). Cause unproven (see doc/manual/profile.md and issue #14); this loop
@@ -775,6 +777,7 @@ def run(prof, src, dry=False):
     sess_name = ctx.deck.get("session", "deck")
     up = os.path.join(HOME, ".local/share/phosphor", "%s-up.sh" % sess_name)
     write(up, DECK_UP % {"zellij": resolve("zellij"), "session": sess_name,
+                     "python": shlex.quote(sys.executable), "repo": shlex.quote(REPO),
                      "notifier": "1" if ctx.deck.get("notifier", False) else "0",
                      "web": "1" if ctx.deck.get("web", False) else "0"}, dry, changed)
     if not dry and os.path.exists(up):
