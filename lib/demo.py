@@ -148,6 +148,9 @@ def main():
         shutil.rmtree(STATE, ignore_errors=True)   # a new session starts from scratch, tour included
         write_copy(with_tour)
         prof = load_profile(COPY)
+        # the layout is built here, not in the session: it has to read the demo's
+        # tabs.d too, never this machine's own (a recipe of yours showed up in it)
+        os.environ["PHOSPHOR_TABS_D"] = TABS_D
         seed_notes(((prof.get("notes") or {}).get("folder")) or "~/.local/share/phosphor")
         layout = build_layout(prof)
         print("  building the demo deck...")

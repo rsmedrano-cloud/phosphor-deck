@@ -36,7 +36,7 @@ role = "node"
 # A fixed, made-up notebook instead of your real one: `phosphor demo` seeds
 # it from profiles/demo-notes.md the first time.
 [notes]
-folder = "~/.cache/phosphor/demo"
+folder = "~/.cache/phosphor/demo-state/notes"   # under demo-state: --stop and every new demo wipe it
 
 [[tabs]]
 name  = "SYS"

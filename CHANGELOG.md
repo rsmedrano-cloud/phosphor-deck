@@ -6,6 +6,21 @@ before it updates.
 
 ## Unreleased
 
+## 1.4.10 — the tools the + menu missed
+
+- `phosphor demo`'s notebook now lives with the rest of its state, so `phosphor demo --stop`
+  (and every new demo) wipes it, as the manual says: it used to sit in `~/.cache/phosphor/demo`
+  and keep every note any demo ever took.
+- `phosphor demo` builds its tabs from its own `profiles/demo-tabs.d`, never from your
+  `~/.config/phosphor/tabs.d`: a recipe you had added used to show up in the demo, and the
+  demo's own extra tabs never did.
+- `/` in the + menu finds btop, gping, ctop and yazi too, the tools phosphor installs itself:
+  it only searched the store's catalog, which doesn't list them.
+- Alt-r, then **d**, puts back a tab that comes from `tabs.d` (a recipe's, or one you dropped
+  in): it used to leave your changes in place without a word.
+- gping, picked with Alt-r's **r** or in a + → layout pane, pings your fleet's hosts, as the SYS
+  tab's does: it started with none and ended at once.
+
 ## 1.4.9 — update knows what the deck runs
 
 - `phosphor update` no longer says "nothing to refresh, no restart needed" when the code had

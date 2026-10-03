@@ -38,7 +38,34 @@ def need(what, ok):
         fails.append(what)
     return ok
 
+def pure():
+    """No zellij needed: what d can put back, what r and the layout offer."""
+    import tempfile
+    tmp = tempfile.mkdtemp()
+    env0 = dict(os.environ)
+    prof = os.path.join(tmp, "deck.toml")
+    os.environ.update(HOME=tmp, PHOSPHOR_PROFILE=prof, PATH=os.path.join(tmp, ".local/bin") + ":/usr/bin:/bin")
+    td = os.path.join(tmp, ".config/phosphor/tabs.d"); os.makedirs(td)
+    open(prof, "w").write(PROFILE + '\n[[hosts]]\nname = "db-box"\nrole = "work"\nssh = "db-box"\n')
+    open(os.path.join(td, "bubble.toml"), "w").write('[[tabs]]\nname = "BUBBLE"\npanes = [ { cmd = "" } ]\n')
+    bin_ = os.path.join(tmp, ".local/bin"); os.makedirs(bin_)
+    for b in ("btop", "gping"):
+        open(os.path.join(bin_, b), "w").write("#!/bin/sh\n"); os.chmod(os.path.join(bin_, b), 0o755)
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "lib"))
+    import edit
+    need("a profile tab can be put back", edit.origin("SYS") == (True, None))
+    need("a tabs.d tab can be put back too (gen wrote its layout)",
+         edit.origin("BUBBLE")[1] and edit.origin("BUBBLE")[1].endswith("bubble.toml"))
+    need("a tab opened with + has nothing to go back to", edit.origin("NEWONE") == (False, None))
+    opts = {i[0]: i for i in edit.options()}
+    g = opts.get("gping")
+    need("r offers gping with the fleet's hosts, not bare (it exits with none)",
+         g and "db-box" in g[3][1:] and g[4].get("args") == ["@hosts"])
+    need("r offers btop", "btop" in opts)
+    os.environ.clear(); os.environ.update(env0)
+
 def main():
+    pure()
     if not zjprobe.zellij():
         print("no zellij here: skipped"); return 0
     with zjprobe.Probe(PROFILE) as z:

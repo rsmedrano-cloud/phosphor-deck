@@ -27,7 +27,8 @@ sizes your profile has.
 
 A tab that isn't in the profile yet (opened with +) is added when you save.
 A tab from `tabs.d` (see profile) has no **s**: it names the file instead,
-since saving there would fork it from whoever you got it from.
+since saving there would fork it from whoever you got it from. **d** puts it
+back the way that file has it.
 Editing changes the mode for every screen looking at the deck.
 
 ## Your own keys

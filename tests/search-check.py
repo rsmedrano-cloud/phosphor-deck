@@ -27,13 +27,16 @@ for k in [k for k in os.environ if k.startswith("ZELLIJ")]:
 bin_ = os.path.join(tmp, ".local/bin"); os.makedirs(bin_)
 open(os.path.join(bin_, "lazygit"), "w").write("#!/bin/sh\n")      # a catalog tool, installed
 os.chmod(os.path.join(bin_, "lazygit"), 0o755)
+for b in ("btop", "gping"):                                          # phosphor's own tools, not in store.json
+    open(os.path.join(bin_, b), "w").write("#!/bin/sh\n"); os.chmod(os.path.join(bin_, b), 0o755)
 proj = os.path.join(tmp, "projects")
 os.makedirs(os.path.join(proj, "rocket")); open(os.path.join(proj, "rocket", "NOTES.md"), "w").close()
 os.makedirs(os.path.join(proj, "plain"))
 sys.path.insert(0, os.path.join(ROOT, "lib"))
 import newtab
 
-prof = {"deck": {"projects": proj}}
+prof = {"deck": {"projects": proj}, "hosts": [{"name": "box", "role": "brain", "local": True},
+                                              {"name": "db-box", "role": "work", "ssh": "db-box"}]}
 its = newtab.entries(prof)
 items = newtab.search_items(prof, its)
 kinds = {it[2] for it in items}
@@ -42,6 +45,12 @@ need("every command is searchable", any(it[2] == "command" and it[0] == "doctor"
 need("a workspace is searchable", any(it[2] == "workspace" and it[0] == "rocket" for it in items))
 need("a folder without NOTES.md isn't a workspace", not any(it[0] == "plain" for it in items))
 need("an installed catalog tool is searchable", any(it[2] == "app" and it[0] == "lazygit" for it in items))
+need("btop, which phosphor installs itself, is searchable", any(it[2] == "tool" and it[0] == "btop" for it in items))
+gp = [it for it in items if it[0] == "gping"]
+need("gping is searchable, and opens with the fleet's hosts",
+     len(gp) == 1 and gp[0][2] == "tool" and "db-box" in gp[0][3][3] and gp[0][3][4]["args"] == ["@hosts"])
+need("a deck tool that isn't installed isn't", not any(it[0] == "ctop" for it in items))
+need("no hosts: no gping (it would exit at once)", not any(t[0] == "gping" for t in newtab.deck_tools({})))
 need("a tool that isn't installed isn't", not any(it[2] == "app" and it[0] == "gomuks" for it in items))
 need("outside the deck: no open tabs", "tab" not in kinds)
 

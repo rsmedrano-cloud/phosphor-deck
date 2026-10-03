@@ -179,17 +179,23 @@ def visible(tab_id, covered):
     ps = [p for p in panes() if not p["is_plugin"] and p["tab_id"] == tab_id]
     return [p["id"] for p in ps if p["id"] != me and (not p["is_suppressed"] or p["id"] == covered)]
 
+def origin(name):
+    """(in your profile, the tabs.d file it comes from): either way gen wrote
+    its layout, so d can put it back; neither is a tab opened with +."""
+    mine = in_profile(name)
+    return mine, None if mine else deckconf.tabs_d_names().get(name)
+
 def done(tab_id, pos, name, covered, st):
     before, now = tuple(st["before"]), tab_now(name, covered)
     diff = changes(before, now)
-    known = in_profile(name)
-    src = None if known else deckconf.tabs_d_names().get(name)
+    mine, src = origin(name)
+    known = mine or bool(src)
     head = ["", BLOOM + "  EDIT " + name + RST + DIM + "  what changed" + RST, ""]
     head += ["  " + FG + "· " + d + RST for d in diff] or ["  " + DIM + "nothing yet" + RST]
     if src:
         head += ["", "  " + AMB + name + " comes from " + src.replace(os.path.expanduser("~"), "~", 1)
                  + ": edit that file, then phosphor gen" + RST]
-    elif not known:
+    elif not mine:
         head += ["", "  " + AMB + name + " isn't in your profile yet: save adds it" + RST]
     note = ""
     while True:
@@ -257,10 +263,9 @@ def options():
         p = apps.have(apps.exe(a))
         if p and a["n"] not in seen:
             items.append((a["n"], a["c"], apps.tab_name(a), [p] + a.get("args", []), apps.spec(a)))
-    for b, flags in (("btop", {}), ("ctop", {"alt": True}), ("gping", {"alt": True})):
-        p = apps.have(b)
-        if p and b not in seen and all(i[0] != b for i in items):
-            items.append((b, "deck tool", b.upper(), [p], dict(flags, cmd=b)))
+    for t in newtab.deck_tools(prof):
+        if t[0] != "yazi" and all(i[0] != t[0] for i in items):
+            items.append(t)
     return items
 
 def pick(title, items, extra=()):

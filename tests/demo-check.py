@@ -66,6 +66,7 @@ check("layout runs phosphor fleet/pulse, not a real host's ssh",
 
 # 6. Never leaks the calling shell's own session into the subprocess env
 _state = tempfile.mkdtemp()
+_real_state = demo.STATE
 demo.STATE = os.path.join(_state, "demo-state")
 os.environ["ZELLIJ"] = "0"
 os.environ["ZELLIJ_SESSION_NAME"] = "deck"
@@ -105,6 +106,25 @@ import panel
 panel.marked = lambda step: False
 lines = panel.draw(copy, dict(panel.state(copy), screens=1), 60, 60)[0]
 check("no watchdog line in the demo", not any("watchdog" in l for l in lines))
+
+# 9. The notebook is under demo-state too, so --stop (and a new demo) wipes it: it used to
+#    live in ~/.cache/phosphor/demo and pile up every note a demo ever took
+nb = os.path.expanduser((demo.load_profile(demo.PROFILE).get("notes") or {}).get("folder", ""))
+check("the notebook lives under demo-state", nb.startswith(_real_state + os.sep))
+
+# 10. The layout reads the demo's tabs.d, never this machine's own: the demo's
+#     main() sets PHOSPHOR_TABS_D before build_layout (it used to read yours)
+src = open(os.path.join(os.path.dirname(demo.__file__), "demo.py")).read()
+body = src[src.index("def main"):]
+check("main sets the demo's tabs.d before building the layout",
+      'os.environ["PHOSPHOR_TABS_D"] = TABS_D' in body
+      and body.index('os.environ["PHOSPHOR_TABS_D"]') < body.index("build_layout(prof)"))
+_td = os.path.join(_state, "demo-tabs.d"); os.makedirs(_td, exist_ok=True)
+with open(os.path.join(_td, "show.toml"), "w") as f:
+    f.write('[[tabs]]\nname = "SHOWTAB"\npanes = [{ cmd = "phosphor notes" }]\n')
+os.environ["PHOSPHOR_TABS_D"] = _td
+demo.LAYOUT = os.path.join(_state, "demo.kdl")
+check("a demo-tabs.d tab lands in the layout", "SHOWTAB" in open(demo.build_layout(copy)).read())
 
 if fails:
     print("FAILED:\n  " + "\n  ".join(fails))

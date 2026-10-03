@@ -83,6 +83,21 @@ def entries(prof):
                     {"cmd": "yazi", "args": ["@mount_root"], "needs_size": True}))
     return out
 
+def deck_tools(prof):
+    """The tools phosphor installs itself (not in store.json), as entries:
+    [(label, note, tab name, argv, spec)]. gping gets the fleet's hosts, as
+    the shipped SYS tab does: with none it has nothing to ping and exits."""
+    import gen
+    out = []
+    for b, spec in (("yazi", {"args": ["@mount_root"], "needs_size": True}), ("btop", {}),
+                    ("ctop", {"alt": True, "needs_size": True}), ("gping", {"alt": True, "args": ["@hosts"]})):
+        p = have(b)
+        if not p: continue
+        args = [x for a in spec.get("args", []) for x in gen.Ctx(prof or {}).expand(a)]
+        if spec.get("args") and not args: continue
+        out.append((b, "deck tool", b.upper(), [p] + args, dict(spec, cmd=b)))
+    return out
+
 HINT_SHOWS = 20     # opens of the + menu with the deck's keys at its foot; then it's learned
 
 def hint(prof):
@@ -208,7 +223,7 @@ def launch(name, argv, spec, keep):
     os.execv(sys.executable, [sys.executable, PHOSPHOR, "run"] + opts + ["--"] + argv)
 
 # What `/` in the + menu searches, in this order when two match as well.
-KINDS = ("tab", "entry", "workspace", "app", "command")
+KINDS = ("tab", "entry", "workspace", "tool", "app", "command")
 
 def search_items(prof, its):
     """Everything `/` can find: [(label, note, kind, payload)]. Open tabs
@@ -227,7 +242,12 @@ def search_items(prof, its):
     for w in workspace.names():
         if w.upper() not in open_names:
             out.append((w, "workspace: open its tab", "workspace", w))
-    listed = {a[3][0] for a in its if a[3]} | {os.path.basename(a[3][0]) for a in its if a[3]}
+    labels = {it[0] for it in its}
+    for t in deck_tools(prof):
+        if t[0] not in labels:
+            out.append((t[0], "installed: " + t[1], "tool", t))
+    listed = {a[3][0] for a in its if a[3]} | {os.path.basename(a[3][0]) for a in its if a[3]} \
+        | {t[0] for t in deck_tools(prof)}
     try:
         catalog = json.load(open(share("store.json")))
     except (OSError, ValueError):
@@ -534,6 +554,8 @@ def main():
                     err = open_workspace(what)
                     if err is None: return 0
                     msg = err; continue
+                if kind == "tool":
+                    launch(*what[2:], keep)
                 if kind == "app":
                     p = apps.have(apps.exe(what))
                     launch(apps.tab_name(what), [p] + what.get("args", []), apps.spec(what), keep)
