@@ -75,6 +75,9 @@ out=$(python3 tests/wizard-dedup-check.py 2>&1) && ok || bad "$out"
 step "fleet: keys over a card"
 out=$(python3 tests/fleet-keys-check.py 2>&1) && ok || bad "$out"
 
+step "text from outside is text: no escapes reach a screen"
+out=$(python3 tests/sanitize-check.py 2>&1) && ok || bad "$out"
+
 step "your apps, the store opens them"
 out=$(python3 tests/apps-check.py 2>&1) && ok || bad "$out"
 

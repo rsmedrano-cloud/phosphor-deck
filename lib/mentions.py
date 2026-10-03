@@ -26,6 +26,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
 from ui import getkey as ui_getkey
 import deckconf
+from sanitize import clean, clean_tree
 
 HOME   = os.path.expanduser("~")
 FEED   = os.path.join(deckconf.data_dir(), "mentions.jsonl")
@@ -70,8 +71,8 @@ def hook():
     try:
         d = json.loads(sys.stdin.read() or "{}")
         e = {"t": round(time.time(), 1),
-             "from": str(d.get("from", ""))[:64],
-             "message": " ".join(str(d.get("message", "")).split())[:500],
+             "from": clean(str(d.get("from", "")))[:64],
+             "message": " ".join(clean(str(d.get("message", ""))).split())[:500],
              "mention": bool(d.get("mention"))}
         os.makedirs(os.path.dirname(FEED), exist_ok=True)
         fd = os.open(FEED, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
@@ -109,7 +110,7 @@ def entries():
     out = []
     try:
         for l in open(FEED):
-            try: out.append(json.loads(l))
+            try: out.append(clean_tree(json.loads(l)))
             except ValueError: pass
     except OSError:
         pass

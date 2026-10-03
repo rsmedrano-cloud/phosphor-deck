@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import FG, DIM, MUTE, PH, BLOOM, AMB, RED, RULE, RST, getkey as ui_getkey, pad, vlen, topbar, HEAD
 import ci as cimod
 import deckconf
+from sanitize import clean_tree
 
 HOME = os.path.expanduser("~")
 REVIEW_DIR = os.path.join(HOME, ".cache/phosphor/review")
@@ -67,7 +68,7 @@ def list_gitlab():
     if r.returncode != 0:
         return [], (r.stderr or "glab mr list failed").strip()
     try:
-        data = json.loads(r.stdout or "[]")
+        data = clean_tree(json.loads(r.stdout or "[]"))
     except json.JSONDecodeError as e:
         return [], "glab returned bad JSON: %s" % e
     items = []
@@ -87,7 +88,7 @@ def list_github():
     if r.returncode != 0:
         return [], (r.stderr or "gh pr list failed").strip()
     try:
-        data = json.loads(r.stdout or "[]")
+        data = clean_tree(json.loads(r.stdout or "[]"))
     except json.JSONDecodeError as e:
         return [], "gh returned bad JSON: %s" % e
     items = []

@@ -24,6 +24,7 @@ from concurrent.futures import ThreadPoolExecutor
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import BAD, DIM, FG, OK, RST, WARN
 import deckconf
+from sanitize import clean_text
 
 USAGE = "usage: phosphor broadcast [--host NAME]... [--role ROLE] [--timeout S] [--yes] -- COMMAND"
 
@@ -52,7 +53,7 @@ def run_one(h, command, timeout):
         return h["name"], None, "no answer in %ds" % timeout, time.time() - t
     except OSError as e:
         return h["name"], None, str(e), time.time() - t
-    out = (r.stdout + r.stderr).rstrip("\n")
+    out = clean_text(r.stdout + r.stderr).rstrip("\n")
     # ssh's own 255 is the link, not the command: say it didn't get there
     rc = None if (r.returncode == 255 and not h.get("local")) else r.returncode
     return h["name"], rc, out, time.time() - t

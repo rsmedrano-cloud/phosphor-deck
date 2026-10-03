@@ -12,6 +12,7 @@ HOME  = os.path.expanduser("~")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import DIM, MUTE, PH, BLOOM, AMB, RED, RULE, RST
 import deckconf
+from sanitize import clean_tree
 import ui
 
 CACHE = os.path.join(deckconf.cache_dir(), "fleet.json")
@@ -25,7 +26,7 @@ HALF = {(True, False): "▀", (False, True): "▄", (True, True): "█"}
 def read_state():
     """(normalized load, level, reason). level: 0 ok, 1 warning, 2 critical."""
     try:
-        with open(CACHE) as f: d = json.load(f)
+        with open(CACHE) as f: d = clean_tree(json.load(f))
     except Exception:
         return 0.15, 0, "no data"
     if time.time() - d.get("t", 0) > 90:

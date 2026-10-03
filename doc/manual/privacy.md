@@ -10,6 +10,15 @@
   may reach what the deck reaches.
 - The brain holds ssh keys into the fleet: narrow them in `authorized_keys`
   (e.g. `from="100.64.0.0/10"` with tailscale).
+- What comes from outside the brain is shown as text, never as terminal
+  commands: a host's poll answer, its logs through `phosphor tail`, a chat
+  notification, a broadcast's output, CI and review data. Escape sequences
+  in them (one that writes every screen's clipboard, clears or retitles a
+  pane, or reorders a line) are dropped before they reach a screen, so a
+  compromised machine, or anyone who gets a line into a container's log,
+  can't use the deck's terminals. Plain colors in logs stay. An ssh shell
+  on a host (`s` in FLEET, an ssh tab) is a real terminal and passes
+  everything, as any ssh does.
 - The tools you run inside talk to their own services (your chat client --
   matterhorn, iamb, gomuks... -- to its server, an assistant to its
   provider). Phosphor adds no leaks and can't stop theirs.

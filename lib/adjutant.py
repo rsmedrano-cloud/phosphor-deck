@@ -10,6 +10,7 @@ Event sources:
 import json, os, random, re, shutil, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
+from sanitize import clean, clean_tree
 
 HOME   = os.path.expanduser("~")
 CACHE  = deckconf.cache_dir()
@@ -85,6 +86,7 @@ def read_events(pos):
                 for l in f.read().splitlines():
                     if not l.strip(): continue
                     tab, _, m = l.partition("\t")
+                    tab, m = clean(tab), clean(m)   # anyone can append here: text, never escapes
                     out.append((tab.strip(), (m or tab).strip()))
                 pos = f.tell()
     except FileNotFoundError:
@@ -101,7 +103,7 @@ def _read_fleet():
     if mtime != _fleet_cache["mtime"]:
         try:
             with open(FLEET) as f:
-                _fleet_cache["data"] = json.load(f)
+                _fleet_cache["data"] = clean_tree(json.load(f))
             _fleet_cache["mtime"] = mtime
         except Exception:
             import dlog

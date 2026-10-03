@@ -6,6 +6,16 @@ before it updates.
 
 ## Unreleased
 
+## 1.4.7 — text from outside is text
+
+- Text that comes from outside the brain no longer reaches a screen as terminal commands: a
+  fleet host's readings, its logs in `phosphor tail`, chat notifications, the adjutant's
+  events, `phosphor broadcast`'s output, CI and review data. Escape sequences in them (one that
+  writes the clipboard of every screen on the deck, clears or retitles a pane, or reverses a
+  line's text) are dropped; plain colors in logs stay. A compromised machine in the fleet, or
+  anyone who can get a line into a container's log, can't reach your terminals through the deck
+  anymore. An ssh shell on that machine is still a real terminal, as any ssh is.
+
 ## 1.4.6 — recipes bring their programs
 
 - `phosphor recipe NAME` brings what the bundle's panes run, not just its tabs: it says which

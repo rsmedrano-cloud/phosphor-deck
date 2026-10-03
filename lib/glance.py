@@ -14,6 +14,7 @@ import json, os, shutil, sys, textwrap, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import DIM, MUTE, FG, PH, AMB, RED, RST, rule
 import deckconf
+from sanitize import clean_tree
 import ui
 import health
 import mentions
@@ -28,7 +29,7 @@ def fleet_state():
     """(ok_count, total, [(name, detail)] for hosts that need attention)."""
     try:
         with open(CACHE) as f:
-            d = json.load(f)
+            d = clean_tree(json.load(f))
     except (OSError, ValueError):
         return 0, 0, None       # no data yet: fleet isn't running here
     stale = time.time() - d.get("t", 0) > 90

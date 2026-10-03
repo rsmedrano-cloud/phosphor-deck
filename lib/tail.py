@@ -12,6 +12,7 @@ through `phosphor run --reconnect`, the same mechanism a dropped ssh tab
 already reconnects with -- with the journalctl/docker/podman command
 already filled in, so you don't have to remember the syntax or the alias
 each time. Ctrl-C stops watching; it doesn't touch anything on the host.
+What it prints goes through lib/sanitize.py: lines and colors, no escapes.
 """
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -19,6 +20,7 @@ from ui import BAD, RST, REPO
 import deckconf
 
 PHOSPHOR = os.path.join(REPO, "phosphor")
+SANITIZE = os.path.join(REPO, "lib", "sanitize.py")
 
 
 def remote_argv(service):
@@ -51,6 +53,10 @@ def main():
         return 1
     cmd = remote_argv(service)
     argv = cmd if h.get("local") else ["ssh", "-t", deckconf.target(h)] + cmd
+    # A log line is whatever someone outside managed to write into it: through
+    # sanitize.py, so its escapes never reach the deck's screens (ssh's own
+    # 255 still comes out the other side, for --reconnect).
+    argv = [sys.executable, SANITIZE, "--"] + argv
     name = ("TAIL-" + host).upper()[:24]
     os.execv(sys.executable, [sys.executable, PHOSPHOR, "run", "--name", name, "--reconnect", "--"] + argv)
 

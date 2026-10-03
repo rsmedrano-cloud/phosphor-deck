@@ -487,6 +487,10 @@ What Phosphor does **not** control, honestly:
 - Fleet mounts mean the brain holds an SSH key into your other machines.
   Narrow it in their `authorized_keys`, e.g. with `from="100.64.0.0/10"` if
   you use tailscale.
+- What the fleet, a container's logs, a chat or a CI answer sends is shown
+  as text: escape sequences in it are dropped before any screen sees them,
+  so a compromised machine can't write your clipboard or repaint a pane.
+  An ssh shell on that machine is a real terminal, and passes everything.
 - Your profile is personal: host names, IPs, users. It lives in `~/.config`,
   not in the repo. If you fork and push, run `phosphor privacy` first.
 

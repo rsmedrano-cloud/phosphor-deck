@@ -18,6 +18,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
 import deckconf
 from health import sensors, LOW_BAT
+from sanitize import clean, clean_tree
 
 HOME     = os.path.expanduser("~")
 COLLECT  = share("collect.sh")
@@ -116,7 +117,7 @@ def collect(name, ssh, known_down=False):
         r = subprocess.run(cmd, input=script, capture_output=True, text=True, timeout=poll_t)
         if not r.stdout.strip():
             e = (r.stderr or "no answer").strip().splitlines()
-            return done({"ok": False, "err": e[-1][:24] if e else "no answer"})
+            return done({"ok": False, "err": clean(e[-1])[:24] if e else "no answer"})
         d = {"ok": True, "mnt": [], "ctr": None, "gpu": []}
         for line in r.stdout.splitlines():
             if "=" not in line: continue
@@ -131,7 +132,7 @@ def collect(name, ssh, known_down=False):
                 e, run, st = v.split("|"); d["ctr"] = (e, int(run), int(st))
             elif k in ("CPU","MEMU","MEMT","SVCFAIL"): d[k] = int(v)
             else: d[k] = v
-        return done(d)
+        return done(clean_tree(d))   # a host's answer is data: no escapes reach a screen
     except Exception as e:
         return done({"ok": False, "err": str(e)[:24]})
 
@@ -353,7 +354,7 @@ def read_state():
     writes it next (a Rust poller, a systemd service) needs no change here."""
     try:
         with open(CACHE) as f:
-            return json.load(f).get("hosts", {})
+            return clean_tree(json.load(f).get("hosts", {}))
     except (OSError, ValueError):
         return {}
 

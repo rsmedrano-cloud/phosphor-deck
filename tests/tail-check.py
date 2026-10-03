@@ -55,6 +55,12 @@ def run(argv):
     finally:
         sys.argv = saved
 
+def remote(argv):
+    """What runs past phosphor run's `--`: sanitize.py's own `--`, then the command."""
+    rest = argv[argv.index("--") + 1:]
+    check("through sanitize.py", rest[1:3] == [tail.SANITIZE, "--"])
+    return rest[3:]
+
 try:
     calls.clear()
     rc = run(["nope-a-host"])
@@ -64,18 +70,18 @@ try:
     run(["db-box", "nginx"])
     check("execs through phosphor run --reconnect", calls and "run" in calls[0] and "--reconnect" in calls[0])
     check("ssh -t to the resolved target, not the bare host name",
-          calls[0][calls[0].index("--") + 1:] == ["ssh", "-t", "deploy@db-box-alias",
+          remote(calls[0]) == ["ssh", "-t", "deploy@db-box-alias",
                                                     "journalctl", "-f", "-n", "100", "-u", "nginx"])
 
     calls.clear()
     run(["brain"])
     check("the local host skips ssh entirely",
-          calls[0][calls[0].index("--") + 1:] == ["journalctl", "-f", "-n", "100"])
+          remote(calls[0]) == ["journalctl", "-f", "-n", "100"])
 
     calls.clear()
     run(["nimbus", "docker/jellyfin"])
     check("a host with no explicit user/ssh alias falls back to its own name",
-          calls[0][calls[0].index("--") + 1:] == ["ssh", "-t", "nimbus",
+          remote(calls[0]) == ["ssh", "-t", "nimbus",
                                                     "docker", "logs", "-f", "--tail", "100", "jellyfin"])
 finally:
     tail.os.execv = real_execv

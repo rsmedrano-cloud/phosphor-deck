@@ -1031,7 +1031,8 @@ and in the `+` menu, and open in a tab of their own.
   -f` for `docker/NAME` or `podman/NAME`. Just a normal ssh tab (`ssh -t HOST ...`, through
   `phosphor run --reconnect`) with the command already filled in -- reconnects on a dropped link
   the same way any other ssh tab does, never touches anything on the host (also: `j` in the DECK
-  tab, which asks for the host and service first).
+  tab, which asks for the host and service first). What it prints keeps its lines and colors and
+  loses any other escape sequence (see privacy).
 - `phosphor triage [--assistant NAME] [HOST]` — a deeper, one-off look at a host (uptime and load,
   failed systemd units, memory, disk, recent kernel messages) collected over ssh and piped
   straight into `phosphor ask`, which shells it to whichever assistant CLI is installed with a
@@ -1736,6 +1737,15 @@ device's mount or another copy step.
   may reach what the deck reaches.
 - The brain holds ssh keys into the fleet: narrow them in `authorized_keys`
   (e.g. `from="100.64.0.0/10"` with tailscale).
+- What comes from outside the brain is shown as text, never as terminal
+  commands: a host's poll answer, its logs through `phosphor tail`, a chat
+  notification, a broadcast's output, CI and review data. Escape sequences
+  in them (one that writes every screen's clipboard, clears or retitles a
+  pane, or reorders a line) are dropped before they reach a screen, so a
+  compromised machine, or anyone who gets a line into a container's log,
+  can't use the deck's terminals. Plain colors in logs stay. An ssh shell
+  on a host (`s` in FLEET, an ssh tab) is a real terminal and passes
+  everything, as any ssh does.
 - The tools you run inside talk to their own services (your chat client --
   matterhorn, iamb, gomuks... -- to its server, an assistant to its
   provider). Phosphor adds no leaks and can't stop theirs.

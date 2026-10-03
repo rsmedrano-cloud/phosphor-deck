@@ -228,7 +228,8 @@ sidebar:
   -f` for `docker/NAME` or `podman/NAME`. Just a normal ssh tab (`ssh -t HOST ...`, through
   `phosphor run --reconnect`) with the command already filled in -- reconnects on a dropped link
   the same way any other ssh tab does, never touches anything on the host (also: `j` in the DECK
-  tab, which asks for the host and service first).
+  tab, which asks for the host and service first). What it prints keeps its lines and colors and
+  loses any other escape sequence (see privacy).
 - `phosphor triage [--assistant NAME] [HOST]` — a deeper, one-off look at a host (uptime and load,
   failed systemd units, memory, disk, recent kernel messages) collected over ssh and piped
   straight into `phosphor ask`, which shells it to whichever assistant CLI is installed with a

@@ -14,6 +14,7 @@ from concurrent.futures import ThreadPoolExecutor
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import DIM, MUTE, PH, BLOOM, AMB, RED, RULE, RST, FG, vlen, not_set_up, topbar, card as ui_card
 import deckconf
+from sanitize import clean_tree
 import ui
 
 
@@ -117,7 +118,7 @@ def fetch_github_pipeline(item, timeout=5):
     try:
         req = urllib.request.Request(url, headers=headers)
         with urllib.request.urlopen(req, timeout=timeout) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
+            data = clean_tree(json.loads(resp.read().decode("utf-8")), lines=True)
         runs = data.get("workflow_runs", [])
         if not runs:
             return None, "no runs found"
@@ -151,7 +152,7 @@ def fetch_github_pipeline(item, timeout=5):
             try:
                 j_req = urllib.request.Request(jobs_url, headers=headers)
                 with urllib.request.urlopen(j_req, timeout=timeout) as j_resp:
-                    j_data = json.loads(j_resp.read().decode("utf-8"))
+                    j_data = clean_tree(json.loads(j_resp.read().decode("utf-8")), lines=True)
                 for j in j_data.get("jobs", [])[:6]:
                     j_status_raw = j.get("status")
                     j_conclusion = j.get("conclusion")
@@ -205,7 +206,7 @@ def fetch_gitlab_pipeline(item, timeout=5):
     try:
         req = urllib.request.Request(url, headers=headers)
         with urllib.request.urlopen(req, timeout=timeout) as resp:
-            pipelines = json.loads(resp.read().decode("utf-8"))
+            pipelines = clean_tree(json.loads(resp.read().decode("utf-8")), lines=True)
         if not pipelines:
             return None, "no pipelines found"
         pipe = pipelines[0]
@@ -239,7 +240,7 @@ def fetch_gitlab_pipeline(item, timeout=5):
         try:
             d_req = urllib.request.Request(pipe_detail_url, headers=headers)
             with urllib.request.urlopen(d_req, timeout=timeout) as d_resp:
-                d_data = json.loads(d_resp.read().decode("utf-8"))
+                d_data = clean_tree(json.loads(d_resp.read().decode("utf-8")), lines=True)
                 user = d_data.get("user", {})
                 author = user.get("name") or user.get("username", "")
         except Exception as e:
@@ -250,7 +251,7 @@ def fetch_gitlab_pipeline(item, timeout=5):
         try:
             j_req = urllib.request.Request(jobs_url, headers=headers)
             with urllib.request.urlopen(j_req, timeout=timeout) as j_resp:
-                j_data = json.loads(j_resp.read().decode("utf-8"))
+                j_data = clean_tree(json.loads(j_resp.read().decode("utf-8")), lines=True)
             # newest first, retries included: keep each job's latest try, in pipeline order
             latest = {}
             for j in sorted(j_data, key=lambda j: j.get("id", 0)):
