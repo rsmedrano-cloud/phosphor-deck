@@ -44,6 +44,13 @@
   `$XDG_RUNTIME_DIR/phosphor-smart` there, or it waits out the day it
   remembers "not allowed". No TEMP or BAT line: the kernel exposes neither
   (a VM, a board without a sensor driver).
+- **A card shows no updates line**: nothing pending, the first count is
+  still running (it shows on a later poll), or the package manager isn't
+  one it knows (apt, dnf, apk, or Arch with `pacman-contrib`'s
+  `checkupdates`). Without `arch-audit` an Arch host can't tell security
+  updates apart, and neither can apk. A count that looks old: it's redone
+  when the package database changes; removing
+  `$XDG_RUNTIME_DIR/phosphor-updates` there forces it.
 - **A folder in `~/fleet` is empty** (yazi shows nothing, or won't go in):
   its mount isn't up. `phosphor doctor` says which ones are mounted;
   `journalctl --user -u fleet-NAME` says why. Mounts use your own ssh, so

@@ -1,4 +1,4 @@
-"""What a host's sensors say (collect.sh's TEMP, BAT and SMART), read the
+"""What a host's sensors say (collect.sh's TEMP, BAT, SMART and UPD), read the
 same way by the FLEET card and by glance. Its own module so fleet.py stays
 nobody else's import (see hotswap)."""
 
@@ -22,6 +22,18 @@ def sensors(d):
             smart = (num(f), num(n))
     return temp, bat, smart
 
+def updates(d):
+    """(pending updates, how many are security ones or None when the
+    package manager can't tell) from collect.sh's UPD, or None."""
+    if not d.get("UPD"):
+        return None
+    a, _, s = str(d["UPD"]).partition("|")
+    try: a = int(a)
+    except ValueError: return None
+    try: s = int(s)
+    except ValueError: s = None
+    return a, s
+
 HOT, LOW_BAT = 90, 10   # past these a host shows up in glance, not just on its card
 
 def sensor_problems(d):
@@ -34,4 +46,7 @@ def sensor_problems(d):
         out.append("cpu %d°C" % temp)
     if bat and bat[1] == "Discharging" and bat[0] <= LOW_BAT:
         out.append("battery %d%%" % bat[0])
+    upd = updates(d)
+    if upd and upd[1]:
+        out.append("%d security update%s" % (upd[1], "" if upd[1] == 1 else "s"))
     return out

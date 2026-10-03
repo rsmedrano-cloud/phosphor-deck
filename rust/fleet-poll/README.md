@@ -9,7 +9,10 @@ every host in the profile, debounce a blip into a real down/back transition
 **Optional, and additive.** `phosphor fleet` looks for this binary
 (`deckconf.exe("phosphor-fleet-poll")`, so `~/.local/bin` first) and only
 falls back to its own Python poller thread if it isn't there, isn't
-executable, or fails to start. On x86_64/aarch64, `install.sh` now fetches
+executable, fails to start, or was built from another `share/collect.sh`
+than the one next to it (the binary embeds the script, and `install.sh`
+never replaces one that's already installed, so an old binary would
+otherwise keep polling with an old script). On x86_64/aarch64, `install.sh` now fetches
 a static musl build of it from the GitHub mirror's latest release (#32),
 same best-effort spirit as zellij/yazi/rclone -- missing it, or a 32-bit
 ARM install, just means the Python thread runs, same as always. Built by

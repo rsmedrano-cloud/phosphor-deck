@@ -149,8 +149,8 @@ brain itself, on another computer (`phosphor gen` writes it there), on a phone
 (the phone kit writes it).
 
 **The fleet** is your other machines. The deck watches them (CPU, RAM, disks,
-containers, failed systemd units, a pending reboot, CPU temperature, a
-battery, SMART, over ssh; nothing is
+containers, failed systemd units, a pending reboot, pending (security)
+updates, CPU temperature, a battery, SMART, over ssh; nothing is
 installed on them) and shows their files as
 folders under `~/fleet` on the brain: `~/fleet/<machine>/...`. Nothing is
 copied or moved; you see the files where they are (rclone sftp mounts, or
@@ -927,6 +927,12 @@ and in the `+` menu, and open in a tab of their own.
   user in sudo, wheel or admin). It's asked at most every 30 minutes, with `-n standby` so a
   sleeping disk stays asleep; the answer waits in `$XDG_RUNTIME_DIR/phosphor-smart` on that
   machine, and "not allowed" waits a day. A disk starting to fail alerts like a host going down.
+  It also says how many updates the machine has pending -- amber when some are security
+  updates, which `phosphor glance` calls out too. Counted from what the package manager already
+  knows (apt and dnf from their own cache, apk's index, Arch's `checkupdates`, with `arch-audit`
+  for the security ones), never with its lock, and in the background: a host's first poll has no
+  count yet. Counted again once the package database changes (an upgrade, an `apt update`), or
+  after 6 hours; the count waits in `$XDG_RUNTIME_DIR/phosphor-updates` on that machine.
   In `fleet`, pick a machine's card (arrows, Tab or a tap; Esc lets go) and open something on it in a tab of
   its own: `s` a shell there (ssh, or a plain shell for the brain), `l` its logs (what `phosphor tail HOST`
   runs), `t` a `phosphor triage` of it. The keys show on the bottom line and tapping them works too; none
@@ -1729,9 +1735,9 @@ device's mount or another copy step.
 
 - No listening daemon, no agents on watched machines, no telemetry. Fleet
   metrics come from a shell script piped over ssh; files travel over SFTP.
-  The one thing it leaves there: where `smartctl` exists, a one-line file
-  (`$XDG_RUNTIME_DIR/phosphor-smart`) holding the last SMART answer, so the
-  disks aren't asked every 15 seconds.
+  What it leaves there: one-line files in `$XDG_RUNTIME_DIR` holding the
+  last answer of what's too slow to ask every 15 seconds -- `phosphor-smart`
+  (where `smartctl` exists) and `phosphor-updates` (the pending updates).
 - The session and everything it shows live on the brain: it is the valuable
   machine now (updates, backups, who can log in). On a shared brain other users
   may reach what the deck reaches.
@@ -1809,6 +1815,13 @@ device's mount or another copy step.
   `$XDG_RUNTIME_DIR/phosphor-smart` there, or it waits out the day it
   remembers "not allowed". No TEMP or BAT line: the kernel exposes neither
   (a VM, a board without a sensor driver).
+- **A card shows no updates line**: nothing pending, the first count is
+  still running (it shows on a later poll), or the package manager isn't
+  one it knows (apt, dnf, apk, or Arch with `pacman-contrib`'s
+  `checkupdates`). Without `arch-audit` an Arch host can't tell security
+  updates apart, and neither can apk. A count that looks old: it's redone
+  when the package database changes; removing
+  `$XDG_RUNTIME_DIR/phosphor-updates` there forces it.
 - **A folder in `~/fleet` is empty** (yazi shows nothing, or won't go in):
   its mount isn't up. `phosphor doctor` says which ones are mounted;
   `journalctl --user -u fleet-NAME` says why. Mounts use your own ssh, so

@@ -6,6 +6,18 @@ before it updates.
 
 ## Unreleased
 
+## 1.4.8 — pending updates on the fleet
+
+- A FLEET card says how many updates its machine has pending, in amber when some are security
+  updates; `phosphor glance` calls those out too. Counted from what apt, dnf, apk or Arch's
+  `checkupdates` (with `arch-audit` for the security ones) already know, in the background and
+  never with the package lock, so a poll stays as fast as before; counted again after an
+  upgrade or an `apt update`, or every 6 hours. Nothing to install on the hosts.
+- An installed `phosphor-fleet-poll` (the optional Rust poller) built from an older collector no
+  longer hides what the newer one reads: it was never replaced by an update, so a deck that got
+  it early kept polling without the CPU temperature, battery, SMART or these updates. FLEET now
+  notices and polls with its Python poller instead (`phosphor logs fleet` says so).
+
 ## 1.4.7 — text from outside is text
 
 - Text that comes from outside the brain no longer reaches a screen as terminal commands: a

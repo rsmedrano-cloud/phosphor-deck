@@ -118,4 +118,47 @@ if command -v smartctl >/dev/null 2>&1; then
   fi
   grep '^SMART=' "$c" 2>/dev/null
 fi
+
+# Pending updates, UPD=all|security (security left empty where the package
+# manager can't tell). Counted from what the machine already knows (apt's
+# and dnf's own cache, apk's index; Arch's checkupdates syncs a copy of its
+# own), never taking the package lock, and in the background: apt alone
+# takes seconds, so a poll prints the last count and moves on. Counted
+# again once the package database changes (an upgrade, an apt update), or
+# after 6 hours. PHOSPHOR_PKGROOT only moves those paths for the tests.
+upd() {
+  if command -v apt-get >/dev/null 2>&1; then
+    apt-get -s -o Debug::NoLocking=1 upgrade 2>/dev/null \
+      | awk '/^Inst /{a++; if (tolower($0) ~ /security/) s++} END{printf "%d|%d\n",a,s}'
+  elif command -v dnf >/dev/null 2>&1; then
+    a=$(dnf -C -q check-update 2>/dev/null); [ $? -eq 1 ] && return
+    a=$(printf '%s\n' "$a" | awk 'NF==3 && $1 ~ /\./' | wc -l)
+    s=$(dnf -C -q updateinfo list --security 2>/dev/null) \
+      && s=$(printf '%s\n' "$s" | awk 'NF>=3{print $3}' | sort -u | wc -l) || s=""
+    echo "$a|$s"
+  elif command -v apk >/dev/null 2>&1; then
+    echo "$(apk version -l '<' 2>/dev/null | grep -c ' < ')|"
+  elif command -v checkupdates >/dev/null 2>&1; then
+    a=$(checkupdates 2>/dev/null); [ $? -eq 1 ] && return
+    s=""; command -v arch-audit >/dev/null 2>&1 && s=$(arch-audit -uq 2>/dev/null | grep -c .)
+    echo "$(printf '%s' "$a" | grep -c .)|$s"
+  fi
+}
+c=${XDG_RUNTIME_DIR:-$HOME/.cache}
+mkdir -p "$c" 2>/dev/null; c=$c/phosphor-updates
+R=${PHOSPHOR_PKGROOT:-}
+stale=1
+if [ -f "$c" ] && [ -n "$(find "$c" -mmin -360 2>/dev/null)" ]; then
+  stale=
+  for db in /var/lib/dpkg/status /var/lib/apt/lists /var/lib/rpm /lib/apk/db/installed /var/lib/pacman/local; do
+    [ -n "$(find "$R$db" -maxdepth 0 -newer "$c" 2>/dev/null)" ] && stale=1
+  done
+fi
+if [ -n "$stale" ] && [ -z "$(find "$c.run" -mmin -15 2>/dev/null)" ]; then
+  : > "$c.run" 2>/dev/null
+  ( trap '' HUP; o=$(upd)
+    { [ -n "$o" ] && echo "UPD=$o"; } > "$c.tmp"; mv -f "$c.tmp" "$c"; rm -f "$c.run"
+  ) </dev/null >/dev/null 2>&1 &
+fi
+grep '^UPD=' "$c" 2>/dev/null
 exit 0

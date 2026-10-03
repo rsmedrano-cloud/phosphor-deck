@@ -119,6 +119,12 @@
   user in sudo, wheel or admin). It's asked at most every 30 minutes, with `-n standby` so a
   sleeping disk stays asleep; the answer waits in `$XDG_RUNTIME_DIR/phosphor-smart` on that
   machine, and "not allowed" waits a day. A disk starting to fail alerts like a host going down.
+  It also says how many updates the machine has pending -- amber when some are security
+  updates, which `phosphor glance` calls out too. Counted from what the package manager already
+  knows (apt and dnf from their own cache, apk's index, Arch's `checkupdates`, with `arch-audit`
+  for the security ones), never with its lock, and in the background: a host's first poll has no
+  count yet. Counted again once the package database changes (an upgrade, an `apt update`), or
+  after 6 hours; the count waits in `$XDG_RUNTIME_DIR/phosphor-updates` on that machine.
   In `fleet`, pick a machine's card (arrows, Tab or a tap; Esc lets go) and open something on it in a tab of
   its own: `s` a shell there (ssh, or a plain shell for the brain), `l` its logs (what `phosphor tail HOST`
   runs), `t` a `phosphor triage` of it. The keys show on the bottom line and tapping them works too; none

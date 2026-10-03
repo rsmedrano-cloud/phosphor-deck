@@ -42,6 +42,7 @@ real_popen = fleet.subprocess.Popen
 real_exe = fleet.deckconf.exe
 real_thread = fleet.threading.Thread
 real_getmtime = fleet.os.path.getmtime
+real_current = fleet.rust_current
 
 def reset():
     fleet.DEMO = False
@@ -49,6 +50,7 @@ def reset():
     fleet.deckconf.exe = real_exe
     fleet.threading.Thread = real_thread
     fleet.os.path.getmtime = real_getmtime
+    fleet.rust_current = lambda path: True   # the fake binaries below are current
 
 try:
     reset()
@@ -93,8 +95,34 @@ try:
     rp = fleet.start_poller()
     check("a broken rust binary still falls back to the python thread", len(threads_started) == 1)
     check("start_poller() doesn't raise", rp is not None and rp.gave_up)
+
+    # A binary built from another collect.sh (installed once, never
+    # replaced by an update) would poll with that old script for good.
+    reset()
+    fleet.rust_current = real_current
+    import tempfile
+    script = open(fleet.COLLECT, "rb").read()
+    old = tempfile.NamedTemporaryFile(delete=False)
+    old.write(b"\x7fELF..." + script.replace(b"exit 0", b"exit 1") + b"...")
+    old.close()
+    cur = tempfile.NamedTemporaryFile(delete=False)
+    cur.write(b"\x7fELF..." + script + b"...")
+    cur.close()
+    check("a binary embedding this collect.sh is current", fleet.rust_current(cur.name))
+    check("one embedding another isn't", not fleet.rust_current(old.name))
+    check("a missing binary isn't", not fleet.rust_current(old.name + ".gone"))
+    fleet.deckconf.exe = lambda name: old.name
+    spawned = []
+    fleet.subprocess.Popen = lambda argv, **kw: (spawned.append(argv), FakeProc(1))[1]
+    threads_started = []
+    fleet.threading.Thread = lambda **kw: type("T", (), {"start": lambda self: threads_started.append(kw)})()
+    rp = fleet.start_poller()
+    check("an old rust binary isn't spawned", spawned == [])
+    check("an old rust binary leaves it to the python poller", rp is None and len(threads_started) == 1)
+    os.unlink(old.name); os.unlink(cur.name)
 finally:
     reset()
+    fleet.rust_current = real_current
 
 
 # ---- RustPoller.tick(): real, disposable scripts -----------------------

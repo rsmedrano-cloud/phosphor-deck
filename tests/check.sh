@@ -222,6 +222,9 @@ out=$(python3 tests/relay-check.py 2>&1) && ok || bad "$out"
 step "fleet: CPU temperature, battery, SMART"
 out=$(python3 tests/fleet-sensors-check.py 2>&1) && ok || bad "$out"
 
+step "fleet: pending updates, counted in the background"
+out=$(python3 tests/fleet-updates-check.py 2>&1) && ok || bad "$out"
+
 step "fleet: a slow poll tags itself and logs"
 out=$(python3 tests/fleet-timing-check.py 2>&1) && ok || bad "$out"
 

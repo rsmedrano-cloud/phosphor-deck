@@ -17,7 +17,7 @@ from concurrent.futures import ThreadPoolExecutor
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
 import deckconf
-from health import sensors, LOW_BAT
+from health import sensors, updates, LOW_BAT
 from sanitize import clean, clean_tree
 
 HOME     = os.path.expanduser("~")
@@ -400,6 +400,11 @@ def card(name, w, d):
             body.append(RED + "● %d failed" % svcfail + RST)
         if d.get("REBOOT"):
             body.append(AMB + "⟳ reboot pending" + RST)
+        upd = updates(d)
+        if upd and upd[1]:
+            body.append(AMB + "⇪ %d security update%s" % (upd[1], "" if upd[1] == 1 else "s") + RST)
+        elif upd and upd[0]:
+            body.append(DIM + "⇪ %d update%s" % (upd[0], "" if upd[0] == 1 else "s") + RST)
         temp, bat, smart = sensors(d)
         parts, width = [], 0
         if temp is not None:
@@ -632,19 +637,36 @@ class RustPoller:
             self.proc.terminate()
 
 
+def rust_current(path):
+    """Whether a `phosphor-fleet-poll` binary runs this checkout's
+    collect.sh: it embeds the script when it's built, and an installed one
+    is never replaced by an update, so an old binary would keep polling
+    with an old script (no SMART, no updates...) for good."""
+    try:
+        with open(COLLECT, "rb") as f:
+            script = f.read()
+        with open(path, "rb") as f:
+            return script in f.read()
+    except OSError:
+        return False
+
 def start_poller():
     """A RustPoller (supervising an optional `phosphor-fleet-poll`
     subprocess, its own INTERVAL, its own ssh) if one is installed writing
     the same fleet.json -- else the Python thread this file has always run.
     DEMO always gets the Python poller: the Rust one refuses `[deck] demo =
-    true` on purpose, so its fabricated readings only ever come from here.
+    true` on purpose, so its fabricated readings only ever come from here,
+    and a binary built from another collect.sh (rust_current) gets it too.
 
     Returns the RustPoller to tick() every frame and stop() on the way out,
     or None (a thread, daemon already, needs neither)."""
     if not DEMO:
         rust = deckconf.exe("phosphor-fleet-poll")
-        if rust:
+        if rust and rust_current(rust):
             return RustPoller(rust)
+        if rust:
+            import dlog
+            dlog.event("FLEET", "rust-stale", "phosphor-fleet-poll predates collect.sh: Python polls")
     threading.Thread(target=poller, daemon=True).start()
     return None
 
