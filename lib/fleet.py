@@ -347,16 +347,21 @@ def mount_watchdog(names, root):
         mount_sweep(names, root)
         time.sleep(MOUNT_CHECK_S)
 
-def read_state():
-    """The latest poll for every host, straight from fleet.json -- the same
-    file glance and the adjutant already read. poller() writes it (in this
-    process, for now); the draw loop below only ever reads it, so whatever
-    writes it next (a Rust poller, a systemd service) needs no change here."""
+def read_cache():
+    """(when it was written, every host's latest poll), straight from
+    fleet.json -- the same file glance and the adjutant already read.
+    poller() writes it (in this process, for now); the draw loop below only
+    ever reads it, so whatever writes it next (a Rust poller, a systemd
+    service) needs no change here."""
     try:
         with open(CACHE) as f:
-            return clean_tree(json.load(f).get("hosts", {}))
-    except (OSError, ValueError):
-        return {}
+            d = json.load(f)
+        return d.get("t", 0), clean_tree(d.get("hosts", {}))
+    except (OSError, ValueError, AttributeError):
+        return 0, {}
+
+def read_state():
+    return read_cache()[1]
 
 def card(name, w, d):
     """One machine, as lines exactly w visible columns wide. `d` is that
@@ -458,6 +463,8 @@ def card(name, w, d):
 # that machine in a tab of its own. Nothing here changes the host itself:
 # a shell, its logs, or a read-only look through `phosphor triage`.
 ACTIONS = [("s", "ssh"), ("l", "logs"), ("t", "triage")]
+# ...and one that stays in this pane: the card's last 24 hours (lib/history.py)
+HISTORY = ("h", "history")
 
 def action_tab(key, name, target):
     """(tab name, pane spec) for `key` over the card of `name` (its ssh
@@ -552,13 +559,23 @@ def footer(n, sel, msg):
         return DIM + text + RST + ("  " + AMB + msg + RST if msg else ""), {}
     # picked: just what the keys do, short enough for a phone's width
     out, taps, x = " " + FG + HOSTS[sel][0] + RST, {}, 1 + len(HOSTS[sel][0])
-    for k, what in ACTIONS + [("Esc", "")]:
+    for k, what in ACTIONS + [HISTORY, ("Esc", "")]:
         piece = "  " + k + (" " + what if what else "")
         taps[(x + 3, x + len(piece))] = "\x1b" if k == "Esc" else k
         out += "  " + AMB + k + RST + (" " + FG + what + RST if what else "")
         x += len(piece)
     if msg:
         out += "  " + DIM + "· " + RST + AMB + msg + RST
+    return out, taps
+
+def history_footer(name):
+    """The bottom line over a host's history, and its taps."""
+    out, taps, x = " " + FG + name + RST, {}, 1 + len(name)
+    for k, what, key in (("← →", "another host", "\t"), ("Esc", "back", "\x1b")):
+        piece = "  " + k + " " + what
+        taps[(x + 3, x + len(piece))] = key
+        out += "  " + AMB + k + RST + " " + FG + what + RST
+        x += len(piece)
     return out, taps
 
 class RustPoller:
@@ -680,6 +697,11 @@ def main():
     # deck's fleet polls and sweeps the mounts, once, not once per screen.
     screen = bool(os.environ.get("PHOSPHOR_SCREEN"))
     rust_poller = None if screen else start_poller()
+    # the day's history: recorded once too, by the deck's own fleet
+    import history
+    recorder = None if screen else history.Recorder()
+    if DEMO and not screen and not os.path.exists(history.path()):
+        history.seed_demo([h[0] for h in HOSTS], DEMO_BASE)
     # its own session: a kind of screen's (deck-phone) marks its own tabs
     sess = os.environ.get("ZELLIJ_SESSION_NAME") or \
         ((deckconf.load()[0] or {}).get("deck") or {}).get("session", "deck")
@@ -692,7 +714,7 @@ def main():
                          daemon=True).start()
     tty = sys.stdin.isatty()
     sys.stdout.write("\x1b[?1049h\x1b[?25l" + ("\x1b[?1000h\x1b[?1006h" if tty else ""))
-    sel, msg, msg_until, geo = None, "", 0, None
+    sel, msg, msg_until, geo, hist = None, "", 0, None, None
     try:
         while True:
             if rust_poller is not None:
@@ -701,11 +723,22 @@ def main():
             n, gap = len(HOSTS), 1
             if sel is not None and sel >= n:
                 sel = None
-            out, cw, per_row, h = grid(cols, rows, read_state(), sel)
+            if hist is not None and hist >= n:
+                hist = None
+            t, state = read_cache()
+            if recorder is not None:
+                recorder.feed(state, t)
+            if hist is not None:
+                name = HOSTS[hist][0]
+                out = history.view(name, history.load().get(name, []), cols, rows - 2)
+                out += [""] * max(0, rows - 2 - len(out))
+                cw = per_row = h = 0
+            else:
+                out, cw, per_row, h = grid(cols, rows, state, sel)
             out.append("")
             if msg and time.time() > msg_until:
                 msg = ""
-            line, taps = footer(n, sel, msg)
+            line, taps = history_footer(HOSTS[hist][0]) if hist is not None else footer(n, sel, msg)
             out.append(vcut(line, cols))
             geo = (cw, gap, per_row, h, len(out))
             sys.stdout.write("\x1b[H" + "\x1b[K\n".join(out) + "\x1b[K\x1b[J")
@@ -719,6 +752,8 @@ def main():
                     continue
                 if y == geo[4]:
                     k = next((v for (a, b), v in taps.items() if a <= x <= b), None)
+                elif hist is not None:
+                    continue
                 else:
                     if y <= geo[4] - 2:
                         hit = card_at(x, y, cw, gap, per_row, h, n)
@@ -727,10 +762,23 @@ def main():
                     continue
             if k == "\x03":
                 break
+            if hist is not None:                     # over a host's history
+                if k in ("\x1b[C", "\t", "\x1b[B"):
+                    hist = (hist + 1) % n
+                elif k in ("\x1b[D", "\x1b[A"):
+                    hist = (hist - 1) % n
+                elif k in ("\x1b", "q", "h"):
+                    sel, hist = hist, None
+                continue
             if k in ("\x1b[A", "\x1b[B", "\x1b[C", "\x1b[D", "\t"):
                 sel = move(sel, k, per_row, n)
             elif k == "\x1b":
                 sel = None
+            elif k == HISTORY[0]:
+                if sel is None:
+                    msg, msg_until = "pick a machine first: arrows or a tap", time.time() + 5
+                else:
+                    hist = sel
             elif k in [a for a, _ in ACTIONS]:
                 if sel is None:
                     msg = "pick a machine first: arrows or a tap"
@@ -743,6 +791,8 @@ def main():
         sys.stdout.write(("\x1b[?1006l\x1b[?1000l" if tty else "") + "\x1b[?1049l\x1b[?25h\n")
         if rust_poller is not None:
             rust_poller.stop()
+        if recorder is not None:
+            recorder.flush()
 
 if __name__ == "__main__":
     main()

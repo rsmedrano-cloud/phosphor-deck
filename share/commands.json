@@ -31,7 +31,7 @@
   "face": {"mutates": true, "needs_deck": false,
     "note": "writes ~/.local/share/phosphor/faces/NAME.json unconditionally."},
   "fleet": {"mutates": true, "needs_deck": false,
-    "note": "the SYS fleet panel: reads hosts over ssh, but its background watchdog also self-heals a dead ~/fleet mount on its own (fusermount, then a systemctl restart) and calls phosphor notify on a host's up/down flip. Its s/l/t keys open a tab (ssh, logs, triage) and change nothing on the host."},
+    "note": "the SYS fleet panel: reads hosts over ssh, but its background watchdog also self-heals a dead ~/fleet mount on its own (fusermount, then a systemctl restart) and calls phosphor notify on a host's up/down flip. Its s/l/t keys open a tab (ssh, logs, triage) and change nothing on the host; h draws a host's last 24 hours in the same pane. The deck's own fleet also keeps that history in ~/.cache/phosphor/history.json."},
   "gen": {"mutates": true, "needs_deck": false,
     "note": "writes zellij/yazi/btop/gping/ctop config, layouts, systemd units and mounts, and restarts fleet mounts if rclone.conf changed; --dry-run writes nothing."},
   "glance": {"mutates": false, "needs_deck": false,

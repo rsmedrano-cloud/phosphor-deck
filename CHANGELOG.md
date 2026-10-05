@@ -6,6 +6,15 @@ before it updates.
 
 ## Unreleased
 
+## 1.4.12 — the fleet remembers the day
+
+- FLEET remembers the day: pick a machine's card and press `h` (or tap it on the bottom line) for its
+  last 24 hours -- CPU, RAM, temperature and its fullest disk, a sparkline each, with the day's peak
+  and when it was, and a red `·` where it was down. So a box that ran out of memory or ran hot at
+  4 AM still says so in the morning, no Prometheus needed. The deck's fleet keeps it from the readings
+  it already takes (each host's peaks every 5 minutes, in `~/.cache/phosphor/history.json`); nothing
+  new runs on your machines. `phosphor demo` comes with a day already recorded.
+
 ## 1.4.11 — one host at a time
 
 - `phosphor broadcast --rolling`: one host at a time instead of all at once, the brain last,

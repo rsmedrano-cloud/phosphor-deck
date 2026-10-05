@@ -5,6 +5,8 @@
   What it leaves there: one-line files in `$XDG_RUNTIME_DIR` holding the
   last answer of what's too slow to ask every 15 seconds -- `phosphor-smart`
   (where `smartctl` exists) and `phosphor-updates` (the pending updates).
+  The day of readings FLEET's `h` draws stays on the brain
+  (`~/.cache/phosphor/history.json`).
 - The session and everything it shows live on the brain: it is the valuable
   machine now (updates, backups, who can log in). On a shared brain other users
   may reach what the deck reaches.

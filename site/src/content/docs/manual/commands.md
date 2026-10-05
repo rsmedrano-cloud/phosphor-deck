@@ -133,7 +133,12 @@ sidebar:
   In `fleet`, pick a machine's card (arrows, Tab or a tap; Esc lets go) and open something on it in a tab of
   its own: `s` a shell there (ssh, or a plain shell for the brain), `l` its logs (what `phosphor tail HOST`
   runs), `t` a `phosphor triage` of it. The keys show on the bottom line and tapping them works too; none
-  of them changes anything on the host.
+  of them changes anything on the host. `h` stays in the pane and draws that machine's last 24 hours:
+  CPU, RAM, temperature and its fullest disk, one sparkline each, with the day's peak and when it was,
+  and a red `·` where it was down (arrows or Tab go to the next machine, Esc back to the cards). The
+  deck's own fleet keeps it, from the readings it already has -- nothing new runs on the hosts: every
+  5 minutes, each host's peaks of that window go into `~/.cache/phosphor/history.json`, a day's worth,
+  and only while the deck runs (a gap where it didn't).
 - `phosphor usage [--once]` — how much of your AI assistants' plans you've used, one card each:
   Claude Code (the 5-hour window and the week) and Antigravity (each quota pool -- Gemini, and the
   Claude/GPT models it also offers), each with a bar and the time until it refills. Only the ones

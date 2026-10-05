@@ -112,7 +112,10 @@ panes = [ { cmd = "phosphor fleet" } ]
         def opened(tab):
             return z.wait(lambda: tab in z.tabs(), 10)
         def back():
+            # wait until fleet itself is on screen again: on a slow runner a
+            # key sent right after the switch can land before SYS has focus
             z.action("go-to-tab-name", "SYS"); z.pump(1)
+            z.wait(lambda: "h history" in z.text(), 10)
         z.keys("\x1b[C", 1.5)                        # picks box
         z.keys("s", 1)
         need("s: a BOX tab (a shell on the brain)", opened("BOX"))

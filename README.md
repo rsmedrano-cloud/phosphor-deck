@@ -85,7 +85,9 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
   collected over SSH.
   Nothing gets installed on the other side. A host going down (or a service
   failing on one that's still up) pushes and speaks up on its own, the same
-  as any other notification. See something worth a closer look? `phosphor
+  as any other notification. Missed it? `h` over a machine's card draws its
+  last 24 hours (CPU, RAM, temperature, disk, when it was down), no
+  Prometheus needed. See something worth a closer look? `phosphor
   tail HOST` streams that machine's `journalctl` (or `docker`/`podman logs`)
   right there, no need to remember the ssh alias or the exact command. Want a
   second opinion instead? `phosphor triage HOST` collects a deeper snapshot
@@ -410,7 +412,7 @@ more depth on every one of these.
 
 | | |
 |---|---|
-| `phosphor fleet` | fleet panel: pick a card, then `s` ssh, `l` logs, `t` triage, each in its own tab |
+| `phosphor fleet` | fleet panel: pick a card, then `s` ssh, `l` logs, `t` triage, each in its own tab; `h` its last 24 hours |
 | `phosphor pulse` | the heartbeat: a wave tied to real load |
 | `phosphor usage` | how much of your Claude Code and Antigravity plans you've used (5-hour window, week) and when each refills |
 | `phosphor glance` | read-only: fleet, unread mentions, open todos -- for a small screen, no zellij needed |
