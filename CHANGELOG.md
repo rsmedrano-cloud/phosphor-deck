@@ -6,6 +6,15 @@ before it updates.
 
 ## Unreleased
 
+## 1.4.11 — one host at a time
+
+- `phosphor broadcast --rolling`: one host at a time instead of all at once, the brain last,
+  stopping at the first one that doesn't answer 0 and naming the hosts it never got to -- so an
+  update that goes wrong breaks one machine, not the whole fleet. `--pause S` waits after each
+  host and checks it still answers ssh before going on (a restarted service, a reboot). On a
+  terminal it asks before each next host; with `--yes` it goes on by itself while they keep
+  answering 0. Its ask screen offers the same choice after the command.
+
 ## 1.4.10 — the tools the + menu missed
 
 - `phosphor demo`'s notebook now lives with the rest of its state, so `phosphor demo --stop`

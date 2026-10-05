@@ -240,15 +240,20 @@
   picker `phosphor commands` uses, over whatever the fleet panel is currently flagging (the same
   hosts `phosphor glance` calls out) -- or, with nothing flagged, over every host of the profile; piped or scripted, it just lists them instead (also: `g` in
   the DECK tab).
-- `phosphor broadcast [--host NAME]... [--role ROLE] [--timeout S] [--yes] -- COMMAND` — one
+- `phosphor broadcast [--host NAME]... [--role ROLE] [--timeout S] [--rolling [--pause S]] [--yes] -- COMMAND` — one
   command on every host `phosphor fleet` watches, at once: over ssh (BatchMode, a key, never a
   password prompt) and in parallel, the brain itself locally, viewers and `fleet = false` ones left
   out. Each host's output comes under its own header with its exit code (or "unreachable", when
   ssh never got there) and how long it took; it exits 0 only if every host answered 0. `--host`
   (repeatable) and `--role` narrow it down; `--timeout` (default 60s) is per host. It can change
   anything on those machines, so it shows the command and the hosts and asks first; without a
-  terminal it refuses unless `--yes` says the run was meant to be unattended. With nothing at all,
-  on a terminal, it asks: the hosts to tick, the command, then the same confirmation.
+  terminal it refuses unless `--yes` says the run was meant to be unattended. `--rolling` goes one
+  host at a time instead (the brain last) and stops at the first that doesn't answer 0, naming the
+  hosts it never got to: a bad update breaks one machine, not the whole fleet. `--pause S` waits S
+  seconds after each host and checks it still answers ssh before the next (a restarted service, a
+  reboot). On a terminal it asks before each next host; with `--yes` it goes on by itself while
+  they keep answering 0. With nothing at all, on a terminal, it asks: the hosts to tick, the
+  command, all at once or one at a time, then the same confirmation.
 - `phosphor tunnel [on|off HOST]` — keep your ssh config's LocalForward tunnels up.
 - `phosphor face IMAGE [--name N] [--w 24] [--h 13] [--half] [--mode thr|dither|edge]`. No `IMAGE`, on a
   terminal: it asks which, listing only images. Needs ImageMagick (`convert`).

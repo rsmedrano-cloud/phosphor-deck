@@ -31,11 +31,14 @@ hs, unknown = broadcast.targets(PROF, ["nimbus", "relay"])
 check("targets: a host off the fleet counts as unknown", names(hs) == ["nimbus"] and unknown == ["relay"])
 
 # parse()
-check("parse: -- then the command", broadcast.parse(["--", "df", "-h"]) == ([], None, 60, False, "df -h"))
-check("parse: no -- works too", broadcast.parse(["uptime"]) == ([], None, 60, False, "uptime"))
+check("parse: -- then the command", broadcast.parse(["--", "df", "-h"]) == ([], None, 60, False, "df -h", False, 0))
+check("parse: no -- works too", broadcast.parse(["uptime"]) == ([], None, 60, False, "uptime", False, 0))
 check("parse: flags", broadcast.parse(["--host", "a", "--host", "b", "--role", "work", "--timeout", "5", "--yes",
-                                       "--", "ls"]) == (["a", "b"], "work", 5, True, "ls"))
+                                       "--", "ls"]) == (["a", "b"], "work", 5, True, "ls", False, 0))
 check("parse: no command is usage", broadcast.parse(["--yes", "--"]) is None)
+check("parse: --rolling --pause", broadcast.parse(["--rolling", "--pause", "30", "--", "ls"])
+      == ([], None, 60, False, "ls", True, 30))
+check("parse: --pause without --rolling is usage", broadcast.parse(["--pause", "30", "--", "ls"]) is None)
 check("parse: a bad timeout is usage", broadcast.parse(["--timeout", "x", "--", "ls"]) is None)
 
 # run_one(): local runs sh -c, remote ssh BatchMode to the resolved target;
@@ -108,6 +111,35 @@ try:
     broadcast.run_one = lambda h, c, t: (h["name"], None if h["name"] == "db-box" else 0, "", 0.1)
     rc = main(["--yes", "--", "uptime"])
     check("one host unreachable: exits 1", rc == 1)
+
+    # --rolling: one at a time in the fleet's order, the brain last, stops at the first failure
+    ran.clear()
+    fail = set()
+    broadcast.run_one = lambda h, c, t: ran.append(h["name"]) or (h["name"], 3 if h["name"] in fail else 0, "", 0.1)
+    rc = main(["--yes", "--rolling", "--", "uptime"])
+    check("rolling: every host, the brain last", rc == 0 and ran == ["nimbus", "db-box", "brain"])
+    ran.clear(); fail.add("nimbus")
+    rc = main(["--yes", "--rolling", "--", "uptime"])
+    check("rolling: stops at the first failure", rc == 1 and ran == ["nimbus"])
+    fail.clear(); ran.clear()
+    broadcast.sys.stdin = FakeStdin(True)
+    asked = []
+    init.yes = lambda q, d=True: asked.append(q) or not q.startswith("next: db-box")
+    rc = main(["--rolling", "--", "uptime"])
+    check("rolling on a tty: asks before each next host, a no stops it",
+          rc == 1 and ran == ["nimbus"] and asked[-1].startswith("next: db-box"))
+    init.yes = real_yes
+    ran.clear()
+    slept = []
+    real_sleep = broadcast.time.sleep
+    broadcast.time.sleep = slept.append
+    broadcast.run_one = lambda h, c, t: ran.append((h["name"], c)) or \
+        (h["name"], None if (h["name"], c) == ("nimbus", "true") else 0, "", 0.1)
+    rc = main(["--yes", "--rolling", "--pause", "20", "--", "reboot"])
+    check("rolling --pause: waits, and a host that stops answering stops it",
+          rc == 1 and slept == [20] and ran == [("nimbus", "reboot"), ("nimbus", "true")])
+    broadcast.time.sleep = real_sleep
+    broadcast.sys.stdin = FakeStdin(False)
 
     broadcast.deckconf.example = lambda: True
     ran.clear()

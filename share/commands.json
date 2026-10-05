@@ -11,7 +11,7 @@
   "attach": {"mutates": false, "needs_deck": true,
     "note": "waits (up to ~90s) for the session to come up if it's starting, then attaches; `--screen KIND` with a [screens.KIND] block makes that kind's own session in the background the first time (only while the deck is up); a first-ever run also asks one Enter before writing a small 'welcomed' marker, skipped and unwritten without a tty."},
   "broadcast": {"mutates": true, "needs_deck": false,
-    "note": "runs an arbitrary command over ssh on every fleet host (or --host/--role): it can change anything there. Asks first on a terminal; without one it refuses unless --yes is given."},
+    "note": "runs an arbitrary command over ssh on every fleet host (or --host/--role): it can change anything there. Asks first on a terminal; without one it refuses unless --yes is given. --rolling goes host by host and stops at the first failure; on a terminal it asks before each next host, with --yes it goes on by itself."},
   "ci": {"mutates": false, "needs_deck": false,
     "note": "read-only GitHub/GitLab pipeline status."},
   "clip": {"mutates": false, "needs_deck": false,
