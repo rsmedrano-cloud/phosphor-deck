@@ -22,6 +22,7 @@ PHOSPHOR = os.path.join(REPO, "phosphor")
 CATEGORIES = [
     ("Getting started", [
         ("doctor", "phosphor doctor", "preflight: locales, FUSE, systemd, PATH, fleet reach"),
+        ("security", "phosphor security", "how exposed the deck is: file permissions, the fleet's sshd, tunnels, web, sockets"),
         ("attach", "phosphor attach", "get in, from any machine (also: phosphor deck, or just `deck`)"),
         ("init", "phosphor init", "profile wizard"),
         ("setup", "phosphor setup", "add/remove machines, color, editor and shell, phone, browser, tunnels, notebook"),

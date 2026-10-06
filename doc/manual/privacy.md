@@ -9,7 +9,8 @@
   (`~/.cache/phosphor/history.json`).
 - The session and everything it shows live on the brain: it is the valuable
   machine now (updates, backups, who can log in). On a shared brain other users
-  may reach what the deck reaches.
+  may reach what the deck reaches: `phosphor security` says where they would
+  (file permissions, the fleet's ssh servers, ports, sockets) and how to close it.
 - The brain holds ssh keys into the fleet: narrow them in `authorized_keys`
   (e.g. `from="100.64.0.0/10"` with tailscale).
 - What comes from outside the brain is shown as text, never as terminal

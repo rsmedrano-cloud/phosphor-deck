@@ -815,6 +815,16 @@ and in the `+` menu, and open in a tab of their own.
 
 ### Getting started
 - `phosphor doctor` — check this machine: systemd, FUSE, locales, binaries, fleet reach.
+- `phosphor security [--local]` — how exposed the deck is, where doctor says whether it works. Read-only:
+  each finding says what to run, nothing is changed. The profile and its backups (writable by
+  anyone else, or readable while they hold a token or a public ntfy topic), `~/.ssh` and its
+  private keys, the folders that decide what the deck runs; every fleet host's ssh server, the
+  brain's included (root or password logins, empty passwords, StrictModes off: `sshd -T` where it
+  answers without a password, else its config files, and a host where only root reads them says
+  so instead of guessing); a tunnel forward or zellij's web server listening beyond 127.0.0.1, and
+  anything `tailscale funnel` puts on the internet; zellij's and FLEET's socket folders. A folder
+  others can't enter (a 0700 home) counts, and so does a group that's only you. `--local` skips
+  the fleet. Exits 2 with something to fix, 1 with something worth a look.
 - `phosphor init` — the wizard; writes the profile.
 - `phosphor setup` — add/remove machines, color, editor and shell, phone (sharing this deck or a deck of its own), browser access, tunnels, notebook
   (also: `m` in the DECK tab).
@@ -1766,7 +1776,8 @@ device's mount or another copy step.
   (`~/.cache/phosphor/history.json`).
 - The session and everything it shows live on the brain: it is the valuable
   machine now (updates, backups, who can log in). On a shared brain other users
-  may reach what the deck reaches.
+  may reach what the deck reaches: `phosphor security` says where they would
+  (file permissions, the fleet's ssh servers, ports, sockets) and how to close it.
 - The brain holds ssh keys into the fleet: narrow them in `authorized_keys`
   (e.g. `from="100.64.0.0/10"` with tailscale).
 - What comes from outside the brain is shown as text, never as terminal

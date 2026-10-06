@@ -6,6 +6,17 @@ before it updates.
 
 ## Unreleased
 
+## 1.4.14 — a security audit
+
+- `phosphor security`: doctor says whether the deck works, this says how exposed it is. The brain
+  holds keys into every machine, so it looks at what would hand them to someone else: a profile or
+  backup others can read while it holds a token (or a public ntfy topic), private keys or `~/.ssh`
+  open to others, the fleet's ssh servers (root or password logins, empty passwords, StrictModes
+  off -- the brain's own included), a tunnel or the web client listening beyond 127.0.0.1, anything
+  on `tailscale funnel`, and the session's sockets. Each finding says what to run; it changes
+  nothing. Also in the commands menu.
+- FLEET's ssh connection sockets now go in a folder only you can open, when it's first made.
+
 ## 1.4.13 — containers from the fleet
 
 - A container that fell over no longer needs a shell to bring it back: pick a machine's card in FLEET

@@ -2,6 +2,16 @@
 
 ## Getting started
 - `phosphor doctor` — check this machine: systemd, FUSE, locales, binaries, fleet reach.
+- `phosphor security [--local]` — how exposed the deck is, where doctor says whether it works. Read-only:
+  each finding says what to run, nothing is changed. The profile and its backups (writable by
+  anyone else, or readable while they hold a token or a public ntfy topic), `~/.ssh` and its
+  private keys, the folders that decide what the deck runs; every fleet host's ssh server, the
+  brain's included (root or password logins, empty passwords, StrictModes off: `sshd -T` where it
+  answers without a password, else its config files, and a host where only root reads them says
+  so instead of guessing); a tunnel forward or zellij's web server listening beyond 127.0.0.1, and
+  anything `tailscale funnel` puts on the internet; zellij's and FLEET's socket folders. A folder
+  others can't enter (a 0700 home) counts, and so does a group that's only you. `--local` skips
+  the fleet. Exits 2 with something to fix, 1 with something worth a look.
 - `phosphor init` — the wizard; writes the profile.
 - `phosphor setup` — add/remove machines, color, editor and shell, phone (sharing this deck or a deck of its own), browser access, tunnels, notebook
   (also: `m` in the DECK tab).

@@ -380,6 +380,7 @@ more depth on every one of these.
 | | |
 |---|---|
 | `phosphor doctor` | preflight: locales, FUSE, systemd, PATH, fleet reach |
+| `phosphor security` | how exposed the deck is: file permissions, the fleet's sshd, tunnels, web, sockets |
 | `deck` | get in, from any machine (on the brain: `phosphor attach`) |
 | `phosphor init` | profile wizard |
 | `phosphor setup` | add/remove machines, color, editor and shell, phone, browser access, tunnels, notebook |

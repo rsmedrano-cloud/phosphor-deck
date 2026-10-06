@@ -206,6 +206,7 @@ out=$(python3 tests/receive-check.py 2>&1) && ok || bad "$out"
 step "services: units match what gen writes"
 out=$(python3 tests/services-check.py 2>&1) && ok || bad "$out"
 out=$(python3 tests/containers-check.py 2>&1) && ok || bad "$out"
+out=$(python3 tests/security-check.py 2>&1) && ok || bad "$out"
 
 step "glance: fleet, mentions, todos"
 out=$(python3 tests/glance-check.py 2>&1) && ok || bad "$out"

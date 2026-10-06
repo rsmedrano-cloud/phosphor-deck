@@ -50,6 +50,7 @@ USAGE = """phosphor - Phosphor Deck
 
   getting started
     phosphor doctor     check that this machine can run the deck
+    phosphor security   how exposed the deck is: files, ssh servers, network, sockets
     phosphor init       wizard: builds your profile with a few questions
     phosphor setup      add/remove machines, pick the color (also: m in DECK)
     phosphor panel      the DECK tab: the deck's state, next steps, every action
@@ -128,7 +129,7 @@ USAGE = """phosphor - Phosphor Deck
 TOOLS = ("fleet", "pulse", "keys", "store", "adjutant", "notes", "privacy", "phone", "newtab", "clip", "send",
          "mentions", "run", "web", "tunnels", "completion", "update", "panel", "version",
          "keep", "workspace", "edit", "shortcuts", "tabs", "prom", "logs", "trace", "ci", "recipe", "tts", "demo",
-         "services", "glance", "review", "push", "screens", "ask", "commands", "receive", "tail", "triage", "broadcast", "theme", "usage", "mem", "containers")
+         "services", "glance", "review", "push", "screens", "ask", "commands", "receive", "tail", "triage", "broadcast", "theme", "usage", "mem", "containers", "security")
 
 def crash_name(cmd):
     """The name a crash is logged under: the pane's, when phosphor run

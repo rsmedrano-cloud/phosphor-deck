@@ -89,7 +89,7 @@ def ssh_cmd(ssh, connect_t):
     %C keys the socket by host+port+user) and every poll after that rides
     it, only reconnecting if it actually dropped."""
     ctrl = os.path.join(deckconf.cache_dir(), "ssh")
-    os.makedirs(ctrl, exist_ok=True)
+    os.makedirs(ctrl, mode=0o700, exist_ok=True)
     return ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=%d" % connect_t,
              "-o", "ControlMaster=auto", "-o", "ControlPersist=" + CONTROL_PERSIST,
              "-o", "ControlPath=" + os.path.join(ctrl, "%C"), ssh, "sh -s"]

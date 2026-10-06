@@ -24,6 +24,8 @@
     "note": "--once and non-tty are read-only (a docker/podman ps over ssh); on a terminal the panel's r (restart) and s (start/stop) act on the picked container on that host after a y confirm."},
   "demo": {"mutates": true, "needs_deck": false,
     "note": "starts (or, with --stop, tears down) a separate throwaway zellij session and its own cache state -- isolated from your real profile/session, but a real one while it runs; --tour adds a floating guide on each of its tabs, only ever in that session."},
+  "security": {"mutates": false, "needs_deck": false,
+    "note": "read-only audit: file modes on the brain, each fleet host's sshd settings over ssh (sshd -T, else its config files), listening ports, tailscale funnel, socket folders; --local skips the fleet."},
   "doctor": {"mutates": false, "needs_deck": false,
     "note": "read-only preflight checks, including ssh probes to fleet hosts."},
   "down": {"mutates": true, "needs_deck": false,
