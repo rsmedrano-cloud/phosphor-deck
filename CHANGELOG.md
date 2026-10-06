@@ -6,6 +6,14 @@ before it updates.
 
 ## Unreleased
 
+## 1.5.4 — zellij pinned to the tested version
+
+- The installer now fetches zellij in the version Phosphor is tested with (0.45.1, set in
+  `share/versions.json`) instead of the newest release, so a new zellij can't break a fresh
+  install before anyone has tried it. `PHOSPHOR_ZELLIJ=latest` (or a version) overrides it;
+  `phosphor doctor` says when the zellij you have isn't the tested one. CI still runs the
+  deck's checks against zellij's newest release, as an early warning that never blocks.
+
 ## 1.5.3 — one door for profile writes
 
 - Every command that edits your profile (`setup`, `init`, `keep`, `tabs`, new tabs, `screens`,

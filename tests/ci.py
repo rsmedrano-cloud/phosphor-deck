@@ -69,7 +69,9 @@ def main():
         print("%-8s %-8s %s" % (ref, p["status"], p["web_url"]))
         for j in sorted(jobs, key=lambda j: j["name"]):
             dur = "%dm%02ds" % divmod(int(j.get("duration") or 0), 60)
-            print("   %-9s %-8s %s" % (j["name"], j["status"], dur))
+            # zellij-latest may fail without failing the pipeline: say so
+            warn = "  (allowed to fail: an early warning)" if j["status"] == "failed" and j.get("allow_failure") else ""
+            print("   %-13s %-8s %s%s" % (j["name"], j["status"], dur, warn))
         for j in jobs:
             if j["status"] == "failed":
                 log = api("projects/:id/jobs/%d/trace" % j["id"])

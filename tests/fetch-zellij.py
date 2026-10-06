@@ -1,13 +1,22 @@
 #!/usr/bin/env python3
-"""The latest zellij release into a folder, for CI images without curl.
+"""The zellij Phosphor is tested with (share/versions.json) into a folder,
+for CI images without curl. --latest takes the newest release instead: CI's
+zellij-latest job, the early warning for a release that changes something.
 
     python3 tests/fetch-zellij.py /usr/local/bin
+    python3 tests/fetch-zellij.py --latest /usr/local/bin
 """
-import io, os, platform, sys, tarfile, urllib.request
+import io, json, os, platform, sys, tarfile, urllib.request
 
-dest = sys.argv[1] if len(sys.argv) > 1 else "."
+args = [a for a in sys.argv[1:] if a != "--latest"]
+dest = args[0] if args else "."
 arch = {"x86_64": "x86_64", "aarch64": "aarch64", "arm64": "aarch64"}[platform.machine()]
-url = "https://github.com/zellij-org/zellij/releases/latest/download/zellij-%s-unknown-linux-musl.tar.gz" % arch
+if "--latest" in sys.argv:
+    rel = "latest/download"
+else:
+    pinned = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "share", "versions.json")
+    rel = "download/v%s" % json.load(open(pinned))["zellij"].lstrip("v")
+url = "https://github.com/zellij-org/zellij/releases/%s/zellij-%s-unknown-linux-musl.tar.gz" % (rel, arch)
 for attempt in range(3):                      # GitHub sometimes answers 5xx
     try:
         data = urllib.request.urlopen(url, timeout=60).read(); break

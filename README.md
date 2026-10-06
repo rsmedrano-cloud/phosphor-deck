@@ -569,7 +569,7 @@ modified. Full credit and thanks to their authors and every contributor.
 
 | | |
 |---|---|
-| [zellij](https://github.com/zellij-org/zellij) | the terminal multiplexer the whole deck runs inside |
+| [zellij](https://github.com/zellij-org/zellij) | the terminal multiplexer the whole deck runs inside (installed in the version Phosphor is tested with, `share/versions.json`) |
 | [yazi](https://github.com/sxyazi/yazi) | the file manager behind the CLOUD tab |
 | [btop](https://github.com/aristocratos/btop) | the system monitor in every SYS/CLOUD tab |
 | [gping](https://github.com/orf/gping) | the fleet's ping graphs |

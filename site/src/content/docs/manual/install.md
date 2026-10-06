@@ -16,6 +16,12 @@ already exists keeps its folder), writes the `deck` command, and asks
 "set it up now?". Yes runs the wizard, which ends with "build the deck and
 start it now?" and "get in now?": you finish inside the deck.
 
+zellij comes in the version Phosphor is tested with (`share/versions.json`),
+not the newest: the deck leans on how that version behaves, and a new zellij
+can change it. `PHOSPHOR_ZELLIJ=latest sh install.sh` (or a version number)
+takes another one; a zellij you already have is kept, and `phosphor doctor`
+says when it isn't the tested version.
+
 On x86_64/aarch64 it also fetches `phosphor-fleet-poll` and `phosphor-run`,
 the two optional Rust rewrites (see CONTRIBUTING.md) -- best-effort, same as
 the rest: missing one, or a 32-bit ARM install, just means the Python

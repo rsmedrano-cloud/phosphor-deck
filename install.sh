@@ -47,12 +47,13 @@ arch_tag() {
 RETRY="--retry 3 --retry-delay 2"
 curl --help all 2>/dev/null | grep -q -- --retry-all-errors && RETRY="$RETRY --retry-all-errors"
 
-# fetch <binary> <direct url, or empty> <repo> <asset regex for the API>
+# fetch <binary> <direct url, or empty> <repo> <asset regex for the API> [release]
+# release: the API's path for it, "latest" unless given ("tags/v1.2.3")
 fetch() {
-  name="$1"; url="$2"; repo="$3"; pat="$4"
+  name="$1"; url="$2"; repo="$3"; pat="$4"; rel="${5:-latest}"
   if [ -x "$BIN/$name" ]; then say "· $name already there"; return 0; fi
   if [ -z "$url" ]; then
-    url=$(curl -fsSL $RETRY "https://api.github.com/repos/$repo/releases/latest" 2>/dev/null \
+    url=$(curl -fsSL $RETRY "https://api.github.com/repos/$repo/releases/$rel" 2>/dev/null \
           | grep browser_download_url | grep -E "$pat" | head -1 | cut -d\" -f4) || true
   fi
   if [ -z "${url:-}" ]; then a "  ! $name: no release found for $(arch_tag) (GitHub busy? run it again)"; return 1; fi
@@ -60,7 +61,7 @@ fetch() {
   if ! curl -fsSL $RETRY -o "$f" "$url"; then
     # plan B: the same asset through the API's own link
     alt=""
-    [ -n "$repo" ] && alt=$(curl -fsSL $RETRY "https://api.github.com/repos/$repo/releases/latest" 2>/dev/null \
+    [ -n "$repo" ] && alt=$(curl -fsSL $RETRY "https://api.github.com/repos/$repo/releases/$rel" 2>/dev/null \
           | grep browser_download_url | grep -F "$(basename "$url")" | head -1 | cut -d\" -f4) || true
     if [ -z "$alt" ] || ! curl -fsSL $RETRY -o "$f" "$alt"; then
       r "  ! $name: download failed (GitHub busy? run it again)"; rm -rf "$tmp"; return 1
@@ -166,8 +167,15 @@ esac
 GH=https://github.com
 d64() { [ "$A" = arm ] && echo "" || echo "$1"; }   # 32-bit ARM: ask the API
 
-fetch zellij "$(d64 $GH/zellij-org/zellij/releases/latest/download/zellij-$M-unknown-linux-musl.tar.gz)" \
-      zellij-org/zellij "zellij-.*linux-musl.*\.tar\.gz" || true
+# zellij: the version Phosphor is tested with (share/versions.json), not the
+# newest: the deck leans on that version's behavior, and a new release can
+# change it. PHOSPHOR_ZELLIJ=latest (or another version) overrides it.
+ZV="${PHOSPHOR_ZELLIJ:-$(sed -n 's/.*"zellij": *"\([^"]*\)".*/\1/p' "$DEST/share/versions.json" 2>/dev/null | head -1)}"
+ZV="${ZV#v}"
+if [ -z "$ZV" ] || [ "$ZV" = latest ]; then ZREL=latest; ZDL=latest/download
+else ZREL="tags/v$ZV"; ZDL="download/v$ZV"; fi
+fetch zellij "$(d64 $GH/zellij-org/zellij/releases/$ZDL/zellij-$M-unknown-linux-musl.tar.gz)" \
+      zellij-org/zellij "zellij-.*linux-musl.*\.tar\.gz" "$ZREL" || true
 fetch rclone "https://downloads.rclone.org/rclone-current-linux-$GO.zip" rclone/rclone "" || true
 fetch yazi   "$(d64 $GH/sxyazi/yazi/releases/latest/download/yazi-$M-unknown-linux-musl.zip)" \
       sxyazi/yazi "yazi-.*linux-musl.*\.zip" || true

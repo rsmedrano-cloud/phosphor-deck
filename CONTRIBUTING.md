@@ -20,7 +20,7 @@ Before a pull request:
 - `sh tests/check.sh` passes: the fast checks, seconds, no docker;
 - `python3 tests/edit-check.py` passes if you touched keys, tabs or the +
   menu: a throwaway zellij in its own HOME, driven by keys and taps (needs
-  zellij; `tests/fetch-zellij.py` gets one);
+  zellij; `tests/fetch-zellij.py` gets the pinned one, `--latest` the newest);
 - `sh tests/from-zero.sh` (also `DISTRO=ubuntu|fedora|arch`, files in
   tests/distros/) and `python3 tests/tester-sim.py` pass (docker: a
   clean install in a systemd container);

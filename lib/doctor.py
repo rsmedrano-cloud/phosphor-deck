@@ -19,6 +19,20 @@ def have(b):
     if os.path.isfile(p) and os.access(p, os.X_OK): return p
     return shutil.which(b)
 
+def zellij_versions():
+    """(installed, tested): the zellij on PATH and share/versions.json's. A
+    different one usually works, but the deck leans on that version's
+    behavior, so doctor says so instead of failing."""
+    import json, re
+    p = have("zellij")
+    _, out = sh("'%s' --version" % p) if p else (1, "")
+    m = re.search(r"(\d+\.\d+\.\d+)", out or "")
+    try:
+        tested = json.load(open(share("versions.json")))["zellij"].lstrip("v")
+    except (OSError, ValueError, KeyError):
+        tested = None
+    return (m.group(1) if m else None), tested
+
 def run(profile=None):
     w = width()
     issues, blockers = [], []
@@ -103,6 +117,9 @@ def run(profile=None):
         print(row(OK if p else (BAD if crit else WARN), b, p or "missing", note=why))
         if not p and crit:
             blockers.append("%s is missing" % b + (" and the profile declares remote hosts" if b == "ssh" else ""))
+    zv, tested = zellij_versions()
+    if zv and tested and zv != tested:
+        print(row(WARN, "zellij version", zv, note="Phosphor is tested with %s" % tested))
 
     print("\n" + rule("fleet", w))
     if not profile:

@@ -89,6 +89,11 @@ sidebar:
 - **Graphs look like boxes with a hex number**: your font has no Braille.
   Put `graphs = "blocks"` in `[deck]` (then `phosphor gen && phosphor restart`),
   or use a font like DejaVu Sans Mono.
+- **doctor says "zellij version ... Phosphor is tested with ..."**: your
+  zellij isn't the one in `share/versions.json`. It usually works; if
+  something misbehaves, put the tested one back: remove
+  `~/.local/bin/zellij` and run the installer again (`phosphor restart`
+  afterwards, since the running deck keeps the old binary).
 - **Logs**: `phosphor logs` reads `~/.cache/phosphor/deck.log` (crashes with
   their traceback, hangs, exits, restarts; `-f` follows), and `phosphor trace
   TOOL` turns on a verbose one for ~30 minutes. Never note text or hosts, so

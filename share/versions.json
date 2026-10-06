@@ -1,0 +1,4 @@
+{
+  "_": "The versions Phosphor is tested with. install.sh and tests/fetch-zellij.py install these; CI's zellij-latest job tries the newest release as an early warning, and phosphor doctor says when the installed one differs.",
+  "zellij": "0.45.1"
+}
