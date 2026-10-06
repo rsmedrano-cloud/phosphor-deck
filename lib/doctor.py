@@ -139,6 +139,10 @@ def run(profile=None):
             print(row(WARN, "profile", "changed since the last phosphor gen",
                       note="it doesn't show until then"))
             issues.append("the profile changed since the last gen: phosphor gen && phosphor restart")
+        import profcheck
+        for where, what in profcheck.problems(profile) + profcheck.tabs_d_problems():
+            print(row(WARN, where, what, note="ignored"))
+            issues.append("the profile%s: %s" % ("" if where == "profile" else "'s " + where, what))
     import mesh
     kind, control = mesh.current(profile)
     if kind == "none":

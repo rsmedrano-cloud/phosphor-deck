@@ -95,6 +95,9 @@ out=$(python3 tests/backup-check.py 2>&1) && ok || bad "$out"
 step "the profile is written whole, checked, and never over a newer write"
 out=$(python3 tests/profile-write-check.py 2>&1) && ok || bad "$out"
 
+step "a misspelled profile key is said"
+out=$(python3 tests/profile-schema-check.py 2>&1) && ok || bad "$out"
+
 step "zellij pinned in one place"
 out=$(python3 tests/zellij-pin-check.py 2>&1) && ok || bad "$out"
 

@@ -94,6 +94,10 @@ sidebar:
   something misbehaves, put the tested one back: remove
   `~/.local/bin/zellij` and run the installer again (`phosphor restart`
   afterwards, since the running deck keeps the old binary).
+- **A setting in the profile does nothing**: `phosphor doctor` (or `phosphor
+  gen`) names keys it doesn't know -- "[deck] unknown key thme: theme?" --
+  and values outside their choices. Fix the spelling, then `phosphor gen &&
+  phosphor restart`.
 - **Logs**: `phosphor logs` reads `~/.cache/phosphor/deck.log` (crashes with
   their traceback, hangs, exits, restarts; `-f` follows), and `phosphor trace
   TOOL` turns on a verbose one for ~30 minutes. Never note text or hosts, so

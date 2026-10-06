@@ -683,6 +683,13 @@ def run(prof, src, dry=False):
     print()
     print(BLOOM + "  phosphor gen" + RST + DIM + ("  (dry-run)" if dry else "") + RST)
     print(DIM + "  source: " + src + RST)
+    import profcheck
+    found = profcheck.problems(prof) + profcheck.tabs_d_problems()
+    if found:
+        print("\n" + rule("profile"))
+        for where, what in found:
+            print(row(WARN, where, what))
+        print("  " + DIM + "ignored: fix them in the profile, then gen again" + RST)
 
     if not ctx.is_brain():
         b = ctx.brain()

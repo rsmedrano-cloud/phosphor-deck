@@ -359,7 +359,9 @@ name  = "WORK"
 panes = [ { ssh = "@work", reconnect = true } ]
 ```
 
-Change it, run `phosphor gen`, and the deck rebuilds itself.
+Change it, run `phosphor gen`, and the deck rebuilds itself. A misspelled key
+(`thme`, `[tts] enable`) isn't silently ignored: gen and `phosphor doctor` name
+it and guess what you meant.
 
 ## The manual
 
@@ -381,7 +383,7 @@ more depth on every one of these.
 
 | | |
 |---|---|
-| `phosphor doctor` | preflight: locales, FUSE, systemd, PATH, fleet reach |
+| `phosphor doctor` | preflight: locales, FUSE, systemd, PATH, fleet reach, unknown profile keys |
 | `phosphor security` | how exposed the deck is: file permissions, the fleet's sshd, tunnels, web, sockets |
 | `deck` | get in, from any machine (on the brain: `phosphor attach`) |
 | `phosphor init` | profile wizard |

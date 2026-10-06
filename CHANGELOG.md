@@ -6,6 +6,15 @@ before it updates.
 
 ## Unreleased
 
+## 1.5.5 — profile keys checked
+
+- A misspelled or misplaced key in the profile is no longer silently ignored: `phosphor gen`
+  and `phosphor doctor` name it and guess what you meant ("[deck] unknown key thme: theme?",
+  "[tts] unknown key enable: enabled?"), and say when a value isn't one of its choices
+  (`theme = "p1"`) or a true/false is written as a string (`web = "true"`). Files in
+  `tabs.d` are checked too. Warnings only: gen still writes everything else.
+- The manual now documents `url` in `[[ci.pipelines]]`, for a GitLab of your own.
+
 ## 1.5.4 — zellij pinned to the tested version
 
 - The installer now fetches zellij in the version Phosphor is tested with (0.45.1, set in

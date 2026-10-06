@@ -1,7 +1,8 @@
 # Commands
 
 ## Getting started
-- `phosphor doctor` — check this machine: systemd, FUSE, locales, binaries, fleet reach.
+- `phosphor doctor` — check this machine: systemd, FUSE, locales, binaries, fleet reach, and
+  profile keys it doesn't know (a typo, a key in the wrong table).
 - `phosphor security [--local]` — how exposed the deck is, where doctor says whether it works. Read-only:
   each finding says what to run, nothing is changed. The profile and its backups (writable by
   anyone else, or readable while they hold a token or a public ntfy topic), `~/.ssh` and its
