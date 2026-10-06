@@ -262,7 +262,11 @@
   something to run on a timer. With no `HOST` on a real terminal, it opens the same arrow-key
   picker `phosphor commands` uses, over whatever the fleet panel is currently flagging (the same
   hosts `phosphor glance` calls out) -- or, with nothing flagged, over every host of the profile; piped or scripted, it just lists them instead (also: `g` in
-  the DECK tab).
+  the DECK tab). The snapshot is whatever the host says, so a log line can try to steer the
+  assistant: it goes in cleaned and fenced as data, never instructions; the assistant runs with no
+  tools (or its read-only mode); and a command in the answer that does real damage (a piped
+  installer, `rm -rf /`, a new ssh key, a firewall off...) is listed at the end under "check
+  before running anything". Triage never runs what the answer suggests.
 - `phosphor broadcast [--host NAME]... [--role ROLE] [--timeout S] [--rolling [--pause S]] [--yes] -- COMMAND` — one
   command on every host `phosphor fleet` watches, at once: over ssh (BatchMode, a key, never a
   password prompt) and in parallel, the brain itself locally, viewers and `fleet = false` ones left

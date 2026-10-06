@@ -41,6 +41,21 @@ ONESHOT = {
 }
 ORDER = ["claude", "gemini", "codex", "opencode", "aider", "agy"]
 
+# The same, for a question built from text the deck didn't write (triage's
+# snapshot of a host): no tools at all, or each CLI's read-only mode, so a
+# log line that talks the assistant into "running a quick fix" has nothing
+# to run it with. Headless, a tool that needs approval is denied anyway;
+# this holds even where your own settings would allow it.
+READONLY = {
+    "claude": ["claude", "--tools", "", "-p"],
+    "gemini": ["gemini", "--approval-mode", "plan", "-p"],
+    "codex": ["codex", "exec", "--sandbox", "read-only"],
+    "opencode": ["opencode", "run", "--agent", "plan"],
+    "aider": ["aider", "--dry-run", "--no-auto-commits", "--no-suggest-shell-commands",
+              "--yes-always", "--message"],
+    "agy": ["agy", "--mode", "plan", "--sandbox", "-p"],
+}
+
 
 def pick(name=None):
     """The assistant to run: `name` if it's one ask knows and is installed,
@@ -50,8 +65,8 @@ def pick(name=None):
     return next((a for a in ORDER if newtab.have(a)), None)
 
 
-def command(assistant, question):
-    return ONESHOT[assistant] + [question]
+def command(assistant, question, readonly=False):
+    return (READONLY if readonly else ONESHOT)[assistant] + [question]
 
 
 NOTE_KINDS = ("decision", "summary")

@@ -1075,7 +1075,11 @@ and in the `+` menu, and open in a tab of their own.
   something to run on a timer. With no `HOST` on a real terminal, it opens the same arrow-key
   picker `phosphor commands` uses, over whatever the fleet panel is currently flagging (the same
   hosts `phosphor glance` calls out) -- or, with nothing flagged, over every host of the profile; piped or scripted, it just lists them instead (also: `g` in
-  the DECK tab).
+  the DECK tab). The snapshot is whatever the host says, so a log line can try to steer the
+  assistant: it goes in cleaned and fenced as data, never instructions; the assistant runs with no
+  tools (or its read-only mode); and a command in the answer that does real damage (a piped
+  installer, `rm -rf /`, a new ssh key, a firewall off...) is listed at the end under "check
+  before running anything". Triage never runs what the answer suggests.
 - `phosphor broadcast [--host NAME]... [--role ROLE] [--timeout S] [--rolling [--pause S]] [--yes] -- COMMAND` — one
   command on every host `phosphor fleet` watches, at once: over ssh (BatchMode, a key, never a
   password prompt) and in parallel, the brain itself locally, viewers and `fleet = false` ones left
@@ -1789,6 +1793,10 @@ device's mount or another copy step.
   can't use the deck's terminals. Plain colors in logs stay. An ssh shell
   on a host (`s` in FLEET, an ssh tab) is a real terminal and passes
   everything, as any ssh does.
+- `phosphor triage` hands a host's snapshot to an AI assistant, so a line
+  planted there could try to steer the answer. The assistant gets it as
+  fenced data with no tools to act with, and a dangerous command in what
+  it answers is flagged before you'd copy it (see commands).
 - The tools you run inside talk to their own services (your chat client --
   matterhorn, iamb, gomuks... -- to its server, an assistant to its
   provider). Phosphor adds no leaks and can't stop theirs.

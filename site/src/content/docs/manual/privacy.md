@@ -27,6 +27,10 @@ sidebar:
   can't use the deck's terminals. Plain colors in logs stay. An ssh shell
   on a host (`s` in FLEET, an ssh tab) is a real terminal and passes
   everything, as any ssh does.
+- `phosphor triage` hands a host's snapshot to an AI assistant, so a line
+  planted there could try to steer the answer. The assistant gets it as
+  fenced data with no tools to act with, and a dangerous command in what
+  it answers is flagged before you'd copy it (see commands).
 - The tools you run inside talk to their own services (your chat client --
   matterhorn, iamb, gomuks... -- to its server, an assistant to its
   provider). Phosphor adds no leaks and can't stop theirs.

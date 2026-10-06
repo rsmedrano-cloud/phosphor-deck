@@ -6,6 +6,18 @@ before it updates.
 
 ## Unreleased
 
+## 1.4.15 — triage with guardrails
+
+- `phosphor triage` treats what a host says as data, not orders. The snapshot is log lines and
+  unit names anyone on that machine can write, and one of them could try to talk the assistant
+  into a "fix" like `curl … | sh`. Now the snapshot goes in cleaned and fenced between markers made
+  fresh each run, with the assistant told it's data, never instructions; the assistant runs with
+  no tools (claude `--tools ""`, gemini and agy in plan mode, codex's read-only sandbox, aider
+  `--dry-run`), so it has nothing to act with; and its answer is cleaned too, then read for
+  commands that do real damage (a piped installer, `rm -rf /`, a new ssh key, a firewall turned
+  off, a new user...), listed at the end under "check before running anything". Nothing in triage
+  ever runs what the answer suggests.
+
 ## 1.4.14 — a security audit
 
 - `phosphor security`: doctor says whether the deck works, this says how exposed it is. The brain

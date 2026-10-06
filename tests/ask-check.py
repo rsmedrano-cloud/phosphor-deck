@@ -24,6 +24,16 @@ check("aider --message", ask.command("aider", "hi") ==
 check("agy -p", ask.command("agy", "hi") == ["agy", "-p", "hi"])
 check("agy is in the picking order too", "agy" in ask.ORDER)
 
+# readonly (triage): every assistant has a no-tools/read-only form, question last
+check("readonly: every assistant ask knows has one", set(ask.READONLY) == set(ask.ONESHOT))
+check("readonly claude: no tools at all", ask.command("claude", "hi", readonly=True) ==
+      ["claude", "--tools", "", "-p", "hi"])
+check("readonly: the question is always the last argument",
+      all(ask.command(a, "hi", readonly=True)[-1] == "hi" for a in ask.READONLY))
+check("readonly aider: never touches files", "--dry-run" in ask.command("aider", "hi", readonly=True))
+check("readonly codex: read-only sandbox", ask.command("codex", "hi", readonly=True)[2:4] ==
+      ["--sandbox", "read-only"])
+
 # prompt(): piped text as context, the question, or both together
 check("just a question", ask.prompt(["hi", "there"], "") == "hi there")
 check("just piped text (no question)", ask.prompt([], "the diff") == "the diff")

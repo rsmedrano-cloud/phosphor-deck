@@ -92,7 +92,8 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
   right there, no need to remember the ssh alias or the exact command. Want a
   second opinion instead? `phosphor triage HOST` collects a deeper snapshot
   (load, failed units, memory, disk, recent kernel messages) and hands it to
-  whichever AI assistant is installed to diagnose.
+  whichever AI assistant is installed to diagnose -- as data, with no tools to act with, and any
+  dangerous command in its answer flagged before you copy it.
 - **Prometheus gauges.** If you already run Prometheus, `phosphor prom` draws
   your PromQL queries as bars, arcs and sparklines, colored by thresholds.
 - **CI/CD status.** `phosphor ci` draws status cards for GitLab and GitHub
