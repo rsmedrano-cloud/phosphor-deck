@@ -328,7 +328,7 @@ deck card offers **1** ("one pane"), which writes the tab as one pane (a backup 
 - **apply** — regenerates and restarts the deck
 
 It edits your profile as text, so your comments and custom tabs survive, and
-leaves a `deck.toml.bak` behind.
+leaves a `deck.toml.bak` behind. A write either lands whole or not at all.
 
 ## The profile
 

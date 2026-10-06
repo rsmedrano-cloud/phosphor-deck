@@ -64,20 +64,14 @@ def move_text(text, name, step):
     first, second = lines[ai:ae], lines[bi:be]
     return "\n".join(lines[:ai] + second + lines[ae:bi] + first + lines[be:])
 
-def write(new, check):
+def write(new, check, expect=None):
     """Only a profile that parses and passes check; then gen, quietly."""
     p = deckconf.path()
     if deckconf.example():
         return "there's no profile yet: phosphor init"
-    try:
-        prof = deckconf.tomllib.loads(new)
-    except Exception as e:
-        return "the profile wouldn't parse: %s" % str(e)[:50]
-    if not check(prof):
-        return "the result didn't look right: nothing written"
-    old = open(p).read()
-    deckconf.backup(p, old)
-    open(p, "w").write(new)
+    err = deckconf.write_profile(new, check, expect=expect, p=p)
+    if err:
+        return err + ("" if "nothing written" in err else ": nothing written")
     subprocess.run([sys.executable, PHOSPHOR, "gen"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return None
 
@@ -111,10 +105,10 @@ def forget(name):
         if from_tabs_d(name):
             return "not placed anywhere: already at the end, in file-name order"
         return "%s isn't in your profile" % name
-    return write(remove_text(text, name), lambda p: all(t.get("name") != name for t in p.get("tabs", [])))
+    return write(remove_text(text, name), lambda p: all(t.get("name") != name for t in p.get("tabs", [])), text)
 
 def move(name, step):
-    text = open(deckconf.path()).read()
+    text = disk = open(deckconf.path()).read()
     if not any(n == name for n, _, _ in spans(text)):
         if not from_tabs_d(name):
             return "%s isn't in your profile" % name
@@ -123,7 +117,7 @@ def move(name, step):
     if new == text: return None
     want = [t.get("name") for t in deckconf.tomllib.loads(text).get("tabs", [])]
     k = want.index(name); want[k], want[k + step] = want[k + step], want[k]
-    return write(new, lambda p: [t.get("name") for t in p.get("tabs", [])] == want)
+    return write(new, lambda p: [t.get("name") for t in p.get("tabs", [])] == want, disk)
 
 # ── the deck ──────────────────────────────────────────────────
 def bare(name):

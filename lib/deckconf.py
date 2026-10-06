@@ -42,6 +42,65 @@ def backup(p, old_text):
     if os.path.exists(b1): shutil.move(b1, b2)
     open(b1, "w").write(old_text)
 
+class _locked:
+    """One writer at a time: deck.toml.lock, the same flock the notebook's
+    notes.md.lock uses."""
+    def __init__(self, p): self.path = p + ".lock"
+    def __enter__(self):
+        import fcntl
+        self.f = open(self.path, "a"); fcntl.flock(self.f, fcntl.LOCK_EX); return self
+    def __exit__(self, *a):
+        import fcntl
+        fcntl.flock(self.f, fcntl.LOCK_UN); self.f.close()
+
+def write_profile(new, check=None, expect=None, p=None, keep=True):
+    """The only way the profile gets written. None when it's written, else
+    why not (and nothing was touched). `new` must parse, and pass
+    `check(profile)` when given; `expect` is the text the caller started
+    from, and when the file no longer holds it (another phosphor command
+    wrote it meanwhile) nothing is written rather than undo that write. The
+    old text goes to .bak first (`keep=False` skips that, for a session
+    that already made one), then the new one lands whole through a temp
+    file and os.replace: a kill or a full disk mid-write leaves the old
+    profile, never half of one. A symlinked profile is written through
+    the link, keeping its mode."""
+    p = p or path()
+    if os.path.abspath(p) == os.path.abspath(EXAMPLE):
+        return "there's no profile yet: phosphor init"
+    if tomllib is not None:
+        try:
+            prof = tomllib.loads(new)
+        except Exception as e:
+            return "the profile wouldn't parse: %s" % str(e)[:50]
+        if check and not check(prof):
+            return "the result didn't look right"
+    elif check:
+        return "no TOML parser: pip install --user tomli"
+    real = os.path.realpath(p)
+    d = os.path.dirname(real)
+    import tempfile
+    try:
+        os.makedirs(d, exist_ok=True)
+        with _locked(real):
+            old = open(real).read() if os.path.exists(real) else None
+            if expect is not None and old != expect:
+                return "the profile changed meanwhile: nothing written, try again"
+            if old is not None and keep:
+                backup(real, old)
+            fd, tmp = tempfile.mkstemp(dir=d, prefix=".deck.toml.")
+            try:
+                with os.fdopen(fd, "w") as f:
+                    f.write(new); f.flush(); os.fsync(f.fileno())
+                os.chmod(tmp, os.stat(real).st_mode & 0o7777 if old is not None else 0o644)
+                os.replace(tmp, real)
+            except BaseException:
+                try: os.unlink(tmp)
+                except OSError: pass
+                raise
+    except OSError as e:
+        return "can't write the profile: %s" % str(e)[:50]
+    return None
+
 def set_key(section, key, value):
     """`key = value` in [section] of the profile (value a TOML literal,
     quoted already), replacing that line or adding it, and the table too if
@@ -64,9 +123,7 @@ def set_key(section, key, value):
         else:
             lines[at] = line
         new = "\n".join(lines)
-    backup(p, text)
-    open(p, "w").write(new)
-    return True
+    return write_profile(new, expect=text, p=p) is None
 
 def load():
     """(profile, path). profile is None when there's no parser or it can't be read."""

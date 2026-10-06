@@ -115,18 +115,18 @@ def remove_screen_text(text, kind):
     return remove_table_text(text, "[screens.%s]" % kind)
 
 _backed = [False]
+_seen = [None]      # the profile as this session last read or wrote it
+def read(p):
+    _seen[0] = open(p).read()
+    return _seen[0]
+
 def save(text, check):
     """Parse first; write only a profile that reads back right."""
-    try:
-        prof = deckconf.tomllib.loads(text)
-    except Exception as e:
-        print(row(BAD, "not saved", str(e)[:50])); return False
-    if not check(prof):
-        print(row(BAD, "not saved", "the result doesn't look right")); return False
     p = deckconf.path()
-    if not _backed[0]:
-        deckconf.backup(p, open(p).read()); _backed[0] = True
-    open(p, "w").write(text)
+    err = deckconf.write_profile(text, check, expect=_seen[0], keep=not _backed[0])
+    if err:
+        print(row(BAD, "not saved", err)); return False
+    _backed[0] = True; _seen[0] = text
     print(row(OK, "saved", p, note="backup: deck.toml.bak"))
     return True
 
@@ -377,7 +377,7 @@ def run():
     if not lh or lh.get("role") != "brain":
         print("  setup runs on the brain, where the deck lives"); return 1
 
-    text = open(p).read()
+    text = read(p)
     added, removed, dirty = [], [], False
     while True:
         prof = deckconf.tomllib.loads(text)
@@ -423,11 +423,11 @@ def run():
         elif k == 7:
             import tunnels
             tunnels.interactive()
-            text = open(p).read()
+            text = read(p)
         elif k == 6:
             import web as webmod
             (webmod.off() if webon else webmod.on())
-            text = open(p).read()
+            text = read(p)
         else:
             if dirty and yes("apply the changes before leaving?", True):
                 apply(added, removed)

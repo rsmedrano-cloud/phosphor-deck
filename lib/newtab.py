@@ -196,14 +196,10 @@ def keep_tab(name, spec):
     pane = "{ " + ", ".join("%s = %s" % (k, toml(v)) for k, v in spec.items()) + " }" if spec else "{}"
     block = "\n[[tabs]]\nname  = %s\npanes = [ %s ]\n" % (json.dumps(name), pane)
     new = text.rstrip("\n") + "\n" + block
-    try:
-        ok = any(t.get("name") == name for t in deckconf.tomllib.loads(new).get("tabs", []))
-    except Exception:
-        ok = False
-    if not ok:
-        return "the profile wouldn't parse, left it alone"
-    deckconf.backup(p, text)
-    open(p, "w").write(new)
+    err = deckconf.write_profile(new, lambda prof: any(t.get("name") == name for t in prof.get("tabs", [])),
+                                 expect=text, p=p)
+    if err:
+        return err + ", left it alone"
     subprocess.run([sys.executable, PHOSPHOR, "gen"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return None
 

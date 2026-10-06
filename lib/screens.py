@@ -216,14 +216,11 @@ def retype(action, kind, gen=_gen):
         return False, "can't read the profile: %s" % e
     t2 = (deck_setup.add_screen_text(text, kind) if action == "own"
           else deck_setup.remove_screen_text(text, kind))
-    try:
-        has = kind in (deckconf.tomllib.loads(t2).get("screens") or {})
-    except Exception as e:
-        return False, "not saved: %s" % str(e)[:50]
-    if has != (action == "own"):
-        return False, "not saved: [screens.%s] isn't where it should be" % kind
-    deckconf.backup(p, text)
-    open(p, "w").write(t2)
+    err = deckconf.write_profile(
+        t2, lambda prof: (kind in (prof.get("screens") or {})) == (action == "own"), expect=text, p=p)
+    if err:
+        return False, "not saved: " + (err if "didn't look right" not in err
+                                        else "[screens.%s] isn't where it should be" % kind)
     if not gen():
         return False, "saved, but phosphor gen failed: phosphor gen shows why"
     return True, ""

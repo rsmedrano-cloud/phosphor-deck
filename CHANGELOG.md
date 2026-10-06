@@ -6,6 +6,15 @@ before it updates.
 
 ## Unreleased
 
+## 1.5.3 — one door for profile writes
+
+- Every command that edits your profile (`setup`, `init`, `keep`, `tabs`, new tabs, `screens`,
+  shortcuts, `tunnels`, `web`, `push`, `tts`) now writes it the same way: only a result that
+  parses, never over a change another phosphor command made since it read the file (it
+  says so and writes nothing), and whole, through a temp file swapped in, so a kill or a
+  full disk mid-write can no longer leave a truncated profile. A symlinked `deck.toml`
+  stays a symlink, and its permissions are kept.
+
 ## 1.5.2 — a lighter AGENTS.md
 
 - AGENTS.md is now the rules for assistants, the concepts and an index of the manual (each

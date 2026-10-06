@@ -246,14 +246,10 @@ def save(name, blk):
         return False
     text = open(p).read()
     new = put(text, name, blk)
-    try:
-        prof = deckconf.tomllib.loads(new)
-    except Exception as e:
-        print(row(BAD, "not saved", str(e)[:60])); return False
-    if not any(t.get("name") == name for t in prof.get("tabs", [])):
-        print(row(BAD, "not saved", "the tab isn't in the result")); return False
-    deckconf.backup(p, text)
-    open(p, "w").write(new)
+    err = deckconf.write_profile(new, lambda prof: any(t.get("name") == name for t in prof.get("tabs", [])),
+                                 expect=text, p=p)
+    if err:
+        print(row(BAD, "not saved", err)); return False
     print(row(OK, "saved", p, note="backup: deck.toml.bak"))
     return True
 

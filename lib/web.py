@@ -98,9 +98,8 @@ def set_flag(on):
     pat = re.compile(r"^\s*web\s*=\s*(true|false)\s*$", re.M)
     new = pat.sub(line, text, count=1) if pat.search(text) else \
         re.sub(r"^\[deck\]\s*$", "[deck]\n" + line, text, count=1, flags=re.M)
-    deckconf.tomllib.loads(new)                 # never write a profile that doesn't parse
-    deckconf.backup(p, text)
-    open(p, "w").write(new)
+    err = deckconf.write_profile(new, expect=text, p=p)
+    if err: raise RuntimeError(err)
 
 def token():
     r = zj("web", "--create-token")      # 0.45 refuses --token-name alongside it

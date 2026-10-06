@@ -392,12 +392,12 @@ def run():
 
     old_notes = notesmod.PATH
     body = render(hosts, theme, comms, net, web, tun, editor_pick, shell_pick, notes_folder, shape)
-    os.makedirs(os.path.dirname(OUT), exist_ok=True)
-    if os.path.exists(OUT):
-        import deckconf
-        deckconf.backup(OUT, open(OUT).read())
+    had = os.path.exists(OUT)
+    err = deckconf.write_profile(body, p=OUT)
+    if err:
+        print(row(BAD, "not saved", err)); return 1
+    if had:
         print(row(AMB, "backup", OUT + ".bak"))
-    open(OUT, "w").write(body)
     print(row(OK, "profile", OUT))
     if notes_folder:
         moved = notesmod.migrate(old_notes, os.path.join(notes_folder, "notes.md"))
@@ -410,7 +410,7 @@ def run():
             import web as webmod
             webmod.on(restart=False)          # the session was just created shareable
         if yes("  will you also get in from a phone or tablet?", False):
-            import deckconf, phone
+            import phone
             phone.instructions(deckconf.load()[0])
         if not os.environ.get("ZELLIJ") and \
                 yes("  get in now? (leave any time with Alt-x or Ctrl-q)", True):

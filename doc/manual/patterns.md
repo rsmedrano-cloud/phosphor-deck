@@ -73,7 +73,12 @@ keep, or someone else's to drop in.
 Every write phosphor's tools make to your profile keeps a `deck.toml.bak`
 first (the version just before it), rotating up to two older ones behind it
 (`deck.toml.bak.2`, `deck.toml.bak.3`) instead of losing them -- `phosphor
-setup` then a recipe, back to back, still keeps both. `phosphor gen --dry-run`
+setup` then a recipe, back to back, still keeps both. They all write it the
+same way: only a result that parses and does what was asked, never over a
+change another phosphor command made since it read the file (it says so and
+writes nothing; run it again), and whole -- a new file swapped in, so a kill
+or a full disk mid-write leaves the old profile, never half of one. A
+symlinked profile (dotfiles) is written through the link. `phosphor gen --dry-run`
 shows what a change would write without writing it. Nothing here replaces
 real version control: a profile is one text file, so `git init
 ~/.config/phosphor` (kept out of any repo you publish, see privacy) is a

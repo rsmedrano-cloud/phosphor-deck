@@ -196,14 +196,9 @@ def save(action, key):
         return "there's no profile yet: phosphor init"
     text = open(p).read()
     new = set_text(text, action, key)
-    try:
-        prof = deckconf.tomllib.loads(new)
-    except Exception as e:
-        return "the profile wouldn't parse: %s" % str(e)[:50]
-    if current(prof).get(action) != key:
-        return "the profile didn't take it"
-    deckconf.backup(p, text)
-    open(p, "w").write(new)
+    err = deckconf.write_profile(new, lambda prof: current(prof).get(action) == key, expect=text, p=p)
+    if err:
+        return "the profile didn't take it" if "didn't look right" in err else err
     import subprocess
     subprocess.run([sys.executable, os.path.join(REPO, "phosphor"), "gen"],
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

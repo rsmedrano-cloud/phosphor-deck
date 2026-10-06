@@ -98,8 +98,8 @@ def _profile():
 def add_block(host):
     p = _profile(); text = open(p).read()
     new = text.rstrip("\n") + '\n\n[[tunnels]]\nhost = "%s"\n' % host
-    deckconf.tomllib.loads(new)
-    deckconf.backup(p, text); open(p, "w").write(new)
+    err = deckconf.write_profile(new, expect=text, p=p)
+    if err: raise RuntimeError(err)
 
 def remove_block(host):
     p = _profile(); lines = open(p).read().split("\n")
@@ -111,8 +111,8 @@ def remove_block(host):
                 j += 1
             s = i - 1 if i > 0 and not lines[i - 1].strip() else i
             new = "\n".join(lines[:s] + lines[j:])
-            deckconf.tomllib.loads(new)
-            deckconf.backup(p, "\n".join(lines)); open(p, "w").write(new)
+            err = deckconf.write_profile(new, expect="\n".join(lines), p=p)
+            if err: raise RuntimeError(err)
             return True
     return False
 
