@@ -1,10 +1,11 @@
 """phosphor help / phosphor docs - one manual, three readers.
 
 doc/manual/*.md is the only source. `phosphor help TOPIC` shows a page in the
-terminal; `phosphor docs` builds AGENTS.md (the reference AI assistants read)
-from the same pages and fills the key table from share/keys.json; `phosphor
-docs --check` fails when AGENTS.md is out of date. Edit the manual, never a
-copy.
+terminal; `phosphor docs` builds AGENTS.md (what AI assistants read) from the
+same pages: the rules, the concepts page and an index of the rest, not the
+whole manual, since assistants load it into every turn. The key table comes
+from share/keys.json; `phosphor docs --check` fails when AGENTS.md is out of
+date. Edit the manual, never a copy.
 """
 import json, os, re, shutil, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -168,9 +169,32 @@ def page(name):
             dlog.event("DOCS", "keys-table-failed")   # never str(e): it can quote the install path
     return txt
 
+def demote(txt):
+    return re.sub(r"^# ", "## ", re.sub(r"^## ", "### ", txt, flags=re.M), flags=re.M)
+
+def summaries():
+    """topic -> its line in the manual's own README table, the one place it's written."""
+    rows = re.findall(r"^\| (\w+) \| (.+?) \|$", page("README"), flags=re.M)
+    return {t: d for t, d in rows if t != "topic"}
+
+def index():
+    """The rest of the manual as pointers: the full text stays one file read away."""
+    what = summaries()
+    out = ["## The manual", "",
+           "Everything else is in doc/manual/, one page per topic (`phosphor help TOPIC`",
+           "shows it in a terminal). Read the page a task touches; don't load them all.",
+           "Every page's sections, so a grep finds the right one:", ""]
+    for n in ORDER[1:]:
+        heads = re.findall(r"^###? (.+)$", page(n), flags=re.M)
+        out.append("- **%s** (`doc/manual/%s.md`): %s" % (n, n, what.get(n, "")))
+        if heads:
+            out.append("  Sections: " + "; ".join(heads) + ".")
+        if "<!-- keys:_deck -->" in open(os.path.join(MAN, n + ".md")).read():
+            out.append("  Its key table comes from share/keys.json (`_deck`); `phosphor help %s` shows it filled in." % n)
+    return "\n".join(out)
+
 def build():
-    parts = [RULES] + [re.sub(r"^# ", "## ", re.sub(r"^## ", "### ", page(n), flags=re.M), flags=re.M)
-                       for n in ORDER]
+    parts = [RULES, demote(page(ORDER[0])), index()]
     return "\n".join(p.rstrip() + "\n" for p in parts)
 
 IMG = re.compile(r"^!\[(.*?)\]\((.*?)\)$")

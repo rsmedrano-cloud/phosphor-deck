@@ -6,6 +6,13 @@ before it updates.
 
 ## Unreleased
 
+## 1.5.2 — a lighter AGENTS.md
+
+- AGENTS.md is now the rules for assistants, the concepts and an index of the manual (each
+  page with its sections) instead of the whole manual: about 200 lines instead of 2000. An
+  assistant that loads it on every turn (Claude Code's CLAUDE.md does) costs far less, and
+  reads the manual page a task needs from `doc/manual/`.
+
 ## 1.5.1 — demo machines with a real ssh alias
 
 - In `phosphor demo`, FLEET's `s` (a shell) and `l` (its logs) open on a made-up machine whose

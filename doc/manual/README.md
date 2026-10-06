@@ -1,8 +1,10 @@
 # Phosphor Deck manual
 
 One source for everything: `phosphor help TOPIC` shows these pages in the
-deck, and `phosphor docs` builds AGENTS.md from them for AI assistants. Edit
-the page here; never a copy.
+deck, and `phosphor docs` builds AGENTS.md from them for AI assistants: the
+rules, concepts, and this table as an index with each page's sections (they
+read the page a task touches, not the whole manual). Edit the page here;
+never a copy.
 
 | topic | what it covers |
 |---|---|

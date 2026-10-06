@@ -358,7 +358,7 @@ sidebar:
 - `phosphor completion bash|zsh` — tab completion (the installer adds it to your rc file).
 
 ## Help
-- `phosphor help [TOPIC]` — this manual. `phosphor docs [--check]` — rebuild AGENTS.md.
+- `phosphor help [TOPIC]` — this manual. `phosphor docs [--check]` — rebuild AGENTS.md (the rules, concepts and an index of these pages).
 - `phosphor CMD --help` (or `-h`) — what that command does and its usage; it never runs it.
 - `share/commands.json` — a machine-readable manifest, one entry per command above, saying
   whether it mutates live state (the session, a systemd unit, the profile, or any file phosphor

@@ -367,7 +367,7 @@ Everything below, in depth, lives in [doc/manual](doc/manual/README.md) --
 also **[online](https://rsmedrano-cloud.github.io/phosphor-deck/)**, one
 page per topic. `phosphor help TOPIC` shows it inside the deck, and
 [AGENTS.md](AGENTS.md), built from the same pages, is what AI assistants
-should read. [`share/commands.json`](share/commands.json) is the same
+should read: the rules, the concepts and an index pointing into the manual. [`share/commands.json`](share/commands.json) is the same
 classification in JSON -- which commands mutate live state, which need the
 deck running -- for a CI job, a cron, or a policy tool that wants to know
 without parsing prose. Contributing: [CONTRIBUTING.md](CONTRIBUTING.md).
