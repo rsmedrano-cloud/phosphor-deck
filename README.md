@@ -102,6 +102,10 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
   units -- Phosphor's own plus any of your homelab's you add -- colored by
   state, in the SYS tab. Pick one to read its logs, restart, start or stop it
   (it asks first).
+- **Containers, from the fleet.** `c` over a machine's card in FLEET (or
+  `phosphor containers HOST`) lists its docker or podman containers, a failed
+  one in red: read its logs, restart it, start or stop it (it asks first),
+  without opening a shell on it.
 - **Review from the deck.** `phosphor review` lists open merge/pull requests
   (GitLab or GitHub, detected from the remote): CI status, conflicts, the diff,
   and a key to check the branch out into its own worktree and try it, without
@@ -412,7 +416,7 @@ more depth on every one of these.
 
 | | |
 |---|---|
-| `phosphor fleet` | fleet panel: pick a card, then `s` ssh, `l` logs, `t` triage, each in its own tab; `h` its last 24 hours |
+| `phosphor fleet` | fleet panel: pick a card, then `s` ssh, `l` logs, `t` triage, `c` containers, each in its own tab; `h` its last 24 hours |
 | `phosphor pulse` | the heartbeat: a wave tied to real load |
 | `phosphor usage` | how much of your Claude Code and Antigravity plans you've used (5-hour window, week) and when each refills |
 | `phosphor glance` | read-only: fleet, unread mentions, open todos -- for a small screen, no zellij needed |
@@ -422,6 +426,7 @@ more depth on every one of these.
 | `phosphor tts` | speak notifications aloud with selectable voices (GLaDOS, Adjutant, HAL, Synth, System) |
 | `phosphor ci` | GitLab/GitHub pipeline status cards (see `[ci]` in the profile) |
 | `phosphor services` | systemd units and their state: Phosphor's own, plus any you add (see `[services]` in the profile); pick one for its logs, restart, start/stop |
+| `phosphor containers [HOST]` | a host's docker/podman containers; pick one for its logs, restart, start/stop (`c` over a card in FLEET) |
 | `phosphor review` | open merge/pull requests: CI, conflicts, diff, try the branch in its own worktree |
 | `phosphor mem` | how much memory each tab and pane of the deck takes, heaviest first, every kind of screen's deck included |
 | `phosphor screens` | who's attached (phone, tablet, another computer), and which come through a tailscale relay; `x` twice kicks one loose, `o` twice gives its kind a deck of its own or shares this one |

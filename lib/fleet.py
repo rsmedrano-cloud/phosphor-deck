@@ -461,8 +461,9 @@ def card(name, w, d):
 
 # Keys over a card: pick one (arrows, Tab, a tap), then open something on
 # that machine in a tab of its own. Nothing here changes the host itself:
-# a shell, its logs, or a read-only look through `phosphor triage`.
-ACTIONS = [("s", "ssh"), ("l", "logs"), ("t", "triage")]
+# a shell, its logs, a read-only look through `phosphor triage`, or its
+# containers (`phosphor containers`, which asks before touching one).
+ACTIONS = [("s", "ssh"), ("l", "logs"), ("t", "triage"), ("c", "containers")]
 # ...and one that stays in this pane: the card's last 24 hours (lib/history.py)
 HISTORY = ("h", "history")
 
@@ -480,11 +481,13 @@ def action_tab(key, name, target):
         return label, {"_run": argv, "_name": label, "reconnect": bool(target)}
     if key == "t":
         return ("TRIAGE-" + name).upper()[:24], {"cmd": "phosphor triage", "args": [name]}
+    if key == "c":
+        return ("CTR-" + name).upper()[:24], {"cmd": "phosphor containers", "args": [name]}
     return None
 
 def open_action(key, name, target):
     """Open the tab for `key` next to this one. A message either way."""
-    if DEMO:
+    if DEMO and key != "c":        # containers has made-up ones for the demo
         return "the demo's machines aren't real: nothing to open"
     if not os.environ.get("ZELLIJ"):
         return "open it from inside the deck"

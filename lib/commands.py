@@ -58,6 +58,7 @@ CATEGORIES = [
         ("usage", "phosphor usage", "how much of your Claude Code / Antigravity plan is used, and when it refills"),
         ("prom", "phosphor prom", "Prometheus gauge dashboard (see [prometheus] in the profile)"),
         ("services", "phosphor services", "systemd units and their state: phosphor's own, plus any you add"),
+        ("containers", "phosphor containers", "a host's docker/podman containers: logs, restart, start/stop"),
         ("review", "phosphor review", "open merge/pull requests: CI, conflicts, diff, try the branch"),
         ("screens", "phosphor screens", "who's attached (phone, tablet, another computer); kick one loose"),
         ("mem", "phosphor mem", "how much memory each tab and pane of the deck takes, heaviest first"),

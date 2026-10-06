@@ -20,6 +20,8 @@
     "note": "a category/command picker; a read-only leaf runs on Enter (this same file decides which), and so do the ones that ask for what they need on their own screen (ask, broadcast, send, clip, receive, triage, face, push, tts, trace -- any change still asks there); anything else just copies its usage line -- never guesses at missing arguments."},
   "completion": {"mutates": false, "needs_deck": false,
     "note": "prints a shell completion snippet."},
+  "containers": {"mutates": false, "needs_deck": false,
+    "note": "--once and non-tty are read-only (a docker/podman ps over ssh); on a terminal the panel's r (restart) and s (start/stop) act on the picked container on that host after a y confirm."},
   "demo": {"mutates": true, "needs_deck": false,
     "note": "starts (or, with --stop, tears down) a separate throwaway zellij session and its own cache state -- isolated from your real profile/session, but a real one while it runs; --tour adds a floating guide on each of its tabs, only ever in that session."},
   "doctor": {"mutates": false, "needs_deck": false,

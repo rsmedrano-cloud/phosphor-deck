@@ -6,6 +6,14 @@ before it updates.
 
 ## Unreleased
 
+## 1.4.13 — containers from the fleet
+
+- A container that fell over no longer needs a shell to bring it back: pick a machine's card in FLEET
+  and press `c` (or tap it on the bottom line) for its containers -- docker, or podman -- running ones
+  first, one that exited with an error in red. Pick one: `l` reads its last 300 log lines, `r`
+  restarts it, `s` starts or stops it, each asking first. Also `phosphor containers HOST` on its own,
+  and in the commands menu. Over the same ssh FLEET already uses; nothing is installed on the host.
+
 ## 1.4.12 — the fleet remembers the day
 
 - FLEET remembers the day: pick a machine's card and press `h` (or tap it on the bottom line) for its

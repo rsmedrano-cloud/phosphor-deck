@@ -132,13 +132,21 @@ sidebar:
   after 6 hours; the count waits in `$XDG_RUNTIME_DIR/phosphor-updates` on that machine.
   In `fleet`, pick a machine's card (arrows, Tab or a tap; Esc lets go) and open something on it in a tab of
   its own: `s` a shell there (ssh, or a plain shell for the brain), `l` its logs (what `phosphor tail HOST`
-  runs), `t` a `phosphor triage` of it. The keys show on the bottom line and tapping them works too; none
-  of them changes anything on the host. `h` stays in the pane and draws that machine's last 24 hours:
+  runs), `t` a `phosphor triage` of it, `c` its containers (`phosphor containers HOST`, below). The keys
+  show on the bottom line and tapping them works too; none of them changes anything on the host by
+  itself. `h` stays in the pane and draws that machine's last 24 hours:
   CPU, RAM, temperature and its fullest disk, one sparkline each, with the day's peak and when it was,
   and a red `·` where it was down (arrows or Tab go to the next machine, Esc back to the cards). The
   deck's own fleet keeps it, from the readings it already has -- nothing new runs on the hosts: every
   5 minutes, each host's peaks of that window go into `~/.cache/phosphor/history.json`, a day's worth,
   and only while the deck runs (a gap where it didn't).
+- `phosphor containers [HOST] [--once]` — a host's containers (docker, or podman where docker isn't
+  there or doesn't answer -- the engine its FLEET card counts), running first, an exit that wasn't 0
+  in red; no `HOST` means this machine. Listed over ssh the same way FLEET reaches it (a key, never
+  a password prompt). On a terminal, pick one (j/k or a tap): `l` reads its last 300 log lines, `r`
+  restarts it and `s` starts or stops it, each asking first (`y`). No sudo: if listing them works
+  without it, so does acting on them. Also `c` over a card in FLEET, in a tab of its own. In
+  `phosphor demo` it lists made-up containers and touches nothing.
 - `phosphor usage [--once]` — how much of your AI assistants' plans you've used, one card each:
   Claude Code (the 5-hour window and the week) and Antigravity (each quota pool -- Gemini, and the
   Claude/GPT models it also offers), each with a bar and the time until it refills. Only the ones
