@@ -183,6 +183,11 @@ def change(r, have, base):
         return None, "it says no kind: on it, phosphor screen --as KIND (or phone --as KIND)"
     if k in have:
         return None, "%s has a deck of its own now: x, and it goes there" % k
+    import kinds
+    if not kinds.NAME.match(k):
+        # [screens.KIND] wants lowercase letters and digits: anything else
+        # would be a block the deck ignores
+        return None, "it says %r: a kind is lowercase letters and digits (phosphor screen --as KIND)" % k[:20]
     return "own", k
 
 
@@ -228,9 +233,9 @@ def close_session(name):
     """A kind's session nobody comes into anymore: its panes go."""
     import kinds
     zj = deckconf.exe("zellij") or "zellij"
+    kinds.forget(name)          # first: run from that session, this pane goes with it
     for a in ("kill-session", "delete-session"):
         subprocess.run([zj, a, name], capture_output=True, timeout=15)
-    kinds.forget(name)
 
 
 def raw_screen(on):

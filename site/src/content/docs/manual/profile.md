@@ -269,8 +269,8 @@ message text leaves the brain**.
 The clip is the voice the brain itself speaks in (`[tts] voice`; the synth
 one when that voice isn't installed or fails), rendered once and played on
 both ends. It follows `[tts]`'s own rules: a fleet alert carries one only
-with `fleet_alerts` on. A server that refuses attachments still gets the
-text.
+with `fleet_alerts` on. A server that refuses attachments, or a clip that
+fails to upload, still gets the text.
 
 On the public ntfy.sh a topic is only as private as its name; with your own server (or a token)
 it's yours. Try it with `phosphor notify --push "hello"`: it says why if it can't send.

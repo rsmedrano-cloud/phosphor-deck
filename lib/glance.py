@@ -230,14 +230,21 @@ def handler_for(secret):
             pass
     return H
 
+def server(addr, secret):
+    """One thread per request: a gadget that connects and stalls can't
+    hold the others up."""
+    from http.server import ThreadingHTTPServer
+    httpd = ThreadingHTTPServer(addr, handler_for(secret))
+    httpd.daemon_threads = True
+    return httpd
+
 def serve(port=PORT, new_token=False):
-    from http.server import HTTPServer
     import send
     prof, _ = deckconf.load()
     ip, where = send.pick_address(prof)
     secret = token(new=new_token)
     try:
-        httpd = HTTPServer((ip, port), handler_for(secret))
+        httpd = server((ip, port), secret)
     except OSError as e:
         print(ui.row(ui.BAD, "glance", "can't listen on %s:%d" % (ip, port), note=str(e.strerror or e)))
         return 1

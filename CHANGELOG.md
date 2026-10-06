@@ -6,6 +6,22 @@ before it updates.
 
 ## Unreleased
 
+## 1.5.0 — security, digest, read, and the fleet up close
+
+- `phosphor triage`, `read --ask` and `digest` flag a piped installer however it's spelled:
+  `| /bin/bash`, `| sudo -E bash`, `| env sh`, or a script piped into `python3`, `perl`,
+  `ruby` or `node` used to go through without a word (`| python3 -m json.tool` still doesn't
+  count).
+- `[push]` with the voice clip: when the clip fails to upload (the server out of space, a slow
+  link), the notice still goes as text. It used to be lost unless the server said no outright.
+- `o` in `phosphor screens` on a screen that says a kind that can't be one (`my-tablet`: a kind
+  is lowercase letters and digits) says so, instead of writing a `[screens.KIND]` block the deck
+  ignores.
+- `phosphor glance --serve` answers each request on its own, so a gadget that connects and
+  stalls doesn't hold the others up.
+- `phosphor read` cleans what a server says in an error before printing it, like the rest of
+  the page.
+
 ## 1.4.18 — read the web from the deck
 
 - `phosphor read`: a web page as plain text, in the terminal. Give it an address and it keeps

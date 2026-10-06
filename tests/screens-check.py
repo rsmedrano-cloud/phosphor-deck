@@ -138,6 +138,8 @@ check("o on a kind's own deck shares it", screens.change(rows[0], have, "deck") 
 check("o on a screen saying a kind without a block gives it one",
       screens.change(rows[1], have, "deck") == ("own", "phone"))
 check("o on a screen saying no kind does nothing", screens.change(rows[2], have, "deck")[0] is None)
+check("o on a screen saying a kind that can't be one does nothing",
+      screens.change({"pid": 6, "session": "deck", "said": "my-tablet"}, have, "deck")[0] is None)
 check("o on a kind that just got a block waits for its reconnect",
       screens.change(rows[1], {"phone": {}}, "deck")[0] is None)
 check("sharing moves every screen of that kind's deck",

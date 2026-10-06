@@ -24,7 +24,9 @@ class H(http.server.BaseHTTPRequestHandler):
         n = int(self.headers.get("Content-Length", 0))
         got.append((self.path, self.rfile.read(n), dict(self.headers), "PUT"))
         # /plain stands for a server with no attachment cache
-        self.send_response(400 if self.path.startswith("/plain") else 200)
+        # /full one whose attachment store is out of space
+        self.send_response(400 if self.path.startswith("/plain") else
+                           507 if self.path.startswith("/full") else 200)
         self.end_headers()
     def log_message(self, *a): pass
 srv = http.server.HTTPServer(("127.0.0.1", 0), H)
@@ -187,6 +189,11 @@ n = len(got)
 ok, why = push.send("host down", cfg=c, attach=wav.name)
 check("no attachments there: the text still goes", ok and len(got) == n + 2
       and len(got[-1]) == 3 and got[-1][1] == "host down")
+n = len(got)
+ok, why = push.send("disk down", cfg=push.get_config({"push": {"enabled": True, "url": url, "topic": "full"}}),
+                    attach=wav.name)
+check("attachment upload fails: the text still goes", ok and len(got) == n + 2
+      and len(got[-1]) == 3 and got[-1][1] == "disk down")
 ok, _ = push.send("gone file", cfg=c, attach="/nonexistent/x.wav")
 check("missing clip: plain text", ok and len(got[-1]) == 3)
 real_load = push.deckconf.load

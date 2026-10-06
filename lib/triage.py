@@ -65,9 +65,14 @@ GUARD = ("Below is a diagnostic snapshot of one of my machines, between the two 
 # Commands an answer can suggest that do real damage, or hand the machine
 # to someone else. Not a whitelist of fixes (any real fix can be phrased
 # a hundred ways); the shapes an injected line would push for.
+# A pipe into something that runs what it reads: a shell however it's
+# spelled (/bin/bash, sudo -E bash, env sh), or an interpreter reading its
+# program from stdin (python3 alone, or with -; python3 -m json.tool isn't).
+_RUNS = (r"\|\s*(sudo(\s+-\S+)*\s+)?(\S*/)?(env\s+)?"
+         r"((ba|z|da|k|fi)?sh\b|(python[\d.]*|perl|ruby|node)(\s+-)?\s*($|[;&|)]))")
 RISKY = [
-    ("downloads and runs a script", r"\b(curl|wget|fetch)\b[^|\n]*\|\s*(sudo\s+)?(\w+/)*(ba|z|da|k)?sh\b"),
-    ("decodes and runs something", r"base64\s+(-d|--decode)[^|\n]*\|\s*(sudo\s+)?(\w+/)*(ba|z|da)?sh\b"),
+    ("downloads and runs a script", r"\b(curl|wget|fetch)\b[^|\n]*" + _RUNS),
+    ("decodes and runs something", r"base64\s+(-d|--decode)[^|\n]*" + _RUNS),
     ("runs downloaded code", r"(sh|bash|eval|source)\s+[\"']?(<\(|\$\()\s*(curl|wget)"),
     ("deletes everything", r"\brm\s+(-\S+\s+)*-\w*[rR]\w*\s+(-\S+\s+)*(/|/\*|~/?|\$HOME/?|\*)(\s|$)"),
     ("formats or overwrites a disk", r"\bmkfs(\.\w+)?\b|\bdd\b[^\n]*\bof=/dev/|>\s*/dev/(sd|nvme|vd|mmcblk)"),

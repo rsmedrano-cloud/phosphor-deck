@@ -105,9 +105,10 @@ def send(text, tab="", cfg=None, force=False, timeout=8, click="", attach=""):
             q = urllib.parse.urlencode({"message": msg, "filename": "phosphor.wav"})
             ok, why = _post(urllib.request.Request(target + "?" + q, data=data,
                             headers=headers, method="PUT"), timeout)
-            if ok or not why.startswith("HTTP 4"):
+            if ok:
                 return ok, why
-            # 4xx: attachments not allowed there, or too big: the text alone
+            # attachments not allowed there, too big, or the upload failed
+            # (a 5xx, a slow uplink): the text alone, rather than no notice
     return _post(urllib.request.Request(target, data=msg.encode("utf-8"),
                                         headers=headers, method="POST"), timeout)
 

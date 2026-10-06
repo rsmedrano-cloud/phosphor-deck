@@ -94,9 +94,8 @@ need("the token survives a restart", glance.token() == t1)
 need("--new-token replaces it", glance.token(new=True) != t1)
 secret = glance.token()
 
-import threading, urllib.request, urllib.error
-from http.server import HTTPServer
-httpd = HTTPServer(("127.0.0.1", 0), glance.handler_for(secret))
+import socket, threading, time, urllib.request, urllib.error
+httpd = glance.server(("127.0.0.1", 0), secret)
 threading.Thread(target=httpd.serve_forever, daemon=True).start()
 base = "http://127.0.0.1:%d" % httpd.server_port
 def get(path, headers={}):
@@ -112,6 +111,12 @@ need("?token= answers the payload", code == 200 and json.loads(body)["status"] =
 need("Authorization: Bearer works too",
      get("/glance.json", {"Authorization": "Bearer " + secret})[0] == 200)
 need("anything else: 404", get("/etc/passwd?token=" + secret)[0] == 404)
+stall = socket.create_connection(("127.0.0.1", httpd.server_port))
+stall.sendall(b"GET /gla")                 # and never finishes the line
+t0 = time.time()
+need("a client that stalls doesn't hold the others up",
+     get("/glance?token=" + secret)[0] == 200 and time.time() - t0 < 2)
+stall.close()
 httpd.shutdown()
 
 r = subprocess.run([sys.executable, os.path.join(ROOT, "lib", "glance.py"), "--json"],

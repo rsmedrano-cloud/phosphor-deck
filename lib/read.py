@@ -275,6 +275,13 @@ def show(text):
         sys.stdout.write(text if text.endswith("\n") else text + "\n")
 
 
+def why(e):
+    """An error to print: its reason can be a server's own words (an HTTP
+    status line), so it's cleaned like any other text from outside."""
+    import sanitize
+    return sanitize.clean(str(getattr(e, "reason", None) or e))
+
+
 def read_one(url, question, assistant):
     tty = sys.stdout.isatty()
     if tty:
@@ -282,7 +289,7 @@ def read_one(url, question, assistant):
     try:
         text = article(url, min(shutil.get_terminal_size((80, 24)).columns - 2, 100) if tty else 80)
     except (OSError, ValueError) as e:
-        print(BAD + " couldn't read %s: %s" % (url, getattr(e, "reason", None) or e) + RST)
+        print(BAD + " couldn't read %s: %s" % (url, why(e)) + RST)
         return 1
     if question:
         return ask_about(text, question, assistant)
@@ -319,7 +326,7 @@ def main():
     try:
         found = search(target)
     except (OSError, ValueError) as e:
-        print(BAD + " couldn't search: %s" % (getattr(e, "reason", None) or e) + RST); return 1
+        print(BAD + " couldn't search: %s" % (why(e)) + RST); return 1
     if not found:
         print(DIM + "  nothing found for %r" % target + RST); return 1
     if not (sys.stdin.isatty() and sys.stdout.isatty()):
