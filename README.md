@@ -408,6 +408,7 @@ more depth on every one of these.
 |---|---|
 | `phosphor workspace` | a tab per idea: folder, git, its assistants; bare, every workspace's git state, open, diff, a new one or remove one |
 | `phosphor ask Q` | a one-shot question to whichever assistant CLI is installed, no tab; `-c` adds your latest decisions and summaries |
+| `phosphor read X` | a web page as plain text (an address), or a web search to pick one from (words); `--ask Q` hands the page to an assistant with no tools |
 
 ### Notes
 

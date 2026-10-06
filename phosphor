@@ -80,6 +80,8 @@ USAGE = """phosphor - Phosphor Deck
     phosphor ask Q      a one-shot question to whichever assistant CLI is
                         installed, no tab (--assistant NAME to pick one,
                         -c to send your latest decisions along)
+    phosphor read X     a web page as plain text (a URL), or a web search (words);
+                        --ask Q hands the page to an assistant
 
   notes
     phosphor note T     add a note to the shared notebook
@@ -130,7 +132,7 @@ USAGE = """phosphor - Phosphor Deck
 TOOLS = ("fleet", "pulse", "keys", "store", "adjutant", "notes", "privacy", "phone", "newtab", "clip", "send",
          "mentions", "run", "web", "tunnels", "completion", "update", "panel", "version",
          "keep", "workspace", "edit", "shortcuts", "tabs", "prom", "logs", "trace", "ci", "recipe", "tts", "demo",
-         "services", "glance", "review", "push", "screens", "ask", "commands", "receive", "tail", "triage", "broadcast", "theme", "usage", "mem", "containers", "security", "digest")
+         "services", "glance", "review", "push", "screens", "ask", "commands", "receive", "tail", "triage", "broadcast", "theme", "usage", "mem", "containers", "security", "digest", "read")
 
 def crash_name(cmd):
     """The name a crash is logged under: the pane's, when phosphor run

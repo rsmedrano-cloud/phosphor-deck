@@ -31,6 +31,9 @@
   fleet trouble to an assistant's provider, only when you run it (`--print`
   shows what would go). It goes in fenced as data, to an assistant with no
   tools.
+- `phosphor read` fetches the address you give it, and a search sends its
+  words to DuckDuckGo, from the brain, only when you run it. `--ask` sends
+  the page and your question to an assistant's provider.
 - The tools you run inside talk to their own services (your chat client --
   matterhorn, iamb, gomuks... -- to its server, an assistant to its
   provider). Phosphor adds no leaks and can't stop theirs.

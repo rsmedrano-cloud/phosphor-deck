@@ -223,7 +223,7 @@ def launch(name, argv, spec, keep):
     os.execv(sys.executable, [sys.executable, PHOSPHOR, "run"] + opts + ["--"] + argv)
 
 # What `/` in the + menu searches, in this order when two match as well.
-KINDS = ("tab", "entry", "workspace", "tool", "app", "command")
+KINDS = ("tab", "entry", "workspace", "tool", "app", "command", "web")
 
 def search_items(prof, its):
     """Everything `/` can find: [(label, note, kind, payload)]. Open tabs
@@ -274,12 +274,18 @@ def find(items, q):
         return (0 if l == q else 1 if l.startswith(q) else 2 if q in l else 3, KINDS.index(it[2]))
     return sorted([it for it in items if all(w in (it[0] + " " + it[1]).lower() for w in words)], key=rank)
 
+def with_web(found, q):
+    """What `/` lists: the matches, then, whenever something is typed, the
+    words themselves as a web search (phosphor read) -- last, always."""
+    return found + ([(q.strip(), "search the web for it (phosphor read)", "web", q.split())] if q.strip() else [])
+
 def search(items, rows, cols, q=""):
     """Type to narrow, arrows or a tap to pick, Enter takes it. The item, or
     None for Esc."""
     sel, top = 0, 0
     while True:
-        found = find(items, q)
+        found = with_web(find(items, q), q)
+        none = len(found) == bool(q.strip())
         sel = max(0, min(sel, len(found) - 1))
         w = min(cols, 80)
         room = max(3, rows - 5)
@@ -292,8 +298,8 @@ def search(items, rows, cols, q=""):
             line = " %-16s %s" % (label[:16], note)
             lines.append((INV + pad(line[:w - 1], w - 1) + RST) if i == sel else
                          (" " + FG + "%-16s" % label[:16] + RST + " " + DIM + note[:max(0, w - 19)] + RST))
-        if not found:
-            lines.append(" " + DIM + "nothing matches: Backspace, or Esc to go back" + RST)
+        if none:
+            lines.append(" " + DIM + "nothing else matches: Backspace, or Esc to go back" + RST)
         lines += [""] * max(0, rows - 1 - len(lines))
         lines.append(DIM + " type to search · ↑↓ or tap · Enter opens it · Esc back" + RST)
         sys.stdout.write("\x1b[H" + "\x1b[K\n".join(lines[:rows]) + "\x1b[K\x1b[J"); sys.stdout.flush()
@@ -561,6 +567,9 @@ def main():
                     launch(apps.tab_name(what), [p] + what.get("args", []), apps.spec(what), keep)
                 if kind == "command":
                     run_command(*what, keep); continue
+                if kind == "web":
+                    launch("READ", [sys.executable, PHOSPHOR, "read"] + what,
+                           {"cmd": "phosphor read", "args": what}, keep)
                 act = what                                      # one of the menu's own entries
             if act == "cmd":
                 text = ask_command(rows)

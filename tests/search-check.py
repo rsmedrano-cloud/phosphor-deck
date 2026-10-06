@@ -62,6 +62,9 @@ need("case-insensitive, name before note", f and f[0][0] == "doctor")
 f = newtab.find(items, "systemd units")
 need("every word, in the note too", f and all("systemd" in (i[0] + i[1]).lower() for i in f))
 need("nothing for nonsense", newtab.find(items, "zzqqxx") == [])
+w = newtab.with_web(newtab.find(items, "zellij swap layouts"), "zellij swap layouts")
+need("typed words end with a web search", w and w[-1][2] == "web" and w[-1][3] == ["zellij", "swap", "layouts"])
+need("nothing typed, no web search", not any(it[2] == "web" for it in newtab.with_web(items, " ")))
 need("an empty query lists everything", len(newtab.find(items, "  ")) == len(items))
 
 need("a workspace without a layout says phosphor gen",

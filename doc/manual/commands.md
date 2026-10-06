@@ -45,8 +45,8 @@
   confirmation), `send`, `clip` and `face` (the file, walked to by folders: `~` and `~/fleet` one
   key away; `face` only lists images), `receive` (the QR on its own screen, and `y` opens the
   file that landed in yazi), `triage` (with nothing flagged, any host of the profile), `push`,
-  `tts` and `trace` (their status, and on or off one key away). A line of text takes a paste
-  whole.
+  `tts` and `trace` (their status, and on or off one key away), `read` (an address or words to
+  search for). A line of text takes a paste whole.
 - `phosphor phone` — how to add a screen (phone, another computer, anything with ssh), with the
   phone's line as a QR; piped (`ssh … phosphor phone | sh`) it is the Termux kit. `--qr` prints only the code.
 - `phosphor screen [--as KIND]` — the same kit for a computer without Termux: a key and a `deck` in ~/.local/bin.
@@ -96,6 +96,17 @@
   `-c` (`--notes`) sends your notebook's five latest decisions and summaries along, ahead of
   everything else, so "why did we drop X" has something to go on. Only when you ask for it:
   those notes go to the assistant's provider with the question.
+- `phosphor read URL | WORDS... [--ask QUESTION] [--assistant NAME]` — a web page as plain text,
+  for docs in the middle of an incident without a browser. An address (`http`/`https`) is
+  fetched and boiled down to its own text: the article or main part of the page when it has
+  one, headings as `#`, lists, quotes and code blocks kept, menus, cookie banners, sidebars and
+  scripts left out; in the pager on a terminal, printed when piped. Words instead of an address
+  search the web (DuckDuckGo's HTML page, no account): on a terminal, pick a result and it's
+  read the same way, and q brings you back to the results; piped, the results are printed.
+  `--ask` hands the page to whichever assistant `phosphor ask` would pick, fenced as data with
+  no tools, and flags a dangerous command in the answer, as triage does. With nothing, on a
+  terminal, it asks for an address or words (see "Commands that ask"). A page that builds its
+  text with JavaScript has none to give: it says so. Standard library only, nothing to install.
 
 ## Notes
 - `phosphor note [--kind note|idea|decision|todo|summary] [--by NAME] [--book NAME] [--tab TAB] TEXT` (`-` reads stdin).
@@ -221,6 +232,8 @@
   every word counts, in names and descriptions, the name matching first. Enter or a tap goes to
   that tab, opens the workspace or the tool, or runs the command in this tab -- a command that
   could change something shows its usage and copies it instead, as in `phosphor commands`.
+  Whatever you type, the last row is always "search the web for it": a READ tab with
+  `phosphor read` on those words.
   Its first twenty openings end with one line of the deck's own keys, as `[keys]` has them.
 - `phosphor keep [TAB]` — read the tab as it is now (splits, sizes, what runs in each pane)
   and write it into your profile; `--pick` chooses the tab, `--dry-run` only shows it.

@@ -42,6 +42,7 @@ CATEGORIES = [
     ("Workspaces", [
         ("workspace", "phosphor workspace new", "a tab per idea: folder, git, its assistants"),
         ("ask", "phosphor ask [-c] QUESTION", "a one-shot question to whichever assistant CLI is installed, no tab; -c adds your latest notes"),
+        ("read", "phosphor read URL | WORDS [--ask Q]", "a web page as plain text, or a web search to pick one from; --ask hands it to an assistant"),
     ]),
     ("Notes", [
         ("note", "phosphor note TEXT", "add a note to the shared notebook"),
@@ -107,7 +108,7 @@ SHORT_CATEGORY = {"Before you push a fork": "Before you push"}
 # Run with nothing on a terminal, these ask for what they need on a screen
 # of their own (lib/form.py), and any change still asks before it happens:
 # Enter runs them even though they can mutate something.
-ASKS = {"ask", "broadcast", "send", "clip", "receive", "triage", "face", "push", "tts", "trace"}
+ASKS = {"ask", "broadcast", "send", "clip", "receive", "triage", "face", "push", "tts", "trace", "read"}
 
 
 def manifest():

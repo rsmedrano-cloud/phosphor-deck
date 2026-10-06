@@ -6,6 +6,16 @@ before it updates.
 
 ## Unreleased
 
+## 1.4.18 — read the web from the deck
+
+- `phosphor read`: a web page as plain text, in the terminal. Give it an address and it keeps
+  the page's own text -- headings, paragraphs, lists, code blocks -- without the menus, cookie
+  banners and scripts around it, in the pager (or printed, piped). Give it words instead and it
+  searches the web (DuckDuckGo) and lets you pick a result to read. `--ask "how do I..."` hands
+  the page to whichever assistant `phosphor ask` would pick, fenced as data and with no tools,
+  the same guard as triage. Nothing to install, no browser. Also from the `+` menu: whatever you
+  type after `/` ends with "search the web for it", which opens a READ tab.
+
 ## 1.4.17 — the glance for a gadget
 
 - `phosphor glance --serve`: the glance as JSON over HTTP, for a gadget on a shelf that can't
