@@ -41,7 +41,7 @@
   "gen": {"mutates": true, "needs_deck": false,
     "note": "writes zellij/yazi/btop/gping/ctop config, layouts, systemd units and mounts, and restarts fleet mounts if rclone.conf changed; --dry-run writes nothing."},
   "glance": {"mutates": false, "needs_deck": false,
-    "note": "read-only summary from local cache files (fleet, mentions, notes, workspace status)."},
+    "note": "read-only summary from local cache files (fleet, mentions, notes, workspace status). --serve listens (tailnet only, token) until Ctrl-C, and makes its token file the first time (--new-token replaces it)."},
   "init": {"mutates": false, "needs_deck": false,
     "note": "the setup wizard: every write happens after an explicit 'write the profile?' Enter, so a non-interactive run aborts at the first prompt instead of writing anything."},
   "keep": {"mutates": false, "needs_deck": true,

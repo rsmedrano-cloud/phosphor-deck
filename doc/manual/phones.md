@@ -164,3 +164,39 @@ read-only summary that refreshes on its own -- the fleet's problem hosts (or
 "all N ok"), unread mentions, open todos, any workspace dirty or unpushed -- until Ctrl-C. Nothing to attach,
 nothing to detach: it's just a command, so any cron job or kiosk script that
 can run one over ssh can drive that little screen.
+
+### A gadget that can't ssh
+
+A microcontroller with a 2.9" e-paper (an ESP32), a Pi Zero with a tiny
+OLED: these can make an HTTP request, not an ssh session. For them, on the
+brain:
+
+    phosphor glance --serve              # port 8484; --port N for another
+
+It prints an address with a token (and a QR of it); the gadget asks it with
+a plain GET -- `?token=` in the address, or an `Authorization: Bearer`
+header -- and gets one JSON object back:
+
+    {"status": "amber", "t": 1791287707,
+     "fleet": {"ok": 3, "total": 3, "stale": false,
+               "problems": [{"host": "db-box", "detail": "reboot pending", "down": false}]},
+     "worst": {"host": "db-box", "detail": "reboot pending"},
+     "mentions": 0, "todos": 2, "workspaces": 1}
+
+`status` is the light to show: **red** when a host is down or the readings
+stopped coming, **amber** for anything else worth a look (a host's problem,
+an unread mention), **green** otherwise, **unknown** with no fleet data.
+Open todos and dirty workspaces are counted but never change the color.
+`phosphor glance --json` prints the same thing in a terminal.
+
+It's read-only and listens only on the brain's tailnet address (the LAN's
+without a tailnet, where the token crosses the network in the clear); any
+other path, or a request without the token, gets nothing. The token is kept
+in `~/.local/share/phosphor/glance-token` (only you can read it) so a
+flashed gadget keeps working across restarts; `--new-token` replaces it.
+It runs in the foreground, Ctrl-C stops it. To keep it up, give it a tab of
+its own -- `phosphor run` brings it back if it ends:
+
+    [[tabs]]
+    name  = "GLANCE"
+    panes = [{ cmd = "phosphor glance", args = ["--serve"] }]

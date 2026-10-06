@@ -89,7 +89,7 @@ USAGE = """phosphor - Phosphor Deck
   in the deck
     phosphor fleet      fleet panel
     phosphor pulse      the fleet's heartbeat
-    phosphor glance     read-only summary for a small screen: fleet, mentions, todos
+    phosphor glance     read-only summary for a small screen: fleet, mentions, todos (--serve: JSON for a gadget)
     phosphor prom       prometheus gauge dashboard
     phosphor ci         GitLab/GitHub pipeline status
     phosphor usage      how much of your Claude / Antigravity plan is used

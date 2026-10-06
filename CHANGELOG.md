@@ -6,6 +6,15 @@ before it updates.
 
 ## Unreleased
 
+## 1.4.17 — the glance for a gadget
+
+- `phosphor glance --serve`: the glance as JSON over HTTP, for a gadget on a shelf that can't
+  ssh -- an ESP32 with an e-paper, a Pi Zero with a small OLED. One GET with a token gets a
+  red/amber/green `status`, the host that needs you most, and the counts of mentions, todos and
+  dirty workspaces. Read-only, tailnet only (the LAN without one), the token kept so a flashed
+  gadget survives restarts (`--new-token` replaces it). `phosphor glance --json` prints the same
+  thing in a terminal. To keep it up, a tab of its own (see screens in the manual).
+
 ## 1.4.16 — the day in one note
 
 - `phosphor digest`: the last day in one note. Commits in your projects folder, a host that went

@@ -985,11 +985,14 @@ and in the `+` menu, and open in a tab of their own.
   same provider, every two minutes; it never refreshes a token, so an expired one says "open claude
   (or agy) once" until that CLI renews it. Antigravity has no separate weekly figure to show: its
   answer is one fraction per pool.
-- `phosphor glance [--once]` — read-only: the fleet's problem hosts (or "all N ok"), unread
+- `phosphor glance [--once | --json | --serve [--port N] [--new-token]]` — read-only: the fleet's problem hosts (or "all N ok"), unread
   mentions, open todos, and any workspace with uncommitted changes or commits ahead/behind its
   upstream ("one device, then another" makes those easy to forget). For a small screen:
   `ssh -t you@brain ~/.local/bin/phosphor glance` needs no zellij attach at all (see screens);
-  refreshes every 5s, Ctrl-C to leave.
+  refreshes every 5s, Ctrl-C to leave. `--json` prints the same answers once, as JSON, with a
+  `status` to light up: red (a host down, or the readings stopped), amber (anything else to look
+  at, an unread mention), green, or unknown with no fleet data. `--serve` answers that JSON over
+  HTTP for a gadget that can't ssh (an ESP32 with e-paper, a Pi Zero with an OLED): see screens.
 - `phosphor notify [--tab TAB] [--voice VOICE] [--tts|--no-tts] [--push|--no-push] MESSAGE` — the adjutant announces it, speaks it if TTS is enabled, and pushes it to your phone if `[push]` is on -- with what it said attached as audio when it spoke it (`[push] clip`). The tab it names (or SYS with no `--tab`) also reads "`<TAB> ●N`" until you look, whether or not `[deck] notifier` is on (see profile).
 - `phosphor tts [MESSAGE]` — speak a message aloud with selectable voices (glados, adjutant, hal, synth, system); `phosphor tts install glados` assists with installing GLaDOS-TTS. `on`/`off` switch `[tts]`; with nothing, on a terminal, its status with on/off one key away.
 - `phosphor push [--qr | on | off]` — `[push]`'s status (on/off, server, topic, the "open the deck" button); `on`/`off`
@@ -1423,6 +1426,42 @@ read-only summary that refreshes on its own -- the fleet's problem hosts (or
 nothing to detach: it's just a command, so any cron job or kiosk script that
 can run one over ssh can drive that little screen.
 
+### A gadget that can't ssh
+
+A microcontroller with a 2.9" e-paper (an ESP32), a Pi Zero with a tiny
+OLED: these can make an HTTP request, not an ssh session. For them, on the
+brain:
+
+    phosphor glance --serve              # port 8484; --port N for another
+
+It prints an address with a token (and a QR of it); the gadget asks it with
+a plain GET -- `?token=` in the address, or an `Authorization: Bearer`
+header -- and gets one JSON object back:
+
+    {"status": "amber", "t": 1791287707,
+     "fleet": {"ok": 3, "total": 3, "stale": false,
+               "problems": [{"host": "db-box", "detail": "reboot pending", "down": false}]},
+     "worst": {"host": "db-box", "detail": "reboot pending"},
+     "mentions": 0, "todos": 2, "workspaces": 1}
+
+`status` is the light to show: **red** when a host is down or the readings
+stopped coming, **amber** for anything else worth a look (a host's problem,
+an unread mention), **green** otherwise, **unknown** with no fleet data.
+Open todos and dirty workspaces are counted but never change the color.
+`phosphor glance --json` prints the same thing in a terminal.
+
+It's read-only and listens only on the brain's tailnet address (the LAN's
+without a tailnet, where the token crosses the network in the clear); any
+other path, or a request without the token, gets nothing. The token is kept
+in `~/.local/share/phosphor/glance-token` (only you can read it) so a
+flashed gadget keeps working across restarts; `--new-token` replaces it.
+It runs in the foreground, Ctrl-C stops it. To keep it up, give it a tab of
+its own -- `phosphor run` brings it back if it ends:
+
+    [[tabs]]
+    name  = "GLANCE"
+    panes = [{ cmd = "phosphor glance", args = ["--serve"] }]
+
 ## Workspaces
 
 A workspace is a tab for one idea: its own folder, its own git repository,
@@ -1783,7 +1822,8 @@ device's mount or another copy step.
 
 ## Privacy
 
-- No listening daemon, no agents on watched machines, no telemetry. Fleet
+- No listening daemon (`phosphor glance --serve` listens only when you run it:
+  tailnet only, a token, read-only), no agents on watched machines, no telemetry. Fleet
   metrics come from a shell script piped over ssh; files travel over SFTP.
   What it leaves there: one-line files in `$XDG_RUNTIME_DIR` holding the
   last answer of what's too slow to ask every 15 seconds -- `phosphor-smart`

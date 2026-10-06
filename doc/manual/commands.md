@@ -172,11 +172,14 @@
   same provider, every two minutes; it never refreshes a token, so an expired one says "open claude
   (or agy) once" until that CLI renews it. Antigravity has no separate weekly figure to show: its
   answer is one fraction per pool.
-- `phosphor glance [--once]` — read-only: the fleet's problem hosts (or "all N ok"), unread
+- `phosphor glance [--once | --json | --serve [--port N] [--new-token]]` — read-only: the fleet's problem hosts (or "all N ok"), unread
   mentions, open todos, and any workspace with uncommitted changes or commits ahead/behind its
   upstream ("one device, then another" makes those easy to forget). For a small screen:
   `ssh -t you@brain ~/.local/bin/phosphor glance` needs no zellij attach at all (see screens);
-  refreshes every 5s, Ctrl-C to leave.
+  refreshes every 5s, Ctrl-C to leave. `--json` prints the same answers once, as JSON, with a
+  `status` to light up: red (a host down, or the readings stopped), amber (anything else to look
+  at, an unread mention), green, or unknown with no fleet data. `--serve` answers that JSON over
+  HTTP for a gadget that can't ssh (an ESP32 with e-paper, a Pi Zero with an OLED): see screens.
 - `phosphor notify [--tab TAB] [--voice VOICE] [--tts|--no-tts] [--push|--no-push] MESSAGE` — the adjutant announces it, speaks it if TTS is enabled, and pushes it to your phone if `[push]` is on -- with what it said attached as audio when it spoke it (`[push] clip`). The tab it names (or SYS with no `--tab`) also reads "`<TAB> ●N`" until you look, whether or not `[deck] notifier` is on (see profile).
 - `phosphor tts [MESSAGE]` — speak a message aloud with selectable voices (glados, adjutant, hal, synth, system); `phosphor tts install glados` assists with installing GLaDOS-TTS. `on`/`off` switch `[tts]`; with nothing, on a terminal, its status with on/off one key away.
 - `phosphor push [--qr | on | off]` — `[push]`'s status (on/off, server, topic, the "open the deck" button); `on`/`off`

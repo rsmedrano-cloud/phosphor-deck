@@ -69,6 +69,55 @@ r = subprocess.run([sys.executable, os.path.join(ROOT, "phosphor"), "glance", "-
 need("phosphor glance --once exits 0", r.returncode == 0)
 need("phosphor glance --once prints something", "GLANCE" in r.stdout)
 
+# --json / --serve (#50): the same answers for a gadget that can't ssh
+p = glance.payload()
+need("a host down makes the light red", p["status"] == "red")
+need("worst is the host that's down, not a pending reboot",
+     p["worst"] == {"host": "forge", "detail": "connection refused"})
+need("counts come along", p["mentions"] == 1 and p["todos"] == 1 and p["fleet"]["total"] == 3)
+json.dump({"t": 9999999999, "hosts": {"nova": {"ok": True, "mnt": [], "REBOOT": "1"}}},
+          open(os.path.join(home, ".cache/phosphor/fleet.json"), "w"))
+need("something to look at, nothing down: amber", glance.payload()["status"] == "amber")
+json.dump({"t": 9999999999, "hosts": {"nova": {"ok": True, "mnt": []}}},
+          open(os.path.join(home, ".cache/phosphor/fleet.json"), "w"))
+open(os.path.join(home, ".local/share/phosphor/mentions.jsonl"), "w").write("")
+need("all fine: green, todos don't color it", glance.payload()["status"] == "green")
+json.dump({"t": 1, "hosts": {"nova": {"ok": True, "mnt": []}}},
+          open(os.path.join(home, ".cache/phosphor/fleet.json"), "w"))
+need("stale readings: red", glance.payload()["status"] == "red")
+os.remove(os.path.join(home, ".cache/phosphor/fleet.json"))
+need("no fleet data: unknown", glance.payload()["status"] == "unknown")
+
+t1 = glance.token()
+need("the token is kept 0600", os.stat(glance.token_path()).st_mode & 0o777 == 0o600)
+need("the token survives a restart", glance.token() == t1)
+need("--new-token replaces it", glance.token(new=True) != t1)
+secret = glance.token()
+
+import threading, urllib.request, urllib.error
+from http.server import HTTPServer
+httpd = HTTPServer(("127.0.0.1", 0), glance.handler_for(secret))
+threading.Thread(target=httpd.serve_forever, daemon=True).start()
+base = "http://127.0.0.1:%d" % httpd.server_port
+def get(path, headers={}):
+    try:
+        with urllib.request.urlopen(urllib.request.Request(base + path, headers=headers), timeout=5) as r:
+            return r.status, r.read()
+    except urllib.error.HTTPError as e:
+        return e.code, e.read()
+need("no token: 401", get("/glance")[0] == 401)
+need("a wrong token: 401", get("/glance?token=nope")[0] == 401)
+code, body = get("/glance?token=" + secret)
+need("?token= answers the payload", code == 200 and json.loads(body)["status"] == "unknown")
+need("Authorization: Bearer works too",
+     get("/glance.json", {"Authorization": "Bearer " + secret})[0] == 200)
+need("anything else: 404", get("/etc/passwd?token=" + secret)[0] == 404)
+httpd.shutdown()
+
+r = subprocess.run([sys.executable, os.path.join(ROOT, "lib", "glance.py"), "--json"],
+                   capture_output=True, text=True, env=dict(os.environ, HOME=home), timeout=20)
+need("phosphor glance --json prints JSON", r.returncode == 0 and json.loads(r.stdout).get("status"))
+
 if fails:
     print("FAIL:\n  " + "\n  ".join(fails))
     sys.exit(1)

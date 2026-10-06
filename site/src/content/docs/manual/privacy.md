@@ -5,7 +5,8 @@ sidebar:
 ---
 
 
-- No listening daemon, no agents on watched machines, no telemetry. Fleet
+- No listening daemon (`phosphor glance --serve` listens only when you run it:
+  tailnet only, a token, read-only), no agents on watched machines, no telemetry. Fleet
   metrics come from a shell script piped over ssh; files travel over SFTP.
   What it leaves there: one-line files in `$XDG_RUNTIME_DIR` holding the
   last answer of what's too slow to ask every 15 seconds -- `phosphor-smart`
