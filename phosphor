@@ -84,6 +84,7 @@ USAGE = """phosphor - Phosphor Deck
   notes
     phosphor note T     add a note to the shared notebook
     phosphor notes      read it (newest first, reloads live); pick one to edit, archive, chat
+    phosphor digest     the last day (commits, fleet trouble, notes, todos) as one summary note
 
   in the deck
     phosphor fleet      fleet panel
@@ -129,7 +130,7 @@ USAGE = """phosphor - Phosphor Deck
 TOOLS = ("fleet", "pulse", "keys", "store", "adjutant", "notes", "privacy", "phone", "newtab", "clip", "send",
          "mentions", "run", "web", "tunnels", "completion", "update", "panel", "version",
          "keep", "workspace", "edit", "shortcuts", "tabs", "prom", "logs", "trace", "ci", "recipe", "tts", "demo",
-         "services", "glance", "review", "push", "screens", "ask", "commands", "receive", "tail", "triage", "broadcast", "theme", "usage", "mem", "containers", "security")
+         "services", "glance", "review", "push", "screens", "ask", "commands", "receive", "tail", "triage", "broadcast", "theme", "usage", "mem", "containers", "security", "digest")
 
 def crash_name(cmd):
     """The name a crash is logged under: the pane's, when phosphor run

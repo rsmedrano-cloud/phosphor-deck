@@ -11,7 +11,7 @@ from ui import REPO
 
 CMDS = ("doctor init setup panel commands phone screen gen up attach deck restart down update version note notes fleet "
         "edit shortcuts theme tabs keep workspace ask pulse adjutant notify face keys store new mentions clip send receive web tunnel path tail triage broadcast privacy run "
-        "help docs prom logs trace ci recipe tts demo services glance review push screens usage mem containers security")
+        "help docs prom logs trace ci recipe tts demo services glance review push screens usage mem containers security digest")
 # the manual's pages, so a new one completes without touching this file
 TOPICS = " ".join(sorted(f[:-3] for f in os.listdir(os.path.join(REPO, "doc/manual"))
                          if f.endswith(".md") and f != "README.md"))
@@ -25,6 +25,7 @@ _phosphor() {
         tunnel) COMPREPLY=( $(compgen -W "on off" -- "$cur") ); return ;;
         push) COMPREPLY=( $(compgen -W "on off --qr" -- "$cur") ); return ;;
         trace) COMPREPLY=( $(compgen -W "off" -- "$cur") ); return ;;
+        digest) COMPREPLY=( $(compgen -W "--hours --assistant --print" -- "$cur") ); return ;;
         tts) COMPREPLY=( $(compgen -W "install status on off --voice --list" -- "$cur") ); return ;;
         --voice) COMPREPLY=( $(compgen -W "glados adjutant hal synth system" -- "$cur") ); return ;;
         note|notes) COMPREPLY=( $(compgen -W "--kind --by --book --file --tab --here --archive" -- "$cur") ); return ;;
@@ -56,6 +57,7 @@ _phosphor() {
         tunnel) compadd -- on off ;;
         push) compadd -- on off --qr ;;
         trace) compadd -- off ;;
+        digest) compadd -- --hours --assistant --print ;;
         note|notes) compadd -- --kind --by --book --file --tab --here --archive ;;
         workspace) compadd -- new open list rm ;;
         tts) compadd -- install status on off --voice --list ;;

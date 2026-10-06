@@ -81,13 +81,14 @@ RISKY = [
 _RISKY = [(why, re.compile(rx)) for why, rx in RISKY]
 
 
-def fenced(text):
+def fenced(text, guard=GUARD, name="SNAPSHOT"):
     """The snapshot, cleaned and fenced in markers made fresh for this run:
-    a host can't close the fence early with a line it wrote beforehand."""
+    a host can't close the fence early with a line it wrote beforehand.
+    digest fences its own material the same way, with its own guard."""
     import sanitize
-    tag = "SNAPSHOT-" + secrets.token_hex(6)
+    tag = name + "-" + secrets.token_hex(6)
     body = sanitize.clean(text, lines=True).replace(tag, "")
-    return GUARD.format(tag=tag) + "\n\n" + tag + "\n" + body.rstrip("\n") + "\n" + tag
+    return guard.format(tag=tag) + "\n\n" + tag + "\n" + body.rstrip("\n") + "\n" + tag
 
 
 def risky(answer):

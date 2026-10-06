@@ -5,7 +5,7 @@
 
 Archive, restore, mark done, edit and delete for good, on a scratch notebook.
 """
-import os, sys, tempfile
+import os, time, sys, tempfile
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "lib"))
 import notes
 
@@ -27,11 +27,15 @@ check("newest first", notes.entries(p)[0]["title"] == "Third")
 check("archive", notes.archive(p, todo, done=True))
 check("archived is gone", [e["title"] for e in notes.entries(p)] == ["Third", "An index of AI chats"])
 check("in the archive as done", notes.entries(notes.archive_of(p))[0]["kind"] == "done")
+check("done says when it was done", (notes.done_at(notes.entries(notes.archive_of(p))[0]) or "")
+      [:10] == time.strftime("%Y-%m-%d"))
+check("an open todo has no done time", notes.done_at(notes.parse(todo)) is None)
 check("archive twice fails", not notes.archive(p, todo))
 
 check("undo brings it back", notes.restore(p) == "Buy cables")
 check("back in its place, as a todo", [(e["title"], e["kind"]) for e in notes.entries(p)]
       == [("Third", "note"), ("Buy cables", "todo"), ("An index of AI chats", "idea")])
+check("back without its done line", notes.entries(p)[1]["body"] == [])
 check("archive empty again", notes.entries(notes.archive_of(p)) == [])
 check("undo with nothing archived", notes.restore(p) is None)
 

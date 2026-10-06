@@ -6,6 +6,18 @@ before it updates.
 
 ## Unreleased
 
+## 1.4.16 — the day in one note
+
+- `phosphor digest`: the last day in one note. Commits in your projects folder, a host that went
+  down or ran hot (FLEET's 24-hour history), the notes you took, the todos you finished and the
+  ones still open are spread over places nobody reads together; digest gathers them, hands them
+  to whichever assistant `phosphor ask` would pick, and writes its answer at the top of the
+  notebook as "digest YYYY-MM-DD", so the next session starts from it. Only when you run it (a
+  cron line makes it nightly); it goes in fenced as data to an assistant with no tools, the same
+  way triage does, and `--print` shows what it collected without sending anything.
+- A todo marked done now says when (`done 2026-10-06 21:40`, its last line in the archive), so
+  "done today" means today; restoring it takes that line back out.
+
 ## 1.4.15 — triage with guardrails
 
 - `phosphor triage` treats what a host says as data, not orders. The snapshot is log lines and

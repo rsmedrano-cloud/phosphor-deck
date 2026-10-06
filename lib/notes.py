@@ -245,9 +245,19 @@ def replace(path, raw, new):
         write(path, pre, blocks)
         return True
 
+DONE_AT = re.compile(r"^done \d{4}-\d\d-\d\d \d\d:\d\d$")
+
+def done_at(e):
+    """When a done todo was marked done ("YYYY-MM-DD HH:MM", its last body
+    line, written by archive()), or None: its header keeps the day it was
+    written, not the day it was done."""
+    return e["body"][-1][5:] if e["body"] and DONE_AT.match(e["body"][-1]) else None
+
 def archive(path, raw, done=False):
-    """Move an entry to the archive (a todo marked done on the way)."""
-    new = rekind(raw, kind="done") if done else raw
+    """Move an entry to the archive (a todo marked done on the way, with
+    when as its last line)."""
+    new = rekind(raw, kind="done", body=parse(raw)["body"] + ["", "done " + time.strftime("%Y-%m-%d %H:%M")]) \
+        if done else raw
     with locked(path):
         pre, blocks = read(path)
         if raw not in blocks: return False
@@ -266,7 +276,12 @@ def restore(path, raw=None):
         raw = raw if raw is not None else ablocks[-1]
         ablocks.remove(raw)
         e = parse(raw)
-        back = rekind(raw, kind="todo") if e["kind"] == "done" else raw
+        if e["kind"] == "done":
+            body = e["body"][:-1] if done_at(e) else e["body"]
+            while body and not body[-1].strip(): body = body[:-1]
+            back = rekind(raw, kind="todo", body=body)
+        else:
+            back = raw
         pre, blocks = read(path)
         at = next((i for i, b in enumerate(blocks) if parse(b)["when"] > e["when"]), len(blocks))
         blocks.insert(at, back)

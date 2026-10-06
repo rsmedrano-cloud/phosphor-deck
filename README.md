@@ -149,7 +149,8 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
   tab's notes, `/` searches all of them. Tap a note to edit it, archive it, mark a todo
   done, or open an assistant that starts from it. Private by default; `[notes] folder` in the
   profile (`phosphor init` or `setup`) moves it into a vault you already sync -- Obsidian,
-  Syncthing, git.
+  Syncthing, git. `phosphor digest` turns the last day (commits, a host that went down,
+  notes, todos done and open) into one summary note at the top of it.
 - **A tab per idea.** `phosphor workspace new` (or `w` on a note) makes a
   project folder with git and a tab with one or two AI assistants, each
   knowing its part and handing off through the workspace's own notebook.
@@ -413,6 +414,7 @@ more depth on every one of these.
 | | |
 |---|---|
 | `phosphor note` / `notes` | write to / read the shared notebook |
+| `phosphor digest` | the last day (commits, fleet trouble, notes, todos) as one summary note, written by an assistant; `--print` only shows what it collected |
 
 ### In the deck
 

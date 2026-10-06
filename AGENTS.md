@@ -926,7 +926,19 @@ and in the `+` menu, and open in a tab of their own.
   Enter applies it, Esc cancels, an empty query clears it. Every key shows at the bottom from the start (dimmed
   until it applies), and tapping one works.
 - Archived notes live in `notes-archive.md` next to the notebook; `phosphor notes --archive`
-  shows them: `r` restores one, `D` deletes it for good (asks first).
+  shows them: `r` restores one, `D` deletes it for good (asks first). A todo marked done ends
+  with the moment it was (`done 2026-10-06 21:40`); `r` takes that line back out.
+- `phosphor digest [--hours N] [--assistant NAME] [--print]` — the last day (or N hours, up to
+  168) as one summary note, "digest YYYY-MM-DD", by `digest`: commits on any local branch of
+  the repos in `[deck] projects` and which ones have uncommitted changes, what FLEET's history
+  recorded (a host down, CPU or RAM over 90%, over 85°C, a disk over 92%), the notes taken,
+  the todos done and the ones still open. It hands that to whichever assistant `phosphor ask`
+  would pick and writes its answer; the next session, yours or an assistant's, starts from it.
+  Commit messages and host errors are text others wrote, so it goes in the way triage's snapshot
+  does: cleaned, fenced as data, the assistant with no tools. What it collects goes to that
+  assistant's provider; `--print` only shows it and sends nothing, and a day with nothing in it
+  writes no note. Nothing runs it on its own: for one every night, a cron line
+  (`0 23 * * * PATH=$HOME/.local/bin:$PATH phosphor digest`, with the PATH your assistant CLI needs).
 - The notebook lives at `~/.local/share/phosphor/notes.md` unless `[notes] folder` in the
   profile points it at a folder you already sync (Obsidian, Syncthing, git) -- see profile.
 
@@ -1797,6 +1809,10 @@ device's mount or another copy step.
   planted there could try to steer the answer. The assistant gets it as
   fenced data with no tools to act with, and a dangerous command in what
   it answers is flagged before you'd copy it (see commands).
+- `phosphor digest` sends a day of your commit messages, notes, todos and
+  fleet trouble to an assistant's provider, only when you run it (`--print`
+  shows what would go). It goes in fenced as data, to an assistant with no
+  tools.
 - The tools you run inside talk to their own services (your chat client --
   matterhorn, iamb, gomuks... -- to its server, an assistant to its
   provider). Phosphor adds no leaks and can't stop theirs.

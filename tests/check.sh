@@ -208,6 +208,9 @@ out=$(python3 tests/services-check.py 2>&1) && ok || bad "$out"
 out=$(python3 tests/containers-check.py 2>&1) && ok || bad "$out"
 out=$(python3 tests/security-check.py 2>&1) && ok || bad "$out"
 
+step "digest: the day as one note, fenced for an assistant with no tools"
+out=$(python3 tests/digest-check.py 2>&1) && ok || bad "$out"
+
 step "glance: fleet, mentions, todos"
 out=$(python3 tests/glance-check.py 2>&1) && ok || bad "$out"
 

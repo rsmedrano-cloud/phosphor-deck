@@ -26,6 +26,10 @@
   planted there could try to steer the answer. The assistant gets it as
   fenced data with no tools to act with, and a dangerous command in what
   it answers is flagged before you'd copy it (see commands).
+- `phosphor digest` sends a day of your commit messages, notes, todos and
+  fleet trouble to an assistant's provider, only when you run it (`--print`
+  shows what would go). It goes in fenced as data, to an assistant with no
+  tools.
 - The tools you run inside talk to their own services (your chat client --
   matterhorn, iamb, gomuks... -- to its server, an assistant to its
   provider). Phosphor adds no leaks and can't stop theirs.

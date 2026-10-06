@@ -46,6 +46,7 @@ CATEGORIES = [
     ("Notes", [
         ("note", "phosphor note TEXT", "add a note to the shared notebook"),
         ("notes", "phosphor notes", "read it (newest first); pick one to edit, archive, chat"),
+        ("digest", "phosphor digest [--hours N] [--print]", "the last day (commits, fleet trouble, notes, todos) as one summary note, written by an assistant"),
     ]),
     ("In the deck", [
         ("fleet", "phosphor fleet", "fleet panel"),
