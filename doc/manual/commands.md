@@ -338,7 +338,9 @@
   the chat feed, the adjutant's events, the fleet's readings, the log and its workspaces
   folder live in `~/.cache/phosphor/demo-state` (`--stop` removes it). What it can't hide is where it runs: the
   machine's user and host name still show in paths and prompts, so for a public screenshot run
-  it on a machine whose user name you're happy to show.
+  it on a machine whose user name you're happy to show. FLEET's `s` and `l` open nothing on a
+  made-up machine, unless its name (forge, atlas, vault, relay) is also a `Host` alias in your
+  `~/.ssh/config`: a recording can point one somewhere real.
   `phosphor demo --tour` is the same demo with a guide: a small floating pane on every tab that
   has you try each thing (switch tabs, Alt-j a note, Alt-n a tab, Alt-r to keep it) and moves on
   once it has seen you do it. Enter steps it aside so your keys reach the deck; it comes back by

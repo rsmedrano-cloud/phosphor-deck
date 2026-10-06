@@ -6,6 +6,12 @@ before it updates.
 
 ## Unreleased
 
+## 1.5.1 — demo machines with a real ssh alias
+
+- In `phosphor demo`, FLEET's `s` (a shell) and `l` (its logs) open on a made-up machine whose
+  name is also a `Host` alias in your `~/.ssh/config`, so a recording can point it somewhere
+  real; every other demo machine still says it isn't real.
+
 ## 1.5.0 — security, digest, read, and the fleet up close
 
 - `phosphor triage`, `read --ask` and `digest` flag a piped installer however it's spelled:

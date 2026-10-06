@@ -485,9 +485,15 @@ def action_tab(key, name, target):
         return ("CTR-" + name).upper()[:24], {"cmd": "phosphor containers", "args": [name]}
     return None
 
+def demo_alias(target):
+    """True when a demo machine's name is also a Host alias of your own
+    ~/.ssh/config: a recording points it somewhere real, so s and l open."""
+    import init
+    return bool(target) and target in init.ssh_hosts()
+
 def open_action(key, name, target):
     """Open the tab for `key` next to this one. A message either way."""
-    if DEMO and key != "c":        # containers has made-up ones for the demo
+    if DEMO and key != "c" and not (key in "sl" and demo_alias(target)):
         return "the demo's machines aren't real: nothing to open"
     if not os.environ.get("ZELLIJ"):
         return "open it from inside the deck"

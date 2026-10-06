@@ -83,6 +83,22 @@ need("vcut leaves a short line alone", ui.vcut("abc", 9) == "abc")
 # the demo's machines aren't real: no tab, no ssh
 fleet.DEMO = True
 need("demo: refuses", "demo" in fleet.open_action("s", "box", None))
+# ...unless a recording gave that name a Host alias of its own: s and l open
+import init, tempfile
+_home = init.HOME
+init.HOME = tempfile.mkdtemp()
+os.makedirs(os.path.join(init.HOME, ".ssh"))
+with open(os.path.join(init.HOME, ".ssh/config"), "w") as f:
+    f.write("Host forge\n    HostName localhost\n")
+need("demo: an ssh alias opens s", fleet.demo_alias("forge"))
+need("demo: a made-up name still doesn't", not fleet.demo_alias("vault"))
+need("demo: t still refuses with an alias", "demo" in fleet.open_action("t", "forge", "forge"))
+_zj = os.environ.pop("ZELLIJ", None)     # never a real tab from here
+need("demo: s with an alias gets past the demo check",
+     "inside the deck" in fleet.open_action("s", "forge", "forge"))
+if _zj is not None:
+    os.environ["ZELLIJ"] = _zj
+init.HOME = _home
 fleet.DEMO = False
 
 if "--live" in sys.argv:
