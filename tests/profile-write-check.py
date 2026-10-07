@@ -56,6 +56,14 @@ check("written by replacing the file, not truncating it", os.stat(q).st_ino != b
 err = deckconf.write_profile(v1, p=deckconf.EXAMPLE)
 check("the repo's example is never written", err and "no profile" in err)
 
+# a profile kept 600 (a token in it) gets 600 backups too, whatever the umask
+q = os.path.join(d, "secret.toml"); open(q, "w").write(v1); os.chmod(q, 0o600)
+old = os.umask(0o022)
+deckconf.write_profile(v2, p=q); deckconf.write_profile(v1, p=q)
+os.umask(old)
+modes = [oct(os.stat(f).st_mode & 0o777) for f in (q, q + ".bak", q + ".bak.2")]
+check("backups keep the profile's mode: %s" % modes, modes == ["0o600"] * 3)
+
 err = deckconf.write_profile(v1, p=os.path.join(d, "new", "deck.toml"))
 check("a first profile (init) is written, folder and all", err is None)
 

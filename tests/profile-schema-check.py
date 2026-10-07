@@ -66,6 +66,9 @@ for want in [("profile", "thme is above every [table]: theme in [deck]?"),
              ("[comms]", "unknown table")]:
     check("found: %s %s" % want, want in got, got)
 check("nothing else", len(got) == 12, got)
+# a TOML date where a choice goes is a warning, not a crash
+got = profcheck.problems(tomllib.loads("[deck]\ngraphs = 2026-01-01\n"))
+check("a date value is named", got == [("[deck]", 'graphs = "2026-01-01" isn\'t one of braille, blocks')], got)
 
 # 2. no false alarms on what Phosphor writes itself
 for p in sorted(glob.glob(os.path.join(ROOT, "profiles/*.toml"))):

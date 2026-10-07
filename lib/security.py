@@ -128,7 +128,8 @@ def check_files(prof, profile_path, sshdir=None, exposure=exposure):
     out = []
     secrets = secrets_in(prof)
     conf = os.path.dirname(profile_path)
-    copies = [profile_path] + sorted(glob.glob(profile_path + ".bak*"))
+    real = os.path.realpath(profile_path)      # a symlinked profile keeps its .bak by the target
+    copies = [profile_path] + sorted(set(glob.glob(profile_path + ".bak*") + glob.glob(real + ".bak*")))
     for f in copies:
         if not os.path.exists(f):
             continue

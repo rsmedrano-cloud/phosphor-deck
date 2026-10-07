@@ -6,6 +6,15 @@ before it updates.
 
 ## Unreleased
 
+## 1.6.0 — solid ground
+
+- The profile's backups (`deck.toml.bak`, `.bak.2`, `.bak.3`) now keep the profile's own
+  permissions: a profile you keep `chmod 600` because it holds a token no longer leaves a
+  copy anyone on the machine can read. `phosphor security` also finds the backups of a
+  symlinked profile, next to the file the link points to.
+- A date where the profile expects one of a few words (`graphs = 2026-01-01`) is a warning
+  in `phosphor gen` and `phosphor doctor` again, not a crash.
+
 ## 1.5.5 — profile keys checked
 
 - A misspelled or misplaced key in the profile is no longer silently ignored: `phosphor gen`

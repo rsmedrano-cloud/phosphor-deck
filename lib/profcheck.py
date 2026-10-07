@@ -61,7 +61,7 @@ def _guess(key, known):
 
 def _val(v):
     """A value the way the profile writes it: "p1", not 'p1'."""
-    return json.dumps(v, ensure_ascii=False)
+    return json.dumps(v, ensure_ascii=False, default=str)   # a TOML date too
 
 
 def _table(where, t, known, out):

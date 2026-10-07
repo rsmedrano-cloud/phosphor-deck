@@ -36,11 +36,15 @@ def backup(p, old_text):
     about to happen) to p.bak, rotating what's already there down to
     .bak.2 and .bak.3 first (oldest dropped) instead of overwriting the
     only undo depth a profile write had -- `phosphor setup` then a recipe,
-    back to back, used to lose the setup-time backup."""
+    back to back, used to lose the setup-time backup. The copy keeps the
+    profile's mode: a chmod 600 profile holding a token makes a 600 .bak."""
     b1, b2, b3 = p + ".bak", p + ".bak.2", p + ".bak.3"
     if os.path.exists(b2): shutil.move(b2, b3)
     if os.path.exists(b1): shutil.move(b1, b2)
-    open(b1, "w").write(old_text)
+    mode = os.stat(p).st_mode & 0o777 if os.path.exists(p) else 0o644
+    with os.fdopen(os.open(b1, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, mode), "w") as f:
+        f.write(old_text)
+    os.chmod(b1, mode)
 
 class _locked:
     """One writer at a time: deck.toml.lock, the same flock the notebook's
