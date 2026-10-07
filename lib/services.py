@@ -25,7 +25,7 @@ import os, shutil, subprocess, sys, time
 from concurrent.futures import ThreadPoolExecutor
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from ui import DIM, MUTE, PH, AMB, RED, RULE, RST, FG, vlen, pad, topbar
+from ui import DIM, MUTE, PH, AMB, RED, RULE, RST, FG, vlen, vcut, pad, topbar
 
 INV = "\x1b[7m"
 import deckconf, gen, tui
@@ -136,8 +136,7 @@ def lines(results, w, sel=None):
             + " " + col + ("%-10s" % tag) + RST
         if mem:
             line += DIM + mem.rjust(6) + RST
-        if vlen(line) > w:
-            line = line[:w]
+        line = vcut(line, w)
         out.append(line)
     return out
 

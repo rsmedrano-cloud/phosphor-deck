@@ -58,7 +58,15 @@ out = S.frame(prof, 60, 30)
 need("frame renders at least a header", len(out) >= 1)
 need("frame never widens past cols", all(len(l.encode("ascii", "ignore")) <= 200 for l in out))
 
+# a line too wide for the pane is cut by visible columns: cutting the raw
+# string counted the color codes, and at 24 columns left only the dot
+import ui
+long_rows = [("u", "a-very-long-unit-name-that-will-not-fit.service", {"ActiveState": "active", "MemoryCurrent": "123456789"})]
+cut_l = S.lines(long_rows, 24)[0]
+need("a cut line fits its width", ui.vlen(cut_l) <= 24)
+need("a cut line keeps the unit's name", "a-very" in cut_l and cut_l.endswith(ui.RST))
+
 if fails:
     print("FAILED:\n  - " + "\n  - ".join(fails))
     sys.exit(1)
-print("ok (%d checks)" % (13,))
+print("ok (%d checks)" % (15,))

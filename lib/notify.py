@@ -100,15 +100,13 @@ def main(argv=None):
         # and that resolution isn't reliable (it can answer "Tab not
         # found" even though a tab plainly is active) -- an explicit -t
         # is the only way this has been seen to work every time.
-        try:
-            lt = _sp.run([zj, "-s", sess, "action", "list-tabs", "--state"],
-                         capture_output=True, text=True, timeout=10).stdout
-            active_id = next((ln.split()[0] for ln in lt.splitlines()[1:]
-                              if len(ln.split()) > 3 and ln.split()[3] == "true"), None)
-        except (OSError, _sp.SubprocessError):
-            active_id = None
+        lt = proc.run([zj, "-s", sess, "action", "list-tabs", "--state"], timeout=10).stdout
+        active_id = next((ln.split()[0] for ln in lt.splitlines()[1:]
+                          if len(ln.split()) > 3 and ln.split()[3] == "true"), None)
+        # proc.run: a show that hangs past its timeout may still have shown
+        # the toast, and only the hider below takes it away again.
         show = [zj, "-s", sess, "action", "show-floating-panes"] + (["-t", active_id] if active_id else [])
-        _sp.run(show, capture_output=True, timeout=10)
+        proc.run(show, timeout=10)
         # Remember exactly which tab this showed on -- almost always the
         # one the hider below will need to hide again. Looping
         # hide-floating-panes -t over every tab (shown or not) used to be

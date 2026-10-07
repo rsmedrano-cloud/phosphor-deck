@@ -6,6 +6,17 @@ before it updates.
 
 ## Unreleased
 
+## 1.7.0 — one panel, one key reader, one way to run things
+
+- `phosphor restart` and `down` no longer stop halfway when zellij hangs (a wedged deck,
+  the very reason to restart it): the step that timed out is skipped, the old session's
+  processes are still reaped and the new deck still comes up. Before, it left the watchdog
+  off and every screen waiting for a deck that never came back.
+- A notification toast (`notifier = true`) no longer stays on screen when zellij is slow
+  to show it: the timer that hides it always starts.
+- `phosphor services` in a narrow pane cuts a unit's line by what you see, not by its color
+  codes: at small widths the unit's name used to vanish, leaving only its dot.
+
 ## 1.6.3 — a dispatcher that only dispatches
 
 - A crash in `phosphor notify` now leaves its traceback in deck.log, like every other

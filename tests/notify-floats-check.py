@@ -30,9 +30,18 @@ def need(what, ok):
 
 def states(z):
     """{tab_id: are_floating_panes_visible}, straight from zellij's own state."""
-    out = subprocess.run([z.zj, "-s", z.session, "action", "list-tabs", "--state", "--json"],
-                         env=z.env, capture_output=True, text=True, timeout=10).stdout
-    return {str(t["tab_id"]): t["are_floating_panes_visible"] for t in json.loads(out)}
+    # A probe just started can answer with nothing before its tabs exist:
+    # ask again for a few seconds instead of failing on empty JSON.
+    end = time.time() + 15
+    while True:
+        out = subprocess.run([z.zj, "-s", z.session, "action", "list-tabs", "--state", "--json"],
+                             env=z.env, capture_output=True, text=True, timeout=10).stdout
+        try:
+            return {str(t["tab_id"]): t["are_floating_panes_visible"] for t in json.loads(out)}
+        except ValueError:
+            if time.time() > end:
+                raise
+            time.sleep(0.3)
 
 def notify(z, msg):
     p = subprocess.run([os.path.join(z.env["HOME"], ".local/bin/phosphor"), "notify", "--no-tts", "--no-push", msg],

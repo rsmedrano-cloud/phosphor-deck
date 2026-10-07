@@ -17,21 +17,15 @@ def load_profile():
 
 def session_live(zj, sess):
     """The session exists and isn't a dead one left in zellij's cache."""
-    import subprocess
-    try:
-        out = subprocess.run([zj, "list-sessions", "-n"], capture_output=True, text=True, timeout=30).stdout
-    except (subprocess.TimeoutExpired, OSError):
-        return False
+    out = proc.run([zj, "list-sessions", "-n"], timeout=30).stdout
     return any(l.split()[:1] == [sess] and "EXITED" not in l for l in out.splitlines())
 
 def session_gone(zj, sess):
     """Not just not-live: not even a dead entry left in zellij's cache."""
-    import subprocess
-    try:
-        out = subprocess.run([zj, "list-sessions", "-n"], capture_output=True, text=True, timeout=30).stdout
-    except (subprocess.TimeoutExpired, OSError):
+    out = proc.run([zj, "list-sessions", "-n"], timeout=30)
+    if out.returncode == -1:
         return True                          # can't tell either way: don't block on it
-    return not any(l.split()[:1] == [sess] for l in out.splitlines())
+    return not any(l.split()[:1] == [sess] for l in out.stdout.splitlines())
 
 def poll_until(check, timeout, interval=0.15):
     """True as soon as `check()` is, sleeping `interval` between tries --
@@ -94,7 +88,10 @@ def updown(cmd):
     if not zj:
         print("  zellij isn't installed: run install.sh again (it fetches it)")
         return 1
-    R = lambda *a: _sp.run(list(a), capture_output=True, text=True, timeout=30)
+    # Never raises: a zellij wedged enough to need this restart can hang
+    # kill-session past its 30 s, and an exception here would leave the
+    # watchdog stopped and every screen waiting for a deck that never comes.
+    R = lambda *a: proc.run(list(a), timeout=30)
 
     def procs():
         # /proc directly, not `ps`: it isn't installed everywhere the
@@ -182,8 +179,7 @@ def updown(cmd):
     tabs, t0 = 0, _t.time()
     while _t.time() - t0 < 60:
         if session_live(zj, sess):
-            try: tabs = R(zj, "-s", sess, "action", "dump-layout").stdout.count("    tab name=")
-            except _sp.TimeoutExpired: tabs = 0
+            tabs = R(zj, "-s", sess, "action", "dump-layout").stdout.count("    tab name=")
             if tabs: break
         _t.sleep(0.3)
     _t.sleep(2)
@@ -270,8 +266,8 @@ def attach(argv):
         except OSError: return False
     # Right after boot, `phosphor up` or the watchdog, the session may
     # not exist yet: wait for it instead of zellij's "No session found".
-    if not session_live(zj, sess) and _sp.run(
-            ["systemctl", "--user", "is-active", "-q", "%s.service" % sess, "%s.timer" % sess]).returncode == 0:
+    if not session_live(zj, sess) and proc.run(
+            ["systemctl", "--user", "is-active", "-q", "%s.service" % sess, "%s.timer" % sess], timeout=30).returncode == 0:
         print("  the deck is starting...")
         poll_until(lambda: session_live(zj, sess), 90)
     def screen_up():

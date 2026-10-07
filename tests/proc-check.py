@@ -50,6 +50,13 @@ for f in sorted(glob.glob(os.path.join(REPO, "lib", "*.py"))) + [os.path.join(RE
     check("%s looks zellij up itself: use proc.zellij()" % name,
           "local/bin/zellij" not in src and 'which("zellij")' not in src)
 
+# the session and notify commands run zellij and systemctl while the deck
+# may be wedged: a call that raises there leaves it down, or a toast up
+for f in ("lib/session.py", "lib/notify.py"):
+    src = open(os.path.join(REPO, f)).read()
+    check("%s calls subprocess.run, which can raise: use proc.run()" % f,
+          "subprocess.run(" not in src and "_sp.run(" not in src)
+
 if fails:
     print("FAILED:\n  " + "\n  ".join(fails))
     sys.exit(1)
