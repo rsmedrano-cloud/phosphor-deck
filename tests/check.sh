@@ -95,6 +95,9 @@ out=$(python3 tests/backup-check.py 2>&1) && ok || bad "$out"
 step "the profile is written whole, checked, and never over a newer write"
 out=$(python3 tests/profile-write-check.py 2>&1) && ok || bad "$out"
 
+step "an older profile migrates"
+out=$(python3 tests/migrate-check.py 2>&1) && ok || bad "$out"
+
 step "one way to run zellij, sh and ssh"
 out=$(python3 tests/proc-check.py 2>&1) && ok || bad "$out"
 

@@ -21,9 +21,8 @@
   a host, tail logs, services, workspaces, review, notices & traces, tabs, shortcuts, a shell here, doctor,
   memory, logs, update, restart, manual, and `?` for the keys of every installed tool). Laid out as cards that
   follow the pane's width: one column on a phone (arrows or two fingers scroll it), more on a
-  wider screen, with a line about each action once there's room. A profile whose DECK tab still has
-  the key guide beside the panel gets **1** in the deck card: it writes that tab as one pane
-  (a backup is kept, `f` applies it); `phosphor update` points at it too. `n` (notices & traces) opens `phosphor push`, `phosphor tts` or
+  wider screen, with a line about each action once there's room. A profile of an older shape
+  gets **P** in the deck card ("profile: N to migrate"): it runs `phosphor migrate`. `n` (notices & traces) opens `phosphor push`, `phosphor tts` or
   `phosphor trace` on their own screen: what's on, and on or off one key away. Actions
   run in the same pane and come back the same way from every one: q, Esc or Enter (the ones
   that print and wait say "q · Enter: back", the TUIs take q) -- `tail`'s stream is the one
@@ -245,6 +244,14 @@
   again; rows and keys answer a tap, and the list refreshes on its own. Also `b` in the DECK tab.
   Lists tabs.d's tabs too: `K`/`J` place one (a name-only stub in your profile marks where,
   its content stays in the file), and `f` on a placed one un-places it instead of deleting it.
+- `phosphor migrate [--dry-run]` — bring a profile of an older shape up to date. A change to
+  what phosphor ships never reaches a profile that already exists, so when a shape changes it
+  becomes a step here: each pending one is shown as a diff (the DECK tab in one pane, `[deck] tts`
+  into `[tts] enabled`), then one "write it?" writes them all, with `version` in `[deck]`, and
+  keeps the old profile as `deck.toml.bak`; it shows after `phosphor gen && phosphor restart`
+  (`f` in the DECK tab). `--dry-run` only shows. A profile written by a newer phosphor is left
+  alone. `phosphor doctor`, `gen` and `update` say when there's something to migrate; `P` in
+  the DECK tab runs it.
 - `phosphor recipe [NAME]` — starter tab bundles: `homelab` (prom and ci dashboards), `dev` (a
   two-assistant tab), `bubble` (mail, RSS, Mastodon, Matrix in one tab), `workbench` (four AI CLIs
   side by side). No `NAME` lists them, what's already added and which programs each still needs. Drops `recipes/NAME.toml` into

@@ -141,6 +141,15 @@ def run(profile=None):
         for where, what in profcheck.problems(profile) + profcheck.tabs_d_problems():
             print(row(WARN, where, what, note="ignored"))
             issues.append("the profile%s: %s" % ("" if where == "profile" else "'s " + where, what))
+        import migrate
+        todo, newer = migrate.pending(), migrate.newer()
+        if todo:
+            print(row(WARN, "profile", "%d change%s to bring it up to date" % (len(todo), "" if len(todo) == 1 else "s"),
+                      note="phosphor migrate shows them first"))
+            issues.append("the profile is an older shape: phosphor migrate")
+        elif newer:
+            print(row(WARN, "profile", "version %d: a newer phosphor wrote it" % newer, note="phosphor update"))
+            issues.append("the profile is newer than this phosphor: phosphor update")
     import mesh
     kind, control = mesh.current(profile)
     if kind == "none":

@@ -21,7 +21,8 @@ DECK = {"session": None, "command": None, "theme": "themes", "mount_root": None,
         "connect": ("ssh", "mosh"), "web": BOOL, "web_port": None, "notifier": BOOL,
         "graphs": ("braille", "blocks"), "face": None, "splash": BOOL,
         "notify_seconds": None, "demo": BOOL, "tour": BOOL,
-        "tts": BOOL}                     # the old place of [tts] enabled; still read
+        "tts": BOOL,                     # the old place of [tts] enabled; still read
+        "version": None}                 # migrate.py checks it
 HOST = {"name": None, "role": ("brain", "work", "desktop", "storage", "node", "viewer"),
         "local": BOOL, "ssh": None, "user": None, "ip": None, "mount": None,
         "mounts": None, "fleet": BOOL}

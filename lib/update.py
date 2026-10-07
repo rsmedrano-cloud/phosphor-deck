@@ -179,7 +179,7 @@ def main():
             print(row(BAD, "install", "failed (exit %d)" % r.returncode, note="the deck wasn't touched"))
             return 1
     # (install.sh regenerates from the profile: layouts, units, rclone.conf)
-    offer_one_pane()
+    offer_migrate()
     if restart:
         print()
         if refresh(full):
@@ -194,19 +194,19 @@ def main():
     return 0
 
 
-def offer_one_pane():
-    """A profile written before the panel took the whole DECK tab keeps the
-    key guide beside it (gen never rewrites a profile): say so once per
-    update, and how to change it. Only a hint, the profile isn't touched."""
+def offer_migrate():
+    """gen never rewrites a profile, so a shape this update changed reaches
+    an older profile only through phosphor migrate: say so once per update.
+    Only a hint, the profile isn't touched."""
     try:
-        import panel
-        name = panel.two_panes(deckconf.load()[0] or {})
+        import migrate
+        todo = migrate.pending()
     except Exception:
         return
-    if name:
+    if todo:
         print()
-        print(row(WARN, "%s tab" % name, "still has the key guide beside the panel",
-                  note="press 1 in it to make it one pane (the keys are ? there)"))
+        print(row(WARN, "profile", "%d change%s to bring it up to date" % (len(todo), "" if len(todo) == 1 else "s"),
+                  note="phosphor migrate (P in the DECK tab) shows them first"))
 
 
 def refresh(full):

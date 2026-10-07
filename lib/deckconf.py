@@ -105,29 +105,32 @@ def write_profile(new, check=None, expect=None, p=None, keep=True):
         return "can't write the profile: %s" % str(e)[:50]
     return None
 
-def set_key(section, key, value):
-    """`key = value` in [section] of the profile (value a TOML literal,
-    quoted already), replacing that line or adding it, and the table too if
-    it's missing; the profile as it was goes to .bak first. False when
-    there's no profile yet (the example is never written)."""
-    if example():
-        return False
-    p = path()
-    text = open(p).read()
+def with_key(text, section, key, value):
+    """The profile's text with `key = value` in [section] (value a TOML
+    literal, quoted already): that line replaced, or added first in the
+    table, and the table added at the end if it's missing. Nothing written."""
     lines = text.split("\n")
     line = "%s = %s" % (key, value)
     start = next((i for i, l in enumerate(lines) if l.strip() == "[%s]" % section), None)
     if start is None:
-        new = text.rstrip("\n") + "\n\n[%s]\n%s\n" % (section, line)
+        return text.rstrip("\n") + "\n\n[%s]\n%s\n" % (section, line)
+    end = next((i for i in range(start + 1, len(lines)) if lines[i].lstrip().startswith("[")), len(lines))
+    at = next((i for i in range(start + 1, end) if re.match(r"\s*%s\s*=" % re.escape(key), lines[i])), None)
+    if at is None:
+        lines.insert(start + 1, line)
     else:
-        end = next((i for i in range(start + 1, len(lines)) if lines[i].lstrip().startswith("[")), len(lines))
-        at = next((i for i in range(start + 1, end) if re.match(r"\s*%s\s*=" % re.escape(key), lines[i])), None)
-        if at is None:
-            lines.insert(start + 1, line)
-        else:
-            lines[at] = line
-        new = "\n".join(lines)
-    return write_profile(new, expect=text, p=p) is None
+        lines[at] = line
+    return "\n".join(lines)
+
+def set_key(section, key, value):
+    """with_key() written into the profile; the profile as it was goes to
+    .bak first. False when there's no profile yet (the example is never
+    written)."""
+    if example():
+        return False
+    p = path()
+    text = open(p).read()
+    return write_profile(with_key(text, section, key, value), expect=text, p=p) is None
 
 def load():
     """(profile, path). profile is None when there's no parser or it can't be read."""

@@ -70,6 +70,7 @@ CATEGORIES = [
         ("new", "phosphor new", "the + menu: a shell, a machine, an assistant, your apps, a layout"),
         ("keep", "phosphor keep", "write a tab you arranged by hand into your profile"),
         ("tabs", "phosphor tabs", "the tabs your profile brings back: forget one, reorder, reopen"),
+        ("migrate", "phosphor migrate", "bring an older profile up to date: a diff of each change first, a backup kept"),
         ("recipe", "phosphor recipe", "starter tab bundles: homelab, dev, bubble, workbench"),
         ("shortcuts", "phosphor shortcuts", "the deck's keys, yours to change; updates never reset them"),
         ("theme", "phosphor theme", "the deck's color: p31, p3, p4, ega, paper, previewed before it's saved"),

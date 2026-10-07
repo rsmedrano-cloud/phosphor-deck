@@ -690,6 +690,12 @@ def run(prof, src, dry=False):
         for where, what in found:
             print(row(WARN, where, what))
         print("  " + DIM + "ignored: fix them in the profile, then gen again" + RST)
+    import migrate
+    todo = migrate.pending()
+    if todo:
+        print("\n" + rule("profile"))
+        print(row(WARN, "an older shape", "%d change%s to bring it up to date" % (len(todo), "" if len(todo) == 1 else "s"),
+                  note="phosphor migrate"))
 
     if not ctx.is_brain():
         b = ctx.brain()

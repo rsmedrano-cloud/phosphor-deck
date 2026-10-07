@@ -7,6 +7,7 @@
 # ─────────────────────────────────────────────────────────────
 
 [deck]
+version = 2
 session = "phosphor-demo"
 theme   = "p31"
 demo    = true            # fleet fakes its readings instead of polling over ssh

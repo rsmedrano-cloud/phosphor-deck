@@ -8,7 +8,7 @@ come back here: no new tabs, no floating panes.
 import os, shutil, subprocess, sys, termios, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
-import deckconf, proc, version
+import deckconf, migrate, proc, version
 
 PHOSPHOR = os.path.join(REPO, "phosphor")
 STEPS = os.path.join(deckconf.data_dir(), "steps")
@@ -86,7 +86,7 @@ def state(prof):
          "profile_changed": deckconf.profile_changed(),
          "restart_pending": deckconf.restart_pending(sess),
          "version": version.current()["version"], "channel": version.current()["channel"],
-         "news": version.news(), "two_panes": bool(two_panes(prof))}
+         "news": version.news(), "migrate": len(migrate.pending())}
     version.check_later()
     if os.environ.get("ZELLIJ"):
         # the header line aside, one line per screen looking at the deck
@@ -103,28 +103,6 @@ def steps(prof):
             ("add another machine (m)",                len(deckconf.hosts(prof)) > 1),
             ("make a tab yours: + in the tab bar, keep", any(n not in STOCK_TABS for n in tabs))]
 
-def two_panes(prof):
-    """The tab that still has the key guide beside the panel (every profile
-    before the panel took the whole tab): its name, or None."""
-    for t in (prof or {}).get("tabs", []):
-        cmds = [(q.get("cmd") or "").strip() for q in t.get("panes") or []]
-        if sorted(cmds) == ["phosphor keys", "phosphor panel"]:
-            return t.get("name")
-    return None
-
-def one_pane():
-    """The panel takes the whole tab: the key guide beside it goes (it's ?
-    now). Only the profile is written; f applies it, like any other edit."""
-    import keep
-    from init import yes
-    name = two_panes(deckconf.load()[0] or {})
-    if not name:
-        return
-    print("  the %s tab has the key guide beside the panel. The panel can take the whole" % name)
-    print("  tab now, laying its cards out for the screen's width; the key guide is " + AMB + "?" + RST + " in it.")
-    if yes("write %s as one pane into your profile? (a backup is kept; f applies it)" % name, True):
-        keep.save(name, keep.block(name, [{"cmd": "phosphor panel"}]))
-
 def cards(prof, st, with_steps=True):
     """(title, items): an item is (key or "", text, note, warn)."""
     deck = []
@@ -140,8 +118,8 @@ def cards(prof, st, with_steps=True):
     if st.get("dirty_workspaces"):
         n = st["dirty_workspaces"]
         deck.append(("z", "%d workspace%s dirty" % (n, "" if n == 1 else "s"), "", True))
-    if st.get("two_panes"):
-        deck.append(("1", "this tab in one pane", "", True))
+    if st.get("migrate"):
+        deck.append(("P", "profile: %d to migrate" % st["migrate"], "", True))
     cs = [("deck", deck)]
     todo = steps(prof)
     if with_steps and not all(done for _, done in todo):
@@ -342,8 +320,8 @@ def act(k, st):
             P("recipe")
         elif k == "?":
             P("keys")
-        elif k == "1":
-            one_pane(); pause()
+        elif k == "P":
+            P("migrate"); pause()
         elif k == "f":
             # a hand edit of deck.toml (or tabs.d) only shows after gen and a
             # restart; never done behind anyone's back: the restart closes every pane
@@ -401,7 +379,7 @@ def main():
             step = {"\x1b[B": 1, "\x1b[A": -1, "\x1b[6~": rows - 4, "\x1b[5~": 4 - rows}.get(k)
             if step:
                 off = max(0, min(maxoff, off + step))
-            elif k in keys or (k == "f" and (st.get("profile_changed") or st.get("restart_pending"))) or (k == "1" and st.get("two_panes")):
+            elif k in keys or (k == "f" and (st.get("profile_changed") or st.get("restart_pending"))) or (k == "P" and st.get("migrate")):
                 act(k, st); last = 0
     except KeyboardInterrupt:
         pass

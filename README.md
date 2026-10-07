@@ -312,9 +312,10 @@ keys of every installed tool with the deck's own as you set them) and
 upkeep (notices, doctor, memory per tab and pane, logs, update, restart, the manual). Every action
 comes back the same way: q, Esc or Enter.
 
-A profile from before 1.2.5 still has the key guide beside the panel: the
-deck card offers **1** ("one pane"), which writes the tab as one pane (a backup is kept;
-`f` applies it). `phosphor update` says so when your profile is one of those.
+A profile of an older shape (say, from before the panel took the whole DECK tab):
+the deck card offers **P** ("profile: N to migrate"), which runs `phosphor migrate`: each
+change as a diff first, a backup kept, `f` applies it. `phosphor doctor`, `gen` and `update`
+say so too.
 
 ![The DECK tab: the deck's state, next steps and every action, as cards](doc/img/readme/deck-tab.png)
 
@@ -442,6 +443,7 @@ more depth on every one of these.
 | `phosphor new` | the + menu (also Alt-n): a shell, a machine, an assistant (in the folder you pick), your apps, a layout; `/` searches everything |
 | `phosphor keep` | write a tab you arranged by hand into your profile |
 | `phosphor tabs` | the tabs your profile brings back: forget one, reorder, reopen |
+| `phosphor migrate` | bring an older profile up to date: a diff of each change first, a backup kept |
 | `phosphor recipe [NAME]` | starter tab bundles: homelab, dev, bubble, workbench, and the programs they run; `--remove NAME` undoes one |
 | `phosphor shortcuts` | the deck's keys, yours to change; updates never reset them |
 | `phosphor theme` | the deck's color (p31, p3, p4, ega, paper), previewed before it's saved |

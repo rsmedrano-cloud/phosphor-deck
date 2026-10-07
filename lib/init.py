@@ -2,7 +2,7 @@
 import json, os, re, socket, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
-import mesh, deckconf, proc
+import mesh, deckconf, migrate, proc
 
 HOME = os.path.expanduser("~")
 OUT  = os.path.join(HOME, ".config/phosphor/deck.toml")
@@ -452,7 +452,7 @@ def render(hosts, theme, comms, net="auto", web=False, tun=(), editor=None, shel
            notes_folder=None, shape="homelab"):
     L = ["# Written by `phosphor init`. Edit it freely.",
          "# The deck's source of truth: change it and run `phosphor gen`.", "",
-         "[deck]", 'session = "deck"', 'theme   = "%s"' % theme,
+         "[deck]", "version = %d" % migrate.CURRENT, 'session = "deck"', 'theme   = "%s"' % theme,
          'mesh    = "%s"' % net, 'mount_root = "~/fleet"'] + (['web     = true'] if web else []) \
         + (['editor  = "%s"' % editor] if editor else []) + (['shell   = "%s"' % shell] if shell else []) + [""]
     if notes_folder:

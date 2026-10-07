@@ -50,6 +50,8 @@
     "note": "read-only key guide (its interactive 's' just launches phosphor setup)."},
   "logs": {"mutates": false, "needs_deck": false,
     "note": "read-only tail of the deck's own log."},
+  "migrate": {"mutates": false, "needs_deck": false,
+    "note": "shows each pending profile change as a diff; writing it (and version in [deck]) needs its own explicit 'write it?' Enter, aborting instead of writing without one; --dry-run only shows. A profile written by a newer phosphor is never touched."},
   "mem": {"mutates": false, "needs_deck": false,
     "note": "read-only: reads /proc and asks zellij for its pane list; with the deck down it says so."},
   "mentions": {"mutates": false, "needs_deck": false,

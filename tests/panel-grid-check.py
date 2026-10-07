@@ -20,7 +20,7 @@ plain = lambda s: re.sub(r"\x1b\[[0-9;?]*[a-zA-Z]", "", s)
 panel.marked = lambda step: False
 st = {"session": "deck", "version": "1.2.4", "channel": "stable", "news": "", "screens": 2,
       "timer": True, "web": False, "tunnels": [True], "profile_changed": False,
-      "dirty_workspaces": 0, "two_panes": False}
+      "dirty_workspaces": 0, "migrate": 0}
 keys = {a[0] for a in panel.ACTIONS}
 check("no duplicate action keys", len(keys) == len({a[0] for a in panel.ACTIONS}) == len(panel.ACTIONS))
 check("? is the key guide", "?" in keys)
@@ -55,39 +55,7 @@ check("a tall wide screen spreads out instead of one stretched column",
 check("scrolled past the end: clamped, not blank",
       panel.draw({}, st, 40, 35, 999)[0][2] == panel.draw({}, st, 40, 35, panel.draw({}, st, 40, 35)[2])[0][2])
 
-# the old two-pane DECK tab: noticed, offered, rewritten as one pane
-two = {"tabs": [{"name": "SYS", "panes": [{"cmd": "phosphor fleet"}]},
-                {"name": "DECK", "split": "cols",
-                 "panes": [{"cmd": "phosphor panel", "size": "50%"}, {"cmd": "phosphor keys"}]}]}
-check("the two-pane DECK tab is found", panel.two_panes(two) == "DECK")
-check("a one-pane one isn't", panel.two_panes({"tabs": [{"name": "DECK", "panes": [{"cmd": "phosphor panel"}]}]}) is None)
-lines, hit, _ = panel.draw({}, dict(st, two_panes=True), 100, 30)
-check("the deck card offers 1", "this tab in one pane" in "".join(map(plain, lines))
-      and any(k == "1" for s in hit.values() for _, _, k in s))
-check("without it, no 1", all(k != "1" for s in panel.draw({}, st, 100, 30)[1].values() for _, _, k in s))
-
-d = tempfile.mkdtemp()
-prof = os.path.join(d, "deck.toml")
-open(prof, "w").write('[deck]\nsession = "deck"\n\n[[tabs]]\nname  = "SYS"\npanes = [ { cmd = "phosphor fleet" } ]\n\n'
-                      '[[tabs]]\nname  = "DECK"\nsplit = "cols"\npanes = [\n  { cmd = "phosphor panel", size = "50%" },\n'
-                      '  { cmd = "phosphor keys" },\n]\n\n[[tabs]]\nname  = "NOTES"\npanes = [ { cmd = "phosphor notes" } ]\n')
-os.environ["PHOSPHOR_PROFILE"] = prof
-import init, deckconf
-real_yes = init.yes
-init.yes = lambda *a, **kw: True
-saved, sys.stdout = sys.stdout, io.StringIO()
-try:
-    panel.one_pane()
-finally:
-    sys.stdout = saved
-    init.yes = real_yes
-after = deckconf.load()[0]
-deck = [t for t in after["tabs"] if t["name"] == "DECK"]
-check("D: DECK is one pane of phosphor panel",
-      deck and [p.get("cmd") for p in deck[0]["panes"]] == ["phosphor panel"])
-check("D: the other tabs stay, in order", [t["name"] for t in after["tabs"]] == ["SYS", "DECK", "NOTES"])
-check("D: a backup is kept", os.path.exists(prof + ".bak"))
-check("D: nothing left to offer", panel.two_panes(after) is None)
+# the old two-pane DECK tab is a phosphor migrate step now: tests/migrate-check.py
 
 if fails:
     print("panel-grid-check FAILED:\n  " + "\n  ".join(fails)); sys.exit(1)

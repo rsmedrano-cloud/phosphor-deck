@@ -6,6 +6,16 @@ before it updates.
 
 ## Unreleased
 
+## 1.7.1 — profiles that come up to date
+
+- `phosphor migrate`: a profile of an older shape comes up to date. A change to what phosphor
+  ships never reaches a profile that already exists; now such a change is a step migrate shows
+  as a diff, then writes with one "write it?" (a backup kept, `--dry-run` only shows). The first
+  steps: the DECK tab in one pane (what `1` in the DECK tab did) and `[deck] tts` into
+  `[tts] enabled`. The profile carries `version = 2` in `[deck]` (`phosphor init` writes it);
+  `phosphor doctor`, `gen` and `update` say when there's something to migrate, and the DECK
+  tab's `1` is now `P` ("profile: N to migrate").
+
 ## 1.7.0 — one panel, one key reader, one way to run things
 
 - `phosphor restart` and `down` no longer stop halfway when zellij hangs (a wedged deck,
