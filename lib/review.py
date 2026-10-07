@@ -7,12 +7,12 @@ the branch out into its own worktree to try it -- never your working copy.
 
     phosphor review           the panel
 """
-import json, os, shutil, subprocess, sys, time
+import json, os, shutil, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import FG, DIM, PH, AMB, RED, RST, pad, vlen, topbar
 import tui
 import ci as cimod
-import deckconf
+import deckconf, proc
 from sanitize import clean_tree
 
 HOME = os.path.expanduser("~")
@@ -25,11 +25,8 @@ def tool(name):
     return deckconf.exe(name) or name
 
 
-def run(cmd, **kw):
-    try:
-        return subprocess.run(cmd, capture_output=True, text=True, timeout=kw.pop("timeout", 20), **kw)
-    except (OSError, subprocess.SubprocessError) as e:
-        return subprocess.CompletedProcess(cmd, 1, "", str(e))
+def run(cmd, timeout=20, **kw):
+    return proc.run(cmd, timeout=timeout, **kw)
 
 
 def remote_names():

@@ -5,7 +5,7 @@ import os, sys
 HERE = os.path.dirname(os.path.abspath(os.path.realpath(__file__)))
 RESTARTING = os.path.expanduser("~/.cache/phosphor/restarting")
 sys.path.insert(0, os.path.join(HERE, "lib"))
-import deckconf
+import deckconf, proc
 from ui import DIM as DIM_, RST as RST_
 CONF = deckconf.CONF
 
@@ -234,7 +234,7 @@ def main():
             return 1
 
     if cmd in ("restart", "up", "down"):
-        import subprocess as _sp, shutil as _sh, time as _t, signal as _sig, re as _re
+        import subprocess as _sp, time as _t, signal as _sig, re as _re
         prof, _ = load_profile()
         sess = ((prof or {}).get("deck") or {}).get("session", "deck")
         # Run from a pane of the deck itself (a shell, an assistant), killing
@@ -253,8 +253,7 @@ def main():
                 print("  every screen goes back in by itself when the deck is up again.")
             print("  " + DIM_ + "log: " + logp + RST_)
             return 0
-        zj = os.path.expanduser("~/.local/bin/zellij")
-        if not os.path.exists(zj): zj = _sh.which("zellij")
+        zj = proc.zellij()
         if not zj:
             print("  zellij isn't installed: run install.sh again (it fetches it)")
             return 1
@@ -393,7 +392,7 @@ def main():
         if os.environ.get("ZELLIJ"):
             print("  you're already inside a zellij session (the deck?): no need to attach")
             return 1
-        import shutil as _sh, kinds
+        import kinds
         prof, _ = load_profile()
         sess = ((prof or {}).get("deck") or {}).get("session", "deck")
         # `deck --screen phone`: a kind with a [screens.phone] block gets its
@@ -402,8 +401,7 @@ def main():
         if kind not in kinds.kinds(prof):
             kind = ""
         target = kinds.session(prof, kind) if kind else sess
-        zj = os.path.expanduser("~/.local/bin/zellij")
-        if not os.path.exists(zj): zj = _sh.which("zellij")
+        zj = proc.zellij()
         if not zj:
             print("  zellij isn't installed: run install.sh again (it fetches it)")
             return 1
@@ -465,7 +463,7 @@ def main():
         return notes.add(sys.argv[2:])
 
     if cmd == "notify":
-        import shutil as _sh, subprocess as _sp
+        import subprocess as _sp
         argv = sys.argv[2:]
         tab = ""
         voice_opt = None
@@ -532,8 +530,7 @@ def main():
                                 fleet=fleet_alert, wav=wav)
             except Exception:
                 pass
-        zj = os.path.expanduser("~/.local/bin/zellij")
-        if not os.path.exists(zj): zj = _sh.which("zellij")
+        zj = proc.zellij()
         prof, _ = load_profile()
         sess = ((prof or {}).get("deck") or {}).get("session", "deck")
         flot = ((prof or {}).get("deck") or {}).get("notifier", False)

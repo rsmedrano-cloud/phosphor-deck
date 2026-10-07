@@ -16,7 +16,7 @@ those hosts.
 import os, re, shutil, socket, subprocess, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
-import deckconf
+import deckconf, proc
 
 UDIR = os.path.expanduser("~/.config/systemd/user")
 WARN_TEXT = ("the forwards listen on this machine's 127.0.0.1: other users of this machine can reach them",
@@ -141,7 +141,7 @@ def on(host):
     fw = ssh_config_forwards()
     if host not in fw:
         print(row(BAD, host, "no LocalForward lines for it in ~/.ssh/config")); return 1
-    r = subprocess.run(["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=6", host, "true"],
+    r = subprocess.run(proc.ssh(host, "true", 6),
                        capture_output=True, text=True, timeout=15)
     if r.returncode != 0:
         print(row(BAD, host, "ssh can't log in with a key", note=(r.stderr.strip().splitlines() or ["?"])[-1][:40]))

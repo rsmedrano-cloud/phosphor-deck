@@ -16,20 +16,16 @@ pauses for Enter, so you can copy the token first; without one (a script, a
 cron, an automation tool) it does NOT restart on its own -- `--yes` is the
 explicit opt-in for that.
 """
-import json, os, re, shutil, subprocess, sys, time
+import json, os, re, subprocess, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
-import deckconf, mesh
+import deckconf, mesh, proc
 
 LOCAL = "http://127.0.0.1:8082"      # zellij web's default, localhost only
 
-def _zj():
-    p = os.path.expanduser("~/.local/bin/zellij")
-    return p if os.path.exists(p) else (shutil.which("zellij") or "zellij")
-
 def zj(*a):
     env = {k: v for k, v in os.environ.items() if not k.startswith("ZELLIJ")}
-    return subprocess.run([_zj()] + list(a), capture_output=True, text=True, timeout=20, env=env)
+    return subprocess.run([proc.zellij() or "zellij"] + list(a), capture_output=True, text=True, timeout=20, env=env)
 
 def ts(*a):
     return subprocess.run(["tailscale"] + list(a), capture_output=True, text=True, timeout=20)

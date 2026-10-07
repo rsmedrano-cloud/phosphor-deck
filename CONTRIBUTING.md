@@ -81,6 +81,15 @@ and `rust/run` still had the old, buggy behavior, since nothing was
 checking their tests at all. Run them by hand from each crate's folder too
 when you're changing one (`cargo test`).
 
+Running another program from Python goes through `lib/proc.py`:
+`proc.zellij()` for zellij's path (`~/.local/bin` first: a systemd unit's
+and the zellij server's PATH lack it), `proc.run()`/`proc.sh()` for a
+command that comes back as exit code -1 instead of raising when it's
+missing or times out, and `proc.ssh(target, command)` for the argv of an
+ssh nobody is there to answer (BatchMode; `persist=` rides FLEET's
+ControlMaster socket). `tests/proc-check.py` fails a module that builds
+its own again.
+
 ## Branches
 
 `dev` is where work happens; `main` is what stable users run. A topic is done

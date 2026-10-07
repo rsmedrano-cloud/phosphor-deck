@@ -16,7 +16,7 @@ import json, math, os, random, shutil, signal, subprocess, sys, threading, time
 from concurrent.futures import ThreadPoolExecutor
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
-import deckconf
+import deckconf, proc
 from health import sensors, updates, LOW_BAT
 from sanitize import clean, clean_tree
 
@@ -88,11 +88,7 @@ def ssh_cmd(ssh, connect_t):
     handshake instead: the master from the first poll stays up (per host,
     %C keys the socket by host+port+user) and every poll after that rides
     it, only reconnecting if it actually dropped."""
-    ctrl = os.path.join(deckconf.cache_dir(), "ssh")
-    os.makedirs(ctrl, mode=0o700, exist_ok=True)
-    return ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=%d" % connect_t,
-             "-o", "ControlMaster=auto", "-o", "ControlPersist=" + CONTROL_PERSIST,
-             "-o", "ControlPath=" + os.path.join(ctrl, "%C"), ssh, "sh -s"]
+    return proc.ssh(ssh, "sh -s", connect_t, persist=CONTROL_PERSIST)
 
 def collect(name, ssh, known_down=False):
     """`name` never goes past this function into a log: deck.log is meant

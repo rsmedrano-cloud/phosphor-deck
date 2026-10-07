@@ -20,7 +20,7 @@ touches a pane or a process.
 import json, os, re, shutil, subprocess, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import FG, DIM, MUTE, PH, AMB, RED, RULE, RST, BLOOM, getkey, pad, vcut, cut, topbar, HEAD
-import deckconf, reap
+import deckconf, proc, reap
 
 EVERY = 5
 MARK = re.compile(r"\s*●\d+$")          # tabmark's unread count on a tab's name
@@ -93,7 +93,7 @@ def group(sessions, ps):
 def layout(session):
     """{pane_id: (tab position, tab name, pane title)} from zellij itself;
     {} when it doesn't answer (the counts still show, by pane number)."""
-    zj = deckconf.exe("zellij")
+    zj = proc.zellij()
     if not zj:
         return {}
     try:

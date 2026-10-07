@@ -24,7 +24,7 @@ always restarts, same as before hotswap existed.
 import json, os, shlex, shutil, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
-import deckconf
+import deckconf, proc
 import hotswap
 
 # A copy has no .git: this file says which folder it came from, so a plain
@@ -38,12 +38,9 @@ def remembered():
         return None
 
 def remember(src):
-    commit = run(["git", "-C", src, "rev-parse", "HEAD"]).stdout.strip() \
+    commit = proc.run(["git", "-C", src, "rev-parse", "HEAD"]).stdout.strip() \
         if os.path.isdir(os.path.join(src, ".git")) else ""
     json.dump({"src": src, "commit": commit}, open(SOURCE, "w"))
-
-def run(cmd, **k):
-    return subprocess.run(cmd, capture_output=True, text=True, **k)
 
 def is_clone(d):
     # a worktree's .git is a file, not a folder
@@ -79,10 +76,10 @@ def pull(where):
 def from_git():
     if not is_clone(REPO):
         return None
-    before = run(["git", "-C", REPO, "rev-parse", "--short", "HEAD"]).stdout.strip()
+    before = proc.run(["git", "-C", REPO, "rev-parse", "--short", "HEAD"]).stdout.strip()
     if not pull(REPO):
         print(row(BAD, "git pull", "failed", note="nothing was installed")); return False
-    after = run(["git", "-C", REPO, "rev-parse", "--short", "HEAD"]).stdout.strip()
+    after = proc.run(["git", "-C", REPO, "rev-parse", "--short", "HEAD"]).stdout.strip()
     print(row(OK, "git pull", ("%s → %s" % (before, after)) if before != after else "already up to date (%s)" % after))
     return True
 
@@ -101,13 +98,12 @@ def from_folder(src):
     if not os.path.isfile(os.path.join(src, "phosphor")):
         print(row(BAD, src, "no phosphor there")); return False
     if shutil.which("rsync"):
-        r = run(["rsync", "-a", "--delete", "--exclude", ".git", "--exclude", ".phosphor-source",
-                 src + "/", REPO + "/"])
+        r = proc.run(["rsync", "-a", "--delete", "--exclude", ".git", "--exclude", ".phosphor-source",
+                      src + "/", REPO + "/"])
     else:
         # tar, not cp -r: cp would carry the source's .git into the install
-        r = subprocess.run("cd %s && tar --exclude=.git -cf - . | (cd %s && tar -xf -)"
-                           % (shlex.quote(src), shlex.quote(REPO)), shell=True,
-                           capture_output=True, text=True)
+        r = proc.run("cd %s && tar --exclude=.git -cf - . | (cd %s && tar -xf -)"
+                     % (shlex.quote(src), shlex.quote(REPO)))
     print(row(OK if r.returncode == 0 else BAD, "code", "%s → %s" % (src, REPO)))
     if r.returncode == 0:
         remember(src)
@@ -120,11 +116,11 @@ def switch_channel(d, name):
     b = CHANNELS.get(name)
     if not b:
         print(row(BAD, "channel", name or "?", note="stable or nightly")); return False
-    remotes = run(["git", "-C", d, "remote"]).stdout.split()
+    remotes = proc.run(["git", "-C", d, "remote"]).stdout.split()
     rem = "origin" if "origin" in remotes else (remotes[0] if remotes else "origin")
-    run(["git", "-C", d, "fetch", "-q", rem])
-    have = run(["git", "-C", d, "rev-parse", "--verify", "-q", b]).returncode == 0
-    r = run(["git", "-C", d, "switch", b] if have else
+    proc.run(["git", "-C", d, "fetch", "-q", rem])
+    have = proc.run(["git", "-C", d, "rev-parse", "--verify", "-q", b]).returncode == 0
+    r = proc.run(["git", "-C", d, "switch", b] if have else
             ["git", "-C", d, "switch", "-c", b, "--track", "%s/%s" % (rem, b)])
     ok = r.returncode == 0
     print(row(OK if ok else BAD, "channel", "%s (%s)" % ("nightly" if b == "dev" else "stable", b),

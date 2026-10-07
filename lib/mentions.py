@@ -24,7 +24,7 @@ WORK NOTES (phosphor notes --book work). Only when you press it.
 import json, os, select, shutil, subprocess, sys, termios, textwrap, time, tty
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
-import deckconf
+import deckconf, proc
 from sanitize import clean, clean_tree
 
 HOME   = os.path.expanduser("~")
@@ -50,13 +50,9 @@ From: {sender}
 Message: {message}
 """
 
-def _zj_bin():
-    p = os.path.join(HOME, ".local/bin/zellij")
-    return p if os.path.exists(p) else (shutil.which("zellij") or "zellij")
-
 def zj(sess, *a):
     try:
-        return subprocess.run([_zj_bin(), "-s", sess, "action"] + list(a),
+        return subprocess.run([proc.zellij() or "zellij", "-s", sess, "action"] + list(a),
                               capture_output=True, text=True, timeout=8).stdout
     except Exception:
         import dlog

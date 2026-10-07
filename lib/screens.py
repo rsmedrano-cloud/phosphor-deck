@@ -31,7 +31,7 @@ few-second reconnect as any other.
 import os, re, signal, subprocess, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import FG, DIM, PH, RST, pad, topbar
-import deckconf, tui
+import deckconf, proc, tui
 
 INV = "\x1b[7m"
 
@@ -229,7 +229,7 @@ def retype(action, kind, gen=_gen):
 def close_session(name):
     """A kind's session nobody comes into anymore: its panes go."""
     import kinds
-    zj = deckconf.exe("zellij") or "zellij"
+    zj = proc.zellij() or "zellij"
     kinds.forget(name)          # first: run from that session, this pane goes with it
     for a in ("kill-session", "delete-session"):
         subprocess.run([zj, a, name], capture_output=True, timeout=15)

@@ -61,9 +61,8 @@ FACE = [
 
 def zj(*args):
     """Talk to zellij, quietly: the adjutant must never die because of it."""
-    import shutil as _sh, subprocess as _sp
-    b = os.path.expanduser("~/.local/bin/zellij")
-    if not os.path.exists(b): b = _sh.which("zellij")
+    import proc, subprocess as _sp
+    b = proc.zellij()
     if not b: return
     try:
         _sp.run([b, "-s", os.environ.get("ZELLIJ_SESSION_NAME", "deck"),

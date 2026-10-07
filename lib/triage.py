@@ -28,7 +28,7 @@ which come out flagged at the end -- nothing here ever runs them.
 import os, re, secrets, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import AMB, BAD, DIM, RST, WARN
-import deckconf
+import deckconf, proc
 from tail import find_host
 
 SNAPSHOT_SH = """
@@ -113,7 +113,7 @@ def snapshot(h, timeout=20):
     share/collect.sh already uses, so there's no quoting to get wrong on a
     multi-line script."""
     cmd = ["sh", "-s"] if h.get("local") else \
-          ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", deckconf.target(h), "sh -s"]
+          proc.ssh(deckconf.target(h), "sh -s")
     try:
         r = subprocess.run(cmd, input=SNAPSHOT_SH, capture_output=True, text=True, timeout=timeout)
     except subprocess.SubprocessError as e:

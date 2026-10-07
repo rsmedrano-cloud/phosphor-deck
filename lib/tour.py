@@ -16,7 +16,7 @@ a repro for issue #14, not a lost session.
 """
 import fcntl, json, os, subprocess, sys, textwrap, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import deckconf
+import deckconf, proc
 from ui import DIM, FG, MUTE, PH, AMB, RST, getkey
 
 STEPS = [
@@ -67,7 +67,7 @@ def save(st):
 
 
 def zj(*args):
-    b = deckconf.exe("zellij")
+    b = proc.zellij()
     if not b:
         return ""
     try:

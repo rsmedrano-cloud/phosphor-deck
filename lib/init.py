@@ -2,19 +2,12 @@
 import json, os, re, socket, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
-import mesh, deckconf
+import mesh, deckconf, proc
 
 HOME = os.path.expanduser("~")
 OUT  = os.path.join(HOME, ".config/phosphor/deck.toml")
 COLLECT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                        "share", "collect.sh")
-
-def sh(cmd, t=10):
-    try:
-        r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=t)
-        return r.returncode, (r.stdout or "").strip()
-    except Exception:
-        return 1, ""
 
 def ask(q, default=""):
     hint = DIM + " [" + (default or "-") + "]" + RST if default else ""
@@ -86,7 +79,7 @@ def local_identity(ts_ip=None, ts_name=None):
         if fqdn: ids.add(fqdn)
     except Exception:
         pass
-    rc, out = sh("hostname -I 2>/dev/null")
+    rc, out = proc.sh("hostname -I 2>/dev/null")
     if rc == 0:
         ids.update(ip.lower() for ip in out.split())
     if ts_ip: ids.add(ts_ip.lower())
@@ -113,7 +106,7 @@ def discover(use_tailscale=True):
     is filtered the same way ssh_hosts() already drops a code forge."""
     cands, me, self_ip = {}, None, None
     if use_tailscale:
-        rc, out = sh("tailscale status --json 2>/dev/null")
+        rc, out = proc.sh("tailscale status --json 2>/dev/null")
         if rc == 0:
             try:
                 data = json.loads(out)
@@ -178,7 +171,7 @@ def ssh_hosts(exclude=None):
     return out
 
 def try_ssh(target):
-    rc, out = sh("ssh -o BatchMode=yes -o ConnectTimeout=6 %s 'echo __ok__' 2>&1" % target, t=12)
+    rc, out = proc.sh(proc.ssh(target, "echo __ok__", 6), t=12, err=True)
     return ("__ok__" in out), out
 
 def why_not(out):
@@ -222,10 +215,10 @@ def probe(alias):
     if not ok: return None
     alias = target
     info = {"user": None, "mounts": [], "target": alias}
-    rc, who = sh("ssh -o BatchMode=yes %s 'whoami' 2>/dev/null" % alias, t=10)
+    rc, who = proc.sh(proc.ssh(alias, "whoami"), t=10)
     info["user"] = who.strip() or None
     if os.path.exists(COLLECT):
-        rc, out = sh("ssh -o BatchMode=yes %s 'sh -s' < %s 2>/dev/null" % (alias, COLLECT), t=30)
+        out = proc.run(proc.ssh(alias, "sh -s"), timeout=30, input=open(COLLECT).read()).stdout
         for l in out.splitlines():
             if l.startswith("MNT="):
                 t, p, s = l[4:].split("|")
@@ -281,7 +274,7 @@ def run():
     if yes("is this the brain? (it stays on and keeps the deck running)", True):
         mounts = ["/", "~"]
         print("    " + DIM + "~/fleet/%s/root and ~/fleet/%s/home will show / and your home" % (local_name, local_name) + RST)
-        rc, out = sh("df -h --output=target -x tmpfs -x devtmpfs -x overlay 2>/dev/null | tail -n +2")
+        rc, out = proc.sh("df -h --output=target -x tmpfs -x devtmpfs -x overlay 2>/dev/null | tail -n +2")
         extra = [m.strip() for m in out.splitlines()
                  if m.strip().startswith("/mnt") or m.strip().startswith("/media")]
         if extra and yes("also show these disks in ~/fleet (nothing is copied): %s" % ", ".join(extra), True):

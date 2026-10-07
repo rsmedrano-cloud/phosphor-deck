@@ -21,7 +21,7 @@ import os, re, shlex, shutil, subprocess, sys, time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import DIM, MUTE, PH, AMB, RED, RST, FG, vlen, pad, topbar
-import deckconf, tui
+import deckconf, proc, tui
 from sanitize import clean, clean_text
 
 INV = "\x1b[7m"
@@ -66,11 +66,7 @@ def find(prof, name):
 
 def ssh_argv(target, remote, connect_t=8):
     """The host's ssh, riding FLEET's ControlMaster socket when it's up."""
-    ctrl = os.path.join(deckconf.cache_dir(), "ssh")
-    os.makedirs(ctrl, mode=0o700, exist_ok=True)
-    return ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=%d" % connect_t,
-            "-o", "ControlMaster=auto", "-o", "ControlPersist=60s",
-            "-o", "ControlPath=" + os.path.join(ctrl, "%C"), target, remote]
+    return proc.ssh(target, remote, connect_t, persist="60s")
 
 
 def run(target, script, timeout=30):

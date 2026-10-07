@@ -14,10 +14,10 @@ unless told otherwise): its `deck` attaches with `--screen KIND`, and a
 [screens.KIND] block in the profile gives that kind a deck of its own
 (see lib/kinds.py). Without the block it's the deck as always.
 """
-import getpass, os, shutil, sys
+import getpass, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
-import deckconf, mesh
+import deckconf, mesh, proc
 
 HOME = os.path.expanduser("~")
 KEYS = ('[[{key: KEYBOARD, popup: DRAWER}, ESC, TAB, CTRL, ALT, UP, DOWN, '
@@ -155,10 +155,6 @@ say "done. Type: deck"
 def screen_script(prof, kind=""):
     return POSIX_SCRIPT.replace("@T@", target(prof)).replace("@C@", launcher(prof, kind))
 
-def zellij_path():
-    p = os.path.join(HOME, ".local/bin/zellij")
-    return p if os.path.exists(p) else (shutil.which("zellij") or "zellij")
-
 def phosphor_cmd():
     """How the phone calls phosphor over ssh: no login shell, so no PATH."""
     if os.path.exists(os.path.join(HOME, ".local/bin/phosphor")):
@@ -200,7 +196,7 @@ def keys_row(prof):
 def script(prof, kind="phone"):
     sess = ((prof or {}).get("deck") or {}).get("session", "deck")
     cmd = launcher(prof, kind)
-    return (SCRIPT.replace("@T@", target(prof)).replace("@Z@", zellij_path())
+    return (SCRIPT.replace("@T@", target(prof)).replace("@Z@", proc.zellij() or "zellij")
                   .replace("@S@", sess).replace("@C@", cmd).replace("@OLDKEYS@", " ".join("'%s'" % k for k in OLD_KEYS)).replace("@KEYS@", keys_row(prof)))
 
 def qr_lines(text, w):

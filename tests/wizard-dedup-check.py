@@ -8,7 +8,7 @@ fleet?" ever asks about them.
 
     python3 tests/wizard-dedup-check.py
 
-No real tailscale or ssh needed: init.sh (the shell-out helper) and
+No real tailscale or ssh needed: proc.sh (the shell-out helper) and
 os.uname() are monkeypatched.
 """
 import json, os, sys, tempfile
@@ -46,14 +46,16 @@ TS_JSON = json.dumps({
 })
 
 calls = []
-def fake_sh(cmd, t=10):
+def fake_sh(cmd, t=10, err=False):
     calls.append(cmd)
+    if not isinstance(cmd, str):
+        return 1, ""
     if cmd.startswith("tailscale status --json"):
         return 0, TS_JSON
     if cmd.startswith("hostname -I"):
         return 0, "192.168.1.50"
     return 1, ""
-init.sh = fake_sh
+init.proc.sh = fake_sh
 
 # a ~/.ssh/config alias pointing right back at this machine's own hostname
 # (the shape the real bug took: a stray "home" alias someone had lying

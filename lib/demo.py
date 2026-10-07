@@ -19,7 +19,7 @@ the machine's real ones. What it can't hide is the machine's own user and host n
 import os, shutil, subprocess, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import DIM, RST
-import deckconf
+import deckconf, proc
 
 PROFILE  = os.path.join(deckconf.REPO, "profiles", "demo.toml")
 TEMPLATE = os.path.join(deckconf.REPO, "profiles", "demo-notes.md")
@@ -51,11 +51,6 @@ def load_profile(path=PROFILE):
         return None
     with open(path, "rb") as f:
         return deckconf.tomllib.load(f)
-
-
-def zellij_bin():
-    zj = os.path.expanduser("~/.local/bin/zellij")
-    return zj if os.path.exists(zj) else shutil.which("zellij")
 
 
 def session_live(zj, sess):
@@ -104,7 +99,7 @@ def background_env():
 
 
 def stop(sess):
-    zj = zellij_bin()
+    zj = proc.zellij()
     if not zj:
         print("zellij isn't installed")
         return 1
@@ -134,7 +129,7 @@ def main():
         return tour.main()
     with_tour = "--tour" in argv
 
-    zj = zellij_bin()
+    zj = proc.zellij()
     if not zj:
         print("  zellij isn't installed: run install.sh again (it fetches it)")
         return 1

@@ -22,7 +22,7 @@ module ever does to a live pane is exactly what lib/edit.py's own Alt-r
 import hashlib, json, os, re, signal, subprocess, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import REPO
-import deckconf
+import deckconf, proc
 
 LIB = os.path.join(REPO, "lib")
 
@@ -139,10 +139,6 @@ def classify(changed_paths):
 
 # ---- the live session: which panes run an affected tool, and swapping them --------
 
-def zellij_bin():
-    return deckconf.exe("zellij")
-
-
 def pane_procs(session, pane_id):
     """The processes of one pane of `session` -- by environment, not by
     the calling process's own (this may run detached, outside any pane)."""
@@ -194,7 +190,7 @@ def tool_of_argv(argv):
 def live_panes(session):
     """[(pane_id, argv)] for this session's real panes (not plugins,
     zellij's own UI), each with the argv it was actually started with."""
-    zj = zellij_bin()
+    zj = proc.zellij()
     if not zj:
         return []
     try:
@@ -223,7 +219,7 @@ def swap(session, pane_id, argv):
     had -- a fresh process, fresh code, nothing else in the tab or session
     touched. The exact mechanism lib/edit.py's own Alt-r "swap the
     program" (r) already uses, reused here instead of duplicated."""
-    zj = zellij_bin()
+    zj = proc.zellij()
     old = pane_procs(session, pane_id)
     subprocess.run([zj, "-s", session, "action", "new-pane", "--in-place",
                     "--pane-id", "terminal_%d" % pane_id, "--close-on-exit", "--"] + argv,

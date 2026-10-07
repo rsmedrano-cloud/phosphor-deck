@@ -18,10 +18,10 @@ Each finding says what to run; nothing is changed here.
     phosphor security            the whole audit
     phosphor security --local    the brain only, no ssh to the fleet
 """
-import concurrent.futures, fnmatch, glob, grp, json, os, pwd, re, shutil, stat, subprocess, sys
+import concurrent.futures, fnmatch, glob, grp, json, os, pwd, re, shutil, stat, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
-import deckconf
+import deckconf, proc
 
 HOME = os.path.expanduser("~")
 BAD_, WARN_, OK_, SKIP_ = "bad", "warn", "ok", "skip"
@@ -342,22 +342,14 @@ def funnels(serve_json):
     return sorted(k for k, v in (d.get("AllowFunnel") or {}).items() if v)
 
 
-def sh(argv, t=10):
-    try:
-        r = subprocess.run(argv, capture_output=True, text=True, timeout=t)
-        return r.returncode, r.stdout
-    except (OSError, subprocess.SubprocessError):
-        return -1, ""
-
-
 def check_network(prof):
     out = []
-    rc, ss_out = sh(["ss", "-ltnH"])
+    rc, ss_out = proc.sh(["ss", "-ltnH"])
     live = listeners(ss_out) if rc == 0 else []
     for t in (prof or {}).get("tunnels", []) or []:
         h = t.get("host", "?")
         argv = ["ssh"] + (["-F", os.path.expanduser(t["config"])] if t.get("config") else []) + ["-G", h]
-        _, g = sh(argv)
+        _, g = proc.sh(argv)
         wide = [(b, p) for b, p in forward_binds(g) if not loopback(b)]
         wide += [(a, p) for a, p in live if not loopback(a) and
                  any(p == fp for _, fp in forward_binds(g)) and (a, p) not in wide]
@@ -378,7 +370,7 @@ def check_network(prof):
     elif web:
         out.append((OK_, "zellij web", "127.0.0.1 only", ""))
     if shutil.which("tailscale"):
-        _, j = sh(["tailscale", "serve", "status", "--json"])
+        _, j = proc.sh(["tailscale", "serve", "status", "--json"])
         port = int(((prof or {}).get("deck") or {}).get("web_port", 8443))
         for hp in funnels(j):
             if hp.endswith(":%d" % port):

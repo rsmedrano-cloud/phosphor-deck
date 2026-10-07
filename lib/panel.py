@@ -8,7 +8,7 @@ come back here: no new tabs, no floating panes.
 import os, shutil, subprocess, sys, termios, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
-import deckconf, version
+import deckconf, proc, version
 
 PHOSPHOR = os.path.join(REPO, "phosphor")
 STEPS = os.path.join(deckconf.data_dir(), "steps")
@@ -67,10 +67,6 @@ def out(*a):
         dlog.event_throttled("PANEL", "cmd-failed")   # never str(e): it quotes the command, home path included
         return ""
 
-def zellij():
-    z = os.path.expanduser("~/.local/bin/zellij")
-    return z if os.path.exists(z) else (shutil.which("zellij") or "zellij")
-
 def state(prof):
     import tunnels
     d = prof.get("deck") or {}
@@ -94,7 +90,7 @@ def state(prof):
     version.check_later()
     if os.environ.get("ZELLIJ"):
         # the header line aside, one line per screen looking at the deck
-        s["screens"] = max(0, len(out(zellij(), "action", "list-clients").strip().splitlines()) - 1)
+        s["screens"] = max(0, len(out(proc.zellij() or "zellij", "action", "list-clients").strip().splitlines()) - 1)
         if s["screens"] >= 2:
             mark("screens")
     return s

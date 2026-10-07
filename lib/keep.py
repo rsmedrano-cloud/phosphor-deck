@@ -254,12 +254,8 @@ def save(name, blk):
     return True
 
 def dump():
-    z = os.path.join(HOME, ".local/bin/zellij")
-    if not os.path.exists(z):
-        import shutil
-        z = shutil.which("zellij") or "zellij"
-    import subprocess
-    r = subprocess.run([z, "action", "dump-layout"], capture_output=True, text=True, timeout=20)
+    import proc, subprocess
+    r = subprocess.run([proc.zellij() or "zellij", "action", "dump-layout"], capture_output=True, text=True, timeout=20)
     return r.stdout if r.returncode == 0 else ""
 
 def main():

@@ -1,18 +1,16 @@
 """phosphor doctor - preflight. Every check here exists because something
 broke before."""
-import os, shutil, subprocess, sys
+import os, shutil, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
+import proc
 
 HOME = os.path.expanduser("~")
 LOCALBIN = os.path.join(HOME, ".local/bin")
 
 def sh(cmd, t=8):
-    try:
-        r = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=t)
-        return r.returncode, (r.stdout or r.stderr).strip()
-    except Exception as e:
-        return 1, str(e)
+    r = proc.run(cmd, timeout=t)
+    return r.returncode, (r.stdout or r.stderr).strip()
 
 def have(b):
     p = os.path.join(LOCALBIN, b)
@@ -158,7 +156,7 @@ def run(profile=None):
             if h.get("local"):
                 print(row(OK, h["name"], "local (brain)")); continue
             alias = h.get("ssh") or h["name"]
-            rc, out = sh("ssh -o BatchMode=yes -o ConnectTimeout=6 %s 'echo ok' 2>&1" % alias, t=12)
+            rc, out = sh(proc.ssh(alias, "echo ok", 6), t=12)
             good = out.strip().endswith("ok")
             print(row(OK if good else BAD, h["name"], "ssh ok" if good else out[:38],
                       note=h.get("role", "")))
@@ -189,8 +187,8 @@ def run(profile=None):
                     # behind a passphrase works here (the desktop's agent) and not there.
                     if good and have("systemd-run"):
                         tgt = alias if "@" in alias or not h.get("user") else "%s@%s" % (h["user"], alias)
-                        rc2, out2 = sh("systemd-run --user --pipe --wait --quiet ssh -o BatchMode=yes "
-                                       "-o ConnectTimeout=6 %s 'echo ok' 2>&1" % tgt, t=20)
+                        rc2, out2 = sh(["systemd-run", "--user", "--pipe", "--wait", "--quiet"]
+                                       + proc.ssh(tgt, "echo ok", 6), t=20)
                         if not out2.strip().endswith("ok"):
                             print(row(BAD, "  from a service", "ssh fails there: " + (out2.strip().splitlines() or ["?"])[-1][:36],
                                       note="the mounts run as one"))
@@ -223,8 +221,8 @@ def run(profile=None):
     if profile and profile.get("screens"):
         import kinds
         print("\n" + rule("screens", w))
-        zj = have("zellij")
-        live = sh("%s list-sessions -n" % zj)[1].splitlines() if zj else []
+        zj = proc.zellij()
+        live = sh([zj, "list-sessions", "-n"])[1].splitlines() if zj else []
         for k in kinds.kinds(profile):
             s_ = kinds.session(profile, k)
             on = any(l.split()[:1] == [s_] and "EXITED" not in l for l in live)

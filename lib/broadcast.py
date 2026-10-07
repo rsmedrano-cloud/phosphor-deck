@@ -30,7 +30,7 @@ import os, subprocess, sys, time
 from concurrent.futures import ThreadPoolExecutor
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import BAD, DIM, FG, OK, RST, WARN
-import deckconf
+import deckconf, proc
 from sanitize import clean_text
 
 USAGE = ("usage: phosphor broadcast [--host NAME]... [--role ROLE] [--timeout S]"
@@ -53,7 +53,7 @@ def run_one(h, command, timeout):
     """(name, exit code or None, output, seconds). None: it never answered
     (ssh couldn't connect, or the timeout ran out)."""
     argv = ["sh", "-c", command] if h.get("local") else \
-           ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=10", deckconf.target(h), command]
+           proc.ssh(deckconf.target(h), command)
     t = time.time()
     try:
         r = subprocess.run(argv, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=timeout)

@@ -6,6 +6,13 @@ before it updates.
 
 ## Unreleased
 
+## 1.6.2 — one way to run things
+
+- `phosphor setup` and `phosphor doctor` hand a host's ssh alias to ssh as one argument,
+  never through a shell, and `phosphor update` says a missing git or rsync failed instead of
+  stopping with a Python traceback. Behind that: every part of Phosphor now finds zellij,
+  runs a command and opens a non-interactive ssh the same way (`lib/proc.py`).
+
 ## 1.6.1 — one list panel
 
 - `phosphor screens` asks y/n before kicking a screen (`x`) or changing a kind's deck (`o`),
