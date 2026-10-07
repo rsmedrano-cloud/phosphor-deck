@@ -253,6 +253,17 @@
   (`f` in the DECK tab). `--dry-run` only shows. A profile written by a newer phosphor is left
   alone. `phosphor doctor`, `gen` and `update` say when there's something to migrate; `P` in
   the DECK tab runs it.
+- `phosphor backup [FILE]` — the brain's own backup, one file (default
+  `~/phosphor-backup-DATE.tar.gz`, 0600): your profile, `apps.toml`, `tabs.d`, the notebook
+  (unless `[notes] folder` keeps it in a vault you already sync), the glance token, your adjutant
+  faces and the folders "where?" remembers. Never ssh keys, nothing phosphor makes again by
+  itself (gen's files, caches, logs). It won't overwrite a file that's already there.
+- `phosphor restore FILE [--dry-run]` — put a backup back, on this brain or a new one. Each
+  file is shown as new, replace or same; one "restore it?" writes them, the profile with its
+  `deck.toml.bak` and anything else it replaces with a `.bak` next to it. It only takes the
+  names a backup holds (no paths, no links from the archive), names any host with `local =
+  true` (the old brain's own disks), and ends with `phosphor gen --dry-run`: the deck changes
+  only when you run `phosphor gen && phosphor up` (or `restart`). `--dry-run` only shows.
 - `phosphor recipe [NAME]` — starter tab bundles: `homelab` (prom and ci dashboards), `dev` (a
   two-assistant tab), `bubble` (mail, RSS, Mastodon, Matrix in one tab), `workbench` (four AI CLIs
   side by side). No `NAME` lists them, what's already added and which programs each still needs. Drops `recipes/NAME.toml` into

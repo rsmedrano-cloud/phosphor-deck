@@ -98,6 +98,9 @@ out=$(python3 tests/profile-write-check.py 2>&1) && ok || bad "$out"
 step "an older profile migrates"
 out=$(python3 tests/migrate-check.py 2>&1) && ok || bad "$out"
 
+step "a backup holds its own files, and restore takes only those"
+out=$(python3 tests/brain-backup-check.py 2>&1) && ok || bad "$out"
+
 step "one way to run zellij, sh and ssh"
 out=$(python3 tests/proc-check.py 2>&1) && ok || bad "$out"
 

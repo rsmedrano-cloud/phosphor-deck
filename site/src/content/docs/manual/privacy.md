@@ -19,6 +19,9 @@ sidebar:
   (file permissions, the fleet's ssh servers, ports, sockets) and how to close it.
 - The brain holds ssh keys into the fleet: narrow them in `authorized_keys`
   (e.g. `from="100.64.0.0/10"` with tailscale).
+- `phosphor backup` writes one file, 0600, holding your profile, notebook and
+  glance token (never ssh keys): keep it where you'd keep those, and know
+  that whoever has it can read your notes and ask your glance.
 - What comes from outside the brain is shown as text, never as terminal
   commands: a host's poll answer, its logs through `phosphor tail`, a chat
   notification, a broadcast's output, CI and review data. Escape sequences

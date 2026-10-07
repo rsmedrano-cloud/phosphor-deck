@@ -35,6 +35,8 @@ USAGE = """phosphor - Phosphor Deck
     phosphor theme      the deck's color, with a preview before it's saved
     phosphor tabs       the tabs your profile brings back: forget, reorder, reopen
     phosphor migrate    bring an older profile up to date, a diff first (--dry-run)
+    phosphor backup [FILE]  profile, notebook, tabs.d, glance token in one file (no ssh keys)
+    phosphor restore FILE   put a backup back on this brain: what it replaces first (--dry-run)
     phosphor recipe [NAME]  starter tab bundles (homelab, dev, bubble, workbench)
     phosphor demo       a throwaway session, made-up machines: safe for a screenshot
 
@@ -100,7 +102,7 @@ USAGE = """phosphor - Phosphor Deck
 TOOLS = ("fleet", "pulse", "keys", "store", "adjutant", "notes", "privacy", "phone", "newtab", "clip", "send",
          "mentions", "notify", "run", "web", "tunnels", "completion", "update", "panel", "version",
          "keep", "workspace", "edit", "shortcuts", "tabs", "prom", "logs", "trace", "ci", "recipe", "tts", "demo",
-         "services", "glance", "review", "push", "screens", "ask", "commands", "receive", "tail", "triage", "broadcast", "theme", "usage", "mem", "containers", "security", "digest", "read", "migrate")
+         "services", "glance", "review", "push", "screens", "ask", "commands", "receive", "tail", "triage", "broadcast", "theme", "usage", "mem", "containers", "security", "digest", "read", "migrate", "backup", "restore")
 
 def crash_name(cmd):
     """The name a crash is logged under: the pane's, when phosphor run

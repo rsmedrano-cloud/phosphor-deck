@@ -6,6 +6,16 @@ before it updates.
 
 ## Unreleased
 
+## 1.7.3 — the brain's own backup
+
+- `phosphor backup [FILE]` and `phosphor restore FILE`: the brain's own backup. One file
+  (0600) with your profile, `apps.toml`, `tabs.d`, the notebook (unless `[notes] folder` already
+  keeps it in a synced vault), the glance token, your adjutant faces and the folders "where?"
+  remembers; never ssh keys, nothing phosphor makes again by itself. On the new brain, restore
+  shows each file as new, replaced or the same, writes on one "restore it?" (whatever it
+  replaces keeps a `.bak`), points out hosts with `local = true` and ends with a
+  `phosphor gen --dry-run`. Moving to a new brain is now `backup`, `install.sh`, `restore`.
+
 ## 1.7.2 — one set of limits
 
 - One set of limits for every panel. FLEET's cards, their 24h history, glance, digest, the

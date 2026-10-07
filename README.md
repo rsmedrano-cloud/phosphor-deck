@@ -448,6 +448,8 @@ more depth on every one of these.
 | `phosphor keep` | write a tab you arranged by hand into your profile |
 | `phosphor tabs` | the tabs your profile brings back: forget one, reorder, reopen |
 | `phosphor migrate` | bring an older profile up to date: a diff of each change first, a backup kept |
+| `phosphor backup [FILE]` | the brain's own backup: profile, tabs.d, notebook, glance token, faces in one 0600 file; never ssh keys |
+| `phosphor restore FILE` | put a backup back (this brain or a new one): new/replace/same first, a `.bak` of what it replaces, then `gen --dry-run` |
 | `phosphor recipe [NAME]` | starter tab bundles: homelab, dev, bubble, workbench, and the programs they run; `--remove NAME` undoes one |
 | `phosphor shortcuts` | the deck's keys, yours to change; updates never reset them |
 | `phosphor theme` | the deck's color (p31, p3, p4, ega, paper), previewed before it's saved |

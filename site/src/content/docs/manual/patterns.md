@@ -50,16 +50,19 @@ how you turn something you built live *into* one.
 Nothing about a deck is tied to the machine it runs on except the machine
 itself. To move the whole thing:
 
-1. On the new machine: `sh install.sh` (see install), stopping before
-   `phosphor init` -- you're not building a new profile, you're bringing yours.
-2. Copy over, from the old brain: `~/.config/phosphor/` (your profile and
-   `apps.toml`, `tabs.d/`), and your notebook -- `~/.local/share/phosphor/notes.md`
-   and `-archive.md`, unless `[notes] folder` already points it at a
-   synced vault, in which case it's already there.
-3. `phosphor gen && phosphor up` on the new machine. Hosts with `local =
-   true` in your profile describe the *old* brain: edit that block (or run
-   `phosphor setup` and let it walk you through the new machine's own disks)
-   before your first `gen` there.
+1. On the old brain: `phosphor backup`. One file, 0600: your profile,
+   `apps.toml`, `tabs.d/`, the notebook (unless `[notes] folder` already
+   points it at a synced vault, in which case it's already there), the
+   glance token and your faces. Never ssh keys: the new brain needs its own
+   access to the fleet.
+2. On the new machine: `sh install.sh` (see install), stopping before
+   `phosphor init` -- you're not building a new profile, you're bringing
+   yours. Copy the backup over and `phosphor restore FILE`: it shows what it
+   writes, asks once, and ends with a `phosphor gen --dry-run`.
+3. Hosts with `local = true` in your profile describe the *old* brain
+   (restore names them): edit that block (or run `phosphor setup` and let it
+   walk you through the new machine's own disks), then `phosphor gen &&
+   phosphor up`.
 4. Point every screen's `deck` command at the new brain: rerun `phosphor
    phone` / `phosphor screen` from it for each one (see phones).
 

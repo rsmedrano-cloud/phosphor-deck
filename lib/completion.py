@@ -11,7 +11,7 @@ from ui import REPO
 
 CMDS = ("doctor init setup panel commands phone screen gen up attach deck restart down update version note notes fleet "
         "edit shortcuts theme tabs keep workspace ask pulse adjutant notify face keys store new mentions clip send receive web tunnel path tail triage broadcast privacy run "
-        "help docs prom logs trace ci recipe tts demo services glance review push screens usage mem containers security digest read migrate")
+        "help docs prom logs trace ci recipe tts demo services glance review push screens usage mem containers security digest read migrate backup restore")
 # the manual's pages, so a new one completes without touching this file
 TOPICS = " ".join(sorted(f[:-3] for f in os.listdir(os.path.join(REPO, "doc/manual"))
                          if f.endswith(".md") and f != "README.md"))
