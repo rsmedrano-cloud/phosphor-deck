@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""phosphor's own poll_until()/session_gone(): down/up/restart used to
+"""lib/session.py's poll_until()/session_gone(): down/up/restart used to
 spend a fixed handful of seconds (sleep(2), sleep(1)...) waiting on things
 that are almost always already done well before the deadline -- kill-session,
 delete-session, a SIGTERM/SIGKILL round, the deck coming back up. Polling
@@ -13,14 +13,11 @@ that touch a real subprocess, and they're not exercised here -- see
 tests/hotswap-live-check.py and, for the live deck itself, a real
 `phosphor restart` timed before and after (not something a test does).
 """
-import os, runpy, sys, time, types
+import os, sys, time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "lib"))
-# run_name != "__main__": its own `if __name__ == "__main__": sys.exit(main())`
-# at the bottom never fires -- this only wants poll_until()/session_live()/
-# session_gone(), not a real dispatch.
-phosphor_cli = types.SimpleNamespace(**runpy.run_path(os.path.join(ROOT, "phosphor"), run_name="phosphor_cli"))
+import session as phosphor_cli
 
 fails = []
 def check(what, ok):

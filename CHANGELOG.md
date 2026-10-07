@@ -6,6 +6,13 @@ before it updates.
 
 ## Unreleased
 
+## 1.6.3 — a dispatcher that only dispatches
+
+- A crash in `phosphor notify` now leaves its traceback in deck.log, like every other
+  command's. Behind that: `notify` and the session commands (`restart`, `up`, `down`,
+  `attach`) moved out of the `phosphor` dispatcher into `lib/notify.py` and
+  `lib/session.py`; the dispatcher is now just a table of commands.
+
 ## 1.6.2 — one way to run things
 
 - `phosphor setup` and `phosphor doctor` hand a host's ssh alias to ssh as one argument,
