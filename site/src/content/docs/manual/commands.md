@@ -134,7 +134,8 @@ sidebar:
 - `phosphor digest [--hours N] [--assistant NAME] [--print]` — the last day (or N hours, up to
   168) as one summary note, "digest YYYY-MM-DD", by `digest`: commits on any local branch of
   the repos in `[deck] projects` and which ones have uncommitted changes, what FLEET's history
-  recorded (a host down, CPU or RAM over 90%, over 85°C, a disk over 92%), the notes taken,
+  recorded (a host down, or a reading past its red line in `[alerts]`: CPU or RAM 90%, 85°C, a
+  disk 90% unless you changed them), the notes taken,
   the todos done and the ones still open. It hands that to whichever assistant `phosphor ask`
   would pick and writes its answer; the next session, yours or an assistant's, starts from it.
   Commit messages and host errors are text others wrote, so it goes in the way triage's snapshot

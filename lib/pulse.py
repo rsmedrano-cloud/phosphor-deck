@@ -13,6 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import DIM, MUTE, PH, BLOOM, AMB, RED, RULE, RST
 import deckconf
 from sanitize import clean_tree
+import limits
 import ui
 
 CACHE = os.path.join(deckconf.cache_dir(), "fleet.json")
@@ -41,8 +42,9 @@ def read_state():
         mp = h.get("MEMU", 0) / max(1, h.get("MEMT", 1))
         load += mp * 0.5
         for _, pct, _ in h.get("mnt", []):
-            if pct >= 92 and lvl < 2: lvl, why = 2, "%s disk %d%%" % (name, pct)
-            elif pct >= 85 and lvl < 1: lvl, why = 1, "%s disk %d%%" % (name, pct)
+            l = limits.level("disk", pct, name)
+            if l == 2 and lvl < 2: lvl, why = 2, "%s disk %d%%" % (name, pct)
+            elif l == 1 and lvl < 1: lvl, why = 1, "%s disk %d%%" % (name, pct)
     if n: load /= n
     return min(1.0, max(0.05, load)), lvl, why
 

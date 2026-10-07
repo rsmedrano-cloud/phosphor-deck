@@ -34,17 +34,17 @@ def updates(d):
     except ValueError: s = None
     return a, s
 
-HOT, LOW_BAT = 90, 10   # past these a host shows up in glance, not just on its card
-
-def sensor_problems(d):
-    """What glance calls out about a host's sensors, as short phrases."""
+def sensor_problems(d, host=None):
+    """What glance calls out about a host's sensors, as short phrases:
+    past their red line (lib/limits.py), not just colored on its card."""
+    import limits
     temp, bat, smart = sensors(d)
     out = []
     if smart and smart[0]:
         out.append("%d disk%s failing SMART" % (smart[0], "" if smart[0] == 1 else "s"))
-    if temp is not None and temp >= HOT:
+    if temp is not None and limits.red("temp", temp, host):
         out.append("cpu %d°C" % temp)
-    if bat and bat[1] == "Discharging" and bat[0] <= LOW_BAT:
+    if bat and bat[1] == "Discharging" and limits.red("battery", bat[0], host):
         out.append("battery %d%%" % bat[0])
     upd = updates(d)
     if upd and upd[1]:

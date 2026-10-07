@@ -11,6 +11,7 @@ import json, os, random, re, shutil, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
 from sanitize import clean, clean_tree
+import limits
 
 HOME   = os.path.expanduser("~")
 CACHE  = deckconf.cache_dir()
@@ -124,7 +125,7 @@ def fleet_alert():
         if not h.get("ok"):
             return (2, "%s unreachable" % name)
         for _, pct, _ in h.get("mnt", []):
-            if pct >= 92: return (2, "%s disk %d%%" % (name, pct))
+            if limits.red("disk", pct, name): return (2, "%s disk %d%%" % (name, pct))
     return None
 
 def fleet_health():
@@ -145,9 +146,10 @@ def fleet_health():
         if not h.get("ok"):
             return 2, "%s unreachable" % name
         for _, pct, _ in h.get("mnt", []):
-            if pct >= 92:
+            l = limits.level("disk", pct, name)
+            if l == 2:
                 return 2, "%s disk %d%%" % (name, pct)
-            elif pct >= 85 and lvl < 1:
+            elif l == 1 and lvl < 1:
                 lvl, why = 1, "%s disk %d%%" % (name, pct)
     return lvl, why
 

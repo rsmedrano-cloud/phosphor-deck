@@ -90,6 +90,8 @@ for p in sorted(glob.glob(os.path.join(ROOT, "recipes/*.toml"))):
 SECTION = {"[deck]": profcheck.DECK, "[[hosts]]": profcheck.HOST, "[[tabs]]": profcheck.PANE,
            "[[tunnels]]": profcheck.TUNNEL, "[screens]": profcheck.SCREEN}
 SECTION.update({"[%s]" % k: v for k, v in profcheck.TABLES.items() if k != "deck"})
+import limits
+SECTION["[alerts]"] = limits.DEFAULTS
 NESTED = {"[prometheus]": profcheck.GAUGE, "[ci]": profcheck.PIPELINE}
 INHERITED = {"tts", "name", "panes", "split", "gauges", "pipelines"}   # old, or said in prose
 text, cur, body = open(os.path.join(ROOT, "doc/manual/profile.md")).read(), None, {}

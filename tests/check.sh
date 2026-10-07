@@ -104,6 +104,9 @@ out=$(python3 tests/proc-check.py 2>&1) && ok || bad "$out"
 step "a misspelled profile key is said"
 out=$(python3 tests/profile-schema-check.py 2>&1) && ok || bad "$out"
 
+step "one set of limits for every panel, [alerts]"
+out=$(python3 tests/limits-check.py 2>&1) && ok || bad "$out"
+
 step "zellij pinned in one place"
 out=$(python3 tests/zellij-pin-check.py 2>&1) && ok || bad "$out"
 

@@ -24,6 +24,7 @@ import deckconf
 from sanitize import clean_tree
 import ui
 import health
+import limits
 import mentions
 import notes
 import workspace
@@ -51,7 +52,7 @@ def fleet_scan():
             continue
         ok += 1
         for _, pct, _ in h.get("mnt", []):
-            if pct >= 92:
+            if limits.red("disk", pct, name):
                 bad.append((name, "disk %d%%" % pct, False))
                 break
         try: svcfail = int(h.get("SVCFAIL") or 0)
@@ -60,7 +61,7 @@ def fleet_scan():
             bad.append((name, "%d service%s failed" % (svcfail, "" if svcfail == 1 else "s"), False))
         if h.get("REBOOT"):
             bad.append((name, "reboot pending", False))
-        bad += [(name, p, False) for p in health.sensor_problems(h)]
+        bad += [(name, p, False) for p in health.sensor_problems(h, name)]
     return ok, len(hosts), stale, bad
 
 def fleet_state():

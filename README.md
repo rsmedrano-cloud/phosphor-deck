@@ -129,6 +129,10 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
   back pushes to your phone and speaks up (with `[tts] fleet_alerts`) the
   same way `phosphor notify` does -- at most once a minute per host, so a
   flapping link doesn't flood you.
+- **One idea of "too full".** A disk, CPU, RAM or temperature turns amber
+  and red at the same line on every panel (FLEET, its history, glance,
+  digest, the adjutant), and `[alerts]` in the profile moves those lines,
+  for every host or for one.
 - **In a browser too, if you want.** `phosphor web on` publishes the deck with
   zellij's web client and `tailscale serve`: HTTPS, only your tailnet's devices,
   plus a login token. Off by default; never on the internet.

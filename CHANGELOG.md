@@ -6,6 +6,15 @@ before it updates.
 
 ## Unreleased
 
+## 1.7.2 — one set of limits
+
+- One set of limits for every panel. FLEET's cards, their 24h history, glance, digest, the
+  adjutant and pulse each had their own idea of "too full" or "too hot", so a disk at 88% was
+  red on its card and missing from glance. Now amber and red are the same everywhere (disk
+  80/90%, CPU, RAM and GPU 60/90%, 85°C, battery 30/10%), and a new `[alerts]` table changes
+  them for every host or for one (`[alerts.nimbus] disk = [90, 97]` for a backup disk that
+  lives full). Read again when the profile changes, no restart; doctor and gen name a bad one.
+
 ## 1.7.1 — profiles that come up to date
 
 - `phosphor migrate`: a profile of an older shape comes up to date. A change to what phosphor

@@ -52,7 +52,7 @@ PIPELINE = {"name": None, "provider": ("github", "gitlab"), "repo": None, "branc
 TUNNEL = {"host": None, "config": None}
 SCREEN = {"tabs": None, "land": None, "theme": "themes", "graphs": ("braille", "blocks"),
           "skip": None}
-SECTIONS = sorted(set(TABLES) | {"hosts", "tabs", "tunnels", "screens"})
+SECTIONS = sorted(set(TABLES) | {"hosts", "tabs", "tunnels", "screens", "alerts"})
 
 
 def _guess(key, known):
@@ -101,6 +101,27 @@ def _panes(where, panes, out):
                 _panes(where, p["panes"], out)
 
 
+def _alerts(val, hosts, out):
+    """[alerts] and [alerts.HOST]: a metric's [warn, bad], for a host the profile has."""
+    import limits
+    if not isinstance(val, dict):
+        out.append(("[alerts]", "should be a table")); return
+    def metrics(where, t):
+        for k, v in t.items():
+            if k not in limits.DEFAULTS:
+                g = _guess(k, limits.DEFAULTS)
+                out.append((where, "unknown key %s%s" % (k, ": %s?" % g if g else "")))
+            elif limits.problem(k, v):
+                out.append((where, "%s = %s %s" % (k, _val(v), limits.problem(k, v))))
+    metrics("[alerts]", {k: v for k, v in val.items() if not isinstance(v, dict)})
+    for host, t in val.items():
+        if isinstance(t, dict):
+            if host not in hosts:
+                g = _guess(host, [h for h in hosts if h])
+                out.append(("[alerts.%s]" % host, "no such host in [[hosts]]%s" % (": %s?" % g if g else "")))
+            metrics("[alerts.%s]" % host, t)
+
+
 def tabs(where, items, out):
     _array(where, items, TAB, out)
     for t in items if isinstance(items, list) else []:
@@ -128,6 +149,9 @@ def problems(prof):
             tabs("tabs", val, out)
         elif sec == "tunnels":
             _array("tunnels", val, TUNNEL, out, "host")
+        elif sec == "alerts":
+            _alerts(val, [h.get("name") for h in prof.get("hosts", []) if isinstance(h, dict)]
+                    if isinstance(prof.get("hosts"), list) else [], out)
         elif sec == "screens":
             if isinstance(val, dict):        # its shape is kinds.problems()'s
                 for k, v in val.items():

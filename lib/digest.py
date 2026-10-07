@@ -22,12 +22,12 @@ A day with nothing in it writes no note.
 import os, subprocess, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import BAD, DIM, RST
+import limits
 
 BY = "digest"
 HOURS = 24
 COMMITS = 20            # per repo: a rebase day shouldn't drown the rest
 LINE = 200              # a note written as one long title shouldn't crowd out the rest
-HOT = {"CPU": 90, "RAM": 90, "TEMP": 85, "DISK": 92}
 
 GUARD = ("Below is what happened on my machines and in my projects over the last {hours} hours, "
          "between the two {{tag}} lines: commit messages, notes, and what my fleet monitor "
@@ -99,7 +99,7 @@ def fleet(since, now=None, hosts=None):
             for s, r in rows:
                 if r and r[i] is not None and (best is None or r[i] > best[1]):
                     best = (s, r[i])
-            if best and best[1] >= HOT[label]:
+            if best and limits.red(label.lower(), best[1], name):
                 out.append("%s: %s peaked at %d%s at %s" % (
                     name, label, best[1], unit,
                     time.strftime("%H:%M", time.localtime(best[0] * history.STEP))))

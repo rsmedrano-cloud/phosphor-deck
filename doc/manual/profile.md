@@ -328,6 +328,38 @@ deck's own service and timer are the exception: stopping them from a pane
 inside the deck would take that pane down mid-answer, so it points you at
 `phosphor restart` instead.
 
+## [alerts]
+
+Where a reading turns amber and where it turns red, the same for every
+panel: FLEET's cards and their 24h history, glance, digest, the adjutant and
+pulse. Amber is worth a look; red is what glance, digest, the adjutant and
+pulse call out. Each metric is `[warn, bad]`; the battery counts down (amber
+at or below its first number, red at or below its second, while
+discharging).
+
+| key | default | what |
+|---|---|---|
+| cpu | [60, 90] | CPU use, % |
+| ram | [60, 90] | RAM use, % |
+| gpu | [60, 90] | GPU use, % |
+| disk | [80, 90] | every mount's use, % |
+| temp | [70, 85] | CPU temperature, °C |
+| battery | [30, 10] | battery left, %, while discharging |
+
+    [alerts]
+    disk = [75, 90]
+    temp = 80
+
+    [alerts.nimbus]
+    disk = [90, 97]
+
+`[alerts.NAME]` changes them for one host of `[[hosts]]`, on top of
+`[alerts]`. One number instead of a pair is the red line alone; amber stays
+where it was, or comes down with it. A metric that isn't one of these, a
+pair the wrong way round or a host the profile doesn't have is a warning in
+`phosphor doctor` and `phosphor gen`. The panels read it again when the
+profile changes: no restart.
+
 ## [screens]
 
 A deck for each kind of screen: one block per kind (lowercase letters and

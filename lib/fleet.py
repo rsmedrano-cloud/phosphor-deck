@@ -17,7 +17,8 @@ from concurrent.futures import ThreadPoolExecutor
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
 import deckconf, proc
-from health import sensors, updates, LOW_BAT
+from health import sensors, updates
+import limits
 from sanitize import clean, clean_tree
 
 HOME     = os.path.expanduser("~")
@@ -72,11 +73,11 @@ def demo_collect(name):
             d[k.upper()] = b[k]
     return d
 
-def tone(p): return PH if p < 60 else (AMB if p < 85 else RED)
-def bar(pct, w):
+def tone(p, metric="cpu", host=None): return limits.color(metric, p, host)
+def bar(pct, w, metric="cpu", host=None):
     pct = max(0, min(100, pct)); f = int(round(pct * w / 100.0))
-    return tone(pct) + "█"*f + RULE + "░"*(w-f) + RST
-def pctc(p): return tone(p) + ("%3d%%" % p) + RST
+    return tone(pct, metric, host) + "█"*f + RULE + "░"*(w-f) + RST
+def pctc(p, metric="cpu", host=None): return tone(p, metric, host) + ("%3d%%" % p) + RST
 
 SLOW_POLL_MS = 3000   # worth calling out: a healthy LAN/tailnet round trip is well under this
 DOWN_AFTER = 2        # this many misses in a row: stop giving it the full patience window
@@ -382,10 +383,10 @@ def card(name, w, d):
     else:
         bw = max(3, min(18, inner - 10))
         cpu = d.get("CPU", 0)
-        body.append(MUTE + "CPU " + RST + bar(cpu, bw) + " " + pctc(cpu))
+        body.append(MUTE + "CPU " + RST + bar(cpu, bw, "cpu", name) + " " + pctc(cpu, "cpu", name))
         mu, mt = d.get("MEMU", 0), d.get("MEMT", 1) or 1
         mp = int(round(mu * 100.0 / mt))
-        body.append(MUTE + "RAM " + RST + bar(mp, bw) + " " + pctc(mp))
+        body.append(MUTE + "RAM " + RST + bar(mp, bw, "ram", name) + " " + pctc(mp, "ram", name))
         body.append(DIM + ("     %.1f / %.0f GiB" % (mu/1024.0, mt/1024.0)) + RST)
         if d.get("LOAD"):
             body.append(MUTE + "LOAD " + RST + FG + d["LOAD"] + RST)
@@ -410,14 +411,14 @@ def card(name, w, d):
         parts, width = [], 0
         if temp is not None:
             t = "%d°C" % temp
-            parts.append(MUTE + "TEMP " + RST + (PH if temp < 70 else AMB if temp < 85 else RED) + t + RST)
+            parts.append(MUTE + "TEMP " + RST + limits.color("temp", temp, name) + t + RST)
             width += 5 + len(t)
         if bat:
             p, st = bat
             arrow = {"Charging": "↑", "Discharging": "↓"}.get(st, "")
-            low = st == "Discharging" and p <= 30
             t = "%d%%%s" % (p, arrow)
-            parts.append(MUTE + "BAT " + RST + ((RED if p <= LOW_BAT else AMB) if low else PH) + t + RST)
+            col = limits.color("battery", p, name) if st == "Discharging" else PH
+            parts.append(MUTE + "BAT " + RST + col + t + RST)
             width += 4 + len(t) + (2 if width else 0)
         if smart and not smart[0] and width + 10 <= inner:
             parts.append(DIM + "SMART ok" + RST)
@@ -434,7 +435,7 @@ def card(name, w, d):
             short = short.replace(" with Max-Q Design", " MaxQ")
             try: gu = int(g["util"] or 0)
             except ValueError: gu = 0
-            body.append(MUTE + "GPU " + RST + bar(gu, bw) + " " + pctc(gu))
+            body.append(MUTE + "GPU " + RST + bar(gu, bw, "gpu", name) + " " + pctc(gu, "gpu", name))
             det = ""
             if g["used"] and g["total"]:
                 det = "%.1f/%.1f GiB" % (int(g["used"])/1024.0, int(g["total"])/1024.0)
@@ -444,7 +445,7 @@ def card(name, w, d):
         body.append("")
         for t, p, s in d.get("mnt", []):
             lbl = t if len(t) <= inner-11 else "…" + t[-(inner-12):]
-            body.append(FG + ("%-*s" % (inner-11, lbl)) + RST + pctc(p) + " " + DIM + ("%5s" % s) + RST)
+            body.append(FG + ("%-*s" % (inner-11, lbl)) + RST + pctc(p, "disk", name) + " " + DIM + ("%5s" % s) + RST)
         body.append("")
         c = d.get("ctr")
         if c:

@@ -173,7 +173,7 @@ Every page's sections, so a grep finds the right one:
 - **patterns** (`doc/manual/patterns.md`): which shape to pick, growing a deck, moving it to a new brain
   Sections: Which shape; Growing it; Moving to a new brain; Sharing one tab; Backing out.
 - **profile** (`doc/manual/profile.md`): every setting in ~/.config/phosphor/deck.toml, and your own apps
-  Sections: [deck]; [[hosts]]; [[tabs]]; tabs.d: tabs you can share; [[tunnels]]; [keys]; [notes]; [mentions]; [prometheus]; [ci]; [tts]; [push]; Your own server, no cloud; [services]; [screens]; apps.toml.
+  Sections: [deck]; [[hosts]]; [[tabs]]; tabs.d: tabs you can share; [[tunnels]]; [keys]; [notes]; [mentions]; [prometheus]; [ci]; [tts]; [push]; Your own server, no cloud; [services]; [alerts]; [screens]; apps.toml.
 - **commands** (`doc/manual/commands.md`): every `phosphor` command
   Sections: Getting started; Session; Workspaces; Notes; In the deck; Before you push a fork; Shell; Help.
 - **keys** (`doc/manual/keys.md`): keys inside the deck, and what happens when a program ends

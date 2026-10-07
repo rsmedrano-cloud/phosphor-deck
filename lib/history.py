@@ -195,10 +195,9 @@ def view(name, rows, cols, lines, now=None):
     if not rows:
         out += [FG + " nothing recorded yet" + RST,
                 DIM + " a reading goes in every %d minutes while the deck runs" % (STEP // 60) + RST]
+    import limits
     def tone(label, v):
-        if v is None: return DIM
-        if label == "TEMP": return PH if v < 70 else AMB if v < 85 else RED
-        return PH if v < 60 else AMB if v < 85 else RED
+        return DIM if v is None else limits.color(label.lower(), v, name)
     for i, (label, unit) in enumerate(SERIES):
         s = summary(rows, i, ns)
         if s is None:
