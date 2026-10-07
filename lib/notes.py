@@ -22,7 +22,6 @@ done or talked over with an assistant. Archived notes go to notes-archive.md
 import fcntl, os, re, shlex, shutil, subprocess, sys, tempfile, textwrap, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
-from ui import getkey as ui_getkey
 
 def notes_dir():
     """Where the notebook lives: the profile's `[notes] folder` if set (a
@@ -473,9 +472,9 @@ def here(kind=None):
                     sys.stdout.write("   " + AMB + k + RST + "  " + KINDS[name] + name + RST + "\n\n")
                 sys.stdout.write("   " + DIM + "Enter: note · q: never mind" + RST)
                 sys.stdout.flush()
-                k = getkey(None)
+                k = getkey(None, mouse=True)
                 if isinstance(k, tuple):             # a tap on a row (rows 4, 6, 8)
-                    row = k[1]
+                    row = k[2]
                     k = kinds[(row - 4) // 2][0] if row in (4, 6, 8) else None
                 if k in ("q", "\x03", "\x1b"): return 0
                 if k in ("\r", "\n"): k = "n"
@@ -574,15 +573,6 @@ def to_workspace(e):
     sys.stdout.write("\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h\x1b[2J"); sys.stdout.flush()
     return msg
 
-def getkey(timeout):
-    """A key, ("CLICK", row, col) for a tap, or 'WUP'/'WDN' for the wheel."""
-    k = ui_getkey(timeout)
-    if isinstance(k, tuple):
-        if k[1] == 0:
-            return ("CLICK", k[3], k[2]) if k[4] else None
-        return {64: "WUP", 65: "WDN"}.get(k[1]) if k[4] else None
-    return k
-
 def actions(e):
     """Every key, always in the same place: [(key, label, usable now)]. The
     ones that need a picked note (or a todo) are dimmed until they apply."""
@@ -611,7 +601,7 @@ def footer(acts, w):
 def confirm(q, rows):
     sys.stdout.write("\x1b[%d;1H\x1b[K " % rows + RED + q[:60] + "? " + RST + DIM + "y / n " + RST)
     sys.stdout.flush()
-    return getkey(None) == "y"
+    return getkey(None, mouse=True) == "y"
 
 def matches(e, q):
     q = q.lower()
@@ -625,7 +615,7 @@ def search_prompt(rows, current):
     while True:
         sys.stdout.write("\x1b[%d;1H\x1b[K " % rows + PH + "/" + RST + q + "\x1b[K")
         sys.stdout.flush()
-        k = getkey(None)
+        k = getkey(None, mouse=True)
         if k is None or isinstance(k, tuple):
             continue
         if k in ("\r", "\n"): return q
@@ -687,10 +677,10 @@ def main():
             out += foot
             sys.stdout.write("\x1b[H" + "\x1b[K\n".join(out[:rows]) + "\x1b[K\x1b[J")
             sys.stdout.flush()
-            k = getkey(1.0)
+            k = getkey(1.0, mouse=True)
             if k is None: continue
             if isinstance(k, tuple):
-                row, col = k[1], k[2]
+                col, row = k[1], k[2]
                 if row >= first_foot:
                     hit = [s for s in spots if s[0] == row - first_foot and s[1] <= col <= s[2]]
                     if not hit: continue

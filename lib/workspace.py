@@ -13,7 +13,7 @@
     phosphor workspace rm NAME [--yes] its tab out of the profile (and closed), its folder
                                        into the trash (~/.local/share/phosphor/trash)
     phosphor workspace                 on a terminal: every workspace and its git state
-                                       (Enter its tab, d its diff, n a new one, x twice removes it)
+                                       (Enter its tab, d its diff, n a new one, x asks and removes it)
 
 A workspace lives in [deck] projects (default ~/projects)/NAME. Every assistant
 folder gets an AGENTS.md saying what it owns; the workspace keeps its own
@@ -23,7 +23,8 @@ never overwritten: pointing it at a folder you have adds only what's missing.
 import json, os, re, shlex, shutil, subprocess, sys, time, unicodedata
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
-import deckconf
+import deckconf, tui
+INV = "\x1b[7m"
 
 HOME = os.path.expanduser("~")
 PHOSPHOR = os.path.join(REPO, "phosphor")
@@ -465,101 +466,66 @@ def rm(argv):
     print("  " + (OK if ok else BAD) + " " + m)
     return 0 if ok else 1
 
-PANEL_KEYS = [("\r", "Enter", "open its tab"), ("d", "d", "diff"), ("n", "n", "new"), ("x", "x", "remove"),
-              ("q", "q", "quit")]
-
-def panel():
+class Panel(tui.ListPanel):
     """Every workspace and its git state; Enter opens its tab, d its diff,
-    n a new one, x twice removes it."""
-    import form
-    INV = "\x1b[7m"
-    sel, msg, confirm = 0, "", None
-    def load():
+    n a new one, x asks y/n and removes it."""
+    KEYS = [("enter", "open its tab"), ("d", "diff"), ("n", "new"), ("x", "remove"), ("q", "quit")]
+    INTERVAL = 10        # a git status per workspace
+
+    def fetch(self):
         r = root()
         return [(n, os.path.join(r, n), git_status(os.path.join(r, n))) for n in names()]
-    rows = load()
-    on = "\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h"
-    sys.stdout.write(on); sys.stdout.flush()
-    try:
-        while True:
-            cols, trows = shutil.get_terminal_size((80, 24))
-            w = max(30, cols)
-            out = [RULE + " WORKSPACES " + "─" * max(0, w - 12) + RST]
-            if not rows:
-                out.append(DIM + "  none in %s yet: n makes one" % tilde(root()) + RST)
-            nw = max([len(n) for n, _, _ in rows] + [8])
-            room = max(1, trows - 4)
-            top = max(0, min(sel - room + 1, len(rows) - room)) if len(rows) > room else 0
-            shown = rows[top:top + room]
-            for i, (n, base, st) in enumerate(shown, top):
-                tag = state(st)
-                col = FG if tag == "clean" else AMB
-                if i == sel:
-                    out.append(" " + INV + pad(" %-*s  %-14s %s" % (nw, n, tag, tilde(base)), w - 2)[:w - 2] + RST)
-                else:
-                    out.append("  " + FG + "%-*s" % (nw, n) + RST + "  " + col + "%-14s" % tag + RST
-                               + " " + DIM + tilde(base) + RST)
-            spans, x = [], 2
-            for k, lk, l in PANEL_KEYS:
-                spans.append((x, x + len(lk) + len(l), k)); x += len(lk) + 1 + len(l) + 2
-            out.append(" " + "  ".join(AMB + lk + RST + FG + " " + l + RST for _, lk, l in PANEL_KEYS)
-                       + DIM + "  · j/k pick" + RST)
-            if msg: out.append(" " + msg)
-            sys.stdout.write("\x1b[H" + "\x1b[K\n".join(out) + "\x1b[K\x1b[J"); sys.stdout.flush()
-            k = getkey(None)
-            if isinstance(k, tuple):
-                if k[0] != "MOUSE" or not k[4] or k[1] not in (0, 64, 65): continue
-                if k[1] == 64: sel = max(0, sel - 1); continue
-                if k[1] == 65: sel = min(len(rows) - 1, sel + 1); continue
-                x, y = k[2], k[3]
-                foot = 2 + (len(shown) if rows else 1)
-                if rows and 2 <= y < 2 + len(shown):
-                    sel, msg = top + y - 2, ""; continue
-                hit = [kk for a, b, kk in spans if a <= x <= b] if y == foot else []
-                if not hit: continue
-                k = hit[0]
-            if k is None: continue
-            if k in ("q", "Q", "\x03", "\x1b"): break
-            if k != "x": confirm = None
-            if k in ("j", "\x1b[B"): sel, msg = min(max(0, len(rows) - 1), sel + 1), ""; continue
-            if k in ("k", "\x1b[A"): sel, msg = max(0, sel - 1), ""; continue
-            if k == "n":
-                form.leave()
-                try:
-                    new([])
-                except (KeyboardInterrupt, EOFError, SystemExit):   # init.ask exits on Ctrl-C
-                    print()
-                back()
-                sys.stdout.write(on); sys.stdout.flush()
-                rows, msg = load(), ""
-                continue
-            if not rows: continue
-            n, base, _ = rows[sel]
-            if k in ("\r", "\n"):
-                if not os.environ.get("ZELLIJ"):
-                    msg = AMB + "open it from inside the deck: phosphor workspace open %s" % n + RST; continue
-                open_tab(n)
-                msg = PH + "✓ " + RST + FG + n.upper() + RST
-            elif k == "d":
-                form.pager(diff(base))
-                sys.stdout.write(on); sys.stdout.flush()
-                rows = load()
-            elif k == "x":
-                if confirm != n:
-                    confirm = n
-                    st = rows[sel][2]
-                    lost = " -- what isn't committed or pushed goes too" if st and any(st) else ""
-                    msg = AMB + "x again removes %s: tab out, folder into the trash%s" % (n, lost) + RST
-                    continue
-                confirm = None
-                ok, m = remove(n)
-                msg = (PH + "✓ " if ok else RED + "✗ ") + RST + FG + m + RST
-                rows = load(); sel = min(sel, max(0, len(rows) - 1))
-    except KeyboardInterrupt:
-        pass
-    finally:
-        sys.stdout.write("\x1b[?1006l\x1b[?1000l\x1b[?1049l\x1b[?25h"); sys.stdout.flush()
-    return 0
+
+    def header(self, w):
+        dirty = sum(1 for _, _, st in self.rows if st and any(st))
+        return topbar("WORKSPACES", tilde(root()), "%d · %d to look at" % (len(self.rows), dirty), w)
+
+    def lines(self, w, sel):
+        if not self.rows:
+            return [" " + DIM + "none in %s yet: n makes one" % tilde(root()) + RST]
+        nw = max([len(n) for n, _, _ in self.rows] + [8])
+        out = []
+        for i, (n, base, st) in enumerate(self.rows):
+            tag = state(st)
+            if i == sel:
+                out.append(" " + INV + pad(" %-*s  %-14s %s" % (nw, n, tag, tilde(base)), w - 2)[:w - 2] + RST)
+            else:
+                out.append("  " + FG + "%-*s" % (nw, n) + RST + "  " + (FG if tag == "clean" else AMB)
+                           + "%-14s" % tag + RST + " " + DIM + tilde(base) + RST)
+        return out
+
+    def key(self, k):
+        if k != "n" or self.ask:
+            return super().key(k)
+        import form
+        form.leave()
+        try:
+            new([])
+        except (KeyboardInterrupt, EOFError, SystemExit):   # init.ask exits on Ctrl-C
+            print()
+        back()
+        tui.on()
+        self.msg = ""
+        self.refresh()
+        return True
+
+    def act(self, k, row):
+        n, base, st = row
+        if k == "enter":
+            if not os.environ.get("ZELLIJ"):
+                return self.say("open it from inside the deck: phosphor workspace open %s" % n)
+            open_tab(n)
+            return self.say("✓ " + n.upper(), PH)
+        if k == "d":
+            self.page(diff(base))
+            return self.refresh()
+        if k == "x":
+            lost = "what isn't committed or pushed goes with it" if st and any(st) else ""
+            self.confirm("remove %s? its tab out, the folder into the trash" % n, lambda: remove(n), note=lost)
+
+
+def panel():
+    return Panel().run()
 
 NOTES_SEEN = os.path.join(deckconf.cache_dir(), "workspace-notes-seen.json")
 

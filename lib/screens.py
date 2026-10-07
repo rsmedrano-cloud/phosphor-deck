@@ -7,8 +7,8 @@ it loose -- so a screen that's making a tab's pane small (zellij ties a
 tab's whole grid to its smallest attached client, and there's no setting
 to change that) doesn't need you to walk over to it and detach it by hand.
 
-    phosphor screens           the panel: j/k move, x (twice) kicks, o (twice)
-                               changes its kind's deck, r refreshes
+    phosphor screens           the panel: j/k or a tap picks, x kicks, o changes
+                               its kind's deck (both ask y/n first), r refreshes
     phosphor screens --list    the same, printed once, no picker
 
 `o` on a screen in a deck of its own ([screens.KIND]) takes that block out
@@ -24,14 +24,14 @@ forces one reconnect, it never bans a device. Only sessions actually
 running `zellij attach <session>` show up: an unrelated ssh login to the
 same machine is left alone. There's no reliable way to tell which of them
 is the screen you're reading this from (a pane belongs to the session, not
-to whichever client happens to be looking at it), so `x` needs a second
-press on purpose -- kicking your own screen by mistake just costs you the
-same few-second reconnect as any other.
+to whichever client happens to be looking at it), so `x` asks first on
+purpose -- kicking your own screen by mistake just costs you the same
+few-second reconnect as any other.
 """
-import os, re, shutil, signal, subprocess, sys, time
+import os, re, signal, subprocess, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from ui import FG, DIM, MUTE, PH, AMB, RED, RULE, RST, getkey as ui_getkey, pad, vlen, topbar, HEAD
-import deckconf
+from ui import FG, DIM, PH, RST, pad, topbar
+import deckconf, tui
 
 INV = "\x1b[7m"
 
@@ -235,133 +235,103 @@ def close_session(name):
         subprocess.run([zj, a, name], capture_output=True, timeout=15)
 
 
-def raw_screen(on):
-    sys.stdout.write("\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h" if on
-                      else "\x1b[?1006l\x1b[?1000l\x1b[?1049l\x1b[?25h")
-    sys.stdout.flush()
+class Panel(tui.ListPanel):
+    KEYS = [("x", "kick"), ("o", "own deck or share"), ("r", "refresh"), ("q", "quit")]
+
+    def __init__(self, prof):
+        super().__init__()
+        import kinds
+        self.prof = prof
+        self.base = ((prof or {}).get("deck") or {}).get("session", "deck")
+        # the deck's own session and every kind of screen's (deck-phone...)
+        self.session = [self.base] + kinds.all_sessions(prof)
+        self.addrs = set()
+
+    def kind(self, r):
+        # a screen that says a kind with no deck of its own: deck (phone)
+        if r["session"] != self.base:
+            return r["session"][len(self.base) + 1:]
+        return "deck (%s)" % r["said"] if r.get("said") else "deck"
+
+    def link(self, r):
+        # through a tailscale relay: its deck's animations slow down for it
+        import relay
+        return "relay" if relay.is_relayed(r["from"], self.addrs) else ""
+
+    def fetch(self):
+        import relay
+        self.addrs = relay.relayed(relay.ts_status())
+        rows = screens(self.session)
+        if rows is None:
+            self.problem = "who isn't installed"
+            return []
+        return rows
+
+    def header(self, w):
+        return topbar("SCREENS", "who's attached", "%d · %s" % (len(self.rows), self.base), min(w, 90))
+
+    def lines(self, w, sel):
+        if not self.rows:
+            return [" " + DIM + "no screens attached" + RST]
+        out = []
+        for i, r in enumerate(self.rows):
+            nm = "%-16s %-14s %-12s idle %-8s %s" % (r["from"], self.kind(r), r["tty"], r["idle"], self.link(r))
+            out.append(INV + pad(" " + nm, min(w, 90) - 4) + RST if i == sel else " " + FG + nm + RST)
+        return out
+
+    def act(self, k, r):
+        import kinds
+        if k == "r":
+            self.refresh(); return self.say("refreshed", PH)
+        if k == "x":
+            return self.confirm("kick %s (%s)?" % (r["from"], r["tty"]), lambda: kick(r["pid"]),
+                                "it reconnects in a few seconds; if it's the screen you're on, so do you")
+        self.prof = deckconf.load()[0]
+        a, kd = change(r, kinds.kinds(self.prof), self.base)
+        if a is None:
+            return self.say(kd, DIM)
+        if a == "own":
+            prompt = "%s gets a deck of its own, with every tab?" % kd
+            note = ("Its panes, shells and assistants start a second time there\n"
+                    "(phosphor mem shows the memory).")
+        else:
+            prompt = "every %s shares this deck again?" % kd
+            note = "%s-%s and its panes close." % (self.base, kd)
+        self.confirm(prompt, lambda: self.retype(a, kd), note)
+
+    def retype(self, a, kd):
+        import kinds
+        ok, m = retype(a, kd)
+        if not ok:
+            return ok, m
+        gone = moving(self.rows, a, kd, self.base)
+        for r in gone:
+            kick(r["pid"])
+        if a == "share":
+            close_session("%s-%s" % (self.base, kd))
+        self.session = [self.base] + kinds.all_sessions(deckconf.load()[0])
+        m = "%s gets a deck of its own" % kd if a == "own" else "%s shares this deck again" % kd
+        m += ("; %d screen%s reconnecting" % (len(gone), "" if len(gone) == 1 else "s")
+              if gone else "") + " · backup: deck.toml.bak"
+        time.sleep(1)           # the kicked ones drop before the list is read again
+        return True, m
 
 
 def main():
     prof, _ = deckconf.load()
-    import kinds
-    base = ((prof or {}).get("deck") or {}).get("session", "deck")
-    # the deck's own session and every kind of screen's (deck-phone...)
-    session = [base] + kinds.all_sessions(prof)
-    def kind(r):
-        # a screen that says a kind with no deck of its own: deck (phone)
-        if r["session"] != base:
-            return r["session"][len(base) + 1:]
-        return "deck (%s)" % r["said"] if r.get("said") else "deck"
-    import relay
-    addrs = relay.relayed(relay.ts_status())
-    def link(r):
-        # through a tailscale relay: its deck's animations slow down for it
-        return "relay" if relay.is_relayed(r["from"], addrs) else ""
-
     if "--list" in sys.argv[1:] or not sys.stdin.isatty():
-        rows = screens(session)
-        if rows is None:
-            print("who isn't installed"); return 1
+        p = Panel(prof)
+        rows = p.fetch()
+        if p.problem:
+            print(p.problem); return 1
         if not rows:
             print("no screens attached"); return 0
         for r in rows:
             print("%-10s %-16s %-14s %-16s idle %-8s pid %d%s" %
-                  (r["tty"], r["from"], kind(r), r["login"], r["idle"], r["pid"],
-                   "  " + link(r) if link(r) else ""))
+                  (r["tty"], r["from"], p.kind(r), r["login"], r["idle"], r["pid"],
+                   "  " + p.link(r) if p.link(r) else ""))
         return 0
-
-    rows = screens(session)
-    if rows is None:
-        print(RED + "who isn't installed" + RST); return 1
-    sel, confirm, msg = 0, None, ""
-    oconfirm = None
-    raw_screen(True)
-    try:
-        while True:
-            cols, _ = shutil.get_terminal_size((90, 30))
-            w = min(cols, 90)
-            out = topbar("SCREENS", "who's attached", "%d · %s" % (len(rows), base), w)
-            if not rows:
-                out.append(" " + DIM + "no screens attached" + RST)
-            for i, r in enumerate(rows):
-                nm = "%-16s %-14s %-12s idle %-8s %s" % (r["from"], kind(r), r["tty"], r["idle"], link(r))
-                line = " " + FG + nm + RST
-                if confirm == i:
-                    line = pad(line, w - 14) + AMB + "x again to kick" + RST
-                if oconfirm == i:
-                    line = pad(line, w - 14) + AMB + "o again" + RST
-                if i == sel:
-                    line = INV + pad(" " + nm, w - 4) + RST
-                out.append(line)
-            out.append("")
-            if oconfirm is not None and oconfirm < len(rows):
-                a, kd = change(rows[oconfirm], kinds.kinds(prof), base)
-                if a == "own":
-                    out.append(" " + AMB + "o again: %s gets a deck of its own, with every tab." % kd + RST)
-                    out.append(" " + DIM + "Its panes, shells and assistants start a second time there"
-                               " (phosphor mem shows the memory)." + RST)
-                else:
-                    out.append(" " + AMB + "o again: every %s shares this deck again;" % kd
-                               + " %s-%s and its panes close." % (base, kd) + RST)
-                out.append("")
-            out.append(DIM + " j/k move · x kick (twice) · o own deck or share (twice) · r refresh · q quit" + RST)
-            if msg:
-                out.append(" " + msg)
-            sys.stdout.write("\x1b[H" + "\x1b[K\n".join(out) + "\x1b[K\x1b[J")
-            sys.stdout.flush()
-
-            k = ui_getkey(None)
-            if k in ("q", "\x03"):
-                break
-            elif k in ("j", "\x1b[B"):
-                sel = min(sel + 1, max(0, len(rows) - 1)); confirm, oconfirm, msg = None, None, ""
-            elif k in ("k", "\x1b[A"):
-                sel = max(sel - 1, 0); confirm, oconfirm, msg = None, None, ""
-            elif k == "o" and rows:
-                prof, _ = deckconf.load()
-                a, kd = change(rows[sel], kinds.kinds(prof), base)
-                if a is None:
-                    msg, oconfirm = DIM + kd + RST, None
-                elif oconfirm != sel:
-                    oconfirm, confirm, msg = sel, None, ""
-                else:
-                    oconfirm = None
-                    ok, m = retype(a, kd)
-                    if ok:
-                        gone = moving(rows, a, kd, base)
-                        for r in gone:
-                            kick(r["pid"])
-                        if a == "share":
-                            close_session("%s-%s" % (base, kd))
-                        session = [base] + kinds.all_sessions(deckconf.load()[0])
-                        m = ("%s gets a deck of its own" % kd if a == "own"
-                             else "%s shares this deck again" % kd)
-                        m += ("; %d screen%s reconnecting" % (len(gone), "" if len(gone) == 1 else "s")
-                              if gone else "") + " · backup: deck.toml.bak"
-                    msg = (PH + "✓ " if ok else RED + "✗ ") + m + RST
-                    time.sleep(1)
-                    rows = screens(session)
-                    sel = min(sel, max(0, len(rows) - 1))
-            elif k == "r":
-                rows = screens(session)
-                addrs = relay.relayed(relay.ts_status())
-                sel = min(sel, max(0, len(rows) - 1))
-                confirm, oconfirm, msg = None, None, PH + "refreshed" + RST
-            elif k == "x" and rows:
-                oconfirm = None
-                if confirm == sel:
-                    ok, m = kick(rows[sel]["pid"])
-                    msg = (PH + "✓ " if ok else RED + "✗ ") + m + RST
-                    confirm = None
-                    rows = screens(session)
-                    sel = min(sel, max(0, len(rows) - 1))
-                else:
-                    confirm, msg = sel, ""
-    except KeyboardInterrupt:
-        pass
-    finally:
-        raw_screen(False)
-    return 0
+    return Panel(prof).run()
 
 
 if __name__ == "__main__":

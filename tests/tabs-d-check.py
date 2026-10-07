@@ -100,6 +100,14 @@ check("it swapped with SECOND, its real neighbour -- not WORK",
       after == ["WORK", "SHARED", "SECOND"])
 check("moving it pinned SECOND too, not just SHARED", tabs.pinned("SECOND"))
 
+# -- the profile's last tab moving right goes past the unplaced tabs.d tab
+# next to it (pinning it), instead of saying "moved" and staying put --
+open(os.path.join(d, "third.toml"), "w").write(
+    '[[tabs]]\nname = "THIRD"\npanes = [ { cmd = "top" } ]\n')
+check("moving the last placed tab right succeeds", tabs.move("SECOND", 1) is None)
+check("it went past THIRD",
+      [t["name"] for t in deckconf.effective_tabs(deckconf.load()[0])] == ["WORK", "SHARED", "THIRD", "SECOND"])
+
 # -- keep: won't let a captured tab shadow one from tabs.d --
 import keep, io, contextlib
 buf = io.StringIO()

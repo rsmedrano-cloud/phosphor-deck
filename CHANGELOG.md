@@ -6,6 +6,27 @@ before it updates.
 
 ## Unreleased
 
+## 1.6.1 — one list panel
+
+- `phosphor screens` asks y/n before kicking a screen (`x`) or changing a kind's deck (`o`),
+  like the services and containers panels, instead of wanting the key pressed twice. Rows
+  and keys answer a tap, and the list refreshes on its own every few seconds.
+- `phosphor review` asks y/n before dropping a branch's worktree (`x`), which loses anything
+  changed there. Its rows and keys answer a tap, the diff opens in the same pager as the
+  other panels, and the list refreshes on its own once a minute.
+- `phosphor store` works like the other panels: its rows and keys answer a tap (category
+  titles aren't picked), `d` asks y/n on the panel's own line, `/` types the filter on that
+  line too (Enter keeps it, Esc leaves it as it was), and Esc quits once nothing is
+  narrowed.
+- The workspaces panel (`phosphor workspace`, `z` in the DECK tab) asks y/n before removing
+  one (`x`), saying when uncommitted or unpushed work goes with it, instead of wanting `x`
+  pressed twice. Its keys answer a tap too, and the git state refreshes on its own.
+- `phosphor tabs` (`b` in the DECK tab) is one panel instead of a menu per tab: `f` forgets
+  the picked tab after a y/n, `K`/`J` move it (the pick follows it), `o` reopens a closed
+  one. Rows and keys answer a tap, and open/closed refreshes on its own. Moving the
+  profile's last tab right now really goes past a tabs.d tab next to it, instead of saying
+  "moved" and leaving it where it was.
+
 ## 1.6.0 — solid ground
 
 - The profile's backups (`deck.toml.bak`, `.bak.2`, `.bak.3`) now keep the profile's own

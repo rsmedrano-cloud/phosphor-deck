@@ -9,7 +9,8 @@ the branch out into its own worktree to try it -- never your working copy.
 """
 import json, os, shutil, subprocess, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from ui import FG, DIM, MUTE, PH, BLOOM, AMB, RED, RULE, RST, getkey as ui_getkey, pad, vlen, topbar, HEAD
+from ui import FG, DIM, PH, AMB, RED, RST, pad, vlen, topbar
+import tui
 import ci as cimod
 import deckconf
 from sanitize import clean_tree
@@ -124,13 +125,7 @@ def diff_cmd(prov, item):
     return [tool("gh"), "pr", "diff", str(item["id"])]
 
 
-def raw_screen(on):
-    sys.stdout.write("\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h" if on
-                      else "\x1b[?1006l\x1b[?1000l\x1b[?1049l\x1b[?25h")
-    sys.stdout.flush()
-
-
-def show_diff(prov, item):
+def diff_text(prov, item):
     r = run(diff_cmd(prov, item), timeout=25)
     text = r.stdout or r.stderr or "(no diff)"
     delta = shutil.which("delta")
@@ -138,15 +133,7 @@ def show_diff(prov, item):
         d = run([delta], input=text, timeout=20)
         if d.stdout:
             text = d.stdout
-    raw_screen(False)
-    try:
-        p = subprocess.Popen(["less", "-R"], stdin=subprocess.PIPE)
-        p.communicate(text.encode("utf-8", "replace"))
-    except (OSError, subprocess.SubprocessError):
-        print(text)
-        input(DIM + "-- press enter --" + RST)
-    finally:
-        raw_screen(True)
+    return text
 
 
 def worktree_dir(prov, item):
@@ -187,11 +174,10 @@ def try_branch(prov, item):
 
 
 def drop_branch(prov, item):
-    wt = worktree_dir(prov, item)
-    if not os.path.isdir(wt):
-        return DIM + "nothing checked out for this one" + RST
-    run(["git", "worktree", "remove", "--force", wt], timeout=15)
-    return PH + "removed the worktree" + RST
+    r = run(["git", "worktree", "remove", "--force", worktree_dir(prov, item)], timeout=15)
+    if r.returncode != 0:
+        return False, ("couldn't remove it: " + r.stderr.strip())[:160]
+    return True, "removed the worktree"
 
 
 def cut(s, n):
@@ -208,6 +194,60 @@ def ci_tag(prov, item, repo, cache):
         return DIM, "no CI"
     col, tag, symbol = cimod.get_status_style(data["status"])
     return col, symbol + " " + tag.strip()
+
+
+class Panel(tui.ListPanel):
+    KEYS = [("d", "diff"), ("c", "ci"), ("t", "try the branch"), ("x", "drop worktree"),
+            ("r", "refresh"), ("q", "quit")]
+    INTERVAL = 60        # glab/gh over the network: once a minute, r for now
+
+    def __init__(self, prov, repo):
+        super().__init__()
+        self.prov, self.repo, self.ci = prov, repo, {}
+
+    def fetch(self):
+        items, err = list_items(self.prov)
+        self.ci = {}
+        if err:
+            self.problem = err
+        return items
+
+    def header(self, w):
+        return topbar("REVIEW", "GitLab" if self.prov == "gitlab" else "GitHub", self.repo, min(w, 110))
+
+    def lines(self, w, sel):
+        if not self.rows:
+            return [" " + DIM + "no open merge/pull requests" + RST]
+        w = min(w, 110)
+        out = []
+        for i, it in enumerate(self.rows):
+            col, tag = ci_tag(self.prov, it, self.repo, self.ci)
+            mark = RED + "⚠ conflicts" + RST if it["conflicts"] else (col + tag + RST)
+            idlabel = ("!%d" if self.prov == "gitlab" else "#%d") % it["id"]
+            nm = "%-4s %s" % (idlabel, cut(it["title"], max(10, w - 34)))
+            by = DIM + ("by " + it["author"]) + RST
+            if it["draft"]:
+                by = AMB + "draft" + RST + " " + by
+            line = pad(pad(" " + FG + nm + RST, w - 24) + by, w - 12) + mark
+            out.append(INV + pad(" " + nm, w - 4) + RST if i == sel else line)
+        return out
+
+    def act(self, k, it):
+        if k == "r":
+            self.refresh(); return self.say("refreshed", PH)
+        if k == "d":
+            return self.page(diff_text(self.prov, it))
+        if k == "c":
+            self.ci.pop(it["id"], None)
+            col, tag = ci_tag(self.prov, it, self.repo, self.ci)
+            return self.say(tag, col)
+        if k == "t":
+            ok, m = try_branch(self.prov, it)
+            return self.say(("✓ " if ok else "✗ ") + m, PH if ok else RED)
+        if not os.path.isdir(worktree_dir(self.prov, it)):
+            return self.say("nothing checked out for this one", DIM)
+        self.confirm("drop the worktree of %s?" % it["src"], lambda: drop_branch(self.prov, it),
+                     "anything changed in " + worktree_dir(self.prov, it).replace(HOME, "~", 1) + " is lost")
 
 
 def main():
@@ -228,68 +268,7 @@ def main():
             flag = "CONFLICTS" if it["conflicts"] else ("draft" if it["draft"] else "")
             print("%s%-4s %-40s %-12s %s" % ("#" if prov == "gitlab" else "#", it["id"], it["title"][:40], it["author"], flag))
         return 0
-
-    items, err = list_items(prov)
-    ci_cache = {}
-    sel, msg = 0, (AMB + err + RST) if err else ""
-    raw_screen(True)
-    try:
-        while True:
-            cols, rows = shutil.get_terminal_size((90, 30))
-            w = min(cols, 110)
-            out = topbar("REVIEW", "GitLab" if prov == "gitlab" else "GitHub", repo, w)
-            if not items:
-                out.append(" " + DIM + "no open merge/pull requests" + RST)
-            for i, it in enumerate(items):
-                col, tag = ci_tag(prov, it, repo, ci_cache)
-                mark = RED + "⚠ conflicts" + RST if it["conflicts"] else (col + tag + RST)
-                idlabel = ("!%d" if prov == "gitlab" else "#%d") % it["id"]
-                nm = "%-4s %s" % (idlabel, cut(it["title"], max(10, w - 34)))
-                line = " " + FG + nm + RST
-                by = DIM + ("by " + it["author"]) + RST
-                if it["draft"]:
-                    by = AMB + "draft" + RST + " " + by
-                line = pad(line, w - 24) + by
-                line = pad(line, w - 12) + mark
-                if i == sel:
-                    line = INV + pad(" " + nm, w - 4) + RST
-                out.append(line)
-            out.append("")
-            hint = " j/k move · d diff · c ci · t try the branch · x drop worktree · r refresh · q quit"
-            out.append(DIM + hint[:w] + RST)
-            if msg:
-                out.append(" " + msg)
-            sys.stdout.write("\x1b[H" + "\x1b[K\n".join(out) + "\x1b[K\x1b[J")
-            sys.stdout.flush()
-
-            k = ui_getkey(None)
-            msg = ""
-            if k in ("q", "\x03"):
-                break
-            elif k in ("j", "\x1b[B"):
-                sel = min(sel + 1, max(0, len(items) - 1))
-            elif k in ("k", "\x1b[A"):
-                sel = max(sel - 1, 0)
-            elif k == "r":
-                items, err = list_items(prov)
-                ci_cache = {}
-                msg = (AMB + err + RST) if err else PH + "refreshed" + RST
-            elif k == "d" and items:
-                show_diff(prov, items[sel])
-            elif k == "c" and items:
-                ci_cache.pop(items[sel]["id"], None)
-                col, tag = ci_tag(prov, items[sel], repo, ci_cache)
-                msg = col + tag + RST
-            elif k == "t" and items:
-                ok, m = try_branch(prov, items[sel])
-                msg = (PH + "✓ " if ok else RED + "✗ ") + m + RST
-            elif k == "x" and items:
-                msg = drop_branch(prov, items[sel])
-    except KeyboardInterrupt:
-        pass
-    finally:
-        raw_screen(False)
-    return 0
+    return Panel(prov, repo).run()
 
 
 if __name__ == "__main__":

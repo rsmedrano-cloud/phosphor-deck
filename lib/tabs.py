@@ -4,8 +4,8 @@ A tab kept in the profile (from +, keep, a workspace, a layout) comes back
 each time the deck starts, even after you closed it. Here you see them all,
 which ones are open now, and choose what stays:
 
-    phosphor tabs          f forget one (out of the profile), J / K move it,
-                           o open a closed one again; by key or tap
+    phosphor tabs          f forget one (out of the profile, after a y/n),
+                           J / K move it, o open a closed one again; by key or tap
     phosphor tabs --list   the same, printed
     phosphor tabs --forget NAME   the same forget, without the picker
     phosphor tabs --closing       is this pane a kept tab's last program? (read-only)
@@ -19,9 +19,10 @@ Forgetting edits the profile as text (comments stay) and keeps deck.toml.bak.
 import json, os, re, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
-import deckconf
+import deckconf, tui
 
 PHOSPHOR = os.path.join(REPO, "phosphor")
+INV = "\x1b[7m"
 
 # ── the profile as text ───────────────────────────────────────
 def spans(text):
@@ -109,10 +110,11 @@ def forget(name):
 
 def move(name, step):
     text = disk = open(deckconf.path()).read()
-    if not any(n == name for n, _, _ in spans(text)):
-        if not from_tabs_d(name):
-            return "%s isn't in your profile" % name
-        text = pin_unplaced(text)
+    have = [n for n, _, _ in spans(text)]
+    if name not in have and not from_tabs_d(name):
+        return "%s isn't in your profile" % name
+    if name not in have or not 0 <= have.index(name) + step < len(have):
+        text = pin_unplaced(text)        # past the end: tabs.d's come next
     new = move_text(text, name, step)
     if new == text: return None
     want = [t.get("name") for t in deckconf.tomllib.loads(text).get("tabs", [])]
@@ -166,6 +168,71 @@ def all_tabs(prof):
     have = {t["name"] for t in own}
     return own + [{"name": n} for n in deckconf.tabs_d_names() if n not in have]
 
+class Panel(tui.ListPanel):
+    """Every kept tab, open or closed now; f forgets (or un-places a
+    tabs.d tab) after a y/n, J / K move it, o opens a closed one again."""
+    KEYS = [("f", "forget"), ("K", "left"), ("J", "right"), ("o", "open"), ("q", "quit")]
+
+    def fetch(self):
+        prof, _ = deckconf.load()
+        d, live = deckconf.tabs_d_names(), open_now()
+        return [(t["name"], None if live is None else t["name"] in live,
+                 os.path.basename(d[t["name"]]) if t["name"] in d else "",
+                 t["name"] in d and pinned(t["name"], prof)) for t in all_tabs(prof)]
+
+    def header(self, w):
+        shut = sum(1 for _, o, _, _ in self.rows if o is False)
+        return topbar("TABS", "what your profile brings back",
+                      "%d%s" % (len(self.rows), " · %d closed now" % shut if shut else ""), w)
+
+    def lines(self, w, sel):
+        if not self.rows:
+            return [" " + DIM + "no tabs kept: + in the deck adds one" + RST]
+        nw = max([len(n) for n, _, _, _ in self.rows] + [8])
+        out = []
+        for i, (n, o, f, _) in enumerate(self.rows):
+            now = "" if o is None else ("open" if o else "closed now")
+            src = "tabs.d/" + f if f else ""
+            if i == sel:
+                out.append(" " + INV + pad(" %-*s  %-11s %s" % (nw, n, now, src), w - 2)[:w - 2] + RST)
+            else:
+                out.append("  " + FG + "%-*s" % (nw, n) + RST + "  " + (AMB if o is False else FG)
+                           + "%-11s" % now + RST + " " + DIM + src + RST)
+        return out
+
+    def act(self, k, row):
+        n, o, f, placed = row
+        if k == "f":
+            if f and not placed:
+                return self.say("%s comes from tabs.d and isn't placed: it's already at the end" % n)
+            if f:
+                return self.confirm("un-place %s? it stays in tabs.d, at the end" % n,
+                                    lambda: self.done(forget(n), "%s un-placed" % n))
+            self.confirm("forget %s? it won't come back after a restart" % n,
+                         lambda: self.done(forget(n), "%s forgotten" % n), note="deck.toml.bak keeps a copy")
+        elif k in ("K", "J"):
+            step = -1 if k == "K" else 1
+            if not 0 <= self.sel + step < len(self.rows):
+                return self.say("%s is already the %s one" % (n, "first" if step < 0 else "last"), DIM)
+            self.say("moving %s..." % n, DIM); self.draw()
+            err = move(n, step)
+            if err:
+                return self.say("✗ " + err, RED)
+            self.sel += step
+            self.say("✓ %s moved: in place after a restart" % n, PH)
+            self.refresh()
+        elif k == "o":
+            if o is None:
+                return self.say("open it from inside the deck")
+            if o:
+                return self.say("%s is open already" % n, DIM)
+            err = reopen(n)
+            self.say("✗ " + err if err else "✓ %s opened" % n, RED if err else PH)
+            self.refresh()
+
+    def done(self, err, ok):
+        return (False, err) if err else (True, ok)
+
 def main():
     argv = sys.argv[1:]
     prof, _ = deckconf.load()
@@ -196,43 +263,7 @@ def main():
         for t in all_tabs(prof):
             print("%-16s %s" % (t["name"], note(t["name"], live)))
         return 0
-    import edit
-    msg = ""
-    while True:
-        prof, _ = deckconf.load()
-        d = deckconf.tabs_d_names()
-        live = open_now()
-        items = [(t["name"], note(t["name"], live), t["name"]) for t in all_tabs(prof)]
-        title = "tabs your profile brings back" + ("  ·  " + msg if msg else "")
-        it = edit.pick(title, items)
-        msg = ""
-        if not it: return 0
-        name = it[2]
-        if name in d:
-            acts = [("K", "move it left"), ("J", "move it right")]
-            if pinned(name, prof):
-                acts.append(("f", "un-place it: back to the end, in file-name order"))
-        else:
-            acts = [("f", "forget it: out of the profile, not back after a restart"),
-                    ("K", "move it left"), ("J", "move it right")]
-        if live is not None and name not in live:
-            acts.append(("o", "open it again now"))
-        what = edit.pick(name, [], acts)
-        if what == "f":
-            was_pinned = name in d and pinned(name, prof)
-            q = ("un-place %s? it stays in tabs.d, at the end" if was_pinned
-                 else "forget %s? (deck.toml.bak keeps a copy)") % name
-            sure = edit.pick(q, [], [("y", "yes"), ("n", "no")])
-            if sure == "y":
-                err = forget(name)
-                done = "un-placed" if was_pinned else "forgotten"
-                msg = (RED + err + RST) if err else (PH + "%s %s" % (name, done) + RST)
-        elif what in ("K", "J"):
-            err = move(name, -1 if what == "K" else 1)
-            msg = (RED + err + RST) if err else (PH + "%s moved: in place after a restart" % name + RST)
-        elif what == "o":
-            err = reopen(name)
-            msg = (RED + err + RST) if err else (PH + "%s opened" % name + RST)
+    return Panel().run()
 
 if __name__ == "__main__":
     sys.exit(main() or 0)

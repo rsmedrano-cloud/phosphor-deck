@@ -90,15 +90,20 @@ def vcut(s, w):
     return "".join(out) + RST
 def width(cap=100): return min(shutil.get_terminal_size((80, 24)).columns, cap)
 
-def getkey(timeout=None, text=False):
-    """One key from the terminal, read straight from the fd.
+def getkey(timeout=None, text=False, mouse=False):
+    """One key from the terminal, read straight from the fd. The only
+    keyboard reader: every screen goes through it.
 
     Reading through sys.stdin buffers a whole escape sequence on the first
     read(1), so a following select() sees nothing and an arrow key looks
     like a lone Esc. Returns None on timeout, the full sequence for
     special keys ("\x1b[A" up, "\x1b[B" down...), "\x1b" for Esc,
     ("MOUSE", button, x, y, pressed) for SGR mouse events, else the char --
-    or, with text=True, every char that came at once (a paste)."""
+    or, with text=True, every char that came at once (a paste).
+
+    With mouse=True a mouse event comes simplified: "WUP"/"WDN" for the
+    wheel or a two-finger scroll, ("TAP", x, y) for a tap or left click,
+    None for anything else (a release, a drag, another button)."""
     fd = sys.stdin.fileno(); old = termios.tcgetattr(fd)
     try:
         tty.setraw(fd)
@@ -112,7 +117,11 @@ def getkey(timeout=None, text=False):
     s = data.decode("utf-8", "ignore")
     m = re.match(r"\x1b\[<(\d+);(\d+);(\d+)([Mm])", s)
     if m:
-        return ("MOUSE", int(m.group(1)), int(m.group(2)), int(m.group(3)), m.group(4) == "M")
+        b, x, y, down = int(m.group(1)), int(m.group(2)), int(m.group(3)), m.group(4) == "M"
+        if not mouse:
+            return ("MOUSE", b, x, y, down)
+        if not down: return None
+        return {64: "WUP", 65: "WDN"}.get(b) or (("TAP", x, y) if b == 0 else None)
     if s.startswith("\x1b[") or s.startswith("\x1bO"):
         return s[:3] if len(s) >= 3 else s
     if text and s and s[0] >= " ":

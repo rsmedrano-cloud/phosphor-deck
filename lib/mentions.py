@@ -24,7 +24,6 @@ WORK NOTES (phosphor notes --book work). Only when you press it.
 import json, os, select, shutil, subprocess, sys, termios, textwrap, time, tty
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
-from ui import getkey as ui_getkey
 import deckconf
 from sanitize import clean, clean_tree
 
@@ -264,14 +263,6 @@ def go(sess):
         zj(sess, "focus-pane-id", tab[3])
     mark_seen()
 
-def getkey(timeout):
-    """A key, ("TAP", x, y), "WUP"/"WDN", or None."""
-    k = ui_getkey(timeout)
-    if isinstance(k, tuple):
-        if not k[4]: return None
-        return {64: "WUP", 65: "WDN"}.get(k[1]) or (("TAP", k[2], k[3]) if k[1] == 0 else None)
-    return k
-
 def render(w, sel):
     """Lines and, for each, the entry index it belongs to (newest first)."""
     s, lines, owner = seen(), [], []
@@ -335,7 +326,7 @@ def view():
             out = out[:rows - 2] + [bar, foot]
             sys.stdout.write("\x1b[H" + "\x1b[K\n".join(out[:rows]) + "\x1b[K\x1b[J"); sys.stdout.flush()
             bar_row = len(out) - 1                 # 1-based row of the button bar
-            k = getkey(2.0)
+            k = getkey(2.0, mouse=True)
             act = None
             if isinstance(k, tuple):
                 _, tx, ty = k

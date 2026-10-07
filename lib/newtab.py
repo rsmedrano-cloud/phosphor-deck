@@ -9,7 +9,7 @@ so it comes back after restarts.
 import json, os, select, shutil, subprocess, sys, termios, time, tty
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
-from ui import getkey as ui_getkey
+from ui import getkey
 import deckconf, apps
 
 HOME = os.path.expanduser("~")
@@ -119,13 +119,6 @@ def hint(prof):
     parts = [(k["edit"], "edit tab"), (k["note"], "note"), (k["zoom"], "zoom"),
              (k["tabs"] + " 1-9" if k["tabs"] else "", "tabs"), (k["leave"], "leave")]
     return "  ".join("%s %s" % (shortcuts.dash(key), what) for key, what in parts if key)
-
-def getkey():
-    """A key, ("CLICK", row) for a tap/left click, or None for other mouse events."""
-    k = ui_getkey(None)
-    if isinstance(k, tuple):
-        return ("CLICK", k[3]) if k[1] == 0 and k[4] else None
-    return k
 
 def render(its, sel, keep, w, msg=None, tip=None):
     """Lines plus what each screen row does: an entry index, "cmd", "keep" or None."""
@@ -299,12 +292,11 @@ def search(items, rows, cols, q=""):
         lines += [""] * max(0, rows - 1 - len(lines))
         lines.append(DIM + " type to search · ↑↓ or tap · Enter opens it · Esc back" + RST)
         sys.stdout.write("\x1b[H" + "\x1b[K\n".join(lines[:rows]) + "\x1b[K\x1b[J"); sys.stdout.flush()
-        k = ui_getkey(None, text=True)
+        k = getkey(None, text=True, mouse=True)
+        if k == "WUP": sel = max(0, sel - 3); continue               # wheel / touch scroll
+        if k == "WDN": sel = min(len(found) - 1, sel + 3); continue
         if isinstance(k, tuple):
-            if not k[4] or k[1] not in (0, 64, 65): continue
-            if k[1] == 64: sel = max(0, sel - 3); continue          # wheel / touch scroll
-            if k[1] == 65: sel = min(len(found) - 1, sel + 3); continue
-            r = k[3] - 4
+            r = k[2] - 4
             if 0 <= r < len(shown): return shown[r]
             continue
         if k is None: continue
@@ -527,10 +519,10 @@ def main():
             w = min(cols, 80)
             lines, acts = render(its, sel, keep, w, msg, tip)
             sys.stdout.write("\x1b[H" + "\x1b[K\n".join(lines[:rows]) + "\x1b[K\x1b[J"); sys.stdout.flush()
-            k = getkey()
+            k = getkey(None, mouse=True)
             act = None
             if isinstance(k, tuple):
-                r = k[1] - 1
+                r = k[2] - 1
                 act = acts[r] if 0 <= r < len(acts) else None
                 if act is None: continue
             elif k in ("q", "x", "\x1b", "\x03"):

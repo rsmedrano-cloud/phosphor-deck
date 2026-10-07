@@ -114,17 +114,17 @@ with no setting to change that -- so a phone looking at the same tab as
 your PC squeezes everyone's pane down to phone size. `phosphor screens`
 (also `v` in the DECK tab) lists every screen actually attached (where
 it's from, how long it's been idle, which deck it's in) and lets you kick one loose with `x`
-(twice, on purpose): it just ends that one ssh connection, and the `deck`
+(it asks y/n first, on purpose): it just ends that one ssh connection, and the `deck`
 wrapper above notices the drop and reconnects on its own in a few seconds.
 Not a way to ban a device -- a way to force one reconnect without walking
 over to whichever screen is in the way.
 
-`o` (twice too) changes which deck a kind of screen gets, from the screen
+`o` (asking too) changes which deck a kind of screen gets, from the screen
 in front of you: on a tablet in a deck of its own, every tablet shares this
 deck again (`[screens.tablet]` comes out of the profile and `deck-tablet`
 closes, its panes with it); on a screen that says a kind (`deck (phone)` in
 the list) but shares the deck, that kind gets a deck of its own with every
-tab, which you can trim afterwards in its block. Before the second press it
+tab, which you can trim afterwards in its block. Before you say y it
 says the cost. Either way the screens of that kind are kicked and come back
 where they now belong, and the profile keeps a backup. It's per kind, not
 per device: every screen saying that kind moves. A screen that says no kind

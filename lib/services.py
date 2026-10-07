@@ -25,10 +25,10 @@ import os, shutil, subprocess, sys, time
 from concurrent.futures import ThreadPoolExecutor
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from ui import DIM, MUTE, PH, AMB, RED, RULE, RST, FG, vlen, pad, getkey, topbar, HEAD
+from ui import DIM, MUTE, PH, AMB, RED, RULE, RST, FG, vlen, pad, topbar
 
 INV = "\x1b[7m"
-import deckconf, gen
+import deckconf, gen, tui
 
 INTERVAL = 5
 PROPS = "LoadState,ActiveState,SubState,MemoryCurrent"
@@ -181,7 +181,7 @@ def logs(scope, name):
 
 def run_verb(scope, name, verb):
     """Off the panel's screen, so sudo's password prompt shows. (ok, msg)"""
-    sys.stdout.write("\x1b[?1006l\x1b[?1000l\x1b[?1049l\x1b[?25h")
+    tui.off()
     cmd = systemctl(scope, verb, name)
     print("\n  " + DIM + "$ " + " ".join(cmd) + RST); sys.stdout.flush()
     try:
@@ -190,99 +190,46 @@ def run_verb(scope, name, verb):
         rc = -1
     except KeyboardInterrupt:
         rc = -2
-    sys.stdout.write("\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h"); sys.stdout.flush()
+    tui.on()
     past = {"restart": "restarted", "start": "started", "stop": "stopped"}[verb]
     if rc == 0:
         return True, "%s %s" % (past, label(name))
     return False, "%s %s failed%s" % (verb, label(name), "" if rc < 0 else " (exit %d)" % rc)
 
 
-def panel(prof):
-    import form
-    interval = settings(prof)
-    units = all_units(prof)
-    results, last = [], 0.0
-    sel, ask, msg = 0, None, ""
-    sys.stdout.write("\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h"); sys.stdout.flush()
-    try:
-        while True:
-            if time.time() - last >= interval:
-                results, last = fetch(units), time.time()
-                sel = min(sel, max(0, len(results) - 1))
-            cols, rows = shutil.get_terminal_size((80, 24))
-            w = max(20, cols)
-            out = topbar("SERVICES", "systemd units", "%d units" % len(results), w)
-            body = lines(results, w, sel if results else None)
-            room = max(1, rows - 3 - HEAD)
-            top = max(0, min(sel - room + 1, len(body) - room)) if len(body) > room else 0
-            shown = body[top:top + room]
-            out += shown
-            first = HEAD + 1                                # screen row of body[top]
-            foot = " " + "  ".join(AMB + k + RST + FG + " " + l + RST for k, l in KEYS) + DIM + "  · j/k pick" + RST
-            spans, x = [], 2
-            for k, l in KEYS:
-                spans.append((x, x + len(k) + 1 + len(l), k)); x += len(k) + 1 + len(l) + 2
-            out.append(foot)
-            if ask:
-                out.append(" " + AMB + "%s %s?" % (ask[0], label(ask[2])) + RST + FG + "  y yes · any other key: no" + RST)
-            elif msg:
-                out.append(" " + msg)
-            sys.stdout.write("\x1b[H" + "\x1b[K\n".join(out) + "\x1b[K\x1b[J"); sys.stdout.flush()
+class Panel(tui.ListPanel):
+    KEYS = KEYS
 
-            k = getkey(max(0.2, interval - (time.time() - last)))
-            if k is None:
-                continue
-            if isinstance(k, tuple):
-                if k[0] != "MOUSE" or not k[4] or k[1] not in (0, 64, 65):
-                    continue
-                if k[1] == 64: sel = max(0, sel - 1); continue
-                if k[1] == 65: sel = min(len(results) - 1, sel + 1); continue
-                x, y = k[2], k[3]
-                if ask:
-                    ask = None; msg = DIM + "left alone" + RST; continue
-                if first <= y < first + len(shown) and results:
-                    sel, msg = top + y - first, ""; continue
-                if y == first + len(shown):
-                    hit = [kk for a, b, kk in spans if a <= x <= b]
-                    if not hit: continue
-                    k = hit[0]
-                else:
-                    continue
-            if ask:
-                verb, scope, name = ask
-                ask = None
-                if k in ("y", "Y"):
-                    ok, m = run_verb(scope, name, verb)
-                    msg = (PH + "✓ " if ok else RED + "✗ ") + m + RST
-                    last = 0.0
-                else:
-                    msg = DIM + "left alone" + RST
-                continue
-            if k in ("q", "Q", "\x03", "\x1b"):
-                break
-            if k in ("j", "\x1b[B"): sel, msg = min(len(results) - 1, sel + 1), ""; continue
-            if k in ("k", "\x1b[A"): sel, msg = max(0, sel - 1), ""; continue
-            if not results or k not in ("l", "r", "s"):
-                continue
-            scope, name, info = results[sel]
-            if k == "l":
-                form.pager(logs(scope, name))
-                sys.stdout.write("\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h"); sys.stdout.flush()
-                continue
-            if own(prof, name):
-                msg = AMB + "that's the deck itself: phosphor restart (r in the DECK tab)" + RST; continue
-            if info.get("LoadState") == "not-found":
-                msg = AMB + "%s isn't installed here" % label(name) + RST; continue
-            if k == "r":
-                ask = ("restart", scope, name)
-            else:
-                ask = ("stop" if info.get("ActiveState") in ("active", "activating", "reloading") else "start",
-                       scope, name)
-    except KeyboardInterrupt:
-        pass
-    finally:
-        sys.stdout.write("\x1b[?1006l\x1b[?1000l\x1b[?1049l\x1b[?25h\n"); sys.stdout.flush()
-    return 0
+    def __init__(self, prof):
+        super().__init__()
+        self.prof, self.units, self.INTERVAL = prof, all_units(prof), settings(prof)
+
+    def fetch(self):
+        return fetch(self.units)
+
+    def header(self, w):
+        return topbar("SERVICES", "systemd units", "%d units" % len(self.rows), w)
+
+    def lines(self, w, sel):
+        return lines(self.rows, w, sel)
+
+    def act(self, k, row):
+        scope, name, info = row
+        if k == "l":
+            return self.page(logs(scope, name))
+        if own(self.prof, name):
+            return self.say("that's the deck itself: phosphor restart (r in the DECK tab)")
+        if info.get("LoadState") == "not-found":
+            return self.say("%s isn't installed here" % label(name))
+        if k == "r":
+            verb = "restart"
+        else:
+            verb = "stop" if info.get("ActiveState") in ("active", "activating", "reloading") else "start"
+        self.confirm("%s %s?" % (verb, label(name)), lambda: run_verb(scope, name, verb))
+
+
+def panel(prof):
+    return Panel(prof).run()
 
 
 def main():

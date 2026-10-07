@@ -20,8 +20,8 @@ when it looks like a container name.
 import os, re, shlex, shutil, subprocess, sys, time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from ui import DIM, MUTE, PH, AMB, RED, RST, FG, vlen, pad, getkey, topbar, HEAD
-import deckconf
+from ui import DIM, MUTE, PH, AMB, RED, RST, FG, vlen, pad, topbar
+import deckconf, tui
 from sanitize import clean, clean_text
 
 INV = "\x1b[7m"
@@ -218,91 +218,40 @@ def act(target, engine, verb, cname):
                                       ("" if rc < 0 else " (exit %d)" % rc))
 
 
-def panel(name, target, demo=False):
-    import form
-    rows, engine, problem, last = [], "", "", 0.0
-    sel, ask, msg = 0, None, ""
-    on = "\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h"
-    sys.stdout.write(on); sys.stdout.flush()
-    try:
-        while True:
-            if time.time() - last >= INTERVAL:
-                engine, rows, problem = fetch(name, target, demo)
-                last = time.time()
-                sel = min(sel, max(0, len(rows) - 1))
-            cols, height = shutil.get_terminal_size((80, 24))
-            w = max(20, cols)
-            out = header(name, engine, rows, w)
-            body = [" " + AMB + problem + RST] if problem else lines(rows, w, sel if rows else None)
-            room = max(1, height - 3 - HEAD)
-            top = max(0, min(sel - room + 1, len(body) - room)) if len(body) > room else 0
-            shown = body[top:top + room]
-            out += shown
-            first = HEAD + 1
-            spans, x, foot = [], 2, " "
-            for k, l in KEYS:
-                spans.append((x, x + len(k) + 1 + len(l), k)); x += len(k) + 1 + len(l) + 2
-            foot += "  ".join(AMB + k + RST + FG + " " + l + RST for k, l in KEYS) + DIM + "  · j/k pick" + RST
-            out.append(foot)
-            if ask:
-                out.append(" " + AMB + "%s %s on %s?" % (ask[0], ask[1], name) + RST
-                           + FG + "  y yes · any other key: no" + RST)
-            elif msg:
-                out.append(" " + msg)
-            sys.stdout.write("\x1b[H" + "\x1b[K\n".join(out) + "\x1b[K\x1b[J"); sys.stdout.flush()
+class Panel(tui.ListPanel):
+    KEYS = KEYS
+    INTERVAL = INTERVAL
 
-            k = getkey(max(0.2, INTERVAL - (time.time() - last)))
-            if k is None:
-                continue
-            if isinstance(k, tuple):
-                if k[0] != "MOUSE" or not k[4] or k[1] not in (0, 64, 65):
-                    continue
-                if k[1] == 64: sel = max(0, sel - 1); continue
-                if k[1] == 65: sel = min(max(0, len(rows) - 1), sel + 1); continue
-                x, y = k[2], k[3]
-                if ask:
-                    ask = None; msg = DIM + "left alone" + RST; continue
-                if first <= y < first + len(shown) and rows and not problem:
-                    sel, msg = top + y - first, ""; continue
-                if y == first + len(shown):
-                    hit = [kk for a, b, kk in spans if a <= x <= b]
-                    if not hit: continue
-                    k = hit[0]
-                else:
-                    continue
-            if ask:
-                verb, cname = ask
-                ask = None
-                if k in ("y", "Y"):
-                    msg = DIM + "%s %s..." % (verb, cname) + RST
-                    ok, m = act(target, engine, verb, cname)
-                    msg = (PH + "✓ " if ok else RED + "✗ ") + m + RST
-                    last = 0.0
-                else:
-                    msg = DIM + "left alone" + RST
-                continue
-            if k in ("q", "Q", "\x03", "\x1b"):
-                break
-            if k in ("j", "\x1b[B"): sel, msg = min(max(0, len(rows) - 1), sel + 1), ""; continue
-            if k in ("k", "\x1b[A"): sel, msg = max(0, sel - 1), ""; continue
-            if not rows or k not in ("l", "r", "s"):
-                continue
-            if demo:
-                msg = AMB + "the demo's machines aren't real: nothing to touch" + RST; continue
-            cname, state = rows[sel][0], rows[sel][1].lower()
-            if k == "l":
-                form.pager(logs(target, engine, cname))
-                sys.stdout.write(on); sys.stdout.flush()
-                continue
-            if k == "r":
-                ask = ("restart", cname)
-            else:
-                ask = ("stop" if state in ("running", "restarting", "paused") else "start", cname)
-    except KeyboardInterrupt:
-        pass
-    finally:
-        sys.stdout.write("\x1b[?1006l\x1b[?1000l\x1b[?1049l\x1b[?25h\n"); sys.stdout.flush()
-    return 0
+    def __init__(self, name, target, demo=False):
+        super().__init__()
+        self.name, self.target, self.demo, self.engine = name, target, demo, ""
+
+    def fetch(self):
+        self.engine, rows, self.problem = fetch(self.name, self.target, self.demo)
+        return rows
+
+    def header(self, w):
+        return header(self.name, self.engine, self.rows, w)
+
+    def lines(self, w, sel):
+        return lines(self.rows, w, sel)
+
+    def act(self, k, row):
+        if self.demo:
+            return self.say("the demo's machines aren't real: nothing to touch")
+        cname, state = row[0], row[1].lower()
+        if k == "l":
+            return self.page(logs(self.target, self.engine, cname))
+        if k == "r":
+            verb = "restart"
+        else:
+            verb = "stop" if state in ("running", "restarting", "paused") else "start"
+        self.confirm("%s %s on %s?" % (verb, cname, self.name),
+                     lambda: act(self.target, self.engine, verb, cname))
+
+
+def panel(name, target, demo=False):
+    return Panel(name, target, demo).run()
 
 
 def main():

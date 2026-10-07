@@ -104,4 +104,5 @@ hand, same as any other git repo.
   folder back. It asks first; without a terminal only `--yes` does it. Empty the trash by hand.
 - `phosphor workspace` — the same, as a panel (also `z` in the DECK tab): each one's git state
   (dirty, ↑ ahead, ↓ behind), Enter opens its tab, `d` shows its diff and any commits not pushed,
-  `n` makes a new one, `x` (twice) removes it the same way as `rm`.
+  `n` makes a new one, `x` asks y/n and removes it the same way as `rm`. Rows and keys
+  answer a tap, and the git state refreshes on its own every few seconds.

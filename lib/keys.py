@@ -4,7 +4,7 @@
 import json, os, select, shutil, subprocess, sys, termios, time, tty
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import FG, DIM, MUTE, PH, BLOOM, AMB, RULE, RST, REPO, share, vlen, pad, topbar
-from ui import getkey as ui_getkey
+from ui import getkey
 
 HOME = os.path.expanduser("~")
 BIN  = os.path.join(HOME, ".local/bin")
@@ -31,13 +31,6 @@ def build(db, w):
             else:
                 lines.append("   " + AMB + ("%-*s" % (kw, k)) + RST + FG + act + RST)
     return lines, n
-
-def getkey(timeout):
-    """A key, or 'WUP'/'WDN' for the wheel / two-finger scroll."""
-    k = ui_getkey(timeout)
-    if isinstance(k, tuple):
-        return {64: "WUP", 65: "WDN"}.get(k[1]) if k[4] else None
-    return k
 
 def run_setup():
     """s runs setup in this same pane (no new tab, no floating pane) and the
@@ -98,7 +91,7 @@ def main():
                        + DIM + " setup: machines and color" + RST)
             sys.stdout.write("\x1b[H" + "\x1b[K\n".join(out) + "\x1b[K\x1b[J"); sys.stdout.flush()
 
-            k = getkey(1.0)
+            k = getkey(1.0, mouse=True)
             if k is None: continue
             if k in ("q", "\x03"): break
             elif k in ("j", "\x1b[B", "WDN"): off += 3 if k == "WDN" else 1

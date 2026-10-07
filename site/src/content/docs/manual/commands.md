@@ -88,7 +88,7 @@ sidebar:
 - `phosphor workspace new|open|list|rm` — a tab per idea with its own folder and assistants; see workspaces.
   `rm NAME` takes its tab out and moves its folder into phosphor's trash (asks first).
   Bare, on a terminal (or `z` in the DECK tab): every workspace and its git state, Enter opens its tab,
-  `d` its diff, `n` a new one, `x` twice removes it.
+  `d` its diff, `n` a new one, `x` asks y/n and removes it.
 - `phosphor ask [--assistant NAME] [-c] QUESTION` — a one-shot question, no tab: shells out to whichever
   assistant CLI is already installed (claude, gemini, codex, opencode, aider, agy -- the same
   list `phosphor workspace` knows, tried in that order) with a headless, single-answer flag of
@@ -210,10 +210,11 @@ sidebar:
   whether it has conflicts, `d` for the diff (through `delta` if you have it, else `less`), `t` checks
   the branch out into its own worktree under `~/.cache/phosphor/review/` and opens a tab there if
   you're inside the deck -- your working copy is never touched, same spirit as `tests/mrs-check.py`;
-  `x` drops that worktree. `r` refreshes the list.
+  `x` drops that worktree (after a y/n: anything changed there is lost). `r` refreshes the
+  list, which also refreshes on its own once a minute; rows and keys answer a tap.
 - `phosphor screens` — who's attached (phone, tablet, another computer): where each is from and
-  how long it's been idle, `x` (twice) kicks one loose, `o` (twice) changes its kind's deck (see
-  screens), `r` refreshes. A kick just ends that one
+  how long it's been idle, `x` kicks one loose, `o` changes its kind's deck (see
+  screens) -- both ask y/n first -- and `r` refreshes; a tap picks a row or presses a key. A kick just ends that one
   ssh connection -- its own `deck` wrapper (see screens) notices and reconnects in a few seconds by
   itself, so this is for the one squeezing everyone's pane down (zellij ties a tab's size to its
   smallest attached client, with no setting to change that), not for banning a device. Also `v` in
@@ -225,7 +226,7 @@ sidebar:
   `ZELLIJ_PANE_ID` zellij gave its pane; each kind of screen's own deck shows under its name
   (`SYS · phone`), then zellij itself and the machine as a whole. PSS, so a library two processes
   share is split between them instead of counted twice. Read-only.
-- `phosphor keys` — the key guide; `phosphor store` — install TUIs, no sudo; `d` removes one (only from ~/.local/bin).
+- `phosphor keys` — the key guide; `phosphor store` — install TUIs, no sudo: Enter installs (or opens what you have in a tab), `d` removes one (only from ~/.local/bin, asks y/n first), `i` shows only what's installed, `/` filters, Esc clears; rows and keys answer a tap.
   Enter on an installed app opens it in a new tab; `i` shows only what's installed. Your own apps
   (`apps.toml`, see profile) come first, as "yours".
 - `phosphor new` — the new-tab menu (what + and Alt-n open). **layout** in it: pick a shape (2 columns,
@@ -245,7 +246,8 @@ sidebar:
   and write it into your profile; `--pick` chooses the tab, `--dry-run` only shows it.
   Also `k` in the DECK tab.
 - `phosphor tabs [--list]` — the tabs your profile brings back after a restart, and which are open now:
-  forget one (out of the profile), move it, or open a closed one again. Also `b` in the DECK tab.
+  `f` forgets one (out of the profile, after a y/n), `K`/`J` move it, `o` opens a closed one
+  again; rows and keys answer a tap, and the list refreshes on its own. Also `b` in the DECK tab.
   Lists tabs.d's tabs too: `K`/`J` place one (a name-only stub in your profile marks where,
   its content stays in the file), and `f` on a placed one un-places it instead of deleting it.
 - `phosphor recipe [NAME]` — starter tab bundles: `homelab` (prom and ci dashboards), `dev` (a

@@ -2,11 +2,11 @@
 """phosphor store - a catalog of TUIs, installed from their GitHub releases
 into ~/.local/bin. No sudo. Your own apps (apps.toml) are listed first as
 "yours"; Enter on anything installed opens it in a new tab."""
-import json, os, re, select, shutil, subprocess, sys, tarfile, tempfile, termios, tty, urllib.request, zipfile
+import json, os, re, shutil, sys, tarfile, tempfile, urllib.request, zipfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from ui import FG, DIM, MUTE, PH, BLOOM, AMB, RED, RULE, RST, share, vlen, pad, topbar, HEAD
-from ui import getkey as ui_getkey
+from ui import FG, DIM, MUTE, PH, AMB, RED, RST, share, topbar
 import apps as mine
+import tui
 
 HOME    = os.path.expanduser("~")
 BIN     = os.path.join(HOME, ".local/bin")
@@ -35,38 +35,32 @@ def used_by_deck(path):
     except OSError:
         return False
 
-def remove(a, ask):
-    """Only what lives in ~/.local/bin (what Phosphor installed); ask first."""
+def remove(a):
+    """Only what lives in ~/.local/bin (what Phosphor installed). (question,
+    do) when it can go, do() giving (ok, message); else (None, why not)."""
     if a.get("yours"):
-        return AMB + a["n"] + " is yours: take it out of " + mine.path().replace(HOME, "~", 1) + RST
+        return None, a["n"] + " is yours: take it out of " + mine.path().replace(HOME, "~", 1)
     act = a.get("action")
-    if act == "glados":
+    if act in ("glados", "models"):
         import tts
-        if not tts.is_glados_ready()[0]:
-            return DIM + a["n"] + " isn't installed" + RST
-        if not ask("remove GLaDOS-TTS models from ~/.local/share/phosphor? (y/N) "):
-            return DIM + "kept " + a["n"] + RST
-        tts.remove_glados()
-        return PH + "✓ removed " + a["n"] + RST
-    if act == "models":
-        import tts
-        if not tts.has_models():
-            return DIM + a["n"] + " isn't installed" + RST
-        if not ask("remove extra voice models from ~/.local/share/phosphor? (y/N) "):
-            return DIM + "kept " + a["n"] + RST
-        tts.remove_models()
-        return PH + "✓ removed " + a["n"] + RST
+        if not installed(a):
+            return None, a["n"] + " isn't installed"
+        def gone():
+            (tts.remove_glados if act == "glados" else tts.remove_models)()
+            return True, "removed " + a["n"]
+        what = "GLaDOS-TTS models" if act == "glados" else "extra voice models"
+        return "remove %s from ~/.local/share/phosphor?" % what, gone
     p = where(a)
     if not p:
-        return DIM + a["n"] + " isn't installed" + RST
+        return None, a["n"] + " isn't installed"
     if os.path.dirname(os.path.realpath(p)) != os.path.realpath(BIN) and os.path.dirname(p) != BIN:
-        return AMB + a["n"] + " comes from your system (" + p + "): remove it with your package manager" + RST
+        return None, a["n"] + " comes from your system (" + p + "): remove it with your package manager"
     if used_by_deck(p):
-        return AMB + "the deck uses " + a["n"] + ": not removing it" + RST
-    if not ask("remove " + a["n"] + " from ~/.local/bin? (y/N) "):
-        return DIM + "kept " + a["n"] + RST
-    os.remove(p)
-    return PH + "✓ removed " + a["n"] + RST
+        return None, "the deck uses " + a["n"] + ": not removing it"
+    def gone():
+        os.remove(p)
+        return True, "removed " + a["n"]
+    return "remove %s from ~/.local/bin?" % a["n"], gone
 
 def fetch_asset(app):
     req = urllib.request.Request(API % app["r"], headers={"User-Agent": "phosphor-store"})
@@ -132,13 +126,6 @@ def install(app, say):
         shutil.copy(found, dst); os.chmod(dst, 0o755)
     return tag
 
-def getkey():
-    """Keys, plus WUP/WDN for the mouse wheel and touch scrolling."""
-    k = ui_getkey(None)
-    if isinstance(k, tuple):
-        return {64: "WUP", 65: "WDN"}.get(k[1]) if k[4] else None
-    return k
-
 def catalog():
     """Yours first, then the catalog by category. Plus a problem with apps.toml, if any."""
     own, problem = mine.yours()
@@ -153,108 +140,105 @@ def dump():
     for a in apps:
         print("%s %-14s %-9s %s" % ("*" if installed(a) else " ", a["n"], a["c"], a["d"]))
 
+class Panel(tui.ListPanel):
+    INTERVAL = 30        # a local file and a look at ~/.local/bin
+
+    def __init__(self, problem):
+        super().__init__()
+        self.filt, self.only, self.have, self.all = "", False, {}, []
+        if problem:
+            self.say(problem)
+
+    @property
+    def KEYS(self):
+        a = self.rows[self.sel] if self.rows else None
+        return [("enter", "open in a tab" if a and self.have.get(a["n"]) else "install"),
+                ("d", "remove"), ("i", "all" if self.only else "installed"), ("/", "filter"), ("q", "quit")]
+
+    def fetch(self):
+        self.all = catalog()[0]
+        self.have = {a["n"]: installed(a) for a in self.all}
+        f = self.filt.lower()
+        return [a for a in self.all if (not f or f in (a["n"] + a["c"] + a["d"]).lower())
+                and (not self.only or self.have[a["n"]])]
+
+    def header(self, w):
+        what = "installed only" if self.only else "TUIs, no sudo"
+        if self.filt:
+            what = "filter: " + self.filt + " (esc clears)"
+        return topbar("STORE", what, "%d apps · %d installed" % (len(self.all), sum(self.have.values())), min(w, 110))
+
+    def lines(self, w, sel):
+        if not self.rows:
+            return [" " + DIM + ("nothing matches" if self.filt else "nothing installed yet") + RST]
+        w = min(w, 110)
+        out, lastc = [], None
+        nw = min(14, max(8, w - 8))
+        room = w - 6 - nw                   # what's left for the description
+        for i, a in enumerate(self.rows):
+            if a["c"] != lastc:
+                lastc = a["c"]
+                out.append(tui.Head(" " + MUTE + a["c"].upper() + RST))
+            have = self.have.get(a["n"])
+            mark = "●" if have else "○"
+            nm = "%-*.*s" % (nw, nw, a["n"])
+            d = a["d"]
+            desc = "" if room < 12 else d if len(d) <= room else d[:room - 1].rsplit(" ", 1)[0] + "…"
+            if i == sel:
+                out.append(INV + " " + mark + " " + nm + (" " + desc if desc else "") + RST)
+            else:
+                out.append(" " + (PH if have else DIM) + mark + RST + " " + FG + nm + RST
+                           + (" " + DIM + desc + RST if desc else ""))
+        return out
+
+    def key(self, k):
+        if self.ask:
+            return super().key(k)
+        if k == "\x1b" and (self.filt or self.only):
+            self.filt, self.only, self.sel = "", False, 0
+        elif k == "i":
+            self.only, self.sel = not self.only, 0
+        elif k == "/":
+            f = self.line("filter:", self.filt)
+            if f is None:
+                return True
+            self.filt, self.sel = f.strip(), 0
+        else:
+            return super().key(k)
+        self.rows = self.fetch()
+        return True
+
+    def act(self, k, a):
+        if k == "d":
+            q, do = remove(a)
+            return self.confirm(q, do) if q else self.say(do)
+        if k != "enter":
+            return
+        if self.have.get(a["n"]):
+            if a.get("action"):
+                return self.say("✓ " + a["n"] + " is installed and ready for notifications", PH)
+            ok, m = mine.open_tab(a)
+            return self.say(("✓ " if ok else "") + m, PH if ok else AMB)
+        if a.get("yours"):
+            return self.say(mine.exe(a) + " isn't installed: fix its cmd in " + mine.path().replace(HOME, "~", 1))
+        def say(m):
+            self.msg = m; self.draw()
+        try:
+            tag = install(a, say)
+            self.say("✓ " + a["n"] + " " + tag + (" installed" if a.get("action") else " installed in ~/.local/bin"), PH)
+        except Exception as e:
+            import dlog
+            dlog.event("STORE", "install-failed", "%s: %s" % (a["n"], e))
+            self.say("✗ " + a["n"] + ": " + str(e)[:70], RED)
+        self.refresh()
+
+
 def main():
     global CATALOG
     CATALOG = share("store.json")
-
     if not sys.stdin.isatty():
         dump(); return 0
-    apps, msg = catalog()
-    msg = (AMB + msg + RST) if msg else ""
-    sel, top, filt, only = 0, 0, "", False
-    sys.stdout.write("\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h")
-    try:
-        while True:
-            cols, rows = shutil.get_terminal_size((90, 30))
-            w = min(cols, 110)
-            have = {a["n"]: installed(a) for a in apps}     # one look per redraw
-            view = [a for a in apps if (not filt or filt.lower() in (a["n"] + a["c"] + a["d"]).lower())
-                    and (not only or have[a["n"]])]
-            sel = max(0, min(sel, len(view) - 1)) if view else 0
-            body = max(5, rows - 6)
-            if sel < top: top = sel
-            if sel >= top + body: top = sel - body + 1
-            ni = sum(1 for a in apps if have[a["n"]])
-            out = topbar("STORE", "installed only" if only else "TUIs, no sudo",
-                         "%d apps · %d installed" % (len(apps), ni), w)
-            lastc = None
-            shown = view[top:top + body]
-            for i, a in enumerate(shown):
-                idx = top + i
-                if a["c"] != lastc:
-                    lastc = a["c"]
-                    out.append(" " + MUTE + a["c"].upper() + RST)
-                mark = "●" if have[a["n"]] else "○"
-                nw = min(14, max(8, w - 8))
-                nm = ("%-*.*s" % (nw, nw, a["n"]))
-                room = w - 6 - nw               # what's left for the description
-                if room >= 12:
-                    d = a["d"]
-                    desc = d if len(d) <= room else d[:room - 1].rsplit(" ", 1)[0] + "…"
-                else:
-                    desc = ""                    # narrow pane: names only
-                if idx == sel:
-                    line = INV + " " + mark + " " + nm + (" " + desc if desc else "") + RST
-                else:
-                    line = (" " + (PH if have[a["n"]] else DIM) + mark + RST + " "
-                            + FG + nm + RST + (" " + DIM + desc + RST if desc else ""))
-                out.append(line)
-            while len(out) - HEAD < body:
-                out.append("")
-            hint = (" j/k move · enter " + ("open in a tab" if view and have[view[sel]["n"]] else "install")
-                    + " · i " + ("all" if only else "installed") + " · d remove · / filter · q quit")
-            if filt: hint = " filter: " + AMB + filt + RST + DIM + "  (esc clears)" + RST
-            out.append(DIM + hint + RST)
-            if msg: out.append(" " + msg)
-            sys.stdout.write("\x1b[H" + "\x1b[K\n".join(out) + "\x1b[K\x1b[J"); sys.stdout.flush()
-
-            k = getkey()
-            msg = ""
-            if k in ("q", "\x03"): break
-            elif k in ("j", "\x1b[B"): sel += 1
-            elif k in ("k", "\x1b[A"): sel -= 1
-            elif k == "WDN": sel += 3
-            elif k == "WUP": sel -= 3
-            elif k == "g": sel = 0
-            elif k == "G": sel = len(view) - 1
-            elif k == "/":
-                sys.stdout.write("\x1b[?1049l\x1b[?25h"); termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, termios.tcgetattr(sys.stdin.fileno()))
-                sys.stdout.write("\x1b[%d;1H\x1b[K filter: " % (rows - 1)); sys.stdout.flush()
-                filt = sys.stdin.readline().strip(); sys.stdout.write("\x1b[?25l"); sel = 0; top = 0
-            elif k == "\x1b": filt = ""; only = False; sel = 0; top = 0
-            elif k == "i": only = not only; sel = 0; top = 0
-            elif k == "d" and view:
-                def ask(q):
-                    sys.stdout.write("\x1b[%d;1H\x1b[K " % rows + AMB + q + RST); sys.stdout.flush()
-                    return getkey() in ("y", "Y")
-                msg = remove(view[sel], ask)
-            elif k in ("\r", "\n"):
-                if view:
-                    a = view[sel]
-                    if have[a["n"]]:
-                        if a.get("action"):
-                            msg = PH + "✓ " + a["n"] + " is installed and ready for notifications" + RST
-                        else:
-                            ok, m = mine.open_tab(a)
-                            msg = (PH + "✓ " if ok else AMB) + m + RST
-                    elif a.get("yours"):
-                        msg = AMB + mine.exe(a) + " isn't installed: fix its cmd in " \
-                              + mine.path().replace(HOME, "~", 1) + RST
-                    else:
-                        def say(m):
-                            sys.stdout.write("\x1b[%d;1H\x1b[K %s" % (rows, m)); sys.stdout.flush()
-                        try:
-                            tag = install(a, say)
-                            msg = PH + "✓ " + a["n"] + " " + tag + (" installed" if a.get("action") else " installed in ~/.local/bin") + RST
-                        except Exception as e:
-                            import dlog
-                            dlog.event("STORE", "install-failed", "%s: %s" % (a["n"], e))
-                            msg = RED + "✗ " + a["n"] + ": " + str(e)[:70] + RST
-            sel = max(0, min(sel, max(0, len(view) - 1)))
-    except KeyboardInterrupt:
-        pass
-    finally:
-        sys.stdout.write("\x1b[?1006l\x1b[?1000l\x1b[?25h\n")
+    return Panel(catalog()[1]).run()
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main() or 0)
