@@ -46,5 +46,6 @@ yazi, btop, gping, ctop and rclone into `~/.local/bin` and asks
 | [tunnels](manual/tunnels/) | keeping your ssh config's LocalForward tunnels up |
 | [clipboard](manual/clipboard/) | one clipboard for every screen |
 | [privacy](manual/privacy/) | what stays where, and checking a fork before you push |
+| [api](manual/api/) | what stays the same between versions, and how something goes away |
 | [troubleshooting](manual/troubleshooting/) | when something doesn't work |
 

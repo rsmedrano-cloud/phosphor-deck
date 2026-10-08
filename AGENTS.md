@@ -192,4 +192,6 @@ Every page's sections, so a grep finds the right one:
 - **clipboard** (`doc/manual/clipboard.md`): one clipboard for every screen
   Sections: A real file; The other way: getting a file in.
 - **privacy** (`doc/manual/privacy.md`): what stays where, and checking a fork before you push
+- **api** (`doc/manual/api.md`): what stays the same between versions, and how something goes away
+  Sections: Public; Internal; How something goes away.
 - **troubleshooting** (`doc/manual/troubleshooting.md`): when something doesn't work

@@ -10,7 +10,8 @@ doesn't list --flag for CMD (lib/cli.py check()). This holds both sides:
   nothing: `phosphor note --kidn idea hi` writes no note;
 - every way phosphor calls itself (layouts, keys, menus: the quoted
   argv lists in lib/ and the dispatcher) and every example in the docs
-  passes the check, so the deck never refuses its own panes.
+  passes the check, so the deck never refuses its own panes, and none
+  of phosphor's own calls uses something deprecated (its panes would warn).
 """
 import glob, os, re, subprocess, sys, tempfile
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -74,6 +75,8 @@ for f in srcs:
         got = cli.check(cmd, rest) if cli.get(cmd) else None
         if got:
             bad.append("%s calls `phosphor %s`, which refuses %s" % (os.path.relpath(f, ROOT), " ".join(w), got))
+        for d in cli.deprecated(cmd, rest) if cli.get(cmd) else []:
+            bad.append("%s calls `phosphor %s`: %s" % (os.path.relpath(f, ROOT), " ".join(w), d))
 
 # 4. `phosphor CMD --flag ...` written out: the docs' examples, and the
 # command lines in code, keys, profiles and recipes (`exec phosphor new --here`)

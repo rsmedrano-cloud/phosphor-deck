@@ -21,4 +21,5 @@ never a copy.
 | tunnels | keeping your ssh config's LocalForward tunnels up |
 | clipboard | one clipboard for every screen |
 | privacy | what stays where, and checking a fork before you push |
+| api | what stays the same between versions, and how something goes away |
 | troubleshooting | when something doesn't work |

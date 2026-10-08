@@ -12,7 +12,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import REPO
 
 MANIFEST = os.path.join(REPO, "share", "commands.json")
+# what's on its way out (doc/manual/api.md); the variable is for tests
+DEPRECATIONS = os.environ.get("PHOSPHOR_DEPRECATIONS") or os.path.join(REPO, "share", "deprecations.json")
 _cache = None
+_gone = None
 
 
 def manifest():
@@ -63,6 +66,52 @@ def module(cmd):
     return None
 
 
+def deprecations(kind=None):
+    """share/deprecations.json's entries, all or one kind (command, flag, key)."""
+    global _gone
+    if _gone is None:
+        try:
+            with open(DEPRECATIONS) as f:
+                _gone = json.load(f).get("deprecated", [])
+        except (OSError, ValueError):
+            _gone = []
+    return [d for d in _gone if kind is None or d.get("kind") == kind]
+
+
+def warning(d):
+    """One deprecation, the way every reader says it."""
+    return "%s is deprecated since %s and goes away in %s: use %s" % (
+        d["name"], d["since"], d["remove"], d["use"])
+
+
+def _gone_cmd(name):
+    return next((d for d in deprecations("command") if d["name"] == name), None)
+
+
+def _gone_flags(cmd):
+    return {d["name"]: d for d in deprecations("flag") if d.get("command") == resolve(cmd)}
+
+
+def deprecated(cmd, argv):
+    """What `phosphor CMD ARGV` uses that is deprecated: [warning], for
+    stderr (stdout may be --json). Read like check(): nothing after `--`,
+    only the leading flags of a free_text command."""
+    out = [warning(d) for n in dict.fromkeys([cmd, resolve(cmd)]) for d in [_gone_cmd(n)] if d]
+    flags = _gone_flags(cmd)
+    e = get(cmd) or {}
+    for a in argv:
+        if a == "--":
+            break
+        if not FLAG.match(a):
+            if e.get("free_text"):
+                break
+            continue
+        d = flags.get(a.split("=", 1)[0])
+        if d and warning(d) not in out:
+            out.append(warning(d))
+    return out
+
+
 def topics():
     """The manual's pages, so a new one completes without touching anything."""
     return sorted(f[:-3] for f in os.listdir(os.path.join(REPO, "doc/manual"))
@@ -84,7 +133,8 @@ def usage_text(width=80):
             if len(head) >= pad - 1:
                 out.append(head)
                 head = ""
-            out += textwrap.wrap(e["summary"], width=width, initial_indent=head.ljust(pad),
+            summary = e["summary"] + (" (deprecated)" if _gone_cmd(name) else "")
+            out += textwrap.wrap(summary, width=width, initial_indent=head.ljust(pad),
                                  subsequent_indent=" " * pad)
         out.append("")
     out += ["  phosphor CMD --help   one command's usage and what it does",
@@ -107,6 +157,9 @@ def help_for(cmd):
         print("  also: " + ", ".join("phosphor " + a for a in e["aliases"]))
     if e.get("options"):
         print("  options: " + " ".join(e["options"]))
+    for d in [_gone_cmd(n) for n in dict.fromkeys([cmd, resolve(cmd)])] + list(_gone_flags(cmd).values()):
+        if d:
+            print(textwrap.fill(warning(d), width=78, initial_indent="  ", subsequent_indent="    "))
     if e.get("note"):
         print()
         print(textwrap.fill(e["note"], width=78, initial_indent="  ", subsequent_indent="  "))
@@ -120,8 +173,10 @@ def completions():
     and {flag: [values]} for the flags that take fixed ones."""
     after, values = {}, {}
     for name, e in entries().items():
+        flags = [o for o in e.get("options", []) if o not in _gone_flags(name)]
         for n in [name] + e.get("aliases", []):
-            after[n] = (words(e), e.get("options", []))
+            if not _gone_cmd(n):
+                after[n] = (words(e), flags)
         values.update(e.get("values", {}))
     return after, values
 

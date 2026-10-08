@@ -140,6 +140,9 @@ out=$(python3 tests/commands-manifest-check.py 2>&1) && ok || bad "$out"
 step "an unknown flag is a usage error; no call of phosphor's own is one"
 out=$(python3 tests/argv-check.py 2>&1) && ok || bad "$out"
 
+step "deprecated: warns on stderr, goes when it said it would"
+out=$(python3 tests/deprecations-check.py 2>&1) && ok || bad "$out"
+
 step "web on: never restarts unattended without --yes"
 out=$(python3 tests/web-check.py 2>&1) && ok || bad "$out"
 

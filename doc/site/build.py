@@ -42,7 +42,7 @@ TOPIC_TITLES = {
     "profile": "The profile", "commands": "Commands", "keys": "Keys",
     "phones": "Screens", "workspaces": "Workspaces", "mentions": "Mentions",
     "web": "The deck in a browser", "tunnels": "Tunnels", "clipboard": "Clipboard",
-    "privacy": "Privacy", "troubleshooting": "Troubleshooting",
+    "privacy": "Privacy", "api": "What's promised", "troubleshooting": "Troubleshooting",
 }
 
 

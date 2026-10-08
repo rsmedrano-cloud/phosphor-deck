@@ -14,7 +14,7 @@ from ui import *
 MAN = os.path.join(REPO, "doc", "manual")
 AGENTS = os.path.join(REPO, "AGENTS.md")
 ORDER = ["concepts", "install", "patterns", "profile", "commands", "keys", "phones",
-         "workspaces", "mentions", "web", "tunnels", "clipboard", "privacy", "troubleshooting"]
+         "workspaces", "mentions", "web", "tunnels", "clipboard", "privacy", "api", "troubleshooting"]
 
 RULES = """# AGENTS.md — Phosphor Deck for AI assistants
 

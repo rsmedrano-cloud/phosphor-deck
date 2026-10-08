@@ -53,6 +53,9 @@ def main():
         print("phosphor %s: unknown option %s" % (cmd, wrong), file=sys.stderr)
         print("usage: " + cli.get(cmd)["usage"], file=sys.stderr)
         return 2
+    # on its way out (doc/manual/api.md): it still runs, and says so on stderr
+    for w in cli.deprecated(cmd, sys.argv[2:]):
+        print("phosphor: " + w, file=sys.stderr)
 
     import deckconf
     if deckconf.example() and cmd not in ("init", "docs", "doctor", "completion", "version", "privacy",

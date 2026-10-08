@@ -21,7 +21,7 @@ DECK = {"session": None, "command": None, "theme": "themes", "mount_root": None,
         "connect": ("ssh", "mosh"), "web": BOOL, "web_port": None, "notifier": BOOL,
         "graphs": ("braille", "blocks"), "face": None, "splash": BOOL,
         "notify_seconds": None, "demo": BOOL, "tour": BOOL,
-        "tts": BOOL,                     # the old place of [tts] enabled; still read
+        "tts": BOOL,                     # deprecated: share/deprecations.json
         "version": None}                 # migrate.py checks it
 HOST = {"name": None, "role": ("brain", "work", "desktop", "storage", "node", "viewer"),
         "local": BOOL, "ssh": None, "user": None, "ip": None, "mount": None,
@@ -163,6 +163,11 @@ def problems(prof):
                 _array("prometheus.gauges", val["gauges"], GAUGE, out)
             if sec == "ci" and isinstance(val, dict) and "pipelines" in val:
                 _array("ci.pipelines", val["pipelines"], PIPELINE, out)
+    import cli                   # still read, but on its way out (doc/manual/api.md)
+    for d in cli.deprecations("key"):
+        t = (prof or {}).get(d["table"])
+        if isinstance(t, dict) and d["name"] in t:
+            out.append(("[%s]" % d["table"], cli.warning(d)))
     return out
 
 

@@ -6,6 +6,22 @@ before it updates.
 
 ## Unreleased
 
+## 1.9.2 — what's promised
+
+- A new manual page, `phosphor help api`, says what Phosphor promises to
+  keep between versions -- the profile, the commands and their flags,
+  `share/commands.json`, every `--json` output and `glance --serve`,
+  `phosphor mcp`, tabs.d, apps.toml, panels.d and the notebook's files --
+  and what's internal and can change in any release.
+- Nothing public goes away without a warning: it's listed in
+  `share/deprecations.json` and keeps working for one full stable minor,
+  warning each time. A deprecated command or flag says so on stderr (so
+  `--json` stays clean), in `--help` and `phosphor help`, and drops out of
+  tab completion; a deprecated profile key shows up in `phosphor doctor`
+  and `gen`'s warnings.
+- Deprecated: `[deck] tts`. It still works until 2.1.0; use `[tts] enabled`
+  (`phosphor migrate` moves it).
+
 ## 1.9.1 — an unknown flag is an error
 
 - Every command is described once, in `share/commands.json`: its category,

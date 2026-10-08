@@ -1,0 +1,16 @@
+{
+  "_schema": {
+    "kind": "command (a command or one of its aliases), flag (one command's flag) or key (a profile key).",
+    "name": "the command or alias, the flag (--old), or the key, as written in the profile.",
+    "command": "flag only: the command that reads it.",
+    "table": "key only: the profile table it sits in, as in [deck].",
+    "since": "the version whose release first warns about it.",
+    "remove": "the version that drops it: the minor after the first stable (main) minor that carried the warning. tests/deprecations-check.py fails once VERSION reaches it.",
+    "use": "what to do instead, one line: the warning ends with it."
+  },
+  "deprecated": [
+    {"kind": "key", "table": "deck", "name": "tts",
+     "since": "1.9.2", "remove": "2.1.0",
+     "use": "[tts] enabled (phosphor migrate moves it)"}
+  ]
+}

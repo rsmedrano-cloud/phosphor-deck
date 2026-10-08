@@ -388,7 +388,11 @@ should read: the rules, the concepts and an index pointing into the manual. [`sh
 command's one definition in JSON -- usage, flags, which commands mutate live
 state, which need the deck running; `phosphor help`, `--help`, completion
 and the check that refuses an unknown flag are built from it -- for a CI job, a cron, or a policy tool that wants to know
-without parsing prose. Contributing: [CONTRIBUTING.md](CONTRIBUTING.md).
+without parsing prose. What you can build on -- the profile, the commands
+and their flags, `--json`, `phosphor mcp`, tabs.d, apps.toml, panels.d --
+and how anything there goes away (a warning for a whole stable minor first,
+listed in [`share/deprecations.json`](share/deprecations.json)) is
+[doc/manual/api.md](doc/manual/api.md). Contributing: [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Commands
 
