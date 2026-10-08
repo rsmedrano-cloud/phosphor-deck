@@ -6,6 +6,14 @@ before it updates.
 
 ## Unreleased
 
+## 1.8.2 — a read-only MCP server for assistants
+
+- `phosphor mcp`: the deck, read-only, for any assistant that speaks MCP. Register it once
+  (`claude mcp add phosphor -- phosphor mcp`) and the assistant can ask for glance, the
+  fleet's readings, your notes (by kind, tab or text), your workspaces and the deck's log.
+  It runs on stdin/stdout only while the assistant uses it, listens on no port, and none of
+  its tools sends, restarts or writes anything. See `phosphor help commands`.
+
 ## 1.8.1 — --json on every read-only listing
 
 - `--json` on every read-only listing: `phosphor fleet`, `services`, `containers`,

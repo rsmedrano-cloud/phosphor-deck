@@ -380,6 +380,24 @@ read that instead of scraping colored text. Nothing in it writes or restarts any
 - `phosphor workspace list --json` — `root` and `workspaces`: `name`, `path`, `git` (`dirty`,
   `ahead`, `behind`).
 
+### For assistants: phosphor mcp
+`phosphor mcp` is the same data for an assistant that speaks MCP (Model Context Protocol): a
+server on stdin/stdout that the assistant starts itself and that ends when it closes the pipe.
+Nothing listens on a port. Register it once, in the assistant you use:
+
+    claude mcp add phosphor -- phosphor mcp
+
+(or a `{"command": "phosphor", "args": ["mcp"]}` entry in another assistant's MCP config).
+Its tools only read what's already on the brain, and none of them sends, restarts or writes:
+
+- `glance` — what `glance --json` says.
+- `fleet` — what `fleet --json` says, from the cache (no ssh); `host` narrows it to one.
+- `notes` — the notebook, newest first: `when`, `kind`, `by`, `tab`, `title`, `body`, and the
+  `total` of matches; `kind`, `tab`, `query` (title or body, any case), `limit` (20, up to 200)
+  and `archive` narrow it.
+- `workspaces` — what `workspace list --json` says.
+- `logs` — the end of deck.log, or one tool's lines (`tool`, `lines`: 100, up to 400).
+
 ## Before you push a fork
 - `phosphor demo` — a throwaway session over made-up machines and a made-up notebook, for a
   screenshot or a recording: never your real profile, session or ssh. `phosphor demo --stop`

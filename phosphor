@@ -88,6 +88,7 @@ USAGE = """phosphor - Phosphor Deck
     phosphor mentions   read-only feed of chat notifications (--setup: hook matterhorn)
     phosphor logs [T]   the deck's own log: crashes, hangs, exits, restarts (-f follows)
     phosphor trace T    verbose logging for one tool, for about 30 minutes
+    phosphor mcp        the deck, read-only, for an assistant: an MCP server on stdio
 
     phosphor completion bash|zsh   tab completion for your shell
     --json   on fleet, services, containers, screens, mem, security, tunnel,
@@ -104,7 +105,7 @@ USAGE = """phosphor - Phosphor Deck
 TOOLS = ("fleet", "pulse", "keys", "store", "adjutant", "notes", "privacy", "phone", "newtab", "clip", "send",
          "mentions", "notify", "run", "web", "tunnels", "completion", "update", "panel", "version",
          "keep", "workspace", "edit", "shortcuts", "tabs", "prom", "logs", "trace", "ci", "recipe", "tts", "demo",
-         "services", "glance", "review", "push", "screens", "ask", "commands", "receive", "tail", "triage", "broadcast", "theme", "usage", "mem", "containers", "security", "digest", "read", "migrate", "backup", "restore")
+         "services", "glance", "review", "push", "screens", "ask", "commands", "receive", "tail", "triage", "broadcast", "theme", "usage", "mem", "containers", "security", "digest", "read", "migrate", "backup", "restore", "mcp")
 
 def crash_name(cmd):
     """The name a crash is logged under: the pane's, when phosphor run

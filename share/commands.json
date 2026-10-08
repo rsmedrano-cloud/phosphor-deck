@@ -54,6 +54,8 @@
     "note": "read-only tail of the deck's own log."},
   "migrate": {"mutates": false, "needs_deck": false,
     "note": "shows each pending profile change as a diff; writing it (and version in [deck]) needs its own explicit 'write it?' Enter, aborting instead of writing without one; --dry-run only shows. A profile written by a newer phosphor is never touched."},
+  "mcp": {"mutates": false, "needs_deck": false,
+    "note": "an MCP server on stdin/stdout, started by an assistant and gone when it closes the pipe; listens on no port. Its tools (glance, fleet, notes, workspaces, logs) only read local files -- fleet reads fleet.json, no ssh -- and none sends, restarts or writes. On a terminal it prints its help and exits."},
   "mem": {"mutates": false, "needs_deck": false,
     "note": "read-only: reads /proc and asks zellij for its pane list; with the deck down it says so."},
   "mentions": {"mutates": false, "needs_deck": false,

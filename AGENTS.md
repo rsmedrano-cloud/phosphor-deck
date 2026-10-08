@@ -176,7 +176,7 @@ Every page's sections, so a grep finds the right one:
 - **profile** (`doc/manual/profile.md`): every setting in ~/.config/phosphor/deck.toml, and your own apps
   Sections: [deck]; [[hosts]]; [[tabs]]; tabs.d: tabs you can share; [[tunnels]]; [keys]; [notes]; [mentions]; [prometheus]; [ci]; [tts]; [push]; Your own server, no cloud; [services]; [alerts]; [screens]; apps.toml.
 - **commands** (`doc/manual/commands.md`): every `phosphor` command
-  Sections: Getting started; Session; Workspaces; Notes; In the deck; For scripts: --json; Before you push a fork; Shell; Help.
+  Sections: Getting started; Session; Workspaces; Notes; In the deck; For scripts: --json; For assistants: phosphor mcp; Before you push a fork; Shell; Help.
 - **keys** (`doc/manual/keys.md`): keys inside the deck, and what happens when a program ends
   Sections: Editing a tab; Your own keys; When a program ends; Tapping.
   Its key table comes from share/keys.json (`_deck`); `phosphor help keys` shows it filled in.

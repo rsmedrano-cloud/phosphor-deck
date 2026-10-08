@@ -332,15 +332,21 @@ def names():
     except FileNotFoundError:
         return []
 
-def listing(as_json=False):
+def as_json():
+    """`workspace list --json` and the MCP server's workspaces: every
+    workspace with its git state (None where it isn't a repo)."""
+    r = root()
+    def git(st):
+        return None if st is None else dict(zip(("dirty", "ahead", "behind"), st))
+    return {"root": r, "workspaces": [
+        {"name": n, "path": os.path.join(r, n), "git": git(git_status(os.path.join(r, n)))}
+        for n in names()]}
+
+def listing(as_json_=False):
+    if as_json_:
+        return emit(as_json())
     r = root()
     ns = names()
-    if as_json:
-        def git(st):
-            return None if st is None else dict(zip(("dirty", "ahead", "behind"), st))
-        return emit({"root": r, "workspaces": [
-            {"name": n, "path": os.path.join(r, n), "git": git(git_status(os.path.join(r, n)))}
-            for n in ns]})
     if not ns:
         print("  no workspaces in %s yet: phosphor workspace new" % tilde(r)); return 0
     for n in ns:

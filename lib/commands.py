@@ -42,6 +42,7 @@ CATEGORIES = [
     ("Workspaces", [
         ("workspace", "phosphor workspace new", "a tab per idea: folder, git, its assistants"),
         ("ask", "phosphor ask [-c] QUESTION", "a one-shot question to whichever assistant CLI is installed, no tab; -c adds your latest notes"),
+        ("mcp", "phosphor mcp", "the deck, read-only, for an assistant that speaks MCP: glance, fleet, notes, workspaces, logs"),
         ("read", "phosphor read URL | WORDS [--ask Q]", "a web page as plain text, or a web search to pick one from; --ask hands it to an assistant"),
     ]),
     ("Notes", [

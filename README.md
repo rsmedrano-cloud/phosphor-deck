@@ -106,7 +106,9 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
 - **JSON for scripts and assistants.** Every read-only listing (`fleet`,
   `services`, `containers`, `screens`, `mem`, `security`, `tunnel`, `version`,
   `workspace list`, `glance`) takes `--json` and prints the same data as one
-  JSON object: no colored text to scrape.
+  JSON object: no colored text to scrape. `phosphor mcp` hands the same to any
+  assistant that speaks MCP (`claude mcp add phosphor -- phosphor mcp`):
+  glance, fleet, notes, workspaces and the deck's log, read-only, over stdio.
 - **Containers, from the fleet.** `c` over a machine's card in FLEET (or
   `phosphor containers HOST`) lists its docker or podman containers, a failed
   one in red: read its logs, restart it, start or stop it (it asks first),
