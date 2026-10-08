@@ -66,6 +66,7 @@ CATEGORIES = [
         ("review", "phosphor review", "open merge/pull requests: CI, conflicts, diff, try the branch"),
         ("screens", "phosphor screens", "who's attached (phone, tablet, another computer); kick one loose"),
         ("mem", "phosphor mem", "how much memory each tab and pane of the deck takes, heaviest first"),
+        ("panels", "phosphor panels", "your own panels: a Python file in panels.d, on the same kit as every panel"),
         ("keys", "phosphor keys", "key guide, updates itself when you install a tool"),
         ("store", "phosphor store", "install TUIs from their releases, no sudo; open what you have"),
         ("new", "phosphor new", "the + menu: a shell, a machine, an assistant, your apps, a layout"),

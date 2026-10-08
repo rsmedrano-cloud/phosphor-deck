@@ -105,10 +105,14 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
   (it asks first).
 - **JSON for scripts and assistants.** Every read-only listing (`fleet`,
   `services`, `containers`, `screens`, `mem`, `security`, `tunnel`, `version`,
-  `workspace list`, `glance`) takes `--json` and prints the same data as one
+  `workspace list`, `panels`, `glance`) takes `--json` and prints the same data as one
   JSON object: no colored text to scrape. `phosphor mcp` hands the same to any
   assistant that speaks MCP (`claude mcp add phosphor -- phosphor mcp`):
   glance, fleet, notes, workspaces and the deck's log, read-only, over stdio.
+- **Panels of your own.** A Python file in `~/.config/phosphor/panels.d`
+  with a class on phosphor's `ListPanel` ("my restic backups" in about 20
+  lines) is a panel like the deck's: keys, taps, a y/n before an action, a
+  pager. `phosphor panels NAME` opens it; the store and the + menu list it.
 - **Containers, from the fleet.** `c` over a machine's card in FLEET (or
   `phosphor containers HOST`) lists its docker or podman containers, a failed
   one in red: read its logs, restart it, start or stop it (it asks first),
@@ -447,6 +451,7 @@ more depth on every one of these.
 | `phosphor containers [HOST]` | a host's docker/podman containers; pick one for its logs, restart, start/stop (`c` over a card in FLEET) |
 | `phosphor review` | open merge/pull requests: CI, conflicts, diff, try the branch in its own worktree |
 | `phosphor mem` | how much memory each tab and pane of the deck takes, heaviest first, every kind of screen's deck included |
+| `phosphor panels [NAME]` | your own panels: a Python file in `~/.config/phosphor/panels.d` on the same kit as every panel (keys, taps, y/n, pager); also in the store and the + menu |
 | `phosphor screens` | who's attached (phone, tablet, another computer), and which come through a tailscale relay; `x` kicks one loose, `o` gives its kind a deck of its own or shares this one (both ask y/n first) |
 | `phosphor keys` | key guide, updates itself when you install a tool |
 | `phosphor store` | install TUIs from their releases, no sudo; open what you have, and your own apps |

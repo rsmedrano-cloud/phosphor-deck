@@ -405,3 +405,57 @@ and in the `+` menu, and open in a tab of their own.
 | desc | a line for the store |
 | alt | start on the alternate screen |
 | needs_size | wait a second before starting |
+
+## panels.d
+
+A panel of your own, in about 20 lines: one Python file in
+`~/.config/phosphor/panels.d/` (override: `PHOSPHOR_PANELS`) with a class
+built on phosphor's `ListPanel`, the kit every panel in the deck uses. It
+gets the same keys and taps for free: j/k or the wheel to pick, a tap on a
+row, a tappable key bar, a y/n question before an action, a pager for long
+text. The file's name is the panel's name; its docstring's first line says
+what it is.
+
+    # ~/.config/phosphor/panels.d/backups.py
+    """restic snapshots on the NAS"""
+    import json, proc, tui
+
+    class Backups(tui.ListPanel):
+        TITLE, INTERVAL = "BACKUPS", 60
+        KEYS = [("enter", "files"), ("f", "forget"), ("q", "quit")]
+
+        def fetch(self):
+            rc, out = proc.sh("restic snapshots --json", t=30)
+            if rc:
+                self.problem = out or "restic failed"
+                return []
+            return json.loads(out)
+
+        def lines(self, w, sel):
+            return [(tui.INV if i == sel else "") + " %s  %s" % (s["time"][:16], s["hostname"]) + tui.RST
+                    for i, s in enumerate(self.rows)]
+
+        def act(self, k, row):
+            if k == "enter":
+                self.page(proc.sh("restic ls " + row["short_id"], t=60)[1])
+            else:
+                self.confirm("forget %s?" % row["short_id"],
+                             lambda: (proc.sh("restic forget " + row["short_id"])[0] == 0, "forgotten"))
+
+`phosphor panels backups` opens it; it also shows as "yours" in `phosphor store`
+and in the `+` menu, to open in a tab of its own.
+
+| what | |
+|---|---|
+| `fetch()` | the rows, again every `INTERVAL` seconds; set `self.problem` to show a line instead |
+| `lines(w, sel)` | one line per row (`tui.Head("title")` among them: a group's title, never picked) |
+| `act(k, row)` | a key of `KEYS` on the picked row; Enter comes as `"enter"` |
+| `TITLE`, `SUB` | the top bar, with the row count; or write `header(w)` yourself |
+| `confirm(q, do)` | asks y/n, then runs `do()`, which returns `(ok, message)` |
+| `say(text)`, `page(text)`, `line(label)` | a line under the keys, the pager, a line typed in |
+
+The phosphor modules are importable (`tui`, `proc`, `deckconf`, `ui`).
+It's your code, run as you, like a `cmd` in apps.toml. A file that doesn't
+load says why in `phosphor panels`; a `fetch()` or an action that raises
+shows the error in the panel instead of closing it. Files starting with `_`
+are left out (a helper your panels share).

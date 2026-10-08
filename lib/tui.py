@@ -17,6 +17,7 @@ own:
 
     Units().run()
 
+With TITLE (and SUB) set, header() is a topbar with the row count.
 act() answers with confirm() (asks, then runs the function, which returns
 (ok, message); a note says what it costs, on lines of its own), say() (a line under the keys), page() (text in the pager)
 or refresh() (fetch again now); draw() shows a say() at once, for an action
@@ -28,7 +29,9 @@ reaches every panel at once.
 import os, shutil, sys, time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from ui import DIM, AMB, PH, RED, RST, FG, getkey, HEAD
+from ui import DIM, AMB, PH, RED, RST, FG, getkey, HEAD, topbar
+
+INV = "\x1b[7m"                                     # the picked row, for a panel of yours
 
 ON = "\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h"     # alt screen, no cursor, SGR mouse
 OFF = "\x1b[?1006l\x1b[?1000l\x1b[?1049l\x1b[?25h"
@@ -50,6 +53,7 @@ def off():
 class ListPanel:
     KEYS = []            # [(key, label)]: the key bar, tappable; q quits on its own
     INTERVAL = 5         # seconds between fetches
+    TITLE, SUB = "", ""  # the default header(): a topbar with the row count
 
     def __init__(self):
         self.rows, self.sel, self.last = [], 0, 0.0
@@ -63,7 +67,9 @@ class ListPanel:
         return []
 
     def header(self, w):
-        return []
+        if not self.TITLE:
+            return []
+        return topbar(self.TITLE, self.SUB, "%d" % len(self.rows), w)
 
     def lines(self, w, sel):
         return []

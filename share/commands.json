@@ -70,6 +70,8 @@
     "note": "writes one ephemeral events-file line; pushes or speaks only if [push]/[tts] are already on -- no session, systemd or profile change."},
   "panel": {"mutates": false, "needs_deck": false,
     "note": "the DECK tab: needs a tty, and every action needs its own keypress; the riskiest ones (restart, update, web on, f: apply a hand-edited profile) ask to confirm first; o (theme) writes the profile only on Enter in its picker. n opens push, voice and trace, whose own screens change the profile or a trace only on a keypress."},
+  "panels": {"mutates": false, "needs_deck": false,
+    "note": "plain and --json only list panels.d's files (their docstrings read, never run); `phosphor panels NAME` runs that file, user code, like a cmd in apps.toml: what it can change is up to the file."},
   "path": {"mutates": false, "needs_deck": false,
     "note": "pure string translation, no I/O."},
   "phone": {"mutates": false, "needs_deck": false,

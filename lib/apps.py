@@ -11,6 +11,8 @@ store's catalog doesn't have. They show in the store as "yours" and in the
     desc = "git in a TUI"        # optional
     alt  = false                 # optional: start on the alternate screen
     needs_size = false           # optional: wait a second for the pane's size
+
+Your panels (panels.d, see lib/panels.py) show there too, as "panel".
 """
 import os, re, shutil, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -25,6 +27,8 @@ def path():
 def have(b):
     """Not just PATH: the zellij server doesn't include ~/.local/bin."""
     if not b: return None
+    if b == "phosphor":                 # a panel of yours: this checkout's own
+        return os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "phosphor")
     if os.sep in b:
         b = os.path.expanduser(b)
         return b if os.path.isfile(b) and os.access(b, os.X_OK) else None
@@ -32,7 +36,18 @@ def have(b):
     return p if os.path.isfile(p) and os.access(p, os.X_OK) else shutil.which(b)
 
 def yours():
-    """(apps in the store's shape, a problem to show or None)."""
+    """(apps in the store's shape, a problem to show or None): apps.toml's,
+    then your panels."""
+    out, problem = from_toml()
+    import panels
+    for p in panels.listing():
+        if p["name"] not in {a["n"] for a in out}:
+            out.append({"n": p["name"], "c": "panel", "d": p["desc"] or "a panel of yours",
+                        "cmd": "phosphor", "args": ["panels", p["name"]], "alt": False,
+                        "needs_size": False, "yours": True, "file": p["file"]})
+    return out, problem
+
+def from_toml():
     p = path()
     if not os.path.exists(p):
         return [], None

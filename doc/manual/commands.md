@@ -222,6 +222,10 @@
   `ZELLIJ_PANE_ID` zellij gave its pane; each kind of screen's own deck shows under its name
   (`SYS · phone`), then zellij itself and the machine as a whole. PSS, so a library two processes
   share is split between them instead of counted twice. Read-only.
+- `phosphor panels [NAME | --json]` — your own panels, Python files in `~/.config/phosphor/panels.d`
+  on the kit every panel uses (see profile, "panels.d"): with no name, which there are and what
+  each is (read from the file, not run); with one, it opens there. They're in the store and the
+  `+` menu too, as "yours".
 - `phosphor keys` — the key guide; `phosphor store` — install TUIs, no sudo: Enter installs (or opens what you have in a tab), `d` removes one (only from ~/.local/bin, asks y/n first), `i` shows only what's installed, `/` filters, Esc clears; rows and keys answer a tap.
   Enter on an installed app opens it in a new tab; `i` shows only what's installed. Your own apps
   (`apps.toml`, see profile) come first, as "yours".
@@ -379,6 +383,7 @@ read that instead of scraping colored text. Nothing in it writes or restarts any
   the last `check` (`--check` asks first).
 - `phosphor workspace list --json` — `root` and `workspaces`: `name`, `path`, `git` (`dirty`,
   `ahead`, `behind`).
+- `phosphor panels --json` — `folder` and `panels`: `name`, `desc`, `file`.
 
 ### For assistants: phosphor mcp
 `phosphor mcp` is the same data for an assistant that speaks MCP (Model Context Protocol): a

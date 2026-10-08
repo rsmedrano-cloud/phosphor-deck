@@ -6,6 +6,15 @@ before it updates.
 
 ## Unreleased
 
+## 1.8.3 — panels of your own
+
+- `phosphor panels`: panels of your own, without forking. A Python file in
+  `~/.config/phosphor/panels.d/` with a class built on phosphor's `ListPanel` gets the deck's
+  keys, taps, y/n questions and pager for free: "my restic backups" fits in about 20 lines.
+  `phosphor panels NAME` opens one, `phosphor panels` lists them (`--json` too), and they show
+  as "yours" in the store and the + menu. A file that breaks says why instead of closing the
+  pane. See `phosphor help profile`, "panels.d".
+
 ## 1.8.2 — a read-only MCP server for assistants
 
 - `phosphor mcp`: the deck, read-only, for any assistant that speaks MCP. Register it once

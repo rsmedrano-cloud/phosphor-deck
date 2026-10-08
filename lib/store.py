@@ -39,7 +39,7 @@ def remove(a):
     """Only what lives in ~/.local/bin (what Phosphor installed). (question,
     do) when it can go, do() giving (ok, message); else (None, why not)."""
     if a.get("yours"):
-        return None, a["n"] + " is yours: take it out of " + mine.path().replace(HOME, "~", 1)
+        return None, a["n"] + " is yours: take it out of " + a.get("file", mine.path()).replace(HOME, "~", 1)
     act = a.get("action")
     if act in ("glados", "models"):
         import tts

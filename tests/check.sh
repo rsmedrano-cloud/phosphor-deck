@@ -200,6 +200,9 @@ out=$(python3 tests/json-check.py 2>&1) && ok || bad "$out"
 step "phosphor mcp: read-only, clean JSON-RPC"
 out=$(python3 tests/mcp-check.py 2>&1) && ok || bad "$out"
 
+step "panels.d: your own panels"
+out=$(python3 tests/panels-check.py 2>&1) && ok || bad "$out"
+
 step "TTS notifications and voices"
 out=$(python3 tests/tts-check.py 2>&1) && ok || bad "$out"
 

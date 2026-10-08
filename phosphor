@@ -69,6 +69,7 @@ USAGE = """phosphor - Phosphor Deck
     phosphor containers [H]  a host's containers: logs, restart, start/stop
     phosphor screens    who's attached (phone, PC...); kick one loose
     phosphor mem        how much memory each tab and pane of the deck takes
+    phosphor panels [N] your own panels, from ~/.config/phosphor/panels.d
     phosphor review     merge/pull requests: diff, CI, conflicts, try the branch
     phosphor adjutant   the face that announces events
     phosphor notify M   send the adjutant a message (and your phone, with [push])
@@ -92,7 +93,7 @@ USAGE = """phosphor - Phosphor Deck
 
     phosphor completion bash|zsh   tab completion for your shell
     --json   on fleet, services, containers, screens, mem, security, tunnel,
-             version, workspace list, glance: the same data as JSON, for scripts
+             version, workspace list, panels, glance: the same data as JSON, for scripts
 
     phosphor update [DIR]         newer version: get it, install it, restart
     phosphor update --channel nightly|stable   follow dev (nightly) or releases
@@ -105,7 +106,7 @@ USAGE = """phosphor - Phosphor Deck
 TOOLS = ("fleet", "pulse", "keys", "store", "adjutant", "notes", "privacy", "phone", "newtab", "clip", "send",
          "mentions", "notify", "run", "web", "tunnels", "completion", "update", "panel", "version",
          "keep", "workspace", "edit", "shortcuts", "tabs", "prom", "logs", "trace", "ci", "recipe", "tts", "demo",
-         "services", "glance", "review", "push", "screens", "ask", "commands", "receive", "tail", "triage", "broadcast", "theme", "usage", "mem", "containers", "security", "digest", "read", "migrate", "backup", "restore", "mcp")
+         "services", "glance", "review", "push", "screens", "ask", "commands", "receive", "tail", "triage", "broadcast", "theme", "usage", "mem", "containers", "security", "digest", "read", "migrate", "backup", "restore", "mcp", "panels")
 
 def crash_name(cmd):
     """The name a crash is logged under: the pane's, when phosphor run
