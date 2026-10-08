@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """phosphor migrate: an older profile gets each pending step (the DECK tab
-in one pane, [deck] tts into [tts] enabled) and version = CURRENT, through
+in one pane, [deck] tts into [tts] enabled, [deck] notifier and
+notify_seconds dropped) and version = CURRENT, through
 write_profile with a .bak; an up-to-date or newer profile is left alone; a
 profile init writes is already current; doctor, gen, update and the DECK
 tab only speak up when there's something to change.
@@ -37,6 +38,16 @@ check("planning twice changes nothing more", migrate.plan(new)[1] == new and not
 _, n2, _ = migrate.plan('[deck]\ntts = true\n\n[tts]\nenabled = false\n')
 p2 = deckconf.tomllib.loads(n2)
 check("an existing [tts] enabled is kept", p2["tts"]["enabled"] is False and "tts" not in p2["deck"])
+
+# 3: the floating notice's keys go, whatever they said; a version 2
+# profile gets only this step
+N = '[deck]\nversion = 2\nnotifier = false   # flotantes apagados\nnotify_seconds = 5\nsplash = true\n\n[tts]\nenabled = true\n'
+s4, n4, v4 = migrate.plan(N)
+p4 = deckconf.tomllib.loads(n4)
+check("version 2: only the notifier step", v4 == 2 and len(s4) == 1 and "notifier" in s4[0][0])
+check("notifier and notify_seconds are gone", "notifier" not in p4["deck"] and "notify_seconds" not in p4["deck"])
+check("the rest of [deck] stays", p4["deck"].get("splash") is True and p4["tts"]["enabled"] is True)
+check("notifier = true goes too", "notifier" not in deckconf.tomllib.loads(migrate.plan('[deck]\nnotifier = true\n')[1])["deck"])
 
 # headers written with spaces or a comment are still the same table:
 # no second [deck] (which wouldn't parse), the DECK tab replaced, not added

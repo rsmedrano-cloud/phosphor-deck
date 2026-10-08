@@ -12,7 +12,8 @@ all read it (lib/cli.py), so this checks the definition itself:
   a lib/ file; an alias never shadows another command;
 - every flag and word it declares is one its code really reads (a string
   in its module or the dispatcher), so completion never offers a dead one;
-- phosphor help and the completion scripts list every command.
+- phosphor help and the completion scripts list every command (completion
+  leaves out a deprecated one).
 """
 import json, os, re, subprocess, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -93,7 +94,10 @@ for shell in ("bash", "zsh"):
     out = subprocess.run(phosphor + ["completion", shell], capture_output=True, text=True, env=env).stdout
     for name, e in cli.entries().items():
         for n in [name] + e.get("aliases", []):
-            if not re.search(r"^\s+%s\) w=" % re.escape(n), out, re.M):
+            known = re.search(r"^\s+%s\) w=" % re.escape(n), out, re.M)
+            if cli._gone_cmd(n) and known:       # doc/manual/api.md: out of completion
+                bad.append("phosphor completion %s still offers deprecated `%s`" % (shell, n))
+            elif not cli._gone_cmd(n) and not known:
                 bad.append("phosphor completion %s doesn't know `%s`" % (shell, n))
 
 if bad:

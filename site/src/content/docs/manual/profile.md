@@ -42,15 +42,18 @@ The keys they know are the ones in the tables below (tabs.d files too).
 | connect | "ssh" | how other computers attach: ssh (mouse, touch) or mosh |
 | web | false | the deck in a browser, tailnet only (`phosphor web on`) |
 | web_port | 8443 | the HTTPS port tailscale serve publishes it on |
-| notifier | false | floating adjutant on every tab; off by default -- see notifier below |
+| notifier | false | floating adjutant on every tab; deprecated, goes in 2.1.0 -- see notifier below |
 | graphs | "braille" | "blocks" draws the graphs with block characters, for fonts without Braille |
 | face | "" | adjutant face (see `phosphor face`) |
 | splash | true | a second of warm-up on the way in (any key skips it; never on paper, or when the same screen reconnects within a minute) |
-| notify_seconds | 8 | how long a floating notice stays (notifier = true) |
+| notify_seconds | 8 | how long a floating notice stays (notifier = true); deprecated with it |
 | demo | false | fleet fakes its readings instead of polling ssh (what `phosphor demo` sets) |
 | tour | false | a guide in a floating pane on every tab (what `phosphor demo --tour` sets; demo only) |
 
 `notifier` opens a floating pane per tab for `phosphor notify`'s toast. It's
+deprecated since 1.9.3 and goes in 2.1.0, with `notify_seconds`
+(`phosphor migrate` drops both lines): the tab mark and `[push]` below
+say the same without floating panes. It was
 off by default: zellij 0.45's screen thread froze twice in real use, both
 times right after `hide-floating-panes -t` ran across every tab -- shown or
 not -- to clear the toast. No isolated repro exists for the freeze itself
@@ -102,7 +105,7 @@ and `panes`, a list of pane specs:
 
 | key | what |
 |---|---|
-| cmd | the program (`phosphor pulse`, `yazi`, …); empty: a shell |
+| cmd | the program (`phosphor fleet`, `yazi`, …); empty: a shell |
 | args | its arguments (`@...` tokens expand, see above) |
 | ssh | a machine to ssh into instead of a program |
 | reconnect | ssh panes: retry when the link drops (default true) |
@@ -377,7 +380,7 @@ which kind it is.
 | land | the first | the tab you arrive on |
 | theme | the deck's | p31, p3, p4, ega, paper |
 | graphs | the deck's | braille or blocks |
-| skip | none | panes left out of its tabs, by their `cmd` (`["phosphor pulse"]`): a screen too small or too slow for them; a tab left with none goes too |
+| skip | none | panes left out of its tabs, by their `cmd` (`["phosphor adjutant"]`): a screen too small or too slow for them; a tab left with none goes too |
 
     [screens.phone]
     tabs = ["SYS", "NOTES"]

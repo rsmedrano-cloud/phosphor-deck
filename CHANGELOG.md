@@ -6,6 +6,15 @@ before it updates.
 
 ## Unreleased
 
+## 1.9.3 — pulse and the floating notice, on their way out
+
+- Deprecated, going in 2.1.0: `phosphor pulse` (`phosphor fleet` shows the
+  same load, per host, with its history) and `[deck] notifier` with
+  `notify_seconds`, the floating notice that was off by default since it
+  froze zellij -- a notice already marks its tab (`<TAB> ●N`) and goes to
+  your phone with `[push]`. Using any of them prints a warning saying so,
+  and `phosphor migrate` (profile version 3) drops the two lines.
+
 ## 1.9.2 — what's promised
 
 - A new manual page, `phosphor help api`, says what Phosphor promises to

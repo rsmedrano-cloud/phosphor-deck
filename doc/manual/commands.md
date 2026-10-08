@@ -142,9 +142,10 @@
   profile points it at a folder you already sync (Obsidian, Syncthing, git) -- see profile.
 
 ## In the deck
-- `phosphor fleet`, `phosphor adjutant`, `phosphor prom`, `phosphor ci`, `phosphor services`, `phosphor pulse` — the SYS panels; adjutant watches the fleet's health alongside listening for events, prom draws your Prometheus queries, ci draws your GitLab/GitHub pipeline statuses,
+- `phosphor fleet`, `phosphor adjutant`, `phosphor prom`, `phosphor ci`, `phosphor services` — the SYS panels; adjutant watches the fleet's health alongside listening for events, prom draws your Prometheus queries, ci draws your GitLab/GitHub pipeline statuses,
   services lists systemd units and their state (see `[prometheus]`, `[ci]` and `[services]` in profile; `--once` prints one frame;
-  `fleet --json` and `services --json` print their readings as JSON, see below).
+  `fleet --json` and `services --json` print their readings as JSON, see below). `phosphor pulse`, a wave
+  tied to the load, is deprecated and goes in 2.1.0: `phosphor fleet` shows the same load per host.
   services also opens from the `+` menu and with `y` in the DECK tab; on a terminal, pick a unit: `l` its logs,
   `r` restart it, `s` start or stop it, each asking first (see `[services]` in profile).
   `fleet` also calls `phosphor notify` itself when a host's ok/not-ok flips (down, or back) -- at most once a minute per host even if the link flaps.

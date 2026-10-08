@@ -61,7 +61,7 @@ in the profile and it gets a deck of its own, laid out for it:
     graphs = "blocks"                    # default: the deck's
 
     [screens.tablet]
-    skip   = ["phosphor pulse"]          # panes it doesn't need, by their cmd
+    skip   = ["phosphor adjutant"]          # panes it doesn't need, by their cmd
 
     [screens.eink]
     theme  = "paper"
@@ -141,7 +141,7 @@ attached to a deck comes through a relay, that deck's animations drop to
 one frame a second -- every screen of that deck sees the slower pace, since
 zellij sends the same panes to all of them, so give such a screen a kind of
 its own (`[screens.KIND]`) if the others shouldn't share it. `phosphor
-screens` marks it "relay"; `phosphor logs pulse` says when the pace changed.
+screens` marks it "relay"; `phosphor logs adjutant` says when the pace changed.
 `tailscale ping NAME` shows whether a direct path exists at all.
 
 ## Notifications when you're not attached

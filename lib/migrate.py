@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
 import deckconf
 
-CURRENT = 2
+CURRENT = 3
 
 def version(prof):
     """The profile's version: [deck] version, 1 without one."""
@@ -42,28 +42,37 @@ def one_pane(text):
     name = two_panes(_parse(text))
     return keep.put(text, name, keep.block(name, [{"cmd": "phosphor panel"}])) if name else text
 
+def _drop(text, key):
+    """text without [deck]'s `key = ...` line, or unchanged without one."""
+    lines = text.split("\n")
+    start = next((i for i, l in enumerate(lines) if deckconf.header(l) == "[deck]"), None)
+    if start is None:
+        return text
+    end = next((i for i in range(start + 1, len(lines)) if lines[i].lstrip().startswith("[")), len(lines))
+    at = next((i for i in range(start + 1, end) if re.match(r"\s*%s\s*=" % key, lines[i])), None)
+    if at is None:
+        return text
+    del lines[at]
+    return "\n".join(lines)
+
 def tts_table(text):
     """[deck] tts = true was the first place of [tts] enabled."""
     prof = _parse(text)
     deck = prof.get("deck") or {}
     if "tts" not in deck:
         return text
-    lines = text.split("\n")
-    start = next((i for i, l in enumerate(lines) if deckconf.header(l) == "[deck]"), None)
-    if start is None:
-        return text
-    end = next((i for i in range(start + 1, len(lines)) if lines[i].lstrip().startswith("[")), len(lines))
-    at = next((i for i in range(start + 1, end) if re.match(r"\s*tts\s*=", lines[i])), None)
-    if at is None:
-        return text
-    del lines[at]
-    text = "\n".join(lines)
-    if "enabled" not in (prof.get("tts") or {}):
-        text = deckconf.with_key(text, "tts", "enabled", "true" if deck["tts"] is True else "false")
-    return text
+    new = _drop(text, "tts")
+    if new != text and "enabled" not in (prof.get("tts") or {}):
+        new = deckconf.with_key(new, "tts", "enabled", "true" if deck["tts"] is True else "false")
+    return new
+
+def no_notifier(text):
+    """1.9.3: the floating notice is on its way out (doc/manual/api.md)."""
+    return _drop(_drop(text, "notifier"), "notify_seconds")
 
 STEPS = [(2, "the DECK tab in one pane: the panel takes the whole tab, its keys are ? in it", one_pane),
-         (2, "[deck] tts moves to [tts] enabled, where it's documented", tts_table)]
+         (2, "[deck] tts moves to [tts] enabled, where it's documented", tts_table),
+         (3, "[deck] notifier and notify_seconds go: a notice marks its tab and goes to [push]", no_notifier)]
 
 # ── planning ──────────────────────────────────────────────────
 def plan(text):

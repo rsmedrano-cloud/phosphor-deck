@@ -13,7 +13,7 @@ on the phone isn't the desktop's).
     land   = "NOTES"                     # the tab you arrive on (default: the first)
     theme  = "paper"                     # default: the deck's
     graphs = "blocks"                    # default: the deck's
-    skip   = ["phosphor pulse"]          # panes left out of its tabs, by their cmd (+ args)
+    skip   = ["phosphor adjutant"]          # panes left out of its tabs, by their cmd (+ args)
 
 The screen says which kind it is when it attaches (`deck --screen phone`,
 written there by `phosphor phone` / `phosphor screen --as KIND`); a kind
@@ -65,7 +65,7 @@ def problems(prof):
             out.append((k, "graphs is braille or blocks"))
         if v.get("skip") is not None and not (isinstance(v["skip"], list)
                                               and all(isinstance(c, str) for c in v["skip"])):
-            out.append((k, 'skip is a list of commands: ["phosphor pulse"]'))
+            out.append((k, 'skip is a list of commands: ["phosphor adjutant"]'))
     return out
 
 

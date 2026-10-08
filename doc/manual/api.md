@@ -67,3 +67,8 @@ the same list):
 
 - `[deck] tts`, since 1.9.2, goes in 2.1.0: use `[tts] enabled`
   (`phosphor migrate` moves it).
+- `[deck] notifier`, since 1.9.3, goes in 2.1.0: nothing, a notice marks
+  its tab and goes to `[push]` (`phosphor migrate` drops the line).
+- `[deck] notify_seconds`, since 1.9.3, goes in 2.1.0: nothing, it only
+  timed notifier's floating notice.
+- `phosphor pulse`, since 1.9.3, goes in 2.1.0: use `phosphor fleet`.

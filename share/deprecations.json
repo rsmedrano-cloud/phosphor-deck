@@ -11,6 +11,15 @@
   "deprecated": [
     {"kind": "key", "table": "deck", "name": "tts",
      "since": "1.9.2", "remove": "2.1.0",
-     "use": "[tts] enabled (phosphor migrate moves it)"}
+     "use": "[tts] enabled (phosphor migrate moves it)"},
+    {"kind": "key", "table": "deck", "name": "notifier",
+     "since": "1.9.3", "remove": "2.1.0",
+     "use": "the tab mark (<TAB> ●N) and [push], which every notice already gets (phosphor migrate drops the line)"},
+    {"kind": "key", "table": "deck", "name": "notify_seconds",
+     "since": "1.9.3", "remove": "2.1.0",
+     "use": "nothing, it only timed notifier's floating notice (phosphor migrate drops the line)"},
+    {"kind": "command", "name": "pulse",
+     "since": "1.9.3", "remove": "2.1.0",
+     "use": "phosphor fleet (the same load, per host, with history)"}
   ]
 }
