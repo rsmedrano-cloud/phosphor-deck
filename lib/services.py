@@ -15,6 +15,7 @@ sudo for a read-only status); prefix it "user:" for one of yours.
 
     phosphor services           the panel, redrawn every interval
     phosphor services --once    one frame on stdout
+    phosphor services --json    the same units as JSON
 
 On a terminal the panel is also a picker: j/k or a tap picks a unit, `l`
 reads its logs, `r` restarts it and `s` starts or stops it -- both ask
@@ -25,7 +26,7 @@ import os, shutil, subprocess, sys, time
 from concurrent.futures import ThreadPoolExecutor
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from ui import DIM, MUTE, PH, AMB, RED, RULE, RST, FG, vlen, vcut, pad, topbar
+from ui import DIM, MUTE, PH, AMB, RED, RULE, RST, FG, vlen, vcut, pad, topbar, emit
 
 INV = "\x1b[7m"
 import deckconf, gen, tui
@@ -117,6 +118,21 @@ def fetch(units):
 
 def all_units(prof):
     return [("user", n) for n in phosphor_units(prof)] + extra_units(prof)
+
+
+def as_json(results):
+    """--json: one record per unit, the panel's tag as `state`."""
+    out = []
+    for scope, name, info in results:
+        try:
+            mem = int(info.get("MemoryCurrent", ""))
+        except ValueError:
+            mem = None
+        out.append({"unit": name, "scope": scope, "state": classify(info)[1],
+                    "load": info.get("LoadState") or None, "active": info.get("ActiveState") or None,
+                    "sub": info.get("SubState") or None,
+                    "memory": mem if mem and mem > 0 else None})
+    return {"units": out}
 
 
 def lines(results, w, sel=None):
@@ -234,6 +250,8 @@ def panel(prof):
 def main():
     prof, _ = deckconf.load()
     interval = settings(prof)
+    if "--json" in sys.argv:
+        return emit(as_json(fetch(all_units(prof))))
     if "--once" in sys.argv:
         cols = shutil.get_terminal_size((80, 24)).columns
         print("\n".join(frame(prof, cols, 10000)))

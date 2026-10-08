@@ -194,6 +194,9 @@ out=$(python3 tests/qr-check.py 2>&1) && ok || bad "$(printf '%s\n' "$out" | tai
 step "deck logs: crash, hang, trace"
 out=$(python3 tests/log-check.py 2>&1) && ok || bad "$out"
 
+step "--json on the read-only commands"
+out=$(python3 tests/json-check.py 2>&1) && ok || bad "$out"
+
 step "TTS notifications and voices"
 out=$(python3 tests/tts-check.py 2>&1) && ok || bad "$out"
 

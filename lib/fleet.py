@@ -357,6 +357,43 @@ def read_cache():
     except (OSError, ValueError, AttributeError):
         return 0, {}
 
+def reading(d):
+    """One host's poll as --json shows it: collect.sh's raw keys named and
+    typed, None where that machine doesn't say. Trusts no type, like
+    health.sensors(): fleet.json can come from either poller, of any age."""
+    if d is None:
+        return None
+    def num(v, f=int):
+        try: return f(v)
+        except (TypeError, ValueError): return None
+    if not d.get("ok"):
+        return {"ok": False, "error": d.get("err") or "unreachable", "ms": num(d.get("ms"))}
+    temp, bat, smart = sensors(d)
+    upd = updates(d)
+    ctr = d.get("ctr") or None
+    load = [num(x, float) for x in str(d.get("LOAD") or "").split()]
+    return {"ok": True, "ms": num(d.get("ms")), "cpu": num(d.get("CPU")),
+            "memory": {"used_mb": num(d.get("MEMU")), "total_mb": num(d.get("MEMT"))},
+            "load": load or None, "uptime": d.get("UP") or None,
+            "disks": [{"mount": m[0], "pct": num(m[1]), "size": m[2]} for m in d.get("mnt") or [] if len(m) == 3],
+            "containers": {"engine": ctr[0], "running": num(ctr[1]), "exited": num(ctr[2])}
+                          if ctr and len(ctr) == 3 else None,
+            "gpus": [{"name": g.get("name") or None, "util": num(g.get("util")), "used_mb": num(g.get("used")),
+                      "total_mb": num(g.get("total")), "temp": num(g.get("temp"))} for g in d.get("gpu") or []],
+            "failed_units": num(d.get("SVCFAIL")), "reboot": bool(d.get("REBOOT")), "temp": temp,
+            "battery": {"pct": bat[0], "status": bat[1] or None} if bat else None,
+            "smart": {"failing": smart[0], "checked": smart[1]} if smart else None,
+            "updates": {"pending": upd[0], "security": upd[1]} if upd else None}
+
+def as_json(hosts, now=None):
+    """--json: every profile host's latest poll, straight from fleet.json
+    (null before its first); `stale` when nobody has written it for 90s
+    (the deck's fleet isn't running), glance's own threshold. Polls nothing."""
+    t, state = read_cache()
+    age = int((now or time.time()) - t) if t else None
+    return {"t": int(t) or None, "age": age, "stale": age is None or age > 90,
+            "hosts": {name: reading(state.get(name)) for name, _ in hosts}}
+
 def read_state():
     return read_cache()[1]
 
@@ -698,6 +735,8 @@ def main():
     prof = deckconf.load()[0]
     HOSTS = deckconf.fleet_hosts(prof)
     DEMO = bool(((prof or {}).get("deck") or {}).get("demo", False))
+    if "--json" in sys.argv[1:]:
+        return emit(as_json(HOSTS))
 
     # A kind of screen's own session (deck-phone) only reads fleet.json: the
     # deck's fleet polls and sweeps the mounts, once, not once per screen.

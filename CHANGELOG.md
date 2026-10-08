@@ -6,6 +6,15 @@ before it updates.
 
 ## Unreleased
 
+## 1.8.1 — --json on every read-only listing
+
+- `--json` on every read-only listing: `phosphor fleet`, `services`, `containers`,
+  `screens`, `mem`, `security`, `tunnel`, `version` and `workspace list` print the same
+  data as one JSON object, like `glance --json` already did. Scripts, gadgets and the
+  assistants in your panes read that instead of colored text. `fleet --json` reads the
+  fleet's last readings and polls nothing; `security --json` exits 2 or 1 like the audit.
+  The keys of each one are in `phosphor help commands` ("For scripts: --json").
+
 ## 1.8.0 — profiles that grow, one set of limits, the brain's own backup
 
 - A table header written with spaces or a trailing comment (`[deck]   # mine`,

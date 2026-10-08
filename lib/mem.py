@@ -3,6 +3,7 @@
 
     phosphor mem           the panel: heaviest tab first, every 5s; j/k scroll, q leaves
     phosphor mem --once    the same, printed once
+    phosphor mem --json    the same numbers as JSON (bytes)
 
 A pane is everything it started: zellij puts ZELLIJ_SESSION_NAME and
 ZELLIJ_PANE_ID in the environment of every pane, and a process keeps the
@@ -19,7 +20,7 @@ touches a pane or a process.
 """
 import json, os, re, shutil, subprocess, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from ui import FG, DIM, MUTE, PH, AMB, RED, RULE, RST, BLOOM, getkey, pad, vcut, cut, topbar, HEAD
+from ui import FG, DIM, MUTE, PH, AMB, RED, RULE, RST, BLOOM, getkey, pad, vcut, cut, topbar, HEAD, emit
 import deckconf, proc, reap
 
 EVERY = 5
@@ -151,6 +152,18 @@ def collect(prof):
     return {"base": base, "tabs": tabs, "zellij": zellij, "machine": meminfo()}
 
 
+def as_json(data):
+    """--json: collect()'s numbers, in bytes; `running` is false with no
+    pane of the deck found."""
+    mt, ma = data["machine"]
+    return {"session": data["base"], "running": bool(data["tabs"]),
+            "tabs": [{"tab": tab, "bytes": b,
+                      "panes": [{"pane": t, "bytes": pb, "processes": n} for t, pb, n in ps]}
+                     for tab, b, ps in data["tabs"]],
+            "zellij": data["zellij"],
+            "machine": {"total": mt or None, "available": ma or None}}
+
+
 def frame(data, cols, rows=None, off=0):
     """The screen's lines (all of them; the caller scrolls)."""
     w = min(cols, 100)
@@ -183,6 +196,8 @@ def frame(data, cols, rows=None, off=0):
 
 def main():
     prof = deckconf.load()[0] or {}
+    if "--json" in sys.argv[1:]:
+        return emit(as_json(collect(prof)))
     if "--once" in sys.argv[1:] or not sys.stdin.isatty():
         print("\n".join(frame(collect(prof), shutil.get_terminal_size((80, 24)).columns)))
         return 0

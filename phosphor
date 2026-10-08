@@ -90,6 +90,8 @@ USAGE = """phosphor - Phosphor Deck
     phosphor trace T    verbose logging for one tool, for about 30 minutes
 
     phosphor completion bash|zsh   tab completion for your shell
+    --json   on fleet, services, containers, screens, mem, security, tunnel,
+             version, workspace list, glance: the same data as JSON, for scripts
 
     phosphor update [DIR]         newer version: get it, install it, restart
     phosphor update --channel nightly|stable   follow dev (nightly) or releases

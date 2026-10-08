@@ -4,6 +4,8 @@
     phosphor version --check     ask the source now (a git clone: git fetch)
     phosphor version --notes     what this version brought
     phosphor version --new       what a newer one brings, before you update
+    phosphor version --json      this version and the last check, as JSON
+                                 (with --check: a check first)
 
 A copy without .git can't ask anyone: `phosphor update FOLDER` with a newer
 copy is how it moves. The check runs at most every few hours, in the
@@ -159,6 +161,10 @@ def main():
         return 0
     cur = current()
     res = check() if "--check" in sys.argv[1:] else cached()
+    if "--json" in sys.argv[1:]:
+        return emit(dict(cur, installed=REPO, news=news() or None,
+                         check={"checked": int(res["checked"]) if res.get("checked") else None,
+                                "behind": res.get("behind"), "latest": res.get("latest")}))
     if quiet:
         return 0
     print()

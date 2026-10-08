@@ -10,6 +10,7 @@ to change that) doesn't need you to walk over to it and detach it by hand.
     phosphor screens           the panel: j/k or a tap picks, x kicks, o changes
                                its kind's deck (both ask y/n first), r refreshes
     phosphor screens --list    the same, printed once, no picker
+    phosphor screens --json    the same list as JSON
 
 `o` on a screen in a deck of its own ([screens.KIND]) takes that block out
 of the profile, so every screen of that kind shares the deck again; on a
@@ -30,7 +31,7 @@ few-second reconnect as any other.
 """
 import os, re, signal, subprocess, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from ui import FG, DIM, PH, RST, pad, topbar
+from ui import FG, DIM, PH, RST, pad, topbar, emit
 import deckconf, proc, tui
 
 INV = "\x1b[7m"
@@ -319,6 +320,12 @@ class Panel(tui.ListPanel):
 
 def main():
     prof, _ = deckconf.load()
+    if "--json" in sys.argv[1:]:
+        p = Panel(prof)
+        rows = p.fetch()
+        return emit({"session": p.base, "problem": p.problem or None,
+                     "screens": [dict(r, said=r["said"] or None, relay=bool(p.link(r))) for r in rows]},
+                    1 if p.problem else 0)
     if "--list" in sys.argv[1:] or not sys.stdin.isatty():
         p = Panel(prof)
         rows = p.fetch()

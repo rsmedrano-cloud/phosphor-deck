@@ -269,8 +269,7 @@ def main():
     if a and a[0] in ("-h", "--help"):
         print(SERVE_USAGE); return 0
     if "--json" in a:
-        print(json.dumps(payload(), indent=2))
-        return 0
+        return ui.emit(payload())
     if "--serve" in a:
         port = PORT
         if "--port" in a:

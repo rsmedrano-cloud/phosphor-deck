@@ -10,6 +10,7 @@ other users can reach them too; and this machine keeps a key that logs into
 those hosts.
 
     phosphor tunnel              list them (on a terminal: pick one to toggle)
+    phosphor tunnel --json       the same list as JSON
     phosphor tunnel on HOST      keep HOST's tunnels up
     phosphor tunnel off HOST     stop them and forget them
 """
@@ -124,17 +125,31 @@ def gen_quiet():
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 # ── commands ─────────────────────────────────────────────────
-def show():
+def listing():
+    """Every host with forwards or kept up: its state (up, down, or off when
+    it isn't kept) and its forwards, `listening` checked only for a kept one."""
     prof, _ = deckconf.load()
     fw, keep = ssh_config_forwards(), {t["host"] for t in kept(prof)}
-    if not fw and not keep:
-        print("  " + DIM + "no LocalForward lines in ~/.ssh/config: nothing to keep up" + RST); return 0
+    out = []
     for host in sorted(set(fw) | keep):
-        state = ("up" if active(host) else "down") if host in keep else "off"
-        print(row(OK if state == "up" else (BAD if state == "down" else DIM + "·" + RST), host, state))
-        for local, target, label in fw.get(host, []):
-            mark = (OK if listening(local) else BAD) if host in keep else " "
-            print("      %s %s → %s%s" % (mark, PH + local + RST, target, DIM + ("  " + label if label else "") + RST))
+        on_ = host in keep
+        out.append({"host": host, "state": ("up" if active(host) else "down") if on_ else "off",
+                    "forwards": [{"local": local, "target": target, "label": label or None,
+                                  "listening": listening(local) if on_ else None}
+                                 for local, target, label in fw.get(host, [])]})
+    return out
+
+def show():
+    ts = listing()
+    if not ts:
+        print("  " + DIM + "no LocalForward lines in ~/.ssh/config: nothing to keep up" + RST); return 0
+    for t in ts:
+        state = t["state"]
+        print(row(OK if state == "up" else (BAD if state == "down" else DIM + "·" + RST), t["host"], state))
+        for f in t["forwards"]:
+            mark = " " if f["listening"] is None else (OK if f["listening"] else BAD)
+            print("      %s %s → %s%s" % (mark, PH + f["local"] + RST, f["target"],
+                                         DIM + ("  " + f["label"] if f["label"] else "") + RST))
     return 0
 
 def on(host):
@@ -187,6 +202,7 @@ def main():
     a = sys.argv[1:]
     if a[:1] == ["on"] and len(a) > 1: return on(a[1])
     if a[:1] == ["off"] and len(a) > 1: return off(a[1])
+    if "--json" in a: return emit({"tunnels": listing()})
     if not a and sys.stdin.isatty(): return interactive()
     return show()
 

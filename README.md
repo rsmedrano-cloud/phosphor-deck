@@ -103,6 +103,10 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
   units -- Phosphor's own plus any of your homelab's you add -- colored by
   state, in the SYS tab. Pick one to read its logs, restart, start or stop it
   (it asks first).
+- **JSON for scripts and assistants.** Every read-only listing (`fleet`,
+  `services`, `containers`, `screens`, `mem`, `security`, `tunnel`, `version`,
+  `workspace list`, `glance`) takes `--json` and prints the same data as one
+  JSON object: no colored text to scrape.
 - **Containers, from the fleet.** `c` over a machine's card in FLEET (or
   `phosphor containers HOST`) lists its docker or podman containers, a failed
   one in red: read its logs, restart it, start or stop it (it asks first),

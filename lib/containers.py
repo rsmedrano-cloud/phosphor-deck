@@ -4,6 +4,7 @@
     phosphor containers [HOST]          the panel (HOST: a name from the profile;
                                         none: this machine)
     phosphor containers HOST --once     one frame on stdout
+    phosphor containers HOST --json     the same list as JSON
 
 Docker, or podman when docker isn't there or doesn't answer -- the same
 engine FLEET's card counts. Listed over ssh (BatchMode, a key, never a
@@ -20,7 +21,7 @@ when it looks like a container name.
 import os, re, shlex, shutil, subprocess, sys, time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from ui import DIM, MUTE, PH, AMB, RED, RST, FG, vlen, pad, topbar
+from ui import DIM, MUTE, PH, AMB, RED, RST, FG, vlen, pad, topbar, emit
 import deckconf, proc, tui
 from sanitize import clean, clean_text
 
@@ -137,6 +138,14 @@ def classify(state, status):
 def since(status):
     """"Up 3 days" -> "3 days"; "Exited (1) 40 minutes ago" -> "40 minutes ago"."""
     return re.sub(r"^(Up|Exited \(-?\d+\))\s*", "", status)
+
+
+def as_json(name, engine, rows, problem):
+    """--json: the host, its engine and one record per container; `problem`
+    is null when the list is good."""
+    return {"host": name, "engine": engine or None, "problem": problem or None,
+            "containers": [{"name": n, "state": st, "tag": classify(st, status)[1], "status": status,
+                            "image": image, "exit": exit_code(status)} for n, st, status, image in rows]}
 
 
 def lines(rows, w, sel=None):
@@ -260,6 +269,9 @@ def main():
         return 2
     name, target = got
     demo = bool(((prof or {}).get("deck") or {}).get("demo", False))
+    if "--json" in sys.argv:
+        engine, rows, problem = fetch(name, target, demo)
+        return emit(as_json(name, engine, rows, problem), 1 if problem else 0)
     if "--once" in sys.argv:
         cols = shutil.get_terminal_size((80, 24)).columns
         print("\n".join(frame(name, target, cols, 10000, demo)))

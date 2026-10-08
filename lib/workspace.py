@@ -10,6 +10,7 @@
         --folder-only                  write the folder, don't touch the profile or tabs
     phosphor workspace open NAME       its tab (from inside the deck)
     phosphor workspace list            the workspaces under your projects folder
+    phosphor workspace list --json     the same, with each one's git state, as JSON
     phosphor workspace rm NAME [--yes] its tab out of the profile (and closed), its folder
                                        into the trash (~/.local/share/phosphor/trash)
     phosphor workspace                 on a terminal: every workspace and its git state
@@ -331,9 +332,15 @@ def names():
     except FileNotFoundError:
         return []
 
-def listing():
+def listing(as_json=False):
     r = root()
     ns = names()
+    if as_json:
+        def git(st):
+            return None if st is None else dict(zip(("dirty", "ahead", "behind"), st))
+        return emit({"root": r, "workspaces": [
+            {"name": n, "path": os.path.join(r, n), "git": git(git_status(os.path.join(r, n)))}
+            for n in ns]})
     if not ns:
         print("  no workspaces in %s yet: phosphor workspace new" % tilde(r)); return 0
     for n in ns:
@@ -568,7 +575,7 @@ def main():
     argv = sys.argv[1:]
     if not argv and sys.stdin.isatty() and sys.stdout.isatty():
         return panel()
-    sub = argv[0] if argv else "list"
+    sub = argv[0] if argv and argv[0] != "--json" else "list"
     if sub == "new":
         pause = "--pause-on-error" in argv            # the + menu: its tab would vanish with the error
         rc = new([x for x in argv[1:] if x != "--pause-on-error"])
@@ -579,7 +586,7 @@ def main():
     if sub == "open" and len(argv) > 1:
         open_tab(slug(argv[1])); return 0
     if sub == "list":
-        return listing()
+        return listing("--json" in argv)
     if sub in ("rm", "remove"):
         return rm(argv[1:])
     print(__doc__); return 1

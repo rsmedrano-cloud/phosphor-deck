@@ -3,7 +3,7 @@
 ## Getting started
 - `phosphor doctor` — check this machine: systemd, FUSE, locales, binaries, fleet reach, and
   profile keys it doesn't know (a typo, a key in the wrong table).
-- `phosphor security [--local]` — how exposed the deck is, where doctor says whether it works. Read-only:
+- `phosphor security [--local] [--json]` — how exposed the deck is, where doctor says whether it works. Read-only:
   each finding says what to run, nothing is changed. The profile and its backups (writable by
   anyone else, or readable while they hold a token or a public ntfy topic), `~/.ssh` and its
   private keys, the folders that decide what the deck runs; every fleet host's ssh server, the
@@ -65,7 +65,7 @@
   A copy remembers FOLDER, so next time plain `phosphor update` goes back there.
   `--channel nightly` follows dev (what's done, not yet released); `--channel stable` goes back to
   releases. `phosphor version` and the DECK tab say which one you're on.
-- `phosphor version` (or `--version`) — this version and commit, and whether a newer one exists;
+- `phosphor version [--json]` (or `--version`) — this version and commit, and whether a newer one exists;
   `--check` asks now (a clone does `git fetch`; every few hours the DECK tab asks by itself
   and shows "new version: u").
   `--notes` shows what this version brought, `--new` what a newer one brings (from CHANGELOG.md).
@@ -143,7 +143,8 @@
 
 ## In the deck
 - `phosphor fleet`, `phosphor adjutant`, `phosphor prom`, `phosphor ci`, `phosphor services`, `phosphor pulse` — the SYS panels; adjutant watches the fleet's health alongside listening for events, prom draws your Prometheus queries, ci draws your GitLab/GitHub pipeline statuses,
-  services lists systemd units and their state (see `[prometheus]`, `[ci]` and `[services]` in profile; `--once` prints one frame).
+  services lists systemd units and their state (see `[prometheus]`, `[ci]` and `[services]` in profile; `--once` prints one frame;
+  `fleet --json` and `services --json` print their readings as JSON, see below).
   services also opens from the `+` menu and with `y` in the DECK tab; on a terminal, pick a unit: `l` its logs,
   `r` restart it, `s` start or stop it, each asking first (see `[services]` in profile).
   `fleet` also calls `phosphor notify` itself when a host's ok/not-ok flips (down, or back) -- at most once a minute per host even if the link flaps.
@@ -169,7 +170,7 @@
   deck's own fleet keeps it, from the readings it already has -- nothing new runs on the hosts: every
   5 minutes, each host's peaks of that window go into `~/.cache/phosphor/history.json`, a day's worth,
   and only while the deck runs (a gap where it didn't).
-- `phosphor containers [HOST] [--once]` — a host's containers (docker, or podman where docker isn't
+- `phosphor containers [HOST] [--once | --json]` — a host's containers (docker, or podman where docker isn't
   there or doesn't answer -- the engine its FLEET card counts), running first, an exit that wasn't 0
   in red; no `HOST` means this machine. Listed over ssh the same way FLEET reaches it (a key, never
   a password prompt). On a terminal, pick one (j/k or a tap): `l` reads its last 300 log lines, `r`
@@ -207,7 +208,7 @@
   you're inside the deck -- your working copy is never touched, same spirit as `tests/mrs-check.py`;
   `x` drops that worktree (after a y/n: anything changed there is lost). `r` refreshes the
   list, which also refreshes on its own once a minute; rows and keys answer a tap.
-- `phosphor screens` — who's attached (phone, tablet, another computer): where each is from and
+- `phosphor screens [--list | --json]` — who's attached (phone, tablet, another computer): where each is from and
   how long it's been idle, `x` kicks one loose, `o` changes its kind's deck (see
   screens) -- both ask y/n first -- and `r` refreshes; a tap picks a row or presses a key. A kick just ends that one
   ssh connection -- its own `deck` wrapper (see screens) notices and reconnects in a few seconds by
@@ -215,7 +216,7 @@
   smallest attached client, with no setting to change that), not for banning a device. Also `v` in
   the DECK tab. `--list` prints it once, no picker. A screen that reaches the brain through a
   tailscale relay is marked "relay": its deck's animations slow to one frame a second (see screens).
-- `phosphor mem [--once]` — how much memory each tab and pane of the deck takes, heaviest tab
+- `phosphor mem [--once | --json]` — how much memory each tab and pane of the deck takes, heaviest tab
   first, every 5s (j/k scroll, q leaves; also `M` in the DECK tab). A pane counts everything it
   started -- an assistant's workers, a shell's children -- since every process keeps the
   `ZELLIJ_PANE_ID` zellij gave its pane; each kind of screen's own deck shows under its name
@@ -331,7 +332,7 @@
   reboot). On a terminal it asks before each next host; with `--yes` it goes on by itself while
   they keep answering 0. With nothing at all, on a terminal, it asks: the hosts to tick, the
   command, all at once or one at a time, then the same confirmation.
-- `phosphor tunnel [on|off HOST]` — keep your ssh config's LocalForward tunnels up.
+- `phosphor tunnel [on|off HOST | --json]` — keep your ssh config's LocalForward tunnels up.
 - `phosphor face IMAGE [--name N] [--w 24] [--h 13] [--half] [--mode thr|dither|edge]`. No `IMAGE`, on a
   terminal: it asks which, listing only images. Needs ImageMagick (`convert`).
   `phosphor face IMAGE --bitmap [--closed IMAGE] [--px 96] [--crop WxH+X+Y]` keeps the picture as a
@@ -351,6 +352,33 @@
   off after about 30 minutes, or sooner with `phosphor trace off TOOL`. No `TOOL`: lists whatever is
   tracing right now, and on a terminal `t` starts one (the tools deck.log has lines for) and `x`
   stops one.
+
+## For scripts: --json
+Every read-only listing prints its data once as one JSON object with `--json`: no color, no
+screen codes, the same answers the panel shows. Scripts, gadgets and the assistants in your panes
+read that instead of scraping colored text. Nothing in it writes or restarts anything.
+
+- `phosphor fleet --json` — every host's latest readings, from the fleet's own cache (it polls
+  nothing): `t`, `age` and `stale` (no reading for 90s: the deck's fleet isn't running), and
+  `hosts`, one per profile host (null before its first poll) with `ok`, `cpu`, `memory`, `load`,
+  `uptime`, `disks`, `containers`, `gpus`, `failed_units`, `reboot`, `temp`, `battery`, `smart`
+  and `updates`, or `ok: false` and its `error`.
+- `phosphor glance --json` — the four questions with a `status` light (see above).
+- `phosphor services --json` — `units`: `unit`, `scope`, `state` (the panel's word), `load`,
+  `active`, `sub`, `memory` in bytes.
+- `phosphor containers [HOST] --json` — `host`, `engine`, `problem` (null when the list is good;
+  exit 1 otherwise) and `containers`: `name`, `state`, `tag`, `status`, `image`, `exit`.
+- `phosphor screens --json` — `session` and `screens`: `tty`, `from`, `login`, `idle`, `pid`,
+  `session`, `said` (the kind it came in as), `relay`.
+- `phosphor mem --json` — `session`, `running`, `tabs` (each with its `panes`, in bytes),
+  `zellij` and `machine` (`total`, `available`).
+- `phosphor security [--local] --json` — `sections`, each a `title` and its `findings`: `level`
+  (ok, warn, bad, skip), `label`, `value`, `fix`. Exits 2 or 1 like the audit itself.
+- `phosphor tunnel --json` — `tunnels`: `host`, `state` (up, down, off) and its `forwards`.
+- `phosphor version --json` — `version`, `commit`, `branch`, `channel`, `installed`, `news` and
+  the last `check` (`--check` asks first).
+- `phosphor workspace list --json` — `root` and `workspaces`: `name`, `path`, `git` (`dirty`,
+  `ahead`, `behind`).
 
 ## Before you push a fork
 - `phosphor demo` — a throwaway session over made-up machines and a made-up notebook, for a

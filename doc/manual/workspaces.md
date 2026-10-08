@@ -97,7 +97,8 @@ hand, same as any other git repo.
   `[--brief FILE | --note TEXT] [--folder-only]` — `--note` takes the note whose title contains TEXT;
   `--folder-only` writes the folder and leaves the profile and tabs alone (an assistant can use it).
 - `phosphor workspace open NAME` — go to its tab, or open it (inside the deck).
-- `phosphor workspace list` — the workspaces in your projects folder.
+- `phosphor workspace list [--json]` — the workspaces in your projects folder (`--json`: with
+  each one's git state).
 - `phosphor workspace rm NAME [--yes]` — done with one: its tab out of your profile (and closed,
   if it's open in the deck), its folder moved into `~/.local/share/phosphor/trash/NAME-DATE`
   instead of deleted -- a dirty one still has work in it, so getting it back is moving that

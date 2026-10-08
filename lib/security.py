@@ -17,6 +17,7 @@ Each finding says what to run; nothing is changed here.
 
     phosphor security            the whole audit
     phosphor security --local    the brain only, no ssh to the fleet
+    phosphor security --json     the same findings as JSON (--local works too)
 """
 import concurrent.futures, fnmatch, glob, grp, json, os, pwd, re, shutil, stat, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -434,13 +435,9 @@ def show(title, rows, w, fixes):
             fixes.append(lvl)
 
 
-def run(prof, profile_path, local_only=False):
-    w = width()
-    fixes = []
-    print()
-    print(BLOOM + "  PHOSPHOR DECK · security" + RST)
-    print(DIM + "  the brain holds keys to every machine: how far does it reach, and who else does" + RST)
-    show("this brain's files", check_files(prof, profile_path), w, fixes)
+def audit(prof, profile_path, local_only=False):
+    """[(section title, [(level, label, value, fix)])], and whether it's the
+    demo (its machines aren't real: only this one is checked)."""
     demo = bool(((prof or {}).get("deck") or {}).get("demo", False))
     hosts = [] if demo else deckconf.fleet_hosts(prof)
     if local_only:
@@ -450,14 +447,36 @@ def run(prof, profile_path, local_only=False):
     import containers
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as ex:
         res = list(ex.map(lambda nt: containers.run(nt[1], SSHD_SCRIPT, timeout=25), hosts))
-    rows = []
+    sshd = []
     for (name, target), (rc, out) in zip(hosts, res):
-        rows += check_sshd(name, out, rc, target is None)
-    show("ssh servers", rows, w, fixes)
-    if demo:
-        print("      " + DIM + "the demo's machines aren't real: only this one is checked" + RST)
-    show("network", check_network(prof), w, fixes)
-    show("control sockets", check_sockets(), w, fixes)
+        sshd += check_sshd(name, out, rc, target is None)
+    return [("this brain's files", check_files(prof, profile_path)), ("ssh servers", sshd),
+            ("network", check_network(prof)), ("control sockets", check_sockets())], demo
+
+
+def code(sections):
+    """The exit code: 2 with something to fix, 1 with something worth a look."""
+    lvls = [r[0] for _, rows in sections for r in rows]
+    return 2 if BAD_ in lvls else (1 if WARN_ in lvls else 0)
+
+
+def as_json(sections):
+    return emit({"sections": [{"title": t, "findings": [
+        {"level": lvl, "label": label, "value": value, "fix": fix or None} for lvl, label, value, fix in rows]}
+        for t, rows in sections]}, code(sections))
+
+
+def run(prof, profile_path, local_only=False):
+    w = width()
+    fixes = []
+    print()
+    print(BLOOM + "  PHOSPHOR DECK · security" + RST)
+    print(DIM + "  the brain holds keys to every machine: how far does it reach, and who else does" + RST)
+    sections, demo = audit(prof, profile_path, local_only)
+    for title, rows in sections:
+        show(title, rows, w, fixes)
+        if demo and title == "ssh servers":
+            print("      " + DIM + "the demo's machines aren't real: only this one is checked" + RST)
     print("\n" + rule("summary", w))
     bad, warn = fixes.count(BAD_), fixes.count(WARN_)
     if not bad and not warn:
@@ -467,11 +486,13 @@ def run(prof, profile_path, local_only=False):
               (RED if bad else AMB) + "%d to fix, %d worth a look: each says how above" % (bad, warn) + RST))
     print("  " + DIM + "it reads only; the fleet's keys: narrow them with from= in authorized_keys (phosphor help privacy)" + RST)
     print()
-    return 2 if bad else (1 if warn else 0)
+    return code(sections)
 
 
 def main():
     prof, path = deckconf.load()
+    if "--json" in sys.argv:
+        return as_json(audit(prof, path or deckconf.path(), local_only="--local" in sys.argv)[0])
     return run(prof, path or deckconf.path(), local_only="--local" in sys.argv)
 
 

@@ -223,6 +223,13 @@ def row(sym, label, value, w=None, note=""):
             line += "\n" + " " * 31 + DIM + note + RST
     return line
 
+def emit(obj, rc=0):
+    """What every read-only command's --json prints: one object, no colors,
+    for scripts, gadgets and assistants (glance's shape). Returns rc."""
+    import json
+    print(json.dumps(obj, indent=2, ensure_ascii=False))
+    return rc
+
 def tab_source(cmd):
     """Where the tab running `cmd` comes from, as a line saying how to take it
     out: a recipe, a tabs.d file of your own, or your profile. None if no tab runs it."""

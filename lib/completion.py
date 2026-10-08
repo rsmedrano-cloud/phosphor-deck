@@ -22,7 +22,7 @@ _phosphor() {
     case "$prev" in
         help) COMPREPLY=( $(compgen -W "%(topics)s" -- "$cur") ); return ;;
         web) COMPREPLY=( $(compgen -W "on off status token" -- "$cur") ); return ;;
-        tunnel) COMPREPLY=( $(compgen -W "on off" -- "$cur") ); return ;;
+        tunnel) COMPREPLY=( $(compgen -W "on off --json" -- "$cur") ); return ;;
         push) COMPREPLY=( $(compgen -W "on off --qr" -- "$cur") ); return ;;
         trace) COMPREPLY=( $(compgen -W "off" -- "$cur") ); return ;;
         digest) COMPREPLY=( $(compgen -W "--hours --assistant --print" -- "$cur") ); return ;;
@@ -31,6 +31,8 @@ _phosphor() {
         --voice) COMPREPLY=( $(compgen -W "glados adjutant hal synth system" -- "$cur") ); return ;;
         note|notes) COMPREPLY=( $(compgen -W "--kind --by --book --file --tab --here --archive" -- "$cur") ); return ;;
         workspace) COMPREPLY=( $(compgen -W "new open list rm" -- "$cur") ); return ;;
+        list) COMPREPLY=( $(compgen -W "--json" -- "$cur") ); return ;;
+        fleet|services|containers|screens|mem|security|version|glance) COMPREPLY=( $(compgen -W "--json" -- "$cur") ); return ;;
         --kind) COMPREPLY=( $(compgen -W "note idea decision todo summary" -- "$cur") ); return ;;
         completion) COMPREPLY=( $(compgen -W "bash zsh" -- "$cur") ); return ;;
     esac
@@ -55,7 +57,8 @@ _phosphor() {
     case ${words[2]} in
         help) compadd -- $topics ;;
         web) compadd -- on off status token ;;
-        tunnel) compadd -- on off ;;
+        tunnel) compadd -- on off --json ;;
+        fleet|services|containers|screens|mem|security|version|glance) compadd -- --json ;;
         push) compadd -- on off --qr ;;
         trace) compadd -- off ;;
         digest) compadd -- --hours --assistant --print ;;
