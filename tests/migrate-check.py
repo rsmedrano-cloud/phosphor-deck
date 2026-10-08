@@ -38,6 +38,20 @@ _, n2, _ = migrate.plan('[deck]\ntts = true\n\n[tts]\nenabled = false\n')
 p2 = deckconf.tomllib.loads(n2)
 check("an existing [tts] enabled is kept", p2["tts"]["enabled"] is False and "tts" not in p2["deck"])
 
+# headers written with spaces or a comment are still the same table:
+# no second [deck] (which wouldn't parse), the DECK tab replaced, not added
+COMMENTED = (OLD.replace("[deck]\n", "[deck]   # mine\n", 1)
+                .replace('[[tabs]]\nname  = "DECK"', '[[tabs]]  # the panel\nname  = "DECK"', 1))
+try:
+    s3, n3, _ = migrate.plan(COMMENTED)
+    p3 = deckconf.tomllib.loads(n3)
+except Exception as e:
+    s3, p3 = [], {"deck": {}, "tabs": []}; check("a commented header still parses: %s" % e, False)
+check("commented headers: both steps", len(s3) == 2)
+check("commented headers: one DECK tab, one pane",
+      [[q.get("cmd") for q in t["panes"]] for t in p3["tabs"] if t["name"] == "DECK"] == [["phosphor panel"]])
+check("commented headers: version in the one [deck]", migrate.version(p3) == migrate.CURRENT and "tts" not in p3["deck"])
+
 # nothing to change: only the version, and nobody is nagged about it
 steps, new, _ = migrate.plan('[deck]\nsession = "deck"\n')
 check("a profile with nothing to change has no steps", steps == [])

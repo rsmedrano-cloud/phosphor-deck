@@ -49,7 +49,7 @@ def tts_table(text):
     if "tts" not in deck:
         return text
     lines = text.split("\n")
-    start = next((i for i, l in enumerate(lines) if l.strip() == "[deck]"), None)
+    start = next((i for i, l in enumerate(lines) if deckconf.header(l) == "[deck]"), None)
     if start is None:
         return text
     end = next((i for i in range(start + 1, len(lines)) if lines[i].lstrip().startswith("[")), len(lines))

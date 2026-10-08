@@ -217,9 +217,9 @@ def put(text, name, blk):
     lines = text.split("\n")
     out, i, done = [], 0, False
     while i < len(lines):
-        if lines[i].strip() == "[[tabs]]":
+        if deckconf.header(lines[i]) == "[[tabs]]":
             j = i + 1
-            while j < len(lines) and lines[j].strip() != "[[tabs]]" and not lines[j].lstrip().startswith("["):
+            while j < len(lines) and deckconf.header(lines[j]) != "[[tabs]]" and not lines[j].lstrip().startswith("["):
                 j += 1
             body = "\n".join(lines[i:j])
             if re.search(r'^name\s*=\s*"%s"' % re.escape(name), body, re.M):

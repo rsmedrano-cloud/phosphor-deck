@@ -6,6 +6,13 @@ before it updates.
 
 ## Unreleased
 
+## 1.8.0 — profiles that grow, one set of limits, the brain's own backup
+
+- A table header written with spaces or a trailing comment (`[deck]   # mine`,
+  `[[tabs]]  # the panel`) is the same table to every command that edits the
+  profile: `phosphor migrate` no longer adds a second `[deck]` that wouldn't
+  parse, and keeping a tab replaces it instead of adding it twice.
+
 ## 1.7.3 — the brain's own backup
 
 - `phosphor backup [FILE]` and `phosphor restore FILE`: the brain's own backup. One file

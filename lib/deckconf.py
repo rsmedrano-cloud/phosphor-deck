@@ -105,13 +105,19 @@ def write_profile(new, check=None, expect=None, p=None, keep=True):
         return "can't write the profile: %s" % str(e)[:50]
     return None
 
+def header(line):
+    """A table header as "[deck]" or "[[tabs]]", whatever spaces or trailing
+    comment it was written with; None for any other line."""
+    m = re.match(r"\s*(\[\[?)\s*([\w.-]+)\s*(\]\]?)\s*(#.*)?$", line)
+    return m.group(1) + m.group(2) + m.group(3) if m else None
+
 def with_key(text, section, key, value):
     """The profile's text with `key = value` in [section] (value a TOML
     literal, quoted already): that line replaced, or added first in the
     table, and the table added at the end if it's missing. Nothing written."""
     lines = text.split("\n")
     line = "%s = %s" % (key, value)
-    start = next((i for i, l in enumerate(lines) if l.strip() == "[%s]" % section), None)
+    start = next((i for i, l in enumerate(lines) if header(l) == "[%s]" % section), None)
     if start is None:
         return text.rstrip("\n") + "\n\n[%s]\n%s\n" % (section, line)
     end = next((i for i in range(start + 1, len(lines)) if lines[i].lstrip().startswith("[")), len(lines))

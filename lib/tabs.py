@@ -31,7 +31,7 @@ def spans(text):
     before the next section belong to what follows."""
     lines, out, i = text.split("\n"), [], 0
     while i < len(lines):
-        if lines[i].strip() != "[[tabs]]":
+        if deckconf.header(lines[i]) != "[[tabs]]":
             i += 1; continue
         j = i + 1
         while j < len(lines) and not lines[j].lstrip().startswith("["):

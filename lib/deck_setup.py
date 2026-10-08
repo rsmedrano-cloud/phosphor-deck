@@ -34,7 +34,7 @@ def host_spans(lines):
     first blank line or the next table header."""
     out = []
     for i, l in enumerate(lines):
-        if l.strip() != "[[hosts]]":
+        if deckconf.header(l) != "[[hosts]]":
             continue
         j, name = i + 1, None
         while j < len(lines) and lines[j].strip() and not lines[j].lstrip().startswith("["):
@@ -51,7 +51,7 @@ def add_host_text(text, h):
         at = spans[-1][1]
         lines[at:at] = [""] + host_block(h)
     else:
-        at = next((i for i, l in enumerate(lines) if l.strip() == "[[tabs]]"), len(lines))
+        at = next((i for i, l in enumerate(lines) if deckconf.header(l) == "[[tabs]]"), len(lines))
         lines[at:at] = host_block(h) + [""]
     return "\n".join(lines)
 

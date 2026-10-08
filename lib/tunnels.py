@@ -104,7 +104,7 @@ def add_block(host):
 def remove_block(host):
     p = _profile(); lines = open(p).read().split("\n")
     for i, l in enumerate(lines):
-        if l.strip() == "[[tunnels]]" and i + 1 < len(lines) and \
+        if deckconf.header(l) == "[[tunnels]]" and i + 1 < len(lines) and \
                 re.match(r'\s*host\s*=\s*"%s"\s*$' % re.escape(host), lines[i + 1]):
             j = i + 1
             while j < len(lines) and lines[j].strip() and not lines[j].lstrip().startswith("["):
