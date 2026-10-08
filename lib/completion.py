@@ -3,75 +3,74 @@
     phosphor completion bash >> ~/.bashrc      (or a file you source)
     phosphor completion zsh  >> ~/.zshrc
 
-It completes the commands, and after `help` the manual's topics.
+It completes the commands, then each command's words (a subcommand, or
+after `help` the manual's topics) and flags, and the values of the flags
+that take fixed ones -- all from share/commands.json (lib/cli.py), so a
+new command or flag completes without touching this file.
 """
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from ui import REPO
+import cli
 
-CMDS = ("doctor init setup panel commands phone screen gen up attach deck restart down update version note notes fleet "
-        "edit shortcuts theme tabs keep workspace ask pulse adjutant notify face keys store new mentions clip send receive web tunnel path tail triage broadcast privacy run "
-        "help docs prom logs trace ci recipe tts demo services glance review push screens usage mem containers security digest read migrate backup restore mcp panels")
-# the manual's pages, so a new one completes without touching this file
-TOPICS = " ".join(sorted(f[:-3] for f in os.listdir(os.path.join(REPO, "doc/manual"))
-                         if f.endswith(".md") and f != "README.md"))
 
-BASH = """# phosphor completion (bash) — phosphor completion bash
+def q(words):
+    return " ".join(words)
+
+
+def bash():
+    after, values = cli.completions()
+    vals = "".join('        %s) COMPREPLY=( $(compgen -W "%s" -- "$cur") ); return ;;\n' % (f, q(v))
+                   for f, v in sorted(values.items()))
+    cmds = "".join('        %s) w="%s"; o="%s" ;;\n' % (n, q(w), q(o)) for n, (w, o) in after.items())
+    return """# phosphor completion (bash) — phosphor completion bash
 _phosphor() {
-    local cur=${COMP_WORDS[COMP_CWORD]} prev=${COMP_WORDS[COMP_CWORD-1]}
-    case "$prev" in
-        help) COMPREPLY=( $(compgen -W "%(topics)s" -- "$cur") ); return ;;
-        web) COMPREPLY=( $(compgen -W "on off status token" -- "$cur") ); return ;;
-        tunnel) COMPREPLY=( $(compgen -W "on off --json" -- "$cur") ); return ;;
-        push) COMPREPLY=( $(compgen -W "on off --qr" -- "$cur") ); return ;;
-        trace) COMPREPLY=( $(compgen -W "off" -- "$cur") ); return ;;
-        digest) COMPREPLY=( $(compgen -W "--hours --assistant --print" -- "$cur") ); return ;;
-        read) COMPREPLY=( $(compgen -W "--ask --assistant" -- "$cur") ); return ;;
-        tts) COMPREPLY=( $(compgen -W "install status on off --voice --list" -- "$cur") ); return ;;
-        --voice) COMPREPLY=( $(compgen -W "glados adjutant hal synth system" -- "$cur") ); return ;;
-        note|notes) COMPREPLY=( $(compgen -W "--kind --by --book --file --tab --here --archive" -- "$cur") ); return ;;
-        workspace) COMPREPLY=( $(compgen -W "new open list rm" -- "$cur") ); return ;;
-        list) COMPREPLY=( $(compgen -W "--json" -- "$cur") ); return ;;
-        fleet|services|containers|screens|mem|security|version|glance) COMPREPLY=( $(compgen -W "--json" -- "$cur") ); return ;;
-        --kind) COMPREPLY=( $(compgen -W "note idea decision todo summary" -- "$cur") ); return ;;
-        completion) COMPREPLY=( $(compgen -W "bash zsh" -- "$cur") ); return ;;
-    esac
+    local cur=${COMP_WORDS[COMP_CWORD]} prev=${COMP_WORDS[COMP_CWORD-1]} w= o=
     if [ "$COMP_CWORD" = 1 ]; then
-        COMPREPLY=( $(compgen -W "%(cmds)s completion" -- "$cur") )
-    else
-        COMPREPLY=( $(compgen -f -- "$cur") )
+        COMPREPLY=( $(compgen -W "%s" -- "$cur") ); return
     fi
+    case "$prev" in
+%s    esac
+    case "${COMP_WORDS[1]}" in
+%s    esac
+    case "$cur" in
+        -*) COMPREPLY=( $(compgen -W "$o" -- "$cur") ) ;;
+        *) if [ "$COMP_CWORD" = 2 ] && [ -n "$w" ]; then
+               COMPREPLY=( $(compgen -W "$w" -- "$cur") )
+           else
+               COMPREPLY=( $(compgen -f -- "$cur") )
+           fi ;;
+    esac
 }
 complete -F _phosphor phosphor
-"""
+""" % (q(after), vals, cmds)
 
-ZSH = """# phosphor completion (zsh) — phosphor completion zsh
+
+def zsh():
+    after, values = cli.completions()
+    vals = "".join("        %s) compadd -- %s; return ;;\n" % (f, q(v)) for f, v in sorted(values.items()))
+    cmds = "".join('        %s) w=(%s); o=(%s) ;;\n' % (n, q(w), q(o)) for n, (w, o) in after.items())
+    return """# phosphor completion (zsh) — phosphor completion zsh
 _phosphor() {
-    local -a cmds topics
-    cmds=(%(cmds)s completion)
-    topics=(%(topics)s)
+    local -a w o
     if (( CURRENT == 2 )); then
-        compadd -- $cmds
+        compadd -- %s
         return
     fi
+    case ${words[CURRENT-1]} in
+%s    esac
     case ${words[2]} in
-        help) compadd -- $topics ;;
-        web) compadd -- on off status token ;;
-        tunnel) compadd -- on off --json ;;
-        fleet|services|containers|screens|mem|security|version|glance) compadd -- --json ;;
-        push) compadd -- on off --qr ;;
-        trace) compadd -- off ;;
-        digest) compadd -- --hours --assistant --print ;;
-        read) compadd -- --ask --assistant ;;
-        note|notes) compadd -- --kind --by --book --file --tab --here --archive ;;
-        workspace) compadd -- new open list rm ;;
-        tts) compadd -- install status on off --voice --list ;;
-        completion) compadd -- bash zsh ;;
-        *) _files ;;
-    esac
+%s    esac
+    if [[ ${words[CURRENT]} == -* ]]; then
+        compadd -- $o
+    elif (( CURRENT == 3 && ${#w} )); then
+        compadd -- $w
+    else
+        _files
+    fi
 }
 compdef _phosphor phosphor
-"""
+""" % (q(after), vals, cmds)
+
 
 def main():
     shell = (sys.argv[1:] or [""])[0]
@@ -80,7 +79,7 @@ def main():
         print("  bash:  phosphor completion bash >> ~/.bashrc", file=sys.stderr)
         print("  zsh:   phosphor completion zsh  >> ~/.zshrc", file=sys.stderr)
         return 1
-    sys.stdout.write((BASH if shell == "bash" else ZSH) % {"cmds": CMDS, "topics": TOPICS})
+    sys.stdout.write(bash() if shell == "bash" else zsh())
     return 0
 
 if __name__ == "__main__":

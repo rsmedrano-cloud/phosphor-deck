@@ -428,10 +428,21 @@ Its tools only read what's already on the brain, and none of them sends, restart
 ## Help
 - `phosphor help [TOPIC]` — this manual. `phosphor docs [--check]` — rebuild AGENTS.md (the rules, concepts and an index of these pages).
 - `phosphor CMD --help` (or `-h`) — what that command does and its usage; it never runs it.
-- `share/commands.json` — a machine-readable manifest, one entry per command above, saying
+- A flag the command doesn't take is refused before anything runs: `unknown option --x`, its
+  usage, exit 2. Nothing after a `--` is checked, and for commands that take text (`note`, `ask`,
+  `notify`, `tts`, `path`, `edit`) only the flags before the text are.
+- `share/commands.json` — every command's one definition: its category, usage, summary,
+  flags (`options`), fixed words and flag values, aliases, the module that runs it, and
   whether it mutates live state (the session, a systemd unit, the profile, or any file phosphor
   generates) and whether it needs the deck already running to do anything -- with a one-line
   note for the ones where a flag or an interactive key changes the plain answer. Not a command
   of its own: for a CI job, a cron/timer, an external policy tool, or another assistant working
   in this repo that wants to know what needs a human before it runs unattended, without parsing
-  this page's prose. `tests/commands-manifest-check.py` keeps it matching the list above.
+  this page's prose. `phosphor help`, `phosphor CMD --help`, `phosphor commands` and tab
+  completion are all built from it (`lib/cli.py`), so a new command or flag is one entry
+  there; internal commands (`run`, `mention-hook`, `docs`) are in it too, marked `hidden`.
+  `internal` lists flags only phosphor's own panes and keys pass, `takes_value` the flags
+  followed by a value, `free_text` the commands whose arguments are text: with `options`, they
+  are what an unknown flag is checked against. `tests/commands-manifest-check.py` checks every
+  flag it declares is one the code reads; `tests/argv-check.py`, that phosphor never calls
+  itself with a flag it would refuse.

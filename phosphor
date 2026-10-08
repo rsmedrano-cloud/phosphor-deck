@@ -13,101 +13,6 @@ def load_profile():
         print("can't read the profile (%s): %s" % (p, deckconf.ERR))
     return prof, p
 
-USAGE = """phosphor - Phosphor Deck
-
-  getting started
-    phosphor doctor     check that this machine can run the deck
-    phosphor security   how exposed the deck is: files, ssh servers, network, sockets
-    phosphor init       wizard: builds your profile with a few questions
-    phosphor setup      add/remove machines, pick the color (also: m in DECK)
-    phosphor panel      the DECK tab: the deck's state, next steps, every action
-    phosphor commands   browse every phosphor command, by category (also: e in DECK)
-    phosphor phone      add a screen: a phone, another computer, anything with ssh
-    phosphor screen     the same kit for a computer without Termux
-    phosphor web on     the deck in a browser, only inside your tailnet (optional)
-    phosphor gen        regenerate layouts, units and mounts
-    phosphor up         start the deck (and enable it at boot)
-    phosphor attach     get into it from this machine (also: phosphor deck, or just `deck`)
-    phosphor new        the new-tab menu (what the tab bar's + opens)
-    phosphor keep [TAB] keep a tab you arranged by hand in your profile
-    phosphor edit       Alt-r: unlock the tab, change it, then save it or put it back
-    phosphor shortcuts  the deck's keys, yours to change ([keys] in the profile)
-    phosphor theme      the deck's color, with a preview before it's saved
-    phosphor tabs       the tabs your profile brings back: forget, reorder, reopen
-    phosphor migrate    bring an older profile up to date, a diff first (--dry-run)
-    phosphor backup [FILE]  profile, notebook, tabs.d, glance token in one file (no ssh keys)
-    phosphor restore FILE   put a backup back on this brain: what it replaces first (--dry-run)
-    phosphor recipe [NAME]  starter tab bundles (homelab, dev, bubble, workbench)
-    phosphor demo       a throwaway session, made-up machines: safe for a screenshot
-
-  session
-    phosphor restart    bring the session down, reap orphans, bring it back
-    phosphor down       bring it down and clean up
-
-  workspaces
-    phosphor workspace new   a project folder, git and a tab with its assistants
-    phosphor workspace open  its tab again (workspace list: the ones you have)
-    phosphor ask Q      a one-shot question to whichever assistant CLI is
-                        installed, no tab (--assistant NAME to pick one,
-                        -c to send your latest decisions along)
-    phosphor read X     a web page as plain text (a URL), or a web search (words);
-                        --ask Q hands the page to an assistant
-
-  notes
-    phosphor note T     add a note to the shared notebook
-    phosphor notes      read it (newest first, reloads live); pick one to edit, archive, chat
-    phosphor digest     the last day (commits, fleet trouble, notes, todos) as one summary note
-
-  in the deck
-    phosphor fleet      fleet panel
-    phosphor pulse      the fleet's heartbeat
-    phosphor glance     read-only summary for a small screen: fleet, mentions, todos (--serve: JSON for a gadget)
-    phosphor prom       prometheus gauge dashboard
-    phosphor ci         GitLab/GitHub pipeline status
-    phosphor usage      how much of your Claude / Antigravity plan is used
-    phosphor services   phosphor's own systemd units, and any you add
-    phosphor containers [H]  a host's containers: logs, restart, start/stop
-    phosphor screens    who's attached (phone, PC...); kick one loose
-    phosphor mem        how much memory each tab and pane of the deck takes
-    phosphor panels [N] your own panels, from ~/.config/phosphor/panels.d
-    phosphor review     merge/pull requests: diff, CI, conflicts, try the branch
-    phosphor adjutant   the face that announces events
-    phosphor notify M   send the adjutant a message (and your phone, with [push])
-    phosphor tts [M]    speak a message aloud (glados, adjutant, hal, synth, system)
-    phosphor push       [push] status; --qr: a subscribe link/QR for the phone's ntfy app
-    phosphor face IMG   turn an image into an adjutant face
-    phosphor keys       key guide, updates itself
-    phosphor store      install TUIs, no sudo
-    phosphor path P     turn a fleet path into host:/path
-    phosphor tail HOST [SVC]  stream a fleet host's journalctl/docker/podman logs
-    phosphor triage [HOST]    a diagnostic snapshot of a host, piped to phosphor ask
-    phosphor broadcast -- CMD one command on every fleet host at once (asks first)
-    phosphor tunnel     keep the LocalForward tunnels of your ssh config up (on/off HOST)
-    phosphor clip F     a file or a pipe onto your device's clipboard
-    phosphor send F     one real file, as a one-time link and QR (any size)
-    phosphor receive    the other way: a one-time upload link, into ~/received
-    phosphor mentions   read-only feed of chat notifications (--setup: hook matterhorn)
-    phosphor logs [T]   the deck's own log: crashes, hangs, exits, restarts (-f follows)
-    phosphor trace T    verbose logging for one tool, for about 30 minutes
-    phosphor mcp        the deck, read-only, for an assistant: an MCP server on stdio
-
-    phosphor completion bash|zsh   tab completion for your shell
-    --json   on fleet, services, containers, screens, mem, security, tunnel,
-             version, workspace list, panels, glance: the same data as JSON, for scripts
-
-    phosphor update [DIR]         newer version: get it, install it, restart
-    phosphor update --channel nightly|stable   follow dev (nightly) or releases
-    phosphor version              this version, and whether there's a newer one (--check)
-
-  before you push
-    phosphor privacy    finds your own data (IPs, users, servers) in the repo
-"""
-
-TOOLS = ("fleet", "pulse", "keys", "store", "adjutant", "notes", "privacy", "phone", "newtab", "clip", "send",
-         "mentions", "notify", "run", "web", "tunnels", "completion", "update", "panel", "version",
-         "keep", "workspace", "edit", "shortcuts", "tabs", "prom", "logs", "trace", "ci", "recipe", "tts", "demo",
-         "services", "glance", "review", "push", "screens", "ask", "commands", "receive", "tail", "triage", "broadcast", "theme", "usage", "mem", "containers", "security", "digest", "read", "migrate", "backup", "restore", "mcp", "panels")
-
 def crash_name(cmd):
     """The name a crash is logged under: the pane's, when phosphor run
     started this tool itself (PHOSPHOR_RUN is "PID NAME" of that run), so
@@ -116,12 +21,8 @@ def crash_name(cmd):
     pid, _, name = os.environ.get("PHOSPHOR_RUN", "").partition(" ")
     return name if name and pid == str(os.getppid()) else cmd.upper()
 
-# Their own --help, more precise than the generic one; run and mention-hook
-# pass everything through (mention-hook must never print).
-OWN_HELP = {"run", "mention-hook", "theme", "tts", "demo", "broadcast", "push",
-            "receive", "send", "triage", "tail"}
-
 def main():
+    import cli
     cmd = sys.argv[1] if len(sys.argv) > 1 else "help"
 
     if cmd in ("-V", "--version"):
@@ -131,22 +32,27 @@ def main():
         if len(sys.argv) > 2 and cmd == "help" and sys.argv[2] not in ("-h", "--help"):
             import docs
             return docs.help(sys.argv[2])
-        print(USAGE)
-        import completion, textwrap
-        print(textwrap.fill("the manual:  phosphor help " + " | ".join(completion.TOPICS.split()),
-                            width=90, initial_indent="  ", subsequent_indent=" " * 29))
+        print(cli.usage_text())
         return 0
 
     # `phosphor CMD --help` only ever explains: without this, `restart --help`
     # restarted the deck and `note --help` wrote a note titled "--help".
-    # These answer it themselves, more precisely (or must never print).
+    # The ones share/commands.json marks own_help answer it themselves, more
+    # precisely (or, like mention-hook, must never print).
     # Anywhere before a `--` (`note --kind idea --help` wrote one too), not after
     # it: there it belongs to the text or the command being passed along.
     opts = sys.argv[2:sys.argv.index("--")] if "--" in sys.argv else sys.argv[2:]
-    if {"-h", "--help"} & set(opts) and cmd not in OWN_HELP:
-        import commands
-        if commands.help_for(cmd):
+    if {"-h", "--help"} & set(opts) and not (cli.get(cmd) or {}).get("own_help"):
+        if cli.help_for(cmd):
             return 0
+
+    # a flag the command doesn't take is a usage error, not something it
+    # silently ignores (or, worse, reads as a word: a note titled "--kidn")
+    wrong = cli.check(cmd, sys.argv[2:])
+    if wrong:
+        print("phosphor %s: unknown option %s" % (cmd, wrong), file=sys.stderr)
+        print("usage: " + cli.get(cmd)["usage"], file=sys.stderr)
+        return 2
 
     import deckconf
     if deckconf.example() and cmd not in ("init", "docs", "doctor", "completion", "version", "privacy",
@@ -208,10 +114,6 @@ def main():
             print(pathmod.translate(a))
         return 0
 
-    if cmd == "new":
-        cmd = "newtab"
-    if cmd == "tunnel":
-        cmd = "tunnels"
     if cmd == "screen":               # the same kit, for a computer without Termux
         cmd = "phone"
         sys.argv.insert(2, "--screen")
@@ -220,7 +122,9 @@ def main():
         import mentions
         return mentions.hook()
 
-    if cmd in TOOLS:
+    mod = cli.module(cmd)
+    if mod:
+        cmd = mod
         sys.argv = ["phosphor-" + cmd] + sys.argv[2:]
         try:
             return __import__(cmd).main() or 0
@@ -232,7 +136,7 @@ def main():
             raise
 
     print("unknown command: %s\n" % cmd)
-    print(USAGE)
+    print(cli.usage_text())
     return 1
 
 if __name__ == "__main__":

@@ -134,8 +134,11 @@ out=$(python3 tests/workspace-notes-watch-check.py 2>&1) && ok || bad "$out"
 step "ask picks an assistant, no tab"
 out=$(python3 tests/ask-check.py 2>&1) && ok || bad "$out"
 
-step "commands.json matches phosphor's own command list"
+step "commands.json: one definition for help, completion and the menu"
 out=$(python3 tests/commands-manifest-check.py 2>&1) && ok || bad "$out"
+
+step "an unknown flag is a usage error; no call of phosphor's own is one"
+out=$(python3 tests/argv-check.py 2>&1) && ok || bad "$out"
 
 step "web on: never restarts unattended without --yes"
 out=$(python3 tests/web-check.py 2>&1) && ok || bad "$out"
@@ -303,34 +306,8 @@ step "VERSION has release notes"
 v=$(cat VERSION)
 grep -q "^## $v" CHANGELOG.md && ok || bad "CHANGELOG.md has no '## $v' entry"
 
-step "the help lists every tool"
-out=$(python3 - <<'PY'
-import re
-src = open("phosphor").read()
-tools = re.search(r"TOOLS = \(([^)]*)\)", src, re.S).group(1)
-names = re.findall(r'"(\w+)"', tools)
-usage = src.split('USAGE = """', 1)[1].split('"""', 1)[0]
-alias = {"newtab": "new", "tunnels": "tunnel", "run": None, "completion": "completion"}
-miss = [n for n in names if alias.get(n, n) and "phosphor %s" % alias.get(n, n) not in usage]
-print(" ".join(miss))
-PY
-)
-[ -z "$out" ] && ok || bad "missing from phosphor help: $out"
-
 step "audit: a clone with no remote"
 out=$(python3 tests/audit-check.py 2>&1) && ok || bad "$out"
-
-step "completion knows every command"
-out=$(python3 - <<'PY'
-import re, sys
-sys.path.insert(0, "lib")
-import completion
-usage = open("phosphor").read().split('USAGE = """', 1)[1].split('"""', 1)[0]
-words = set(re.findall(r"^\s*phosphor ([a-z][a-z-]*)", usage, re.M)) - {"completion"}
-print(" ".join(sorted(words - set(completion.CMDS.split()))))
-PY
-)
-[ -z "$out" ] && ok || bad "missing from completion: $out"
 
 [ $fail = 0 ] && printf '\nPASS: the fast checks\n' || printf '\nFAIL\n'
 exit $fail

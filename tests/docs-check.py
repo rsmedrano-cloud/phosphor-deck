@@ -5,7 +5,7 @@
     python3 tests/docs-check.py BASE HEAD    also: code changed in BASE..HEAD
                                              came with CHANGELOG.md (CI)
 
-- every `phosphor COMMAND` in `phosphor help` is in the manual's commands
+- every command in share/commands.json is in the manual's commands
   page and in the README;
 - every manual page is in the manual's index;
 - a push that changes lib/, phosphor, share/ or install.sh also changes
@@ -19,8 +19,9 @@ import os, re, subprocess, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 bad = []
 
-usage = open(os.path.join(ROOT, "phosphor")).read().split('USAGE = """', 1)[1].split('"""', 1)[0]
-commands = sorted(set(re.findall(r"^\s*phosphor ([a-z][a-z-]*)", usage, re.M)))
+sys.path.insert(0, os.path.join(ROOT, "lib"))
+import cli
+commands = sorted(cli.entries())
 manual = open(os.path.join(ROOT, "doc/manual/commands.md")).read()
 readme = open(os.path.join(ROOT, "README.md")).read()
 for c in commands:

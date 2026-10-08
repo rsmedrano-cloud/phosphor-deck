@@ -13,100 +13,17 @@ arguments (a file, a host, a message) for you.
 import json, os, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
-import edit
+import cli, edit
 
 PHOSPHOR = os.path.join(REPO, "phosphor")
 
-# (category, [(command, usage, one-line note), ...]) -- same categories, same
-# order, as doc/manual/commands.md and README's own command table.
-CATEGORIES = [
-    ("Getting started", [
-        ("doctor", "phosphor doctor", "preflight: locales, FUSE, systemd, PATH, fleet reach"),
-        ("security", "phosphor security", "how exposed the deck is: file permissions, the fleet's sshd, tunnels, web, sockets"),
-        ("attach", "phosphor attach", "get in, from any machine (also: phosphor deck, or just `deck`)"),
-        ("init", "phosphor init", "profile wizard"),
-        ("setup", "phosphor setup", "add/remove machines, color, editor and shell, phone, browser, tunnels, notebook"),
-        ("panel", "phosphor panel", "the DECK tab: state, next steps, every action one key away"),
-        ("commands", "phosphor commands", "this: every phosphor command, browsable by category"),
-        ("phone", "phosphor phone", "put a phone or tablet one tap away from the deck"),
-        ("screen", "phosphor screen", "the same kit as phone, for a computer without Termux"),
-        ("gen", "phosphor gen", "generate layouts, units and mounts"),
-        ("up", "phosphor up", "start the deck (and at every boot)"),
-        ("update", "phosphor update", "a newer version: pull or copy, install, restart"),
-        ("version", "phosphor version", "this version, whether there's a newer one, and what it brings"),
-    ]),
-    ("Session", [
-        ("restart", "phosphor restart", "bring the session down cleanly and back up"),
-        ("down", "phosphor down", "stop it (and the watchdog timer)"),
-    ]),
-    ("Workspaces", [
-        ("workspace", "phosphor workspace new", "a tab per idea: folder, git, its assistants"),
-        ("ask", "phosphor ask [-c] QUESTION", "a one-shot question to whichever assistant CLI is installed, no tab; -c adds your latest notes"),
-        ("mcp", "phosphor mcp", "the deck, read-only, for an assistant that speaks MCP: glance, fleet, notes, workspaces, logs"),
-        ("read", "phosphor read URL | WORDS [--ask Q]", "a web page as plain text, or a web search to pick one from; --ask hands it to an assistant"),
-    ]),
-    ("Notes", [
-        ("note", "phosphor note TEXT", "add a note to the shared notebook"),
-        ("notes", "phosphor notes", "read it (newest first); pick one to edit, archive, chat"),
-        ("digest", "phosphor digest [--hours N] [--print]", "the last day (commits, fleet trouble, notes, todos) as one summary note, written by an assistant"),
-    ]),
-    ("In the deck", [
-        ("fleet", "phosphor fleet", "fleet panel"),
-        ("pulse", "phosphor pulse", "the heartbeat: a wave tied to real load"),
-        ("glance", "phosphor glance", "read-only: fleet, unread mentions, open todos -- for a small screen"),
-        ("adjutant", "phosphor adjutant", "the SYS panel that speaks up"),
-        ("notify", "phosphor notify MESSAGE", "send the adjutant a message (and your phone, with [push])"),
-        ("tts", "phosphor tts", "speak notifications aloud with selectable voices"),
-        ("push", "phosphor push", "[push] status, or --qr: a subscribe link/QR for the phone's ntfy app"),
-        ("ci", "phosphor ci", "GitLab/GitHub pipeline status cards"),
-        ("usage", "phosphor usage", "how much of your Claude Code / Antigravity plan is used, and when it refills"),
-        ("prom", "phosphor prom", "Prometheus gauge dashboard (see [prometheus] in the profile)"),
-        ("services", "phosphor services", "systemd units and their state: phosphor's own, plus any you add"),
-        ("containers", "phosphor containers", "a host's docker/podman containers: logs, restart, start/stop"),
-        ("review", "phosphor review", "open merge/pull requests: CI, conflicts, diff, try the branch"),
-        ("screens", "phosphor screens", "who's attached (phone, tablet, another computer); kick one loose"),
-        ("mem", "phosphor mem", "how much memory each tab and pane of the deck takes, heaviest first"),
-        ("panels", "phosphor panels", "your own panels: a Python file in panels.d, on the same kit as every panel"),
-        ("keys", "phosphor keys", "key guide, updates itself when you install a tool"),
-        ("store", "phosphor store", "install TUIs from their releases, no sudo; open what you have"),
-        ("new", "phosphor new", "the + menu: a shell, a machine, an assistant, your apps, a layout"),
-        ("keep", "phosphor keep", "write a tab you arranged by hand into your profile"),
-        ("tabs", "phosphor tabs", "the tabs your profile brings back: forget one, reorder, reopen"),
-        ("migrate", "phosphor migrate", "bring an older profile up to date: a diff of each change first, a backup kept"),
-        ("backup", "phosphor backup", "the brain's own backup: profile, tabs.d, notebook, glance token, in one file"),
-        ("restore", "phosphor restore FILE", "put a backup back: what it writes first, one y/n, a .bak of what it replaces"),
-        ("recipe", "phosphor recipe", "starter tab bundles: homelab, dev, bubble, workbench"),
-        ("shortcuts", "phosphor shortcuts", "the deck's keys, yours to change; updates never reset them"),
-        ("theme", "phosphor theme", "the deck's color: p31, p3, p4, ega, paper, previewed before it's saved"),
-        ("edit", "phosphor edit", "what Alt-r runs: unlock a tab, change it, save it or put it back"),
-        ("mentions", "phosphor mentions", "read-only feed of chat notifications; --setup hooks matterhorn"),
-        ("clip", "phosphor clip FILE", "a file or a pipe onto your device's clipboard"),
-        ("send", "phosphor send FILE", "one real file, as a one-time link and QR; gone once it's downloaded"),
-        ("receive", "phosphor receive", "the other way: a one-time upload link, into ~/received"),
-        ("web", "phosphor web", "on / off / status / token: the deck in a browser, tailnet only"),
-        ("path", "phosphor path PATH", "turns ~/fleet/x/y into host:/y"),
-        ("tail", "phosphor tail HOST", "stream a fleet host's journalctl/docker/podman logs, reconnecting on its own"),
-        ("triage", "phosphor triage HOST", "a diagnostic snapshot of a host, piped straight to phosphor ask"),
-        ("broadcast", "phosphor broadcast -- CMD", "one command on every fleet host at once, output grouped by host"),
-        ("tunnel", "phosphor tunnel", "keep your ssh config's LocalForward tunnels up"),
-        ("face", "phosphor face IMAGE", "turn an image into the adjutant's face"),
-        ("logs", "phosphor logs", "the deck's own log: crashes, hangs, exits, restarts; -f follows"),
-        ("trace", "phosphor trace TOOL", "verbose logging for one tool, for about 30 minutes"),
-    ]),
-    ("Before you push a fork", [
-        ("demo", "phosphor demo", "a throwaway session over made-up machines, for a screenshot"),
-        ("privacy", "phosphor privacy", "before you push a fork: finds your own data in it"),
-    ]),
-    ("Shell", [
-        ("completion", "phosphor completion bash", "tab completion for bash or zsh"),
-    ]),
-    ("Help", [
-        ("help", "phosphor help", "the manual, by topic; phosphor docs rebuilds AGENTS.md"),
-    ]),
-]
+# (category, [(command, usage, one-line note), ...]) -- the categories and
+# order of share/commands.json, the one definition phosphor help, --help and
+# completion read too (lib/cli.py).
+CATEGORIES = [(cat, [(c, e["usage"], e["summary"]) for c, e in cmds]) for cat, cmds in cli.categories()]
 
 # "Before you push a fork" doesn't fit pick()'s 16-char label column; the
-# same shorter form phosphor's own --help already uses for it.
+# shorter form, for the menu only.
 SHORT_CATEGORY = {"Before you push a fork": "Before you push"}
 
 
@@ -116,34 +33,7 @@ SHORT_CATEGORY = {"Before you push a fork": "Before you push"}
 ASKS = {"ask", "broadcast", "send", "clip", "receive", "triage", "face", "push", "tts", "trace", "read"}
 
 
-def manifest():
-    try:
-        return json.load(open(os.path.join(REPO, "share", "commands.json")))
-    except (OSError, ValueError):
-        return {}
-
-
-ALIASES = {"deck": "attach", "tunnels": "tunnel"}
-
-
-def help_for(cmd):
-    """`phosphor CMD --help`: its usage and what it does, from the same
-    table this menu shows. False for a command it doesn't know."""
-    cmd = ALIASES.get(cmd, cmd)
-    hit = next(((u, n) for _, cmds in CATEGORIES for c, u, n in cmds if c == cmd), None)
-    if not hit:
-        return False
-    usage, note = hit
-    print("usage: " + usage)
-    print("  " + note)
-    extra = (manifest().get(cmd) or {}).get("note")
-    if extra:
-        import textwrap
-        print()
-        print(textwrap.fill(extra, width=78, initial_indent="  ", subsequent_indent="  "))
-    print()
-    print("  the manual: phosphor help commands")
-    return True
+manifest = cli.manifest
 
 
 def category_items():

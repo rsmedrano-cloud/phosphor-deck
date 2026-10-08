@@ -14,14 +14,12 @@ def check(what, ok):
     if not ok:
         fails.append(what)
 
-# CATEGORIES covers exactly the USAGE-derived command set, plus "help"
-# (which -- like "run" and "mention-hook" -- isn't a `phosphor X` line in
-# USAGE itself, but belongs in a browsable index).
-usage = open(os.path.join(ROOT, "phosphor")).read().split('USAGE = """', 1)[1].split('"""', 1)[0]
-from_usage = set(re.findall(r"^\s*phosphor ([a-z][a-z-]*)", usage, re.M))
+# CATEGORIES is share/commands.json's command set, hidden ones (run,
+# mention-hook, docs) left out of a browsable index.
+import cli
 in_menu = {cmd for _, cmds in commands.CATEGORIES for cmd, _, _ in cmds}
-check("every USAGE command is in the menu", from_usage <= in_menu)
-check("the menu has no command USAGE doesn't (beyond 'help')", in_menu - from_usage == {"help"})
+check("the menu has every visible command, and only those", in_menu == set(cli.entries()))
+check("no hidden command in the menu", not in_menu & {"run", "mention-hook", "docs"})
 
 # category_items(): one row per category, "Before you push a fork" shortened
 cats = commands.category_items()

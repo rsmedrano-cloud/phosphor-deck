@@ -6,6 +6,29 @@ before it updates.
 
 ## Unreleased
 
+## 1.9.1 — an unknown flag is an error
+
+- Every command is described once, in `share/commands.json`: its category,
+  usage, summary, flags, aliases and what runs it. `phosphor help`,
+  `phosphor CMD --help`, the `phosphor commands` menu and tab completion are
+  all built from it, so they can no longer disagree. `phosphor help` now
+  lists the commands in the same categories as the menu and the manual, and
+  `CMD --help` shows the command's flags.
+- Tab completion knows every command's flags and subcommands (and the
+  values of `--kind`, `--voice`, `--shape`, `--channel`), wherever they are
+  on the line. Run `phosphor completion bash` (or `zsh`) again to get it.
+- `share/commands.json` gains `category`, `usage`, `summary`, `options`,
+  `words`, `values`, `aliases`, `module`, `own_help` and `hidden`, and lists
+  the internal `run`, `mention-hook` and `docs` (marked `hidden`). The
+  existing fields are unchanged.
+- A flag a command doesn't take is now an error: `phosphor note --kidn idea
+  hi` says `unknown option --kidn`, prints the usage and exits 2, instead of
+  writing a note titled "--kidn idea hi" (or a typo like `fleet --jsn`
+  quietly doing something else). After a `--`, and once a note's or a
+  question's text has started, words like `-la` are left alone.
+  `share/commands.json` gains `internal` (flags only phosphor's own panes
+  and keys pass), `takes_value` and `free_text` to say so.
+
 ## 1.9.0 — the deck for scripts, assistants and your own panels
 
 - `phosphor mcp` no longer stops on a malformed request (params that aren't
