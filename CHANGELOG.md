@@ -6,6 +6,12 @@ before it updates.
 
 ## Unreleased
 
+## 1.9.0 — the deck for scripts, assistants and your own panels
+
+- `phosphor mcp` no longer stops on a malformed request (params that aren't
+  an object, a tool name that isn't text): it answers with an error and keeps
+  serving, so the assistant's next question still gets an answer.
+
 ## 1.8.3 — panels of your own
 
 - `phosphor panels`: panels of your own, without forking. A Python file in

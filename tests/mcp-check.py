@@ -8,7 +8,7 @@ cache, a notebook, a deck.log): the handshake, every tool's answer, errors
 as results, and stdout carrying nothing but protocol lines. Also checks that
 no tool's files change, and that every tool says it's read-only.
 """
-import hashlib, json, os, subprocess, sys, tempfile, time
+import hashlib, io, json, os, subprocess, sys, tempfile, time
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 fails = []
 def need(what, ok):
@@ -119,6 +119,19 @@ need("an old client gets its own version", mcp.handle({"jsonrpc": "2.0", "id": 1
 need("an unknown version gets ours", mcp.handle({"jsonrpc": "2.0", "id": 1, "method": "initialize",
      "params": {"protocolVersion": "1999-01-01"}})["result"]["protocolVersion"] == mcp.PROTOCOLS[0])
 need("not JSON-RPC 2.0 is an invalid request", mcp.handle({"id": 1, "method": "ping"})["error"]["code"] == -32600)
+
+# a malformed message is an error reply, never the end of the server
+out = io.StringIO()
+mcp.serve(io.StringIO("\n".join([
+    '{"jsonrpc":"2.0","id":1,"method":"initialize","params":[1]}',
+    '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":["x"]}}',
+    '[]',
+    '{"jsonrpc":"2.0","id":3,"method":"ping"}']) + "\n"), out)
+got = [json.loads(l) for l in out.getvalue().splitlines()]
+need("params that aren't an object are invalid params", got[0].get("error", {}).get("code") == -32602)
+need("a tool name that isn't a string is unknown", got[1].get("error", {}).get("code") == -32602)
+need("an empty batch is an invalid request", got[2].get("error", {}).get("code") == -32600)
+need("the server still answers after them", got[-1] == {"jsonrpc": "2.0", "id": 3, "result": {}})
 
 if fails:
     print("\n".join(fails)); sys.exit(1)

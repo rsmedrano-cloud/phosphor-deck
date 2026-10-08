@@ -127,6 +127,8 @@ def handle(msg):
         return None                                   # notifications/initialized and the like
     def ok(result): return {"jsonrpc": "2.0", "id": mid, "result": result}
     def err(code, text): return {"jsonrpc": "2.0", "id": mid, "error": {"code": code, "message": text}}
+    if not isinstance(p, dict):
+        return err(-32602, "params must be an object")
     if method == "initialize":
         want = p.get("protocolVersion")
         return ok({"protocolVersion": want if want in PROTOCOLS else PROTOCOLS[0],
@@ -139,10 +141,19 @@ def handle(msg):
     if method == "tools/list":
         return ok({"tools": tool_list()})
     if method == "tools/call":
-        if p.get("name") not in TOOLS:
+        if not isinstance(p.get("name"), str) or p["name"] not in TOOLS:
             return err(-32602, "unknown tool: %s" % p.get("name"))
         return ok(call(p["name"], p.get("arguments")))
     return err(-32601, "method not found: %s" % method)
+
+def safe(msg):
+    """handle(), but a message it chokes on is an error reply, never the
+    end of the server: the next request still gets its answer."""
+    try:
+        return handle(msg)
+    except Exception as e:
+        mid = msg.get("id") if isinstance(msg, dict) else None
+        return {"jsonrpc": "2.0", "id": mid, "error": {"code": -32603, "message": "%s: %s" % (type(e).__name__, e)}}
 
 def serve(inp, out):
     for line in inp:
@@ -154,10 +165,10 @@ def serve(inp, out):
         except ValueError:
             reply = {"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": "parse error"}}
         else:
-            if isinstance(msg, list):                 # a batch (2025-03-26 only, but cheap)
-                reply = [r for r in map(handle, msg) if r is not None] or None
+            if isinstance(msg, list) and msg:         # a batch (2025-03-26 only, but cheap)
+                reply = [r for r in map(safe, msg) if r is not None] or None
             else:
-                reply = handle(msg)
+                reply = safe(msg if msg != [] else None)
         if reply is not None:
             out.write(json.dumps(reply, ensure_ascii=False) + "\n")
             out.flush()
