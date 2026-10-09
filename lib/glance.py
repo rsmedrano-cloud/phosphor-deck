@@ -2,12 +2,13 @@
 """phosphor glance - a read-only summary for a small screen.
 
 Three questions, answered at a glance: is the fleet healthy, is there a
-chat mention waiting, is there a todo nobody picked up. No editing, no
-keys beyond Ctrl-C: this is for a Pi with a small display sitting on a
-shelf, or `ssh -t you@brain phosphor glance` from anything with a
-terminal and no room for the full deck.
+chat mention waiting, is there a todo nobody picked up. No editing; r
+repaints, q leaves: this is for a Pi with a small display sitting on a
+shelf, an e-ink panel, or `ssh -t you@brain phosphor glance` from anything
+with a terminal and no room for the full deck.
 
-    phosphor glance         refreshes every few seconds, alternate screen
+    phosphor glance         repaints when something changes, alternate screen
+    phosphor glance --mono  no color (automatic on TERM=xterm-mono, NO_COLOR)
     phosphor glance --once  one frame, for scripting or a narrow test
     phosphor glance --json  the same answers as one JSON object
     phosphor glance --serve that JSON over HTTP, for a gadget that can't ssh
@@ -17,9 +18,9 @@ terminal and no room for the full deck.
 one), answers GET with the token and nothing else, and runs in the
 foreground: put it in a tab to keep it up.
 """
-import hmac, json, os, secrets, shutil, sys, textwrap, time
+import hmac, json, os, secrets, shutil, sys, termios, textwrap, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from ui import DIM, MUTE, FG, PH, AMB, RED, RST, rule
+from ui import DIM, MUTE, FG, PH, AMB, RED, RULE, BLOOM, RST, rule
 import deckconf
 from sanitize import clean_tree
 import ui
@@ -74,6 +75,15 @@ def fleet_state():
 def open_todos():
     return [e for e in notes.entries() if e["kind"] == "todo"]
 
+def light(total, stale, bad, n_unread):
+    """The status light, from fleet_scan()'s answer and the unread count
+    (see payload)."""
+    if total is None:
+        return "unknown"
+    if stale or any(down for _, _, down in bad):
+        return "red"
+    return "amber" if bad or n_unread else "green"
+
 def payload():
     """What --json prints and --serve answers: the same four questions as the
     screen, flattened for a microcontroller. status is the light to show:
@@ -83,14 +93,7 @@ def payload():
     but never change the color -- there's nearly always one."""
     ok, total, stale, bad = fleet_scan()
     n_unread = mentions.unread()
-    if total is None:
-        status = "unknown"
-    elif stale or any(down for _, _, down in bad):
-        status = "red"
-    elif bad or n_unread:
-        status = "amber"
-    else:
-        status = "green"
+    status = light(total, stale, bad, n_unread)
     if stale:
         worst = {"host": "*", "detail": "stale data"}
     else:
@@ -114,58 +117,106 @@ def wrapped(text, w, color=FG, indent="    "):
     lines = textwrap.wrap(text, max(8, w - len(indent)), initial_indent=indent, subsequent_indent=indent)
     return [color + l + RST for l in lines]
 
-def frame(w, rows):
-    out = [rule("GLANCE", w), DIM + time.strftime("  %H:%M:%S") + RST, ""]
+WIDE = 96          # from this many columns the four sections sit in a 2x2 grid
+LABEL = {"green": "all clear", "amber": "worth a look", "red": "attention", "unknown": "no data"}
+BOLD, INV = "\x1b[1m", "\x1b[7m"
 
-    out.append(rule("fleet", w))
-    ok, total, bad = fleet_state()
-    if total == 0:
-        out.append(DIM + "  no fleet data (phosphor fleet isn't running here)" + RST)
-    elif not bad:
-        out.append(PH + ("  ✓ all %d hosts ok" % total) + RST)
-    else:
-        out.append((PH if ok else RED) + ("  %d/%d ok" % (ok, total)) + RST)
-        for name, detail in bad[:4]:
-            out += wrapped("✗ %s: %s" % (name, detail), w, color=RED)
-    out.append("")
-
-    out.append(rule("mentions", w))
+def sections(w):
+    """(status, [(title, lines)]): the four questions, each section's lines
+    already fitted to w columns."""
+    ok, total, stale, bad = fleet_scan()
     n = mentions.unread()
-    if n:
-        out.append(AMB + ("  ● %d unread" % n) + RST)
-        for e in mentions.entries()[:2]:
-            out += wrapped("%s: %s" % (e.get("from", "?"), e.get("message", "")), w)
-    else:
-        out.append(DIM + "  nothing unread" + RST)
-    out.append("")
+    status = light(total, stale, bad, n)
 
-    out.append(rule("needs you", w))
+    fleet = []
+    problems = [(nm, d) for nm, d, _ in bad] if not stale else [("*", "stale data")]
+    if total is None:
+        fleet.append(DIM + "  no fleet data (phosphor fleet isn't running here)" + RST)
+    elif not problems:
+        fleet.append(PH + ("  ✓ all %d hosts ok" % total) + RST)
+    else:
+        fleet.append((PH if ok else RED) + ("  %d/%d ok" % (ok, total)) + RST)
+        for name, detail in problems[:4]:
+            fleet += wrapped("✗ %s: %s" % (name, detail), w, color=RED)
+
+    said = []
+    if n:
+        said.append(AMB + ("  ● %d unread" % n) + RST)
+        for e in mentions.entries()[:2]:
+            said += wrapped("%s: %s" % (e.get("from", "?"), e.get("message", "")), w)
+    else:
+        said.append(DIM + "  nothing unread" + RST)
+
+    needs = []
     todos = open_todos()
     if todos:
-        out.append(AMB + ("  %d open todo%s" % (len(todos), "" if len(todos) == 1 else "s")) + RST)
-        for e in todos[:3]:
+        needs.append(AMB + ("  %d open todo%s" % (len(todos), "" if len(todos) == 1 else "s")) + RST)
+        for e in todos[:5]:             # one line each: a todo with no title is its whole body
             title = e["title"] or (e["body"][0] if e["body"] else "(untitled)")
-            out += wrapped(title, w)
+            needs.append(FG + "    " + ui.cut(title, max(8, w - 4)) + RST)
     else:
-        out.append(DIM + "  nothing pending" + RST)
-    out.append("")
+        needs.append(DIM + "  nothing pending" + RST)
 
-    out.append(rule("workspaces", w))
+    ws = []
     dirty = workspace.dirty_workspaces()
     if dirty:
         for name, is_dirty, ahead, behind in dirty[:4]:
             bits = ([] if not is_dirty else ["uncommitted"]) \
                  + ([] if not ahead else ["%d ahead" % ahead]) \
                  + ([] if not behind else ["%d behind" % behind])
-            out += wrapped("%s: %s" % (name, ", ".join(bits)), w, color=AMB)
+            ws += wrapped("%s: %s" % (name, ", ".join(bits)), w, color=AMB)
     else:
-        out.append(DIM + "  nothing dirty or unpushed" + RST)
+        ws.append(DIM + "  nothing dirty or unpushed" + RST)
 
-    return out[:max(1, rows)]
+    return status, [("fleet", fleet), ("mentions", said), ("needs you", needs), ("workspaces", ws)]
+
+def head(w, status, stamp=None):
+    """One line: the name, the light in words (reversed when it's red, so
+    it reads across a room and on a screen with no color) and the time."""
+    word = LABEL[status]
+    word = " %s " % word.upper() if status == "red" else word
+    col = (INV + RED) if status == "red" else AMB if status == "amber" else PH if status == "green" else DIM
+    stamp = stamp or time.strftime("%H:%M")
+    fill = max(1, w - 17 - len(word) - len(stamp))
+    return (RULE + "── " + RST + BLOOM + "GLANCE" + RST + " " + RULE + "─" * fill + RST + " "
+            + col + word + RST + DIM + " · " + stamp + RST + RULE + " ──" + RST)
+
+def body(w, rows):
+    """(status, lines) under the head: one column on a narrow screen, a
+    2x2 grid on a wide one (a 130x17 e-ink panel shows all four sections
+    whole instead of the first two)."""
+    if w < WIDE:
+        status, secs = sections(w)
+        out = []
+        for title, lines in secs:
+            out += [rule(title, w)] + lines + [""]
+        return status, out[:max(0, rows)]
+    cw = (w - 2) // 2
+    status, secs = sections(cw)
+    blocks = []
+    for (t1, l1), (t2, l2) in (secs[:2], secs[2:]):
+        b = [rule(t1, cw) + "  " + rule(t2, cw)]
+        for i in range(max(len(l1), len(l2))):
+            a = ui.vcut(l1[i], cw) if i < len(l1) else ""
+            c = ui.vcut(l2[i], cw) if i < len(l2) else ""
+            b.append((ui.pad(a, cw) + "  " + c).rstrip())
+        blocks.append(b)
+    room = rows - 1                     # a blank line between the two halves
+    top = blocks[0][:max(room - len(blocks[1]), room // 2)]
+    return status, (top + [""] + blocks[1][:room - len(top)])[:max(0, rows)]
+
+def frame(w, rows, stamp=None):
+    status, lines = body(w, rows - 1)
+    return [head(w, status, stamp)] + lines
+
+def mono(line):
+    """A line for a terminal with no color (see ui.mono_term): red and amber
+    become bold, inverse stays, every other color goes."""
+    return ui.uncolor(line.replace(RED, BOLD).replace(AMB, BOLD))
 
 # ── --serve ───────────────────────────────────────────────────
 PORT = 8484
-SERVE_USAGE = "usage: phosphor glance [--once | --json | --serve [--port N] [--new-token]]"
+SERVE_USAGE = "usage: phosphor glance [--mono] [--once | --json | --serve [--port N] [--new-token]]"
 
 def token_path():
     return os.path.join(deckconf.data_dir(), "glance-token")
@@ -278,19 +329,50 @@ def main():
             except (IndexError, ValueError):
                 print(SERVE_USAGE); return 1
         return serve(port, new_token="--new-token" in a)
+    show = mono if "--mono" in a or ui.mono_term() else (lambda l: l)
     if "--once" in a:
         w = shutil.get_terminal_size((60, 20)).columns
-        print("\n".join(frame(w, 10000)))
+        print("\n".join(show(l) for l in frame(w, 10000)))
         return 0
+    return watch(show)
+
+HEARTBEAT = 600    # repaint at least this often, so a time that stops moving means a dead link
+
+def wait(seconds):
+    """A key typed within seconds, else None. Without a terminal, or once
+    the input has ended, it just sleeps them out."""
+    t0 = time.time()
+    try:
+        k = ui.getkey(seconds)
+    except (termios.error, OSError, ValueError):
+        ui.idle(seconds); return None
+    if k is None:                        # a timeout, or an end of input that returns at once
+        time.sleep(max(0, seconds - (time.time() - t0)))
+    return k
+
+def watch(show):
+    """The screen that stays up. It repaints only when what it says changes,
+    or every HEARTBEAT: an e-ink panel flashes on every repaint and a slow
+    one falls behind a busy screen, so the time on top is when it last
+    changed, not a clock. r (or Ctrl-L) clears and repaints, for e-ink
+    ghosting; q or Ctrl-C leaves."""
     sys.stdout.write("\x1b[?1049h\x1b[?25l")
     loud = ui.quiet()
+    last, painted, clear = None, 0, True
     try:
         while True:
             cols, rows = shutil.get_terminal_size((60, 20))
-            out = frame(cols, rows)
-            sys.stdout.write("\x1b[H" + "\x1b[K\n".join(out) + "\x1b[K\x1b[J")
-            sys.stdout.flush()
-            ui.idle(INTERVAL)
+            status, lines = body(cols, rows - 1)
+            if clear or (cols, rows, lines) != last or time.time() - painted >= HEARTBEAT:
+                out = [show(l) for l in [head(cols, status)] + lines]
+                sys.stdout.write(("\x1b[2J" if clear else "") + "\x1b[H"
+                                 + "\x1b[K\n".join(out) + "\x1b[K\x1b[J")
+                sys.stdout.flush()
+                last, painted, clear = (cols, rows, lines), time.time(), False
+            k = wait(INTERVAL)
+            if k in ("q", "Q", "\x03", "\x04"):
+                break
+            clear = k in ("r", "R", "\x0c")
     except KeyboardInterrupt:
         pass
     finally:

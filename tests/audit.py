@@ -114,7 +114,7 @@ def main(argv):
 
     if only_print:
         print(report); return 0
-    notes.append(book, "summary", "agy", title(version, sha), report)
+    notes.append(book, "summary", "agy", title(version, sha), report, project="phosphor")
     print("audit: in the notebook as \"%s\" (phosphor notes). Check it against the code "
           "before acting on it." % title(version, sha))
     return 0

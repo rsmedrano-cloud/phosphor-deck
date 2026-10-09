@@ -6,6 +6,18 @@ before it updates.
 
 ## Unreleased
 
+## 1.9.6 — glance for e-ink
+
+- `phosphor glance` suits an e-ink panel. It repaints only when what it
+  says changes (or every 10 minutes), instead of every 5 seconds: the time
+  on top is now when it last changed. `r` clears and repaints, for ghosting;
+  `q` leaves. From 96 columns the four sections sit two by two, so a
+  130x17 panel shows all of them. On a terminal with no color (`TERM`
+  `xterm-mono`, `vt100`..., `NO_COLOR`, or `--mono`) it sends plain text,
+  with problems in bold and a red light reversed: a SolarOS panel read the
+  colors as random bold and reverse video, and they were three quarters of
+  the bytes.
+
 ## 1.9.5 — notes need a project
 
 - Every note in a project, if you want it so: `[notes] require_project =

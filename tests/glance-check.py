@@ -123,6 +123,65 @@ r = subprocess.run([sys.executable, os.path.join(ROOT, "lib", "glance.py"), "--j
                    capture_output=True, text=True, env=dict(os.environ, HOME=home), timeout=20)
 need("phosphor glance --json prints JSON", r.returncode == 0 and json.loads(r.stdout).get("status"))
 
+# a wide, short screen (a 130x17 e-ink panel): all four sections in a 2x2
+# grid, nothing past the edges, the light in words on top.
+json.dump({"t": 9999999999, "hosts": {"forge": {"ok": False, "err": "connection refused"}}},
+          open(os.path.join(home, ".cache/phosphor/fleet.json"), "w"))
+lines = glance.frame(130, 17)
+need("130x17: no more than 17 rows", len(lines) <= 17)
+need("130x17: no line wider than 130", all(glance.ui.vlen(l) <= 130 for l in lines))
+plain = [strip(l) for l in lines]
+need("130x17: all four sections show",
+     all(any(t in l for l in plain) for t in ("fleet", "mentions", "needs you", "workspaces")))
+need("130x17: the light reads in words", "ATTENTION" in plain[0])
+need("a todo with no title takes one line, not its whole body",
+     all(glance.ui.vlen(l) <= 40 for l in glance.frame(40, 40) if "tailnet" in strip(l)))
+
+# mono: a terminal with no color gets no 24-bit color at all (SolarOS's ssh
+# reads the numbers in one as more SGR codes), red and amber become bold.
+need("TERM=xterm-mono is mono", glance.ui.mono_term({"TERM": "xterm-mono"}))
+need("NO_COLOR is mono", glance.ui.mono_term({"TERM": "xterm-256color", "NO_COLOR": "1"}))
+need("xterm-256color is not", not glance.ui.mono_term({"TERM": "xterm-256color"}))
+m = [glance.mono(l) for l in lines]
+need("mono drops every 24-bit color", not any("38;2;" in l for l in m))
+need("mono keeps the red light reversed", "\x1b[7m" in m[0])
+need("mono keeps the text", [strip(l) for l in m] == plain)
+
+# the screen that stays up repaints only on a change: one paint while nothing
+# moves, a clean repaint on r, out on q. Polling every 0.2 s instead of 5.
+import pty, select, time
+pid, fd = pty.fork()
+if pid == 0:
+    os.execve(sys.executable, [sys.executable, "-c",
+        "import sys; sys.path.insert(0, %r); import glance; glance.INTERVAL = 0.2;"
+        " sys.argv = ['glance']; sys.exit(glance.main())" % os.path.join(ROOT, "lib")],
+        dict(os.environ, HOME=home, TERM="xterm-mono", COLUMNS="130", LINES="17"))
+seen = ""
+def drain(secs):
+    global seen
+    end = time.time() + secs
+    while time.time() < end:
+        if select.select([fd], [], [], 0.1)[0]:
+            try: data = os.read(fd, 65536)
+            except OSError: return
+            if not data: return
+            seen += data.decode("utf-8", "replace")
+drain(2.5)
+need("watch: painted once while nothing changed", seen.count("\x1b[H") == 1)
+need("watch: no color on xterm-mono", "38;2;" not in seen and "ATTENTION" in seen)
+os.write(fd, b"r"); drain(1.5)
+need("watch: r clears and repaints", seen.count("\x1b[2J") == 2 and seen.count("\x1b[H") == 2)
+end, code = time.time() + 5, None
+while time.time() < end and code is None:
+    try: os.write(fd, b"q")             # again if it landed between two reads (setraw flushes it)
+    except OSError: pass
+    drain(0.5)
+    p_, st = os.waitpid(pid, os.WNOHANG)
+    if p_: code = os.waitstatus_to_exitcode(st)
+if code is None:
+    os.kill(pid, 9); os.waitpid(pid, 0)
+need("watch: q leaves cleanly", code == 0)
+
 if fails:
     print("FAIL:\n  " + "\n  ".join(fails))
     sys.exit(1)

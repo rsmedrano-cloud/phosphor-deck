@@ -161,9 +161,21 @@ Some screens are too small for a full attach: a Pi with a small display
 sitting on a shelf, an old e-reader, anything you'd rather glance at than
 drive. `ssh -t you@brain ~/.local/bin/phosphor glance` skips zellij entirely and prints a
 read-only summary that refreshes on its own -- the fleet's problem hosts (or
-"all N ok"), unread mentions, open todos, any workspace dirty or unpushed -- until Ctrl-C. Nothing to attach,
+"all N ok"), unread mentions, open todos, any workspace dirty or unpushed -- until `q` or Ctrl-C. Nothing to attach,
 nothing to detach: it's just a command, so any cron job or kiosk script that
 can run one over ssh can drive that little screen.
+
+It's made for slow screens too, e-ink above all. It repaints only when what
+it says changes (or every 10 minutes), so the time on its top line is when
+it last changed, not a clock; `r` clears and repaints, for e-ink ghosting.
+On a screen of 96 columns or more the four sections sit side by side, two by
+two, so a 130x17 panel shows all of them whole. A terminal with no color
+(`TERM` like `xterm-mono` or `vt100`, or `NO_COLOR` set; `--mono` forces it)
+gets plain text, with what's wrong in bold and the light reversed when it's
+red: some e-ink ssh clients read the numbers inside a 24-bit color as other
+codes and turn on bold or reverse at random. A key that should only ever
+show this can say so in `~/.ssh/authorized_keys`:
+`command="~/.local/bin/phosphor glance" ssh-ed25519 ...`.
 
 ### A gadget that can't ssh
 

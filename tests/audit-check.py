@@ -38,7 +38,7 @@ else:
         fails.append("agy got the real notebook or data folder")
     if os.path.exists(cwd): fails.append("the scratch clone wasn't removed")
     text = open(book).read()
-    if "· summary · agy · audit " not in text or "Auditoria de prueba" not in text:
+    if "· summary · agy #phosphor · audit " not in text or "Auditoria de prueba" not in text:
         fails.append("the report isn't in the notebook: %r" % text[-200:])
     sys.path.insert(0, os.path.join(ROOT, "tests")); sys.path.insert(0, os.path.join(ROOT, "lib"))
     os.environ["PHOSPHOR_NOTES"] = book

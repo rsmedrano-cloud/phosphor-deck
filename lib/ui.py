@@ -88,6 +88,30 @@ def vcut(s, w):
         out.append(m.group()); i = m.end()
     out.append(s[i:][:max(0, w - n)])
     return "".join(out) + RST
+_COLOR = re.compile(r"\x1b\[[34]8;2;[0-9;]*m")
+def uncolor(s):
+    """s without its 24-bit colors; bold and inverse stay, and so does a
+    reset that has one of them to undo."""
+    out, on = [], False
+    for part in re.split(r"(\x1b\[[0-9;]*m)", _COLOR.sub("", s)):
+        if part == "\x1b[0m":
+            if on:
+                out.append(part); on = False
+        else:
+            on = on or part.startswith("\x1b[")
+            out.append(part)
+    return "".join(out)
+
+MONO_TERMS = ("dumb", "vt52", "vt100", "vt102", "vt220")
+def mono_term(env=None):
+    """True for a terminal with no color: NO_COLOR set (no-color.org), or a
+    TERM that says so (xterm-mono, vt100, dumb). Such a client can do worse
+    than show gray: SolarOS's ssh reads the numbers inside a 24-bit color as
+    more SGR codes, so a 40 in an RGB turns on inverse video."""
+    env = os.environ if env is None else env
+    t = env.get("TERM", "")
+    return bool(env.get("NO_COLOR")) or t in MONO_TERMS or t.endswith(("-mono", "-m"))
+
 def width(cap=100): return min(shutil.get_terminal_size((80, 24)).columns, cap)
 
 def getkey(timeout=None, text=False, mouse=False):
