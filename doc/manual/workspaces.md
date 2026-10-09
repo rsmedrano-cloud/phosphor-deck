@@ -80,7 +80,19 @@ What you should see from outside -- a release, a decision for the whole
 deck -- goes to *your* notebook, filed under the workspace as its project.
 From the workspace's folder (an assistant there) or its tab (Alt-j) a note
 takes that name by itself; `--project NAME` says it anywhere else. NOTES
-shows each project as a folder, so one workspace's notes don't bury the rest. Nobody types into another assistant's pane --
+shows each project as a folder, so one workspace's notes don't bury the rest.
+
+So a name can be three things, and they line up on purpose:
+
+| | where | what |
+|---|---|---|
+| a **project** | `#NAME` on a note in your notebook | a folder in NOTES; any word, workspace or not |
+| a **workspace** | `~/projects/NAME` and its tab | a project too: its folder in NOTES says `workspace` (◆ in `m`'s Tab) |
+| its **NOTES.md** | inside that folder | the assistants' own notebook, not yours: `phosphor notes --file` |
+
+A project needs no workspace (`#krpro` can be just a word), and a
+workspace's notes in *your* notebook are its project folder, never its
+NOTES.md. Nobody types into another assistant's pane --
 the notebook is the only channel between them.
 
 You don't have to go polling it to find out: the moment a workspace's

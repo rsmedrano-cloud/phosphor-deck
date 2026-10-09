@@ -116,18 +116,22 @@ sidebar:
 ## Notes
 - `phosphor note [--kind note|idea|decision|todo|summary] [--by NAME] [--book NAME] [--tab TAB] [--project NAME] TEXT` (`-` reads stdin).
   `--tab` says which tab it came from; `--project` which project it's about (one word: spaces become `-`).
-  Written from a workspace's folder or tab with no `--project`, a note is filed under that workspace; `--here` asks for it on screen and takes the tab you're in
+  Written from a workspace's folder or tab with no `--project`, a note is filed under that workspace; from any other tab,
+  under the project of the last note from that tab. With `[notes] require_project = true` (profile) a note nothing
+  can file is refused (exit 2, listing the projects in use and the workspaces), and Alt-j or NOTES ask for the project
+  when you save, the guess already typed (Enter files it, Tab steps through the rest, Esc goes back to the text); `--here` asks for it on screen and takes the tab you're in
   (what Alt-j runs: pick note, todo or idea, write it, and the screen closes over your pane).
 - `phosphor notes [--book NAME | --file PATH] [--tab TAB] [--project NAME] [--archive]` — read a notebook (`--tab`: only the notes taken there;
   `--project`: only that project's, `--project ""` the ones with none); `--book work` is WORK NOTES,
   `--file` any notebook (a workspace's NOTES.md). `phosphor note` takes `--file` too.
   In the tab itself: `a` writes a note, `t` a todo, `i` an idea (first line the title, an empty
-  line saves). Tap a note or move with `j`/`k` to pick it: `e` edits it in `$EDITOR` (someone
+  line saves), into the project you're looking at. Tap a note or move with `j`/`k` to pick it: `e` edits it in `$EDITOR` (someone
   else's note gets "edited by you" on its author), `d` archives it, `x` marks a todo done,
   `c` opens a CHAT tab where an assistant (claude, gemini, codex, opencode, aider or agy) starts from it,
   `w` opens a workspace from it (see workspaces), `m` moves it to a project (Tab goes through the
-  projects in use and your workspaces; empty takes it out of one).
-  Once any note has a project, each project is a folder with its count: the notes with no project
+  projects in use and your workspaces, marked ◆; empty takes it out of one).
+  Once any note has a project, each project is a folder with its count (a folder that is also a workspace says
+  `workspace`): the notes with no project
   first and open, the rest closed, newest first; Enter or a tap opens and closes one, a search opens them all.
   A note taken from a tab says so (`from SYS`); `f` goes through those tabs, showing one tab's notes at a time.
   `u` brings back the last archived note. `/` searches title, body, author, tab and project at once (case-insensitive);

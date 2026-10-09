@@ -27,11 +27,16 @@ import fcntl, os, re, shlex, shutil, subprocess, sys, tempfile, textwrap, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
 
+def notes_conf():
+    import deckconf
+    try: return (deckconf.load()[0] or {}).get("notes") or {}
+    except Exception: return {}
+
 def notes_dir():
     """Where the notebook lives: the profile's `[notes] folder` if set (a
     vault you already sync), else the private default under ~/.local/share."""
     import deckconf
-    folder = ((deckconf.load()[0] or {}).get("notes") or {}).get("folder")
+    folder = notes_conf().get("folder")
     return os.path.expanduser(folder) if folder else deckconf.data_dir()
 
 PATH = DEFAULT_PATH = os.environ.get("PHOSPHOR_NOTES") or os.path.join(notes_dir(), "notes.md")
@@ -40,6 +45,28 @@ ARCHIVE_VIEW = False
 ONLY_TAB = None           # --tab: only the notes taken from that tab
 ONLY_PROJECT = None       # --project: notes, only that project's; note, filed under it
 FOLDERS = False           # the tab is showing projects as folders (render leaves #NAME out)
+WORKSPACES = []           # the workspaces' names: their folders are marked in the tab
+REQUIRED = notes_conf().get("require_project") is True   # [notes] require_project
+
+def required():
+    """Every new note in the deck's own notebook needs a project: --file and
+    --book are someone else's notebook, with rules of their own."""
+    return REQUIRED and PATH == DEFAULT_PATH
+
+def workspaces():
+    try:
+        import workspace
+        return workspace.names()
+    except Exception:
+        return []
+
+def project_choices(first=""):
+    """What Tab offers for a project: the guess, the ones in use (newest
+    first), then the workspaces nothing is filed under yet."""
+    out = [first] if first else []
+    for n in projects_in(PATH) + workspaces():
+        if n not in out: out.append(n)
+    return out
 
 def migrate(old_path, new_path):
     """Move a notebook (and its archive) to a new folder, only the files
@@ -176,9 +203,16 @@ def add(argv):
     kind = take("--kind") or kind
     by = take("--by") or by
     tab = ONLY_TAB or ""
-    project = ONLY_PROJECT if ONLY_PROJECT is not None else guess_project()
+    project = ONLY_PROJECT if ONLY_PROJECT is not None else guess_project(tab or None)
     if "--here" in args:
         return here(kind if kind != "note" else None)
+    if required() and not project:
+        ws = workspaces()
+        print("a note needs a project here ([notes] require_project): --project NAME")
+        used = projects_in(PATH)
+        if used: print("  in use:     " + " ".join(used))
+        if ws: print("  workspaces: " + " ".join(ws))
+        return 2
     if kind not in KINDS:
         print("unknown kind %r — use one of: %s" % (kind, ", ".join(KINDS))); return 1
     if args in ([], ["-"]) and not sys.stdin.isatty():
@@ -194,18 +228,21 @@ def add(argv):
 
 def guess_project(tab=None):
     """The workspace a note is written from, by its folder (an assistant in
-    it) or its tab (Alt-j there), or "". Only for the deck's own notebook:
-    --file and --book already say where a note goes."""
+    it) or its tab (Alt-j there); else the project the last note from that
+    tab went to; else "". Only for the deck's own notebook: --file and
+    --book already say where a note goes."""
     if PATH != DEFAULT_PATH: return ""
     try:
         import workspace
         names, root = workspace.names(), os.path.realpath(workspace.root())
+        rel = os.path.relpath(os.path.realpath(os.getcwd()), root).split(os.sep)[0]
+        if rel in names: return rel
     except Exception:
-        return ""
-    rel = os.path.relpath(os.path.realpath(os.getcwd()), root).split(os.sep)[0]
-    if rel in names: return rel
+        names = []
     tab = this_tab() if tab is None else tab
-    return next((n for n in names if tab and n.upper() == tab.upper()), "")
+    if not tab: return ""
+    return next((n for n in names if n.upper() == tab.upper()), "") \
+        or next((e["project"] for e in entries(PATH, tab=tab) if e["project"]), "")
 
 # --- the file as blocks: each entry's raw text, so a change touches only that entry
 
@@ -377,8 +414,11 @@ def render(w, notes):
     for i, e in enumerate(notes):
         def put(s): lines.append(s); owner.append(i)
         if "folder" in e:
+            ws = e["folder"] in WORKSPACES
             put(AMB + ("▾ " if e["open"] else "▸ ") + (e["folder"] or "no project") + RST
-                + DIM + "  %d" % e["count"] + RST)
+                + DIM + "  %d" % e["count"] + RST
+                + (DIM + "  · " + RST + PH + "workspace" + RST if ws else "")
+                + (DIM + "  · m files each one" + RST if not e["folder"] and required() else ""))
             continue
         put(KINDS.get(e["kind"], FG) + e["kind"].upper() + RST
             + DIM + "  " + e["when"] + " · " + e["by"] + RST
@@ -447,13 +487,26 @@ def typed(lines, tok):
         lines[-1] += " " if tok == "\t" else tok
     return lines, None
 
-def draw_note(kind, tab, lines, w):
-    """The screen while writing: what it is, one hint, and the text wrapped by us."""
+def draw_note(kind, tab, lines, w, project="", asking=None):
+    """The screen while writing: what it is, one hint, and the text wrapped by
+    us. asking: (what's typed, the choices) while it asks for the project."""
     tw = max(10, w - 4)
     out = ["  " + KINDS.get(kind, FG) + "new " + kind + RST
-           + (DIM + " from " + RST + PH + tab + RST if tab else ""),
+           + (DIM + " from " + RST + PH + tab + RST if tab else "")
+           + (DIM + " · #" + RST + PH + project + RST if project and asking is None else ""),
            "  " + DIM + ("Enter: a new line · Enter on an empty line saves · Ctrl-c cancels"
                          if w >= 72 else "Enter twice saves · Ctrl-c cancels") + RST, ""]
+    if asking is not None:
+        q, choices = asking
+        out[1] = "  " + DIM + "Enter files it · Tab: another · Esc: back to the text" + RST
+        for l in lines[:1]: out.append("  " + BLOOM + l[:tw] + RST)
+        out += ["", "  " + PH + "project: " + RST + q]
+        row = len(out)
+        marks = ["◆" + c if c in WORKSPACES else c for c in choices[:8]]
+        for t in textwrap.wrap(" ".join(marks), tw)[:3]: out.append("  " + DIM + t + RST)
+        if any(c in WORKSPACES for c in choices[:8]):
+            out.append("  " + DIM + "◆ a workspace" + RST)
+        return out, row, 12 + len(q)
     for n, l in enumerate(lines):
         parts = [l[i:i + tw] for i in range(0, len(l), tw)] or [""]
         if len(l) and len(l) % tw == 0 and n == len(lines) - 1:
@@ -469,9 +522,25 @@ def draw_note(kind, tab, lines, w):
     col = 5 + (len(lines[-1]) % tw if lines[-1] and len(lines[-1]) % tw else 0)
     return out, cur_row, col
 
+def asked(q, at, choices, tok):
+    """One key while asking for the project: (q, at, None | "file" | "back")."""
+    if tok in ("\r", "\n"): return q, at, ("file" if clean_project(q) else None)
+    if tok == "\x03" or tok == "\x1b": return q, at, "back"
+    if tok == "\t" and choices:
+        at = (at + 1) % len(choices); return choices[at], at, None
+    if tok in ("\x7f", "\x08"): return q[:-1], at, None
+    if tok == "\x15": return "", at, None
+    if len(tok) == 1 and tok >= " " and tok not in "·@#": return q + tok, at, None
+    return q, at, None
+
 def compose(kind="note", tab="", project=""):
     """Write a note from inside the tab: no other tool, no other tab.
-    True when something was saved."""
+    With [notes] require_project, saving asks which project it goes to
+    (the guess already typed: Enter files it). True when something was saved."""
+    global WORKSPACES
+    WORKSPACES = workspaces()
+    choices = project_choices(project) if required() else []
+    asking = None                                      # [q, at] while asking for the project
     fd = sys.stdin.fileno()
     import select, termios, tty
     sys.stdout.write("\x1b[?1006l\x1b[?1000l\x1b[?25h\x1b[?2004h"); sys.stdout.flush()
@@ -485,7 +554,8 @@ def compose(kind="note", tab="", project=""):
         tty.setraw(fd)
         while done is None:
             w = shutil.get_terminal_size((70, 24)).columns
-            out, row, col = draw_note(kind, tab, lines, w)
+            out, row, col = draw_note(kind, tab, lines, w, project,
+                                      None if asking is None else (asking[0], choices))
             sys.stdout.write("\x1b[H\x1b[J" + "\r\n".join(out) + "\x1b[%d;%dH" % (row, col))
             sys.stdout.flush()
             if not select.select([fd], [], [], 1.0)[0]:
@@ -495,7 +565,14 @@ def compose(kind="note", tab="", project=""):
                 data += os.read(fd, 4096)              # the rest of a paste
             toks, pasting = tokens(data.decode("utf-8", "replace"), pasting)
             for t in toks:
+                if asking is not None:
+                    asking[0], asking[1], what = asked(asking[0], asking[1], choices, t)
+                    if what == "back": asking = None; lines = lines + [""]
+                    elif what == "file": project, done = clean_project(asking[0]), "save"; break
+                    continue
                 lines, done = typed(lines, t)
+                if done == "save" and required() and any(l.strip() for l in lines):
+                    asking, done = [project, -1], None
                 if done: break
     except KeyboardInterrupt:
         done = "cancel"
@@ -671,13 +748,14 @@ def matches(e, q):
     return any(q in "\n".join(v if isinstance(v, list) else [v or ""]).lower()   # body is a list of lines
                for v in (e.get(f) for f in ("title", "body", "by", "tab", "project")))
 
-def search_prompt(rows, current, label="/", choices=()):
+def search_prompt(rows, current, label="/", choices=(), marked=()):
     """A one-line prompt on the footer's row. Returns the new query (empty
     clears it), or None if cancelled -- the query stays whatever it was.
-    Tab steps through choices, when there are any."""
+    Tab steps through choices, when there are any; the marked ones show a ◆
+    (workspaces, among projects)."""
     q, at = current, -1
     while True:
-        hint = DIM + "   Tab: " + " ".join(choices) + RST if choices else ""
+        hint = DIM + "   Tab: " + " ".join(("◆" if c in marked else "") + c for c in choices) + RST if choices else ""
         sys.stdout.write("\x1b[%d;1H\x1b[K " % rows + PH + label + RST + q + hint + "\x1b[K")
         sys.stdout.flush()
         k = getkey(None, mouse=True)
@@ -694,22 +772,17 @@ def search_prompt(rows, current, label="/", choices=()):
 def move(e, rows):
     """m: file a note under a project (Tab offers the ones in use and the
     workspaces; empty: no project)."""
-    try:
-        import workspace
-        ws = workspace.names()
-    except Exception:
-        ws = []
-    known = projects_in(PATH)
-    p = search_prompt(rows, e["project"], "project: ", known + [n for n in ws if n not in known])
+    p = search_prompt(rows, e["project"], "project: ", project_choices(), set(WORKSPACES))
     if p is None: return ""
     p = clean_project(p)
     if p == e["project"]: return "no changes"
+    if not p and required(): return "a note needs a project here: not moved"
     if not replace(PATH, e["raw"], rekind(e["raw"], project=p)):
         return "the note changed meanwhile: not moved"
     return ("moved to " + p) if p else "no project now"
 
 def main():
-    global ONLY_TAB, FOLDERS
+    global ONLY_TAB, FOLDERS, WORKSPACES
     use_book(sys.argv)
     view = archive_of(PATH) if ARCHIVE_VIEW else PATH
     if not sys.stdin.isatty():                       # piped: plain dump
@@ -735,6 +808,7 @@ def main():
                 sel = st["sel"]
                 picked = ident(notes[sel]) if sel is not None and sel < len(notes) else None
                 found = entries(view, None if ARCHIVE_VIEW else ONLY_TAB, ONLY_PROJECT)
+                WORKSPACES = workspaces()
                 if st["q"]: found = [n for n in found if matches(n, st["q"])]
                 # one project asked for: no folders; a search opens every one it reaches
                 notes = list(found) if ONLY_PROJECT is not None else folded(found, closed, bool(st["q"]))
@@ -819,9 +893,9 @@ def main():
                 q = search_prompt(rows, st["q"])
                 if q is not None:
                     st.update(q=q, sel=None, off=0)
-            elif k == "a": compose(project=ONLY_PROJECT or ""); say("")
-            elif k == "t": compose("todo", project=ONLY_PROJECT or ""); say("")
-            elif k == "i": compose("idea", project=ONLY_PROJECT or ""); say("")
+            elif k in ("a", "t", "i"):                # into the project you're looking at
+                at = ONLY_PROJECT or (folder["folder"] if folder else e["project"] if e else "")
+                compose({"a": "note", "t": "todo", "i": "idea"}[k], project=at); say("")
             elif k == "u":
                 t = restore(PATH); say(("back: " + t[:30]) if t else "nothing archived")
             elif e and k == "e": say(edit(e))

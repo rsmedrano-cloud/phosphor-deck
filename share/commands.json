@@ -167,7 +167,7 @@
     "values": {"--kind": ["note", "idea", "decision", "todo", "summary"]},
     "mutates": true,
     "needs_deck": false,
-    "note": "appends to the shared notebook on every invocation, no confirmation; with no --project, one written from a workspace's folder or tab is filed under that workspace."},
+    "note": "appends to the shared notebook on every invocation, no confirmation; with no --project, one written from a workspace's folder or tab is filed under that workspace, else under the project of the last note from that tab; with [notes] require_project = true it refuses (exit 2) a note it can't file, listing the projects in use and the workspaces."},
   "notes": {"category": "Notes",
     "usage": "phosphor notes [--book NAME | --file PATH] [--tab TAB] [--project NAME] [--archive]",
     "summary": "read it (newest first); pick one to edit, archive, chat",

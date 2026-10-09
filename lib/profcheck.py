@@ -34,7 +34,7 @@ TABLES = {
     "deck": DECK,
     "keys": {"edit": None, "new_tab": None, "note": None, "zoom": None, "leave": None,
              "controls": None, "tabs": None, "panes": None},
-    "notes": {"folder": None},
+    "notes": {"folder": None, "require_project": BOOL},
     "mentions": {"prepare": None, "by": None, "prompt": None, "timeout": None},
     "prometheus": {"url": None, "interval": None, "gauges": None},
     "ci": {"interval": None, "pipelines": None},

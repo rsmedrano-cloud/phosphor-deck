@@ -161,7 +161,7 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
   without leaving the tab. Alt-j jots one from whatever tab you're in (SYS
   shows a full disk: a todo), and NOTES says where it came from; `f` shows one
   tab's notes, `/` searches all of them. Notes written from a workspace are
-  filed under it as a project, and NOTES folds each project into a folder. Tap a note to edit it, archive it, mark a todo
+  filed under it as a project, and NOTES folds each project into a folder (`[notes] require_project` makes a project a must). Tap a note to edit it, archive it, mark a todo
   done, or open an assistant that starts from it. Private by default; `[notes] folder` in the
   profile (`phosphor init` or `setup`) moves it into a vault you already sync -- Obsidian,
   Syncthing, git. `phosphor digest` turns the last day (commits, a host that went down,

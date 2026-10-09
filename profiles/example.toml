@@ -29,6 +29,7 @@ bar     = "tabs"         # tabs (with the + menu) | compact | full (adds key hin
 # one that's already there if you edit this by hand).
 # [notes]
 # folder = "~/Obsidian/Deck"
+# require_project = true      # every new note needs a project (--project, or asked)
 
 # ── THE FLEET ───────────────────────────────────────────────
 # role: brain    holds the session (exactly one, and it's local)

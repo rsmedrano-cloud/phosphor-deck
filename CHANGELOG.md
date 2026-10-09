@@ -6,6 +6,23 @@ before it updates.
 
 ## Unreleased
 
+## 1.9.5 — notes need a project
+
+- Every note in a project, if you want it so: `[notes] require_project =
+  true` in the profile and the deck's notebook takes no note it can't file.
+  `phosphor note` with no `--project` and nothing to guess from (a shell on
+  another machine, say) stops with exit 2 and lists the projects in use and
+  your workspaces; Alt-j and `a`/`t`/`i` in NOTES ask for it when you save,
+  the guess already typed (Enter files it, Tab steps through the others, Esc
+  goes back to the text). `--file` and `--book` notebooks keep their own
+  rules. Off by default.
+- A better guess: a note from a tab that isn't a workspace goes where the
+  last note from that tab went. In NOTES, `a`/`t`/`i` start in the project
+  you're looking at.
+- Workspace or project, at a glance: in NOTES a folder that is also a
+  workspace says `workspace`, and `m`'s Tab marks workspaces with ◆.
+- `phosphor digest` files its summary under the `digest` project.
+
 ## 1.9.4 — notes by project
 
 - Notes by project: a note can belong to a project (`phosphor note --project

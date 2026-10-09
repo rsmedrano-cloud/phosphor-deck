@@ -225,13 +225,46 @@ check("a search finds the project", notes.matches(notes.entries(notes.archive_of
 ws = os.path.join(d, "projects", "nimbus"); os.makedirs(os.path.join(ws, "api"))
 open(os.path.join(ws, "NOTES.md"), "w").write("# nimbus\n")
 import workspace
+notes.PATH = notes.DEFAULT_PATH = pp            # never the notebook of whoever runs this
 workspace.root = lambda prof=None: os.path.join(d, "projects")
 here = os.getcwd(); os.chdir(os.path.join(ws, "api"))
 check("project from the workspace folder", notes.guess_project(tab="") == "nimbus")
 os.chdir(d)
 check("project from the workspace tab", notes.guess_project(tab="NIMBUS") == "nimbus")
 check("elsewhere, none", notes.guess_project(tab="SYS") == "")
+
+# the deck's own notebook: a tab with no workspace goes where its last note went
+notes.append(pp, "note", "me", "From SYS", tab="SYS", project="glance")
+check("project from the tab's last note", notes.guess_project(tab="SYS") == "glance")
+check("a workspace's tab still wins", notes.guess_project(tab="NIMBUS") == "nimbus")
+check("Tab offers the guess, then in use, then workspaces",
+      notes.project_choices("nimbus")[:2] == ["nimbus", "glance"]
+      and notes.project_choices()[-1] == "nimbus" and notes.project_choices("nimbus").count("nimbus") == 1)
 os.chdir(here)
+
+# [notes] require_project: no project, no note (a remote shell has no tab to guess from)
+notes.REQUIRED = True
+os.environ.pop("ZELLIJ_PANE_ID", None)
+before = len(notes.entries(pp))
+check("refused without a project", notes.add(["an orphan"]) == 2 and len(notes.entries(pp)) == before)
+check("filed with one", notes.add(["--project", "glance", "filed"]) == 0
+      and notes.entries(pp)[0]["project"] == "glance")
+notes.ONLY_PROJECT = None
+check("someone else's notebook keeps its rules", notes.add(["--file", os.path.join(d, "other.md"), "free"]) == 0)
+notes.PATH = notes.DEFAULT_PATH = pp
+check("asking: Enter files the guess", notes.asked("glance", -1, [], "\r")[2] == "file")
+check("asking: empty files nothing", notes.asked("", -1, [], "\r")[2] is None)
+check("asking: Tab steps through", notes.asked("", -1, ["a", "b"], "\t")[:2] == ("a", 0))
+check("asking: Esc goes back to the text", notes.asked("x", -1, [], "\x1b")[2] == "back")
+notes.WORKSPACES = ["nimbus"]
+check("a workspace folder says so",
+      any("workspace" in l for l in notes.render(80, [{"folder": "nimbus", "count": 1, "open": False}])[0]))
+check("a plain project doesn't",
+      not any("workspace" in l for l in notes.render(80, [{"folder": "glance", "count": 1, "open": False}])[0]))
+out_, row_, col_ = notes.draw_note("note", "SYS", ["hi"], 80, "glance", ("gla", ["glance", "nimbus"]))
+check("asking: the cursor sits on the project line",
+      "project: " in notes.STRIP.sub("", out_[row_ - 1]) and col_ == 15 and any("◆nimbus" in l for l in out_))
+notes.REQUIRED, notes.WORKSPACES = False, []
 
 notes.append(pp, "note", "me", "Back in a folder", project="glance")
 gone, out = tapped(["notes", "--file", pp], [(10, 3), (10, 4)])

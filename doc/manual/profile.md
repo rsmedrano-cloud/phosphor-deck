@@ -166,6 +166,7 @@ overwriting one that's already there.
 | key | what |
 |---|---|
 | folder | a folder you already sync (Obsidian, Syncthing, git); `notes.md` goes inside it |
+| require_project | `true`: every new note in this notebook needs a project. `phosphor note` refuses one it can't file (listing the projects in use and the workspaces); Alt-j and NOTES ask when you save, the guess already typed. Default `false` |
 
 Phosphor syncs nothing itself: the folder reaches other machines however you
 already sync it. The notebook stays one file (`notes.md`, plus

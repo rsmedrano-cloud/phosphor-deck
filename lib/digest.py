@@ -193,7 +193,7 @@ def main():
     if r.returncode or not answer:
         print(BAD + " %s didn't answer (exit %d): nothing written" % (chosen, r.returncode) + RST)
         return r.returncode or 1
-    notes.append(notes.PATH, "summary", BY, "digest " + time.strftime("%Y-%m-%d"), answer)
+    notes.append(notes.PATH, "summary", BY, "digest " + time.strftime("%Y-%m-%d"), answer, project="digest")
     print(answer)
     print(DIM + "  written to the notebook: phosphor notes" + RST)
     return 0
