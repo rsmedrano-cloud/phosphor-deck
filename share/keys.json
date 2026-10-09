@@ -220,6 +220,7 @@
 "k": [
 ["tap / j k", "pick a note · two fingers scroll"],
 ["e d x c w", "edit · archive · todo done · chat · workspace"],
+["m", "move a note to a project · Enter opens a project's folder"],
 ["u", "bring back the last archived note"],
 ["a t i", "write a note · a todo · an idea"],
 ["phosphor note \"...\"", "add a note (from anywhere)"],

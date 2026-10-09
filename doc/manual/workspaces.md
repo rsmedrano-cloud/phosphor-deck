@@ -74,7 +74,13 @@ it automatically. It's how the assistants -- and you, if you want in on it
 
 Every workspace `AGENTS.md` tells its assistant this same command, so it
 knows to leave a note before it stops rather than let context evaporate
-when the pane restarts. Nobody types into another assistant's pane --
+when the pane restarts.
+
+What you should see from outside -- a release, a decision for the whole
+deck -- goes to *your* notebook, filed under the workspace as its project.
+From the workspace's folder (an assistant there) or its tab (Alt-j) a note
+takes that name by itself; `--project NAME` says it anywhere else. NOTES
+shows each project as a folder, so one workspace's notes don't bury the rest. Nobody types into another assistant's pane --
 the notebook is the only channel between them.
 
 You don't have to go polling it to find out: the moment a workspace's

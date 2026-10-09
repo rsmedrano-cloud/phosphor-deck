@@ -9,10 +9,14 @@ write to it — you, a script, an AI:
     phosphor note --kind decision "text"          note idea decision todo summary
     phosphor note --by claude --kind summary -    body from stdin, 1st line = title
     phosphor note --tab SYS "text"                where it came from
+    phosphor note --project NAME "text"           which project it's about
     phosphor note --here                          ask for it, tagged with this tab (Alt-j)
 
 A note can say which tab it was taken from (`me @SYS` in its header):
 the tab shows it, and f narrows the list to one tab (`phosphor notes --tab SYS`).
+A note can also belong to a project (`#NAME` in its header): written from a
+workspace's folder or tab it takes that workspace's name by itself, and the
+tab folds each project's notes into a folder (m moves a note to another).
 
 `phosphor notes` shows it newest first and reloads when the file changes.
 In the tab a note can be picked (tap, j/k) and then edited, archived, marked
@@ -30,10 +34,12 @@ def notes_dir():
     folder = ((deckconf.load()[0] or {}).get("notes") or {}).get("folder")
     return os.path.expanduser(folder) if folder else deckconf.data_dir()
 
-PATH = os.environ.get("PHOSPHOR_NOTES") or os.path.join(notes_dir(), "notes.md")
+PATH = DEFAULT_PATH = os.environ.get("PHOSPHOR_NOTES") or os.path.join(notes_dir(), "notes.md")
 BOOK = "NOTES"
 ARCHIVE_VIEW = False
 ONLY_TAB = None           # --tab: only the notes taken from that tab
+ONLY_PROJECT = None       # --project: notes, only that project's; note, filed under it
+FOLDERS = False           # the tab is showing projects as folders (render leaves #NAME out)
 
 def migrate(old_path, new_path):
     """Move a notebook (and its archive) to a new folder, only the files
@@ -91,7 +97,7 @@ def choose_folder(current):
 def use_book(argv):
     """--book NAME switches to NAME.md next to the main notebook (e.g. work);
     --file PATH any notebook file; --archive shows that book's archive."""
-    global PATH, BOOK, ARCHIVE_VIEW, ONLY_TAB
+    global PATH, BOOK, ARCHIVE_VIEW, ONLY_TAB, ONLY_PROJECT
     if "--book" in argv:
         i = argv.index("--book")
         name = argv[i + 1] if i + 1 < len(argv) else "notes"
@@ -106,6 +112,10 @@ def use_book(argv):
     if "--tab" in argv:                      # notes: only that tab's; note: taken from it
         i = argv.index("--tab")
         ONLY_TAB = clean_tab(argv[i + 1] if i + 1 < len(argv) else "") or None
+        del argv[i:i + 2]
+    if "--project" in argv:                  # "" (no project) is a project of its own here
+        i = argv.index("--project")
+        ONLY_PROJECT = clean_project(argv[i + 1] if i + 1 < len(argv) else "")
         del argv[i:i + 2]
     if "--archive" in argv:
         argv.remove("--archive")
@@ -131,18 +141,23 @@ class locked:
 def clean_tab(tab):
     return re.sub(r"[·@\n]", " ", tab or "").strip()
 
-def header(when, kind, by, title, tab=""):
-    tab = clean_tab(tab)
-    return "## %s · %s · %s%s · %s" % (when, kind, by.strip(), " @" + tab if tab else "", title)
+def clean_project(p):
+    """One word, so Obsidian reads `#NAME` in the header as a tag too."""
+    return re.sub(r"\s+", "-", re.sub(r"[·@#\n]", " ", p or "").strip())
 
-def append(path, kind, by, title, body="", tab=""):
+def header(when, kind, by, title, tab="", project=""):
+    tab, project = clean_tab(tab), clean_project(project)
+    return "## %s · %s · %s%s%s · %s" % (when, kind, by.strip(), " @" + tab if tab else "",
+                                         " #" + project if project else "", title)
+
+def append(path, kind, by, title, body="", tab="", project=""):
     """One entry at the end of a notebook (created with its header if new)."""
     with locked(path):
         fresh = not os.path.exists(path)
         with open(path, "a", encoding="utf-8") as f:
             if fresh:
                 f.write(PREAMBLE)
-            f.write(header(time.strftime("%Y-%m-%d %H:%M"), kind, by, title, tab) + "\n")
+            f.write(header(time.strftime("%Y-%m-%d %H:%M"), kind, by, title, tab, project) + "\n")
             if body:
                 f.write("\n" + body + "\n")
             f.write("\n")
@@ -161,6 +176,7 @@ def add(argv):
     kind = take("--kind") or kind
     by = take("--by") or by
     tab = ONLY_TAB or ""
+    project = ONLY_PROJECT if ONLY_PROJECT is not None else guess_project()
     if "--here" in args:
         return here(kind if kind != "note" else None)
     if kind not in KINDS:
@@ -173,8 +189,23 @@ def add(argv):
         print('usage: phosphor note [--kind K] [--by NAME] "text"   (- reads stdin)'); return 1
     lines = text.splitlines()
     title, body = lines[0].strip(), "\n".join(lines[1:]).strip()
-    append(PATH, kind, by, title, body, tab)
+    append(PATH, kind, by, title, body, tab, project)
     return 0
+
+def guess_project(tab=None):
+    """The workspace a note is written from, by its folder (an assistant in
+    it) or its tab (Alt-j there), or "". Only for the deck's own notebook:
+    --file and --book already say where a note goes."""
+    if PATH != DEFAULT_PATH: return ""
+    try:
+        import workspace
+        names, root = workspace.names(), os.path.realpath(workspace.root())
+    except Exception:
+        return ""
+    rel = os.path.relpath(os.path.realpath(os.getcwd()), root).split(os.sep)[0]
+    if rel in names: return rel
+    tab = this_tab() if tab is None else tab
+    return next((n for n in names if tab and n.upper() == tab.upper()), "")
 
 # --- the file as blocks: each entry's raw text, so a change touches only that entry
 
@@ -196,10 +227,12 @@ def parse(raw):
     body = lines[1:]
     while body and not body[-1].strip(): body.pop()
     while body and not body[0].strip(): body.pop(0)
-    by, _, tab = m.group(3).strip().rpartition(" @")
+    by, sep, project = m.group(3).strip().rpartition(" #")
+    if not sep: by, project = project, ""
+    by, _, tab = by.rpartition(" @")
     if not by: by, tab = tab, ""
     return {"when": m.group(1), "kind": m.group(2), "by": by.strip(), "tab": tab.strip(),
-            "title": m.group(4) or "", "body": body, "raw": raw}
+            "project": project.strip(), "title": m.group(4) or "", "body": body, "raw": raw}
 
 def read(path):
     try:
@@ -218,9 +251,18 @@ def write(path, pre, blocks):
         f.write(text)
     os.replace(tmp, path)
 
-def entries(path=None, tab=None):
-    out = [parse(b) for b in read(path or PATH)[1]][::-1]      # newest first
-    return [e for e in out if e["tab"] == tab] if tab else out
+def entries(path=None, tab=None, project=None):
+    """Newest first; project="" is the notes with no project."""
+    out = [parse(b) for b in read(path or PATH)[1]][::-1]
+    if tab: out = [e for e in out if e["tab"] == tab]
+    return out if project is None else [e for e in out if e["project"] == project]
+
+def projects_in(path=None):
+    """The projects notes are filed under, most recent first."""
+    seen = []
+    for e in entries(path):
+        if e["project"] and e["project"] not in seen: seen.append(e["project"])
+    return seen
 
 def tabs_in(path=None):
     """The tabs notes were taken from, most recent first."""
@@ -229,9 +271,10 @@ def tabs_in(path=None):
         if e["tab"] and e["tab"] not in seen: seen.append(e["tab"])
     return seen
 
-def rekind(raw, kind=None, by=None, title=None, body=None):
+def rekind(raw, kind=None, by=None, title=None, body=None, project=None):
     e = parse(raw)
-    out = header(e["when"], kind or e["kind"], by or e["by"], e["title"] if title is None else title, e["tab"])
+    out = header(e["when"], kind or e["kind"], by or e["by"], e["title"] if title is None else title,
+                 e["tab"], e["project"] if project is None else project)
     b = e["body"] if body is None else body
     return out + ("\n\n" + "\n".join(b) if b else "")
 
@@ -313,14 +356,34 @@ def edited(raw, text, me):
 
 # --- the tab
 
+def folded(notes, closed, everything=False):
+    """The tab's rows: each project a folder (its count, Enter opens it) with
+    its notes under it when open. No project comes first and starts open, the
+    rest by their newest note and start closed: closed holds what the reader
+    toggled away from that. A notebook with no projects stays a plain list."""
+    groups = {}
+    for e in notes: groups.setdefault(e["project"], []).append(e)
+    if not any(groups): return list(notes)
+    out = []
+    for name in sorted(groups, key=lambda n: n != ""):          # stable: newest first after ""
+        is_open = everything or ((name == "") != (name in closed))
+        out.append({"folder": name, "count": len(groups[name]), "open": is_open})
+        if is_open: out += groups[name]
+    return out
+
 def render(w, notes):
-    """Lines, plus the entry index each line belongs to."""
+    """Lines, plus the row index each line belongs to (a note or a folder)."""
     lines, owner, ww = [], [], max(20, w - 4)
     for i, e in enumerate(notes):
         def put(s): lines.append(s); owner.append(i)
+        if "folder" in e:
+            put(AMB + ("▾ " if e["open"] else "▸ ") + (e["folder"] or "no project") + RST
+                + DIM + "  %d" % e["count"] + RST)
+            continue
         put(KINDS.get(e["kind"], FG) + e["kind"].upper() + RST
             + DIM + "  " + e["when"] + " · " + e["by"] + RST
-            + (DIM + " · from " + RST + PH + e["tab"] + RST if e["tab"] else ""))
+            + (DIM + " · from " + RST + PH + e["tab"] + RST if e["tab"] else "")
+            + (DIM + " · #" + e["project"] + RST if e["project"] and not FOLDERS else ""))
         for t in textwrap.wrap(e["title"], ww) or []:
             put("  " + BLOOM + t + RST)
         for b in e["body"]:
@@ -406,7 +469,7 @@ def draw_note(kind, tab, lines, w):
     col = 5 + (len(lines[-1]) % tw if lines[-1] and len(lines[-1]) % tw else 0)
     return out, cur_row, col
 
-def compose(kind="note", tab=""):
+def compose(kind="note", tab="", project=""):
     """Write a note from inside the tab: no other tool, no other tab.
     True when something was saved."""
     fd = sys.stdin.fileno()
@@ -442,7 +505,7 @@ def compose(kind="note", tab=""):
     saved = done == "save" and any(l.strip() for l in lines)
     if saved:
         append(PATH, kind, os.environ.get("USER", "me"), lines[0].strip(),
-               "\n".join(lines[1:]).strip(), tab)
+               "\n".join(lines[1:]).strip(), tab, project)
     return saved
 
 def this_tab():
@@ -481,7 +544,7 @@ def here(kind=None):
                 kind = dict(kinds).get(k)
         finally:
             sys.stdout.write("\x1b[?1006l\x1b[?1000l\x1b[?1049l\x1b[?25h"); sys.stdout.flush()
-    saved = compose(kind, tab)
+    saved = compose(kind, tab, guess_project(tab))
     sys.stdout.write("\x1b[?1006l\x1b[?1000l\x1b[2J\x1b[H"); sys.stdout.flush()
     if saved:
         print("\n  " + PH + "saved" + RST + DIM + " in %s%s" % (BOOK, " · from " + tab if tab else "") + RST)
@@ -580,7 +643,7 @@ def actions(e):
         return [("r", "restore", bool(e)), ("D", "delete for good", bool(e)), ("q", "quit", True)]
     return [("e", "edit", bool(e)), ("d", "archive", bool(e)),
             ("x", "done", bool(e) and e["kind"] == "todo"), ("c", "chat", bool(e)),
-            ("w", "workspace", bool(e)),
+            ("w", "workspace", bool(e)), ("m", "move", bool(e)),
             ("a", "write", True), ("t", "todo", True), ("i", "idea", True), ("u", "undo", True),
             ("f", "from: " + (ONLY_TAB or "every tab"), True), ("/", "search", True)]
 
@@ -606,36 +669,59 @@ def confirm(q, rows):
 def matches(e, q):
     q = q.lower()
     return any(q in "\n".join(v if isinstance(v, list) else [v or ""]).lower()   # body is a list of lines
-               for v in (e.get(f) for f in ("title", "body", "by", "tab")))
+               for v in (e.get(f) for f in ("title", "body", "by", "tab", "project")))
 
-def search_prompt(rows, current):
+def search_prompt(rows, current, label="/", choices=()):
     """A one-line prompt on the footer's row. Returns the new query (empty
-    clears it), or None if cancelled -- the query stays whatever it was."""
-    q = current
+    clears it), or None if cancelled -- the query stays whatever it was.
+    Tab steps through choices, when there are any."""
+    q, at = current, -1
     while True:
-        sys.stdout.write("\x1b[%d;1H\x1b[K " % rows + PH + "/" + RST + q + "\x1b[K")
+        hint = DIM + "   Tab: " + " ".join(choices) + RST if choices else ""
+        sys.stdout.write("\x1b[%d;1H\x1b[K " % rows + PH + label + RST + q + hint + "\x1b[K")
         sys.stdout.flush()
         k = getkey(None, mouse=True)
         if k is None or isinstance(k, tuple):
             continue
         if k in ("\r", "\n"): return q
         if k in ("\x03", "\x1b"): return None
-        if k in ("\x7f", "\x08"): q = q[:-1]
+        if k == "\t" and choices:
+            at = (at + 1) % len(choices); q = choices[at]
+        elif k in ("\x7f", "\x08"): q = q[:-1]
         elif k == "\x15": q = ""                          # Ctrl-u
         elif len(k) == 1 and k >= " ": q += k
 
+def move(e, rows):
+    """m: file a note under a project (Tab offers the ones in use and the
+    workspaces; empty: no project)."""
+    try:
+        import workspace
+        ws = workspace.names()
+    except Exception:
+        ws = []
+    known = projects_in(PATH)
+    p = search_prompt(rows, e["project"], "project: ", known + [n for n in ws if n not in known])
+    if p is None: return ""
+    p = clean_project(p)
+    if p == e["project"]: return "no changes"
+    if not replace(PATH, e["raw"], rekind(e["raw"], project=p)):
+        return "the note changed meanwhile: not moved"
+    return ("moved to " + p) if p else "no project now"
+
 def main():
-    global ONLY_TAB
+    global ONLY_TAB, FOLDERS
     use_book(sys.argv)
     view = archive_of(PATH) if ARCHIVE_VIEW else PATH
     if not sys.stdin.isatty():                       # piped: plain dump
         try:
-            for l in render(78, entries(view, ONLY_TAB))[0]: print(STRIP.sub("", l))
+            for l in render(78, entries(view, ONLY_TAB, ONLY_PROJECT))[0]: print(STRIP.sub("", l))
         except BrokenPipeError:                      # | head
             sys.stdout = None
         return 0
     st = {"off": 0, "sel": None, "msg": "", "msg_t": 0, "mt": None, "q": ""}
     lastw, lastq, notes, lines, owner = None, None, [], [], []
+    closed = set()                                   # folders toggled from how they start
+    def ident(r): return r["raw"] if "raw" in r else ("folder", r["folder"])
     def say(s):
         st.update(msg=s, msg_t=time.time(), mt=None)   # mt=None: reload now
     sys.stdout.write("\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h")
@@ -647,26 +733,32 @@ def main():
             except OSError: cur = 0
             if cur != st["mt"] or w != lastw or st["q"] != lastq:   # reload on change, resize or search
                 sel = st["sel"]
-                picked = notes[sel]["raw"] if sel is not None and sel < len(notes) else None
-                notes = entries(view, None if ARCHIVE_VIEW else ONLY_TAB)
-                if st["q"]: notes = [n for n in notes if matches(n, st["q"])]
+                picked = ident(notes[sel]) if sel is not None and sel < len(notes) else None
+                found = entries(view, None if ARCHIVE_VIEW else ONLY_TAB, ONLY_PROJECT)
+                if st["q"]: found = [n for n in found if matches(n, st["q"])]
+                # one project asked for: no folders; a search opens every one it reaches
+                notes = list(found) if ONLY_PROJECT is not None else folded(found, closed, bool(st["q"]))
+                FOLDERS = len(notes) != len(found)
                 lines, owner = render(w - 2, notes)
                 st["mt"], lastw, lastq = cur, w, st["q"]
-                raws = [n["raw"] for n in notes]
+                raws = [ident(n) for n in notes]
                 if picked in raws: st["sel"] = raws.index(picked)
                 elif sel is not None and notes: st["sel"] = min(sel, len(notes) - 1)
                 else: st["sel"] = None
             sel = st["sel"]
-            e = notes[sel] if sel is not None else None
+            folder = notes[sel] if sel is not None and "folder" in notes[sel] else None
+            e = notes[sel] if sel is not None and not folder else None
             foot, spots = footer(actions(e), w)
             body = max(3, rows - 2 - len(foot))
             maxoff = max(0, len(lines) - body)
             off = st["off"] = max(0, min(st["off"], maxoff))
             if time.time() - st["msg_t"] > 5: st["msg"] = ""
             sub = " · ".join(x for x in (("from " + ONLY_TAB) if ONLY_TAB and not ARCHIVE_VIEW else "",
+                                         ("#" + (ONLY_PROJECT or "no project")) if ONLY_PROJECT is not None else "",
                                          ("search: " + st["q"]) if st["q"] else "") if x)
-            right = st["msg"] or (("%d entries · tap one or j to pick" if notes and not e
-                                   else "%d entries · newest first") % len(notes))
+            right = st["msg"] or ("%d entries · Enter opens or closes it" % len(found) if folder
+                                  else ("%d entries · tap one or j to pick" if found and not e
+                                        else "%d entries · newest first") % len(found))
             out = topbar(BOOK, sub, right, w)
             win = range(off, min(off + body, len(lines)))
             for i in win:
@@ -687,7 +779,10 @@ def main():
                     k = hit[0][3]
                 elif HEAD < row <= HEAD + body:
                     i = off + row - HEAD - 1
-                    if i < len(owner) and owner[i] is not None: st["sel"] = owner[i]
+                    if i < len(owner) and owner[i] is not None:
+                        st["sel"] = owner[i]
+                        if "folder" in notes[owner[i]]:            # a tap on a folder opens it
+                            closed ^= {notes[owner[i]]["folder"]}; st["mt"] = None
                     continue
                 else:
                     continue
@@ -707,6 +802,8 @@ def main():
             elif k == "g": st["off"], st["sel"] = 0, (0 if notes else None)
             elif k == "G": st["off"] = maxoff
             elif k == "\x1b": st["sel"] = None
+            elif folder and k in ("\r", "\n"):
+                closed ^= {folder["folder"]}; st["mt"] = None
             elif ARCHIVE_VIEW:
                 if k == "r" and e:
                     t = restore(PATH, e["raw"]); say(("back: " + t[:30]) if t else "not found")
@@ -722,9 +819,9 @@ def main():
                 q = search_prompt(rows, st["q"])
                 if q is not None:
                     st.update(q=q, sel=None, off=0)
-            elif k == "a": compose(); say("")
-            elif k == "t": compose("todo"); say("")
-            elif k == "i": compose("idea"); say("")
+            elif k == "a": compose(project=ONLY_PROJECT or ""); say("")
+            elif k == "t": compose("todo", project=ONLY_PROJECT or ""); say("")
+            elif k == "i": compose("idea", project=ONLY_PROJECT or ""); say("")
             elif k == "u":
                 t = restore(PATH); say(("back: " + t[:30]) if t else "nothing archived")
             elif e and k == "e": say(edit(e))
@@ -734,6 +831,7 @@ def main():
                 say("done · u brings it back" if archive(PATH, e["raw"], done=True) else "not found")
             elif e and k == "c": say(chat(e))
             elif e and k == "w": say(to_workspace(e))
+            elif e and k == "m": say(move(e, rows))
     except KeyboardInterrupt:
         pass
     finally:

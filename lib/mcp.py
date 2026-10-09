@@ -41,7 +41,8 @@ def t_fleet(a):
 def t_notes(a):
     import notes
     path = notes.archive_of(notes.PATH) if a.get("archive") else notes.PATH
-    rows = notes.entries(path, tab=a.get("tab") or None)
+    rows = notes.entries(path, tab=a.get("tab") or None,
+                         project=None if a.get("project") is None else notes.clean_project(a["project"]))
     kind = a.get("kind")
     if kind:
         rows = [e for e in rows if e["kind"] == kind]
@@ -51,6 +52,7 @@ def t_notes(a):
     limit = _int(a.get("limit"), 20, MAX_NOTES)
     return {"total": len(rows), "notes": [
         {"when": e["when"], "kind": e["kind"], "by": e["by"], "tab": e["tab"] or None,
+         "project": e["project"] or None,
          "title": e["title"], "body": "\n".join(e["body"])} for e in rows[:limit]]}
 
 def t_workspaces(a):
@@ -83,6 +85,7 @@ TOOLS = {
               "left to do. total counts every match before the limit.",
               _obj({"kind": {"type": "string", "enum": list(KINDS)},
                     "tab": {"type": "string", "description": "only notes taken from this tab"},
+                    "project": {"type": "string", "description": "only notes filed under this project (\"\" for the ones with none)"},
                     "query": {"type": "string", "description": "text in the title or body (any case)"},
                     "limit": {"type": "integer", "minimum": 1, "maximum": MAX_NOTES, "default": 20},
                     "archive": {"type": "boolean", "description": "read the archive instead", "default": False}})),

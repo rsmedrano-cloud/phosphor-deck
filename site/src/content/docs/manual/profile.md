@@ -339,9 +339,9 @@ inside the deck would take that pane down mid-answer, so it points you at
 ## [alerts]
 
 Where a reading turns amber and where it turns red, the same for every
-panel: FLEET's cards and their 24h history, glance, digest, the adjutant and
-pulse. Amber is worth a look; red is what glance, digest, the adjutant and
-pulse call out. Each metric is `[warn, bad]`; the battery counts down (amber
+panel: FLEET's cards and their 24h history, glance, digest and the adjutant.
+Amber is worth a look; red is what glance, digest and the adjutant call
+out. Each metric is `[warn, bad]`; the battery counts down (amber
 at or below its first number, red at or below its second, while
 discharging).
 

@@ -6,6 +6,19 @@ before it updates.
 
 ## Unreleased
 
+## 1.9.4 — notes by project
+
+- Notes by project: a note can belong to a project (`phosphor note --project
+  NAME`, `#NAME` in its header, a tag for Obsidian too). Written from a
+  workspace's folder or tab -- an assistant there, or Alt-j -- it takes that
+  workspace's name by itself. Still one notebook: the NOTES tab folds each
+  project into a closed folder with its count (Enter or a tap opens it), the
+  notes with no project on top and open; `m` moves a note to a project (Tab
+  offers the ones in use and your workspaces; empty takes it out).
+  `phosphor notes --project NAME` shows only that one, and the MCP server's
+  notes tool takes `project` too. A workspace's AGENTS.md now says to file
+  what the maintainer should see in the deck's notebook under its project.
+
 ## 1.9.3 — pulse and the floating notice, on their way out
 
 - Deprecated, going in 2.1.0: `phosphor pulse` (`phosphor fleet` shows the

@@ -87,10 +87,20 @@ not in any one assistant's memory.
   taps, like tests/edit-check.py) and let the pipeline run it. Trying it on
   real screens is the tester's and the maintainer's part; what they find
   becomes a failing test first, then the fix.
+- **Spend the big model on judgment, not on reading.** What a script can
+  do needs no model at all (`phosphor docs`, `tests/ci.py`, a grep). What
+  is mechanical but needs reading -- the docs that still describe the old
+  behavior, why a long log failed, what's open on the trackers -- goes to
+  the cheapest model your assistant offers (a subagent on a small model),
+  with one precise question; it answers with lines (`file:line`, the error),
+  never whole files, and you check what it found before acting on it.
+  Design, code, reviews and anything that can touch the live deck stay
+  with you.
 - **Every change updates, in the same commit:** CHANGELOG.md (under
   `## Unreleased`, written for users), README.md, the manual page in
   doc/manual it touches, and AGENTS.md (`phosphor docs`). English only.
-  Before closing a topic, grep the docs for the old names and behavior. The
+  Before closing a topic, sweep the docs for the old names and behavior
+  (a grep, or a small-model sweep for what a grep can't name). The
   pipeline's docs job fails a push whose code changed without CHANGELOG.md
   (`[no-changelog]` in a commit message, for a refactor users never see).
 - **Privacy:** the pre-commit hook (`phosphor privacy`) blocks IPs, users,

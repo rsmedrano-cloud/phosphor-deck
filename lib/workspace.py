@@ -121,7 +121,11 @@ def agents_md(name, base, shape, parts, role=None, has_brief=False):
             "Write what someone else needs to know: a decision, an interface, what's pending.", "",
             "    phosphor note --file %s --by %s --kind decision \"title\"" % (book, role or "assistant"),
             "    # kinds: note idea decision todo summary; - reads a longer body from stdin", "",
-            "Leave a short summary note before you stop.", ""]
+            "Leave a short summary note before you stop.", "",
+            "What the maintainer should see outside this workspace (a release, a",
+            "decision for the whole deck) goes in the deck's own notebook, filed under",
+            "this project; from this folder `--project` is filled in by itself:", "",
+            "    phosphor note --project %s --by %s --kind summary \"title\"" % (name, role or "assistant"), ""]
     return "\n".join(out)
 
 def plan(name, base, shape="one", parts=(), a="claude", brief=None):

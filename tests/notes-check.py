@@ -190,6 +190,55 @@ check("a tap on a note doesn't end the tab" + (" (%s)" % out[out.find("Error"):]
       not gone and "Traceback" not in out)
 check("and picks it", "\u258c" in out)
 
+# projects: #NAME after the tab in the header, one notebook, folders in the tab
+pp = os.path.join(d, "projects.md")
+notes.append(pp, "todo", "claude", "Old one", tab="SYS")
+notes.append(pp, "note", "claude", "Release notes", tab="AI", project="my deck")
+notes.append(pp, "idea", "me", "Shelf screen", project="glance")
+e = notes.entries(pp)[1]
+check("project in the header", "claude @AI #my-deck · Release notes" in e["raw"])
+check("project parsed apart from by and tab", (e["by"], e["tab"], e["project"]) == ("claude", "AI", "my-deck"))
+check("project without a tab", notes.entries(pp)[0]["by"] == "me" and notes.entries(pp)[0]["project"] == "glance")
+check("an old header has none", notes.entries(pp)[2]["project"] == "" and notes.entries(pp)[2]["tab"] == "SYS")
+check("filter by project", [x["title"] for x in notes.entries(pp, project="glance")] == ["Shelf screen"])
+check("'' is the notes with no project", [x["title"] for x in notes.entries(pp, project="")] == ["Old one"])
+check("projects, newest first", notes.projects_in(pp) == ["glance", "my-deck"])
+rows = notes.folded(notes.entries(pp), set())
+check("no project first and open, the rest closed",
+      [(r.get("folder"), r.get("open"), r.get("title")) for r in rows]
+      == [("", True, None), (None, None, "Old one"), ("glance", False, None), ("my-deck", False, None)])
+rows = notes.folded(notes.entries(pp), {"", "glance"})
+check("toggled folders swap", [r.get("folder", r.get("title")) for r in rows] == ["", "glance", "Shelf screen", "my-deck"])
+check("a search opens them all", len(notes.folded(notes.entries(pp), set(), True)) == 6)
+check("no projects: a plain list", notes.folded(notes.entries(p), set()) == notes.entries(p))
+check("a folder renders", "my-deck" in notes.STRIP.sub("", "\n".join(notes.render(60, rows)[0])))
+check("move to a project", notes.replace(pp, e["raw"], notes.rekind(e["raw"], project="glance"))
+      and notes.entries(pp, project="glance")[1]["title"] == "Release notes")
+x = notes.entries(pp, project="glance")[1]
+check("and out of it", notes.replace(pp, x["raw"], notes.rekind(x["raw"], project=""))
+      and notes.entries(pp)[1]["project"] == "" and notes.entries(pp)[1]["tab"] == "AI")
+check("archive keeps it", notes.archive(pp, notes.entries(pp)[0]["raw"], done=True)
+      and notes.entries(notes.archive_of(pp))[0]["project"] == "glance")
+check("a search finds the project", notes.matches(notes.entries(notes.archive_of(pp))[0], "glan"))
+
+# from a workspace's folder, a note is filed under it by itself
+ws = os.path.join(d, "projects", "nimbus"); os.makedirs(os.path.join(ws, "api"))
+open(os.path.join(ws, "NOTES.md"), "w").write("# nimbus\n")
+import workspace
+workspace.root = lambda prof=None: os.path.join(d, "projects")
+here = os.getcwd(); os.chdir(os.path.join(ws, "api"))
+check("project from the workspace folder", notes.guess_project(tab="") == "nimbus")
+os.chdir(d)
+check("project from the workspace tab", notes.guess_project(tab="NIMBUS") == "nimbus")
+check("elsewhere, none", notes.guess_project(tab="SYS") == "")
+os.chdir(here)
+
+notes.append(pp, "note", "me", "Back in a folder", project="glance")
+gone, out = tapped(["notes", "--file", pp], [(10, 3), (10, 4)])
+check("folders in the tab" + (" (%s)" % out[out.find("Error"):][:120] if gone else ""),
+      not gone and "Traceback" not in out and "no project" in out)
+check("a tap closes one folder and opens the next", "Back in a folder" in out)
+
 if fail:
     print("FAIL: " + "; ".join(fail)); sys.exit(1)
 print("ok")
