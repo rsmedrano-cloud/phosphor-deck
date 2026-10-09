@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""phosphor glance: read-only, narrow-friendly, no crash on empty state.
+"""phosphor glance: narrow-friendly, no crash on empty state, acts only
+from an item's page.
 
     python3 tests/glance-check.py
 """
@@ -147,6 +148,58 @@ need("mono drops every 24-bit color", not any("38;2;" in l for l in m))
 need("mono keeps the red light reversed", "\x1b[7m" in m[0])
 need("mono keeps the text", [strip(l) for l in m] == plain)
 
+# acting from a panel whose wheel only sends up, down and Enter: a cursor
+# over the items, an item's own page, its actions with back as the default.
+open(os.path.join(home, ".local/share/phosphor/mentions.jsonl"), "w").write(
+    json.dumps({"t": 1.0, "from": "sam", "message": "the older one"}) + "\n"
+    + json.dumps({"t": 2.0, "from": "kim", "message": "the newer one"}) + "\n")
+need("unread mentions come newest first", [e["from"] for e in glance.unread_entries()] == ["kim", "sam"])
+st, ls, items = glance.body(130, 16)
+kinds = [k for k, _, _ in items]
+need("items: the down host, the mentions, the todos", kinds[:3] == ["host", "mention", "mention"] and "todo" in kinds)
+need("no cursor until a key", not any(glance.MARK in l for l in ls))
+v = {"sel": None, "page": None, "act": 0}
+glance.press(v, "\x1b[B", items)
+need("down puts the cursor on the first item", v["sel"] == 0)
+need("the item under the cursor is marked and reversed",
+     any(glance.MARK in l and "forge" in l and glance.INV in l for l in glance.frame(130, 17, sel=0)))
+glance.press(v, "\x1b[A", items)
+need("up from the first wraps to the last", v["sel"] == len(items) - 1)
+glance.press(v, "\x1b", items)
+need("Esc drops the cursor", v["sel"] is None)
+glance.press(v, "\x1b[A", items)
+need("up with no cursor starts at the last", v["sel"] == len(items) - 1)
+t = kinds.index("todo"); v["sel"] = t
+need("Enter opens the item", glance.press(v, "\r", items) is None and v["page"] == items[t])
+need("the cursor starts on back", glance.actions("todo")[v["act"]] == "back")
+pg = [strip(l) for l in glance.page(v["page"], 130, 16, v["act"])]
+need("a page fills the screen, its actions on the last line",
+     len(pg) == 16 and "[ done ]" in pg[-1] and "[ back ]" in pg[-1])
+need("a page shows the whole todo", any("Check the tailnet ACLs" in l for l in pg) and any("body" in l for l in pg))
+need("Enter on back changes nothing", glance.press(v, "\r", items) is None and v["page"] is None)
+glance.press(v, "\r", items); glance.press(v, "\x1b[B", items)
+need("down from back wraps to done", glance.actions("todo")[v["act"]] == "done")
+need("q on a page goes back, not out", glance.press(v, "q", items) is None and v["page"] is None)
+glance.press(v, "\r", items); glance.press(v, "\x1b[A", items)
+need("Enter on done hands back the action", glance.press(v, "\r", items) == "done" and v["page"] is None)
+need("q on the summary leaves", glance.press(v, "q", items) == "quit")
+need("Ctrl-C leaves from a page too", glance.press({"sel": 0, "page": items[0], "act": 0}, "\x03", items) == "quit")
+need("a host's page lists its problems",
+     any("connection refused" in strip(l) for l in glance.page(items[0], 130, 16, 0)))
+need("a long page says what it left out",
+     "more lines" in strip(glance.page(("workspace", "w", "x " * 2000), 40, 10, 0)[-3]))
+before = len(glance.open_todos())
+need("done files the todo as done",
+     glance.do(items[t], "done") == "todo ok" and len(glance.open_todos()) == before - 1)
+need("done again: it's already gone, nothing breaks", glance.do(items[t], "done") == "todo gone")
+need("all read marks the mentions read",
+     glance.do(items[kinds.index("mention")], "all read") and glance.mentions.unread() == 0)
+
+# a slow screen gets only what changed, each line where it goes
+need("paint: only the lines that changed", glance.paint(["a", "B", "c"], ["a", "b", "c"]) == "\x1b[2;1HB\x1b[K")
+need("paint: a shorter screen clears the rest", glance.paint(["a"], ["a", "b"]) == "\x1b[2;1H\x1b[J")
+need("paint: with nothing before, the whole screen", glance.paint(["a", "b"], None).startswith("\x1b[H"))
+
 # the screen that stays up repaints only on a change: one paint while nothing
 # moves, a clean repaint on r, out on q. Polling every 0.2 s instead of 5.
 import pty, select, time
@@ -171,6 +224,19 @@ need("watch: painted once while nothing changed", seen.count("\x1b[H") == 1)
 need("watch: no color on xterm-mono", "38;2;" not in seen and "ATTENTION" in seen)
 os.write(fd, b"r"); drain(1.5)
 need("watch: r clears and repaints", seen.count("\x1b[2J") == 2 and seen.count("\x1b[H") == 2)
+def until(key, want, secs=5):
+    """Send key until the screen answers (setraw flushes a key that lands
+    between two reads)."""
+    global seen
+    seen, end = "", time.time() + secs
+    while time.time() < end:
+        os.write(fd, key); drain(0.6)
+        if want(seen): return True
+    return False
+need("watch: a cursor step sends a line or two, not the screen",
+     until(b"\x1b[B", lambda s: "forge" in s) and "\x1b[H" not in seen and seen.count(";1H") <= 3)
+need("watch: Enter opens the item's page", until(b"\r", lambda s: "[ back ]" in s))
+need("watch: Enter on back is the summary again", until(b"\r", lambda s: "needs you" in s))
 end, code = time.time() + 5, None
 while time.time() < end and code is None:
     try: os.write(fd, b"q")             # again if it landed between two reads (setraw flushes it)

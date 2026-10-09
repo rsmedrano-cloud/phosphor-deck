@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""phosphor glance - a read-only summary for a small screen.
+"""phosphor glance - a summary for a small screen.
 
 Three questions, answered at a glance: is the fleet healthy, is there a
-chat mention waiting, is there a todo nobody picked up. No editing; r
-repaints, q leaves: this is for a Pi with a small display sitting on a
-shelf, an e-ink panel, or `ssh -t you@brain phosphor glance` from anything
-with a terminal and no room for the full deck.
+chat mention waiting, is there a todo nobody picked up. Up, down and Enter
+(all an e-ink panel's wheel sends) open an item whole, and from its page
+a todo can be marked done and the mentions read; r repaints, q leaves.
+This is for a Pi with a small display sitting on a shelf, an e-ink panel,
+or `ssh -t you@brain phosphor glance` from anything with a terminal and no
+room for the full deck.
 
     phosphor glance         repaints when something changes, alternate screen
     phosphor glance --mono  no color (automatic on TERM=xterm-mono, NO_COLOR)
@@ -22,6 +24,7 @@ import hmac, json, os, secrets, shutil, sys, termios, textwrap, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import DIM, MUTE, FG, PH, AMB, RED, RULE, BLOOM, RST, rule
 import deckconf
+import dlog
 from sanitize import clean_tree
 import ui
 import health
@@ -110,23 +113,40 @@ def payload():
         "workspaces": len(workspace.dirty_workspaces()),
     }
 
-def wrapped(text, w, color=FG, indent="    "):
+def wrapped(text, w, color=FG, indent="    ", first=None):
     """Wrap plain text (no ANSI in it) and color whole lines afterward --
     textwrap measures bytes, so color codes inside the text would throw
-    off where it breaks."""
-    lines = textwrap.wrap(text, max(8, w - len(indent)), initial_indent=indent, subsequent_indent=indent)
+    off where it breaks. first, if given, starts the first line instead
+    of indent (the cursor's mark)."""
+    lines = textwrap.wrap(text, max(8, w - len(indent)), initial_indent=indent if first is None else first,
+                          subsequent_indent=indent)
     return [color + l + RST for l in lines]
 
 WIDE = 96          # from this many columns the four sections sit in a 2x2 grid
 LABEL = {"green": "all clear", "amber": "worth a look", "red": "attention", "unknown": "no data"}
 BOLD, INV = "\x1b[1m", "\x1b[7m"
+MARK = "  ▸ "      # the cursor, before the item it's on (shown reversed too)
 
-def sections(w):
-    """(status, [(title, lines)]): the four questions, each section's lines
-    already fitted to w columns."""
+def unread_entries():
+    """The unread mentions, newest first."""
+    s = mentions.seen()
+    return [e for e in mentions.entries() if e.get("t", 0) > s][::-1]
+
+def sections(w, sel=None):
+    """(status, [(title, lines)], items): the four questions, each
+    section's lines already fitted to w columns, and what the cursor can
+    stop on, in order -- (kind, title, data) for each host with a problem,
+    unread mention, open todo and workspace shown. The item numbered sel
+    is drawn reversed, with the cursor's mark."""
     ok, total, stale, bad = fleet_scan()
     n = mentions.unread()
     status = light(total, stale, bad, n)
+    items = []
+
+    def item(text, w, color, kind, title, data):
+        on = sel == len(items)
+        items.append((kind, title, data))
+        return wrapped(text, w, color=INV if on else color, first=MARK if on else None)
 
     fleet = []
     problems = [(nm, d) for nm, d, _ in bad] if not stale else [("*", "stale data")]
@@ -137,13 +157,15 @@ def sections(w):
     else:
         fleet.append((PH if ok else RED) + ("  %d/%d ok" % (ok, total)) + RST)
         for name, detail in problems[:4]:
-            fleet += wrapped("✗ %s: %s" % (name, detail), w, color=RED)
+            every = [d for nm, d in problems if nm == name]
+            fleet += item("✗ %s: %s" % (name, detail), w, RED, "host", name, every)
 
     said = []
     if n:
         said.append(AMB + ("  ● %d unread" % n) + RST)
-        for e in mentions.entries()[:2]:
-            said += wrapped("%s: %s" % (e.get("from", "?"), e.get("message", "")), w)
+        for e in unread_entries()[:2]:
+            said += item("%s: %s" % (e.get("from", "?"), e.get("message", "")), w, FG,
+                         "mention", "from " + str(e.get("from", "?")), e)
     else:
         said.append(DIM + "  nothing unread" + RST)
 
@@ -153,7 +175,9 @@ def sections(w):
         needs.append(AMB + ("  %d open todo%s" % (len(todos), "" if len(todos) == 1 else "s")) + RST)
         for e in todos[:5]:             # one line each: a todo with no title is its whole body
             title = e["title"] or (e["body"][0] if e["body"] else "(untitled)")
-            needs.append(FG + "    " + ui.cut(title, max(8, w - 4)) + RST)
+            on = sel == len(items)
+            items.append(("todo", title, e))
+            needs.append((INV + MARK if on else FG + "    ") + ui.cut(title, max(8, w - 4)) + RST)
     else:
         needs.append(DIM + "  nothing pending" + RST)
 
@@ -164,11 +188,11 @@ def sections(w):
             bits = ([] if not is_dirty else ["uncommitted"]) \
                  + ([] if not ahead else ["%d ahead" % ahead]) \
                  + ([] if not behind else ["%d behind" % behind])
-            ws += wrapped("%s: %s" % (name, ", ".join(bits)), w, color=AMB)
+            ws += item("%s: %s" % (name, ", ".join(bits)), w, AMB, "workspace", name, ", ".join(bits))
     else:
         ws.append(DIM + "  nothing dirty or unpushed" + RST)
 
-    return status, [("fleet", fleet), ("mentions", said), ("needs you", needs), ("workspaces", ws)]
+    return status, [("fleet", fleet), ("mentions", said), ("needs you", needs), ("workspaces", ws)], items
 
 def head(w, status, stamp=None):
     """One line: the name, the light in words (reversed when it's red, so
@@ -181,18 +205,18 @@ def head(w, status, stamp=None):
     return (RULE + "── " + RST + BLOOM + "GLANCE" + RST + " " + RULE + "─" * fill + RST + " "
             + col + word + RST + DIM + " · " + stamp + RST + RULE + " ──" + RST)
 
-def body(w, rows):
-    """(status, lines) under the head: one column on a narrow screen, a
-    2x2 grid on a wide one (a 130x17 e-ink panel shows all four sections
-    whole instead of the first two)."""
+def body(w, rows, sel=None):
+    """(status, lines, items) under the head: one column on a narrow
+    screen, a 2x2 grid on a wide one (a 130x17 e-ink panel shows all four
+    sections whole instead of the first two). items: see sections."""
     if w < WIDE:
-        status, secs = sections(w)
+        status, secs, items = sections(w, sel)
         out = []
         for title, lines in secs:
             out += [rule(title, w)] + lines + [""]
-        return status, out[:max(0, rows)]
+        return status, out[:max(0, rows)], items
     cw = (w - 2) // 2
-    status, secs = sections(cw)
+    status, secs, items = sections(cw, sel)
     blocks = []
     for (t1, l1), (t2, l2) in (secs[:2], secs[2:]):
         b = [rule(t1, cw) + "  " + rule(t2, cw)]
@@ -203,11 +227,98 @@ def body(w, rows):
         blocks.append(b)
     room = rows - 1                     # a blank line between the two halves
     top = blocks[0][:max(room - len(blocks[1]), room // 2)]
-    return status, (top + [""] + blocks[1][:room - len(top)])[:max(0, rows)]
+    return status, (top + [""] + blocks[1][:room - len(top)])[:max(0, rows)], items
 
-def frame(w, rows, stamp=None):
-    status, lines = body(w, rows - 1)
+def frame(w, rows, stamp=None, sel=None):
+    status, lines, _ = body(w, rows - 1, sel)
     return [head(w, status, stamp)] + lines
+
+# ── acting on one item ───────────────────────────────────────
+ACTIONS = {"todo": ["done", "back"], "mention": ["all read", "back"]}
+
+def actions(kind):
+    """What Enter can do on an item's page; back is last, and where the
+    cursor starts, so a stray Enter from a wheel changes nothing."""
+    return ACTIONS.get(kind, ["back"])
+
+def page(item, w, rows, act):
+    """An item's own page: all of it, not the line it gets in the summary,
+    and its actions on the last line, the one under the cursor reversed."""
+    kind, title, data = item
+    if kind == "todo":
+        text = ([data["title"]] if data["title"] else []) + data["body"]
+        sub = " ".join(x for x in (data.get("when", ""), "#" + data["project"] if data.get("project") else "") if x)
+    elif kind == "mention":
+        text = [str(data.get("message", ""))]
+        sub = "%s · %s" % (data.get("from", "?"), time.strftime("%Y-%m-%d %H:%M", time.localtime(data.get("t", 0))))
+    elif kind == "host":
+        text, sub = ["✗ " + d for d in data], title
+    else:
+        text, sub = [data], title
+    lines = [rule(kind, w)] + ([DIM + "  " + sub + RST] if sub else [])
+    for t in text:
+        lines += wrapped(t, w, indent="  ") if t.strip() else [""]
+    room = max(1, rows - 2)
+    if len(lines) > room:
+        lines = lines[:room - 1] + [DIM + "  … %d more lines" % (len(lines) - room + 1) + RST]
+    bar = "  ".join((INV + "[ %s ]" + RST) % a if i == act else "[ %s ]" % a
+                    for i, a in enumerate(actions(kind)))
+    return lines + [""] * (rows - 1 - len(lines)) + ["  " + bar]
+
+def do(item, action):
+    """Carry out an action from an item's page; a word for deck.log."""
+    kind, title, data = item
+    if action == "done":
+        return "todo ok" if notes.archive(notes.PATH, data["raw"], done=True) else "todo gone"
+    if action == "all read":
+        mentions.mark_seen()
+        return "mentions all read"
+    return None
+
+UP   = ("\x1b[A", "\x1bOA", "k", "\x1b[D", "\x1bOD")
+DOWN = ("\x1b[B", "\x1bOB", "j", "\x1b[C", "\x1bOC", "\t")
+BACK = ("\x1b", "\x7f", "\x08", "h")
+IDLE = 120         # this long with no key, the cursor goes and the summary is back
+
+def press(v, k, items):
+    """One key on the screen's state v ({"sel", "page", "act"}): sel is the
+    summary's cursor (None: no cursor, the screen as it sits on a shelf),
+    page the item open, act its action under the cursor. The panel's
+    wheel only sends up, down and Enter, so those three do everything;
+    letters are shortcuts for a keyboard. Returns "quit", "repaint", the
+    action to carry out, or None."""
+    if k in ("\x03", "\x04"):
+        return "quit"
+    if k in ("r", "R", "\x0c"):
+        return "repaint"
+    if v["page"]:
+        acts = actions(v["page"][0])
+        if k in UP:
+            v["act"] = (v["act"] - 1) % len(acts)
+        elif k in DOWN:
+            v["act"] = (v["act"] + 1) % len(acts)
+        elif k in ("\r", "\n"):
+            a = acts[v["act"]]
+            v["page"] = None
+            if a != "back":
+                return a
+        elif k in BACK + ("q", "Q"):
+            v["page"] = None
+        return None
+    if k in ("q", "Q"):
+        return "quit"
+    if not items:
+        v["sel"] = None
+    elif k in UP:
+        v["sel"] = len(items) - 1 if v["sel"] is None else (v["sel"] - 1) % len(items)
+    elif k in DOWN:
+        v["sel"] = 0 if v["sel"] is None else (v["sel"] + 1) % len(items)
+    elif k in ("\r", "\n") and v["sel"] is not None:
+        v["page"] = items[min(v["sel"], len(items) - 1)]
+        v["act"] = len(actions(v["page"][0])) - 1
+    elif k in BACK:
+        v["sel"] = None
+    return None
 
 def mono(line):
     """A line for a terminal with no color (see ui.mono_term): red and amber
@@ -350,32 +461,75 @@ def wait(seconds):
         time.sleep(max(0, seconds - (time.time() - t0)))
     return k
 
+def paint(out, prev):
+    """What to write so the screen shows out when it shows prev: every
+    line when prev is None (a first paint, a clear, a new size), else only
+    the lines that differ, each where it goes -- an e-ink panel redraws
+    what reaches it, so a cursor that moves sends two lines, not the
+    screen."""
+    if prev is None:
+        return "\x1b[H" + "\x1b[K\n".join(out) + "\x1b[K\x1b[J"
+    w = "".join("\x1b[%d;1H%s\x1b[K" % (i + 1, l)
+                for i, l in enumerate(out) if i >= len(prev) or prev[i] != l)
+    if len(out) < len(prev):
+        w += "\x1b[%d;1H\x1b[J" % (len(out) + 1)
+    return w
+
 def watch(show):
     """The screen that stays up. It repaints only when what it says changes,
     or every HEARTBEAT: an e-ink panel flashes on every repaint and a slow
     one falls behind a busy screen, so the time on top is when it last
     changed, not a clock. r (or Ctrl-L) clears and repaints, for e-ink
-    ghosting; q or Ctrl-C leaves."""
+    ghosting; q or Ctrl-C leaves. Up, down and Enter open an item and act
+    on it (see press); IDLE with no key brings the plain summary back, so
+    a panel left on a page still shows what's wrong. Its start, what it
+    did and why it ended go to deck.log: behind a forced ssh command (an
+    e-ink panel's key) the session closes on exit and nobody sees what it
+    said."""
+    size = shutil.get_terminal_size((0, 0))
+    dlog.event("GLANCE", "start", "TERM=%s %dx%d" % (os.environ.get("TERM", "?"), size.columns, size.lines))
     sys.stdout.write("\x1b[?1049h\x1b[?25l")
     loud = ui.quiet()
-    last, painted, clear = None, 0, True
+    v = {"sel": None, "page": None, "act": 0}
+    last, prev, painted, clear, why, touched = None, None, 0, True, "?", time.time()
     try:
         while True:
             cols, rows = shutil.get_terminal_size((60, 20))
-            status, lines = body(cols, rows - 1)
-            if clear or (cols, rows, lines) != last or time.time() - painted >= HEARTBEAT:
+            status, lines, items = body(cols, rows - 1, v["sel"])
+            if v["sel"] is not None and v["sel"] >= len(items):
+                v["sel"] = len(items) - 1 if items else None
+                status, lines, items = body(cols, rows - 1, v["sel"])
+            if v["page"]:
+                lines = page(v["page"], cols, rows - 1, v["act"])
+            now = (cols, rows, lines)
+            if clear or now != last or time.time() - painted >= HEARTBEAT:
                 out = [show(l) for l in [head(cols, status)] + lines]
-                sys.stdout.write(("\x1b[2J" if clear else "") + "\x1b[H"
-                                 + "\x1b[K\n".join(out) + "\x1b[K\x1b[J")
+                fresh = clear or not last or last[:2] != now[:2]
+                sys.stdout.write(("\x1b[2J" if clear else "") + paint(out, None if fresh else prev))
                 sys.stdout.flush()
-                last, painted, clear = (cols, rows, lines), time.time(), False
+                last, prev, painted, clear = now, out, time.time(), False
             k = wait(INTERVAL)
-            if k in ("q", "Q", "\x03", "\x04"):
+            if k is None:
+                if (v["sel"] is not None or v["page"]) and time.time() - touched >= IDLE:
+                    v.update(sel=None, page=None)
+                continue
+            touched = time.time()
+            item = v["page"]
+            r = press(v, k, items)
+            if r == "quit":
+                why = "key %r" % k
                 break
-            clear = k in ("r", "R", "\x0c")
+            clear = r == "repaint"
+            if r and not clear:
+                dlog.event("GLANCE", r, do(item, r) or "")
     except KeyboardInterrupt:
-        pass
+        why = "Ctrl-C"
+    except Exception:
+        why = "crash"
+        dlog.crash("GLANCE")
+        raise
     finally:
+        dlog.event("GLANCE", "end", why)
         loud()
         sys.stdout.write("\x1b[?1049l\x1b[?25h\n")
     return 0

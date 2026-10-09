@@ -6,6 +6,21 @@ before it updates.
 
 ## Unreleased
 
+## 1.9.7 — glance acts from an e-ink wheel
+
+- `phosphor glance` can act, with nothing but up, down and Enter (all an
+  e-ink panel's wheel sends): the first arrow puts a cursor on a host, a
+  mention, a todo or a workspace, Enter opens it whole, and its page offers
+  `done` for a todo and `all read` for the mentions. `back` is where the
+  cursor starts, so a stray Enter changes nothing; two minutes without a
+  key bring the summary back. Only the lines that change are sent, so a
+  cursor step redraws one line on a slow screen, not all of it.
+- `phosphor glance` shows the newest unread mentions; it showed the oldest
+  two in the feed, read or not.
+- `phosphor glance` writes when it starts and why it ended (a key, Ctrl-C, a
+  crash with its traceback) to deck.log: behind a forced ssh command, like
+  an e-ink panel's key, the session closes on exit and shows nothing.
+
 ## 1.9.6 — glance for e-ink
 
 - `phosphor glance` suits an e-ink panel. It repaints only when what it

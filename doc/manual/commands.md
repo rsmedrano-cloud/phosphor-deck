@@ -195,12 +195,14 @@
   same provider, every two minutes; it never refreshes a token, so an expired one says "open claude
   (or agy) once" until that CLI renews it. Antigravity has no separate weekly figure to show: its
   answer is one fraction per pool.
-- `phosphor glance [--mono] [--once | --json | --serve [--port N] [--new-token]]` — read-only: the fleet's problem hosts (or "all N ok"), unread
+- `phosphor glance [--mono] [--once | --json | --serve [--port N] [--new-token]]` — the fleet's problem hosts (or "all N ok"), unread
   mentions, open todos, and any workspace with uncommitted changes or commits ahead/behind its
   upstream ("one device, then another" makes those easy to forget). For a small screen:
   `ssh -t you@brain ~/.local/bin/phosphor glance` needs no zellij attach at all (see screens);
   checks every 5s and repaints only on a change, side by side from 96 columns, plain text on a
-  terminal with no color (`--mono` forces it); `r` repaints, `q` or Ctrl-C leaves. `--json` prints the same answers once, as JSON, with a
+  terminal with no color (`--mono` forces it); `r` repaints, `q` or Ctrl-C leaves. Up and down
+  move a cursor over its items, Enter opens one whole, and its page offers `done` for a todo and
+  `all read` for the mentions (`back`, the default, changes nothing). `--json` prints the same answers once, as JSON, with a
   `status` to light up: red (a host down, or the readings stopped), amber (anything else to look
   at, an unread mention), green, or unknown with no fleet data. `--serve` answers that JSON over
   HTTP for a gadget that can't ssh (an ESP32 with e-paper, a Pi Zero with an OLED): see screens.

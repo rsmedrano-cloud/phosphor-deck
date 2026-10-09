@@ -165,7 +165,7 @@ button -- opens the deck in the phone's browser.
 Some screens are too small for a full attach: a Pi with a small display
 sitting on a shelf, an old e-reader, anything you'd rather glance at than
 drive. `ssh -t you@brain ~/.local/bin/phosphor glance` skips zellij entirely and prints a
-read-only summary that refreshes on its own -- the fleet's problem hosts (or
+summary that refreshes on its own -- the fleet's problem hosts (or
 "all N ok"), unread mentions, open todos, any workspace dirty or unpushed -- until `q` or Ctrl-C. Nothing to attach,
 nothing to detach: it's just a command, so any cron job or kiosk script that
 can run one over ssh can drive that little screen.
@@ -181,6 +181,17 @@ red: some e-ink ssh clients read the numbers inside a 24-bit color as other
 codes and turn on bold or reverse at random. A key that should only ever
 show this can say so in `~/.ssh/authorized_keys`:
 `command="~/.local/bin/phosphor glance" ssh-ed25519 ...`.
+
+Up, down and Enter -- all an e-ink panel's wheel sends -- are enough to act
+on it; with a keyboard, `j`/`k` move too and Esc goes back. The first up or
+down puts a cursor (`▸`, reversed) on a host, a mention, a todo or a
+workspace; Enter opens it whole on a page of its own, its actions on the
+last line: `done` for a todo (it goes to the archive, like `x` in NOTES),
+`all read` for the mentions, and `back`, where the cursor starts, so a
+stray Enter changes nothing. Two minutes without a key and the summary is
+back on its own, so a panel left on a page still shows what's wrong. Only
+the lines that change are sent, so moving the cursor redraws one line, not
+the screen.
 
 ### A gadget that can't ssh
 
