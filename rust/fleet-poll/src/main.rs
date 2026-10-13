@@ -287,8 +287,8 @@ fn parse(stdout: &str) -> serde_json::Value {
 
 /// `phosphor notify --tab SYS --fleet-alert TEXT`, off the polling path
 /// (fire and forget, same as lib/fleet.py's `_alert`'s own thread). SYS,
-/// not FLEET: the fleet card lives inside the SYS tab, alongside pulse and
-/// the adjutant -- no tab is ever named "FLEET" (see the Python fix,
+/// not FLEET: the fleet card lives inside the SYS tab, alongside the
+/// adjutant -- no tab is ever named "FLEET" (see the Python fix,
 /// commit 7d5f022: a --tab naming a tab that doesn't exist marks nothing
 /// and can never be cleared either).
 fn notify_args(text: &str) -> [&str; 5] {

@@ -128,7 +128,7 @@ _throttled = {}
 def event_throttled(tool, what, detail="", every=300):
     """Like event(), but at most once every `every` seconds per (tool, what)
     in this process: for something checked every few seconds in a loop
-    (fleet, pulse, the adjutant), so a stuck failure doesn't fill the log
+    (fleet, the adjutant), so a stuck failure doesn't fill the log
     with the same line forever."""
     key = (tool, what)
     now = time.time()

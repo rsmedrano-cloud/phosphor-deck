@@ -118,7 +118,8 @@ if [ -d "$DEST/.git" ]; then
   say "already in $DEST"
 elif [ -n "$REPO" ]; then
   need git || { r "  git is missing"; exit 1; }
-  git clone -q "$REPO" "$DEST" && g "  + cloned into $DEST"
+  git clone -q "$REPO" "$DEST" || { r "  couldn't clone $REPO (busy? run it again)"; exit 1; }
+  g "  + cloned into $DEST"
 else
   # run as a file (sh install.sh): its folder may be a copy to install. Piped
   # (curl | sh), $0 is the shell, and the folder you happen to be in isn't one.
@@ -150,7 +151,9 @@ else
     say "using $DEST"
   elif need git; then
     say "no local copy and no PHOSPHOR_REPO: cloning the public repo"
-    git clone -q "$DEFAULT_REPO" "$DEST" && g "  + cloned into $DEST"
+    git clone -q "$DEFAULT_REPO" "$DEST" \
+      || { r "  couldn't clone Phosphor (GitHub busy? run it again)"; exit 1; }
+    g "  + cloned into $DEST"
   else
     say "no git here: downloading the public repo instead"
     untar "$DEST" || { r "  couldn't download Phosphor (GitHub busy? run it again)"; exit 1; }

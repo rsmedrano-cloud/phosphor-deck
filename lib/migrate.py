@@ -67,7 +67,7 @@ def tts_table(text):
     return new
 
 def no_notifier(text):
-    """1.9.3: the floating notice is on its way out (doc/manual/api.md)."""
+    """1.9.3: the floating notice was on its way out; it went in 2.1.0 (doc/manual/api.md)."""
     return _drop(_drop(text, "notifier"), "notify_seconds")
 
 STEPS = [(2, "the DECK tab in one pane: the panel takes the whole tab, its keys are ? in it", one_pane),

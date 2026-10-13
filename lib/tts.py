@@ -64,8 +64,7 @@ def get_config(prof=None):
     if prof is None:
         prof, _ = deckconf.load()
     t = (prof or {}).get("tts") or {}
-    deck_sec = (prof or {}).get("deck") or {}
-    enabled = t.get("enabled", deck_sec.get("tts", False))
+    enabled = t.get("enabled", False)
     voice_name = t.get("voice", "glados")
     custom_path = t.get("glados_path", "")
     vol = float(t.get("volume", 1.0))

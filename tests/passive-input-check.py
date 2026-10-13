@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The panels that only draw (ci, prom, usage, glance, pulse) never print
+"""The panels that only draw (ci, prom, usage, glance) never print
 what reaches their pane.
 
     python3 tests/passive-input-check.py
@@ -37,7 +37,7 @@ def read_for(fd, secs):
     return out
 
 fails = []
-for tool in ("ci", "prom", "usage", "glance", "pulse"):
+for tool in ("ci", "prom", "usage", "glance"):
     master, slave = pty.openpty()
     p = subprocess.Popen([sys.executable, PHOSPHOR, tool], stdin=slave, stdout=slave,
                          stderr=slave, env=ENV, cwd=tmp, start_new_session=True)

@@ -89,8 +89,8 @@ def push_it(e):
     """Push+TTS this notification, off a detached process so the hook
     still returns at once (push has a network timeout). The event line
     above is already written, so this goes through `phosphor notify
-    --no-event`: push if [push] is on, TTS if [tts] is on, the floating
-    toast if notifier is on -- same pipeline as any other notification,
+    --no-event`: push if [push] is on, TTS if [tts] is on, a mark on
+    the tab -- same pipeline as any other notification,
     just without a second event line."""
     try:
         subprocess.Popen([sys.executable, os.path.join(REPO, "phosphor"), "notify", "--tab", CHAT,

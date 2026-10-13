@@ -61,7 +61,7 @@ ctx = gen.Ctx(prof)
 kdl = gen.deck_kdl(prof, ctx, "profiles/demo.toml")
 check("layout mentions every demo tab", all(('tab name="%s"' % t["name"]) in kdl
                                             for t in prof.get("tabs", [])))
-check("layout runs phosphor fleet/pulse, not a real host's ssh",
+check("layout runs phosphor tools, not a real host's ssh",
       "phosphor" in kdl and "ssh" not in kdl.lower())
 
 # 6. Never leaks the calling shell's own session into the subprocess env
@@ -85,11 +85,11 @@ finally:
 #    (a demo on a machine with a real chat feed once showed a real name)
 import subprocess
 real_home = os.path.expanduser("~")
-probe = ("import sys; sys.path.insert(0, %r); import os, notes, mentions, adjutant, fleet, glance, pulse, dlog, version, panel;"
+probe = ("import sys; sys.path.insert(0, %r); import os, notes, mentions, adjutant, fleet, glance, dlog, version, panel;"
          "print(*[mentions.FEED, mentions.SEEN, mentions.EVENTS, os.path.join(notes.notes_dir(), 'work.md'), adjutant.CACHE, fleet.CACHE,"
-         " glance.CACHE, pulse.CACHE, dlog.DIR, version.CACHE, panel.STEPS], sep=' ')" % os.path.join(ROOT, "lib"))
+         " glance.CACHE, dlog.DIR, version.CACHE, panel.STEPS], sep=' ')" % os.path.join(ROOT, "lib"))
 out = subprocess.run([sys.executable, "-c", probe], env=env, capture_output=True, text=True).stdout.split()
-check("every state path is read", len(out) == 11)
+check("every state path is read", len(out) == 10)
 check("no state path is under the real ~/.local/share/phosphor or ~/.cache/phosphor",
       out and not any(p.startswith(os.path.join(real_home, ".local/share/phosphor")) or
                       p.startswith(os.path.join(real_home, ".cache/phosphor")) for p in out))

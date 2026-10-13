@@ -138,6 +138,10 @@ def main():
             dlog.crash(crash_name(cmd))
             raise
 
+    gone = cli.removed_cmd(cmd)
+    if gone:                     # it went (doc/manual/api.md): say what replaced it
+        print("phosphor: " + cli.removed(gone), file=sys.stderr)
+        return 1
     print("unknown command: %s\n" % cmd)
     print(cli.usage_text())
     return 1

@@ -91,15 +91,15 @@ check("eink: every tab, the deck's graphs", [t["name"] for t in kinds.tabs(prof,
 check("eink: its theme", kinds.theme(prof, "eink") == "paper" and kinds.zellij_theme(prof, "eink") == "phosphor-paper")
 check("phone: the deck's theme", kinds.theme(prof, "phone") == "p31")
 
-# skip: panes a kind leaves out (the SYS row of pulse + adjutant, as shipped)
+# skip: panes a kind leaves out (a small panel beside the adjutant)
 sk = {"tabs": [
     {"name": "SYS", "panes": [
-        {"split": "cols", "size": 18, "panes": [{"cmd": "phosphor pulse"},
+        {"split": "cols", "size": 18, "panes": [{"cmd": "phosphor usage"},
                                                  {"cmd": "phosphor adjutant", "size": 34}]},
         {"cmd": "phosphor fleet"}]},
-    {"name": "VIZ", "panes": [{"cmd": "phosphor pulse"}]},
+    {"name": "VIZ", "panes": [{"cmd": "phosphor usage"}]},
     {"name": "SH", "panes": [{"cmd": ""}]}],
-    "screens": {"tablet": {"skip": ["phosphor pulse"]}, "plain": {}}}
+    "screens": {"tablet": {"skip": ["phosphor usage"]}, "plain": {}}}
 st = kinds.tabs(sk, "tablet")
 check("skip: a tab left with no panes goes", [t["name"] for t in st] == ["SYS", "SH"], st)
 check("skip: a split of one becomes the pane, keeping the split's size",

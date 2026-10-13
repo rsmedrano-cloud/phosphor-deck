@@ -135,8 +135,8 @@ on it).
 
 A screen with no direct path to the brain reaches it through one of
 tailscale's relay servers (DERP), a much thinner link: ten redraws a
-second of pulse and the adjutant were enough to freeze a Pi that came in
-that way, while the same Pi over the LAN was fine. So while a screen
+second of the adjutant and the old pulse panel were enough to freeze a Pi
+that came in that way, while the same Pi over the LAN was fine. So while a screen
 attached to a deck comes through a relay, that deck's animations drop to
 one frame a second -- every screen of that deck sees the slower pace, since
 zellij sends the same panes to all of them, so give such a screen a kind of

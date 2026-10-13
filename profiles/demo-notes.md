@@ -15,7 +15,7 @@ So a screenshot never needs a second look before it goes in a README.
 
 ## 2026-01-05 10:00 · idea · phosphor · A recipe bundle for the home lab crowd
 
-Fleet and pulse dashboards, ready to drop in with one command.
+Fleet and services dashboards, ready to drop in with one command.
 
 ## 2026-01-05 10:00 · todo · phosphor · Write the note that gets picked up here
 

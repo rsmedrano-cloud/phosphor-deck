@@ -133,26 +133,6 @@ def run_pane(pad, sz, argv, extra, name=None, reconnect=False, wait=False, alt=F
     nm = (' name=%s' % kdl_str(name)) if name else ""
     return '%spane%s%s command="%s" {\n%s\n%s}' % (pad, sz, nm, PHOSPHOR, "\n".join(body), pad)
 
-def floating_notifier(ctx, ind):
-    """One floating adjutant per tab, only with `notifier = true`.
-
-    It starts hidden and `phosphor notify` shows it on the tab you're
-    looking at; a click on it takes you to the event's tab."""
-    pad = " " * ind
-    face = ctx.deck.get("face", "")
-    args = ['"adjutant"', '"--floating"']
-    if face: args += ['"--face"', '"%s"' % face, '"--speed"', '"3"']
-    return "\n".join([
-        pad + "floating_panes {",
-        pad + '    pane command="%s" {' % PHOSPHOR,
-        pad + "        args " + " ".join(args),
-        pad + "        width 34",
-        pad + "        height 19",
-        pad + '        x "62%"',
-        pad + '        y "10%"',
-        pad + "    }",
-        pad + "}"])
-
 def floating_tour(ind):
     """`phosphor demo --tour`'s guide, on every tab of the demo and nowhere else
     (`tour = true` only ever comes from the demo's own copy of its profile)."""
@@ -207,18 +187,13 @@ def deck_kdl(prof, ctx, src, tabs=None, land=None, floating=True):
             '        pane command="%s" {' % PHOSPHOR,
             "            close_on_exit true", '            args "new"', "        }"] \
         + (["        " + bottom] if bottom else []) + ["    }", ""]
-    notifier = ctx.deck.get("notifier", False)      # off by default: see DECK_UP
     every = deckconf.effective_tabs(prof) if tabs is None else tabs
     for i, tab in enumerate(every):
         foc = " focus=true" if (tab["name"] == land if land else i == 0) else ""
         out.append('    tab name="%s"%s {' % (tab["name"], foc))
         out.append(tab_body(tab, ctx, 8))
-        if not floating:
-            pass
-        elif ctx.deck.get("tour"):
+        if floating and ctx.deck.get("tour"):
             out.append(floating_tour(8))
-        elif notifier:
-            out.append(floating_notifier(ctx, 8))
         out.append("    }")
         out.append("")
     out.append("}")
@@ -293,25 +268,6 @@ else
 fi
 # what the panes start with: phosphor update compares against it
 %(python)s %(repo)s/lib/hotswap.py --record "$S" >/dev/null 2>&1
-# Floating panes only with notifier = true. In real use zellij 0.45.1 wedged
-# its screen thread at 100%% when switching tabs after hiding them by id
-# (-t). Cause unproven (see doc/manual/profile.md and issue #14); this loop
-# still has to touch every tab here, unlike phosphor notify's own hider --
-# every tab's floating pane genuinely starts visible (the layout's own
-# default), so every one of them needs hiding once, right after start.
-if [ "%(notifier)s" = "1" ]; then
-  for i in 1 2 3 4 5 6 7 8 9 10; do
-    n=$($Z -s "$S" action list-tabs 2>/dev/null | tail -n +2 | wc -l)
-    [ "$n" -gt 0 ] && break
-    sleep 1
-  done
-  for pass in 1 2; do
-    sleep 2
-    for id in $($Z -s "$S" action list-tabs 2>/dev/null | tail -n +2 | awk '{print $1}'); do
-      $Z -s "$S" action hide-floating-panes -t "$id" >/dev/null 2>&1
-    done
-  done
-fi
 exit 0
 """
 
@@ -791,7 +747,6 @@ def run(prof, src, dry=False):
     up = os.path.join(HOME, ".local/share/phosphor", "%s-up.sh" % sess_name)
     write(up, DECK_UP % {"zellij": resolve("zellij"), "session": sess_name,
                      "python": shlex.quote(sys.executable), "repo": shlex.quote(REPO),
-                     "notifier": "1" if ctx.deck.get("notifier", False) else "0",
                      "web": "1" if ctx.deck.get("web", False) else "0"}, dry, changed)
     if not dry and os.path.exists(up):
         os.chmod(up, 0o755)

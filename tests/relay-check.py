@@ -11,7 +11,7 @@ Verifies:
 - slow_screens() only counts screens of the session asked for
 - Pace slows to SLOW while a check says so, rechecks only every EVERY
   seconds, goes back to the normal delay, and survives a check that raises
-- pulse and the adjutant both pace their frames with it
+- the adjutant paces its frames with it
 """
 import os, sys, tempfile
 
@@ -72,7 +72,7 @@ def boom(): raise RuntimeError("tailscale went away")
 q = relay.Pace("TEST", check=boom, now=lambda: clock[0])
 check("a failing check means fast", q.delay(0.1) == 0.1)
 
-for tool in ("pulse", "adjutant"):
+for tool in ("adjutant",):
     src = open(os.path.join(ROOT, "lib", tool + ".py")).read()
     check("%s paces its frames" % tool, "relay.Pace(" in src and "pace.delay(" in src)
 

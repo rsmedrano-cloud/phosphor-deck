@@ -24,12 +24,12 @@ with tempfile.TemporaryDirectory() as td:
     lib = os.path.join(td, "lib")
     os.makedirs(lib)
     open(os.path.join(lib, "fleet.py"), "w").write("x = 1\n")
-    open(os.path.join(lib, "pulse.py"), "w").write("y = 2\n")
+    open(os.path.join(lib, "usage.py"), "w").write("y = 2\n")
     real_repo, real_lib = hotswap.REPO, hotswap.LIB
     hotswap.REPO, hotswap.LIB = td, lib
     try:
         before = hotswap.snapshot()
-        check("snapshot sees both files", set(before) == {"lib/fleet.py", "lib/pulse.py"})
+        check("snapshot sees both files", set(before) == {"lib/fleet.py", "lib/usage.py"})
         open(os.path.join(lib, "fleet.py"), "w").write("x = 2\n")  # content changes
         after = hotswap.snapshot()
         check("changed() finds exactly the edited file", hotswap.changed(before, after) == ["lib/fleet.py"])
@@ -72,14 +72,13 @@ check("a nested lib/ file isn't either (there shouldn't be any, but be safe)",
 check("ci.py is imported by review.py: not a leaf", hotswap.imported_elsewhere("ci"))
 check("tabs.py is imported by several files: not a leaf", hotswap.imported_elsewhere("tabs"))
 check("fleet.py is nobody else's import: a real leaf", not hotswap.imported_elsewhere("fleet"))
-check("pulse.py is nobody else's import: a real leaf", not hotswap.imported_elsewhere("pulse"))
 
 # 4. classify(): leaf-only vs. anything that triggers a real restart.
 tools, reason = hotswap.classify(["lib/fleet.py"])
 check("a lone leaf change: no restart, just that tool", tools == {"fleet"} and reason is None)
 
-tools, reason = hotswap.classify(["lib/fleet.py", "lib/pulse.py"])
-check("two leaf changes: both tools, no restart", tools == {"fleet", "pulse"} and reason is None)
+tools, reason = hotswap.classify(["lib/fleet.py", "lib/usage.py"])
+check("two leaf changes: both tools, no restart", tools == {"fleet", "usage"} and reason is None)
 
 tools, reason = hotswap.classify(["lib/gen.py"])
 check("gen.py always triggers a restart (writes config.kdl/units)", reason is not None and tools == set())

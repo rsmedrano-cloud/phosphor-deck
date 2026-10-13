@@ -196,7 +196,7 @@ def updown(cmd):
         lay = _re.sub(r"(?s)new_tab_template \{.*?\n    \}\n", "", lay)
     except OSError:
         lay = ""
-    for name in ("adjutant", "pulse", "fleet", "keys", "store", "notes", "mentions", "panel"):
+    for name in ("adjutant", "fleet", "keys", "store", "notes", "mentions", "panel"):
         want = len(_re.findall(r'phosphor" "%s"' % name, lay))
         if not want: continue
         # the program, not the `phosphor run` watching over it

@@ -10,8 +10,8 @@ notebook and the demo's copy of the profile, never guessed.
 
 Enter steps the guide aside (it hides on this tab) so the keys reach the
 deck; it comes back on its own when the step is done. It only ever runs in
-the demo's own session, its own zellij server: floating panes stay off in
-the real deck (see `notifier` in the manual), and if one wedges here, that's
+the demo's own session, its own zellij server: the real deck has no floating
+panes (its floating notice went in 2.1.0), and if one wedges here, that's
 a repro for issue #14, not a lost session.
 """
 import fcntl, json, os, subprocess, sys, textwrap, time

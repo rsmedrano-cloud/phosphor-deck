@@ -67,13 +67,20 @@ Nothing public disappears without a warning first:
    that date is kept.
 4. The CHANGELOG says it twice: when the warning starts, and when it goes.
 
-What's deprecated today (`share/deprecations.json` in Phosphor's folder has
-the same list):
+5. Once it's gone, its entry moves to `removed` in the same file,
+   unchanged. The deck still knows it: `phosphor NAME`, a pane that still
+   runs it, or the key in your profile is named, with what replaced it,
+   instead of being called unknown; `phosphor migrate` still rewrites the
+   keys.
 
-- `[deck] tts`, since 1.9.2, goes in 2.1.0: use `[tts] enabled`
+Nothing is deprecated today.
+
+What went (`removed` in `share/deprecations.json`):
+
+- `[deck] tts`, since 1.9.2, went in 2.1.0: use `[tts] enabled`
   (`phosphor migrate` moves it).
-- `[deck] notifier`, since 1.9.3, goes in 2.1.0: nothing, a notice marks
+- `[deck] notifier`, since 1.9.3, went in 2.1.0: nothing, a notice marks
   its tab and goes to `[push]` (`phosphor migrate` drops the line).
-- `[deck] notify_seconds`, since 1.9.3, goes in 2.1.0: nothing, it only
+- `[deck] notify_seconds`, since 1.9.3, went in 2.1.0: nothing, it only
   timed notifier's floating notice.
-- `phosphor pulse`, since 1.9.3, goes in 2.1.0: use `phosphor fleet`.
+- `phosphor pulse`, since 1.9.3, went in 2.1.0: use `phosphor fleet`.

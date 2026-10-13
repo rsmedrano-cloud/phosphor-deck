@@ -192,16 +192,6 @@
 ["q", "quit"]
 ]
 },
-"phosphor-pulse": {
-"t": "PULSE · the fleet's heartbeat",
-"always": true,
-"k": [
-["", "The wave follows the fleet's real average load."],
-["green", "NOMINAL"],
-["amber", "ELEVATED — disk >85% or stale data"],
-["red", "ALERT — a host down or disk >92%"]
-]
-},
 "_adjutant": {
 "t": "ADJUTANT · the face that announces",
 "always": true,
@@ -209,9 +199,7 @@
 ["", "Lives in SYS. It idles; when something happens it breaks"],
 ["", "up into static and leaves the message behind."],
 ["phosphor notify M", "send it a message"],
-["automatic", "a host down (2 polls in a row), disk >92%"],
-["", "Floating copies on every tab: off. zellij 0.45 wedged with"],
-["", "them (cause unproven). notifier = true at your own risk."]
+["automatic", "a host down (2 polls in a row), disk >92%"]
 ]
 },
 "_notes": {

@@ -2,7 +2,7 @@
 """One set of limits (lib/limits.py) for every panel:
 
 - the same disk is the same color on a FLEET card and the same problem (or
-  not) in glance, the adjutant, pulse and digest: amber at 85%, red and
+  not) in glance, the adjutant and digest: amber at 85%, red and
   called out at 91%;
 - [alerts] changes them for every host or for one, a single number keeps
   the warn above it, the battery counts down;
@@ -37,7 +37,7 @@ def fleet(disks):
     fleet.n = getattr(fleet, "n", 0) + 1     # the adjutant re-reads on a new mtime
     os.utime(os.path.join(HOME, "fleet.json"), (time.time(), time.time() + fleet.n))
 
-import glance, fleet as fleetmod, adjutant, pulse, digest, history
+import glance, fleet as fleetmod, adjutant, digest, history
 from ui import PH, AMB, RED
 
 # 1. defaults: the same reading means the same thing everywhere
@@ -48,10 +48,8 @@ check("85% is amber on the card", AMB + " 85%" in card, card)
 bad = glance.fleet_scan()[3]
 check("85% isn't a glance problem, 91% is", [(n, d) for n, d, _ in bad] == [("nimbus", "disk 91%")], bad)
 check("the adjutant: red at 91%", adjutant.fleet_health() == (2, "nimbus disk 91%"), adjutant.fleet_health())
-check("pulse: red at 91%", pulse.read_state()[1:] == (2, "nimbus disk 91%"), pulse.read_state())
 fleet({"box": 85})
 check("the adjutant: amber at 85%", adjutant.fleet_health() == (1, "box disk 85%"), adjutant.fleet_health())
-check("pulse: amber at 85%", pulse.read_state()[1:] == (1, "box disk 85%"), pulse.read_state())
 step = history.STEP
 now = 1000 * step
 rows = {"box": [[999, [10, 10, 50, 85]]], "nimbus": [[999, [91, 10, 50, 91]]]}

@@ -12,7 +12,10 @@ share/deprecations.json lists the public things on their way out
 - a deprecated command or flag still runs, and warns on stderr only, so
   `--json` stays one clean object; `--help` and `phosphor help` say so,
   completion stops offering it; an alias can go without its command;
-- a deprecated profile key is still read, and gen and doctor say so.
+- a deprecated profile key is still read, and gen and doctor say so;
+- what already went (`removed`) is gone from the code, and the deck names
+  it, with what replaced it, instead of calling it unknown: the command,
+  a pane still running it, the profile key.
 """
 import json, os, re, subprocess, sys, tempfile
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -59,6 +62,42 @@ for d in cli.deprecations():
     if not re.search(r"`[^`]*%s[^`]*`, since %s, goes in %s" % (re.escape(d["name"]), re.escape(d["since"]),
                                                                   re.escape(d["remove"])), api):
         bad.append("doc/manual/api.md doesn't list %s (since %s, goes in %s)" % (d["name"], d["since"], d["remove"]))
+
+# what already went: gone from the code, named instead of "unknown",
+# and in the manual's list of what went
+for d in cli.removals():
+    label = "removed %s %s" % (d.get("kind"), d.get("name"))
+    for k in ("kind", "name", "since", "remove", "use"):
+        if not d.get(k):
+            bad.append("%s: no %s" % (label, k))
+    if not re.search(r"`[^`]*%s[^`]*`, since %s, went in %s" % (re.escape(d["name"]), re.escape(d["since"]),
+                                                                   re.escape(d["remove"])), api):
+        bad.append("doc/manual/api.md doesn't list %s as gone (since %s, went in %s)" % (d["name"], d["since"], d["remove"]))
+    if d["kind"] == "command":
+        if cli.get(d["name"]):
+            bad.append("%s: it's still in share/commands.json" % label)
+        if os.path.exists(os.path.join(ROOT, "lib", d["name"] + ".py")):
+            bad.append("%s: lib/%s.py is still there" % (label, d["name"]))
+        got = profcheck.problems({"tabs": [{"name": "SYS", "panes": [{"cmd": "phosphor " + d["name"]}]}]})
+        if ("[[tabs]] SYS", "phosphor " + cli.removed(d)) not in got:
+            bad.append("%s: a pane still running it isn't named: %s" % (label, got))
+        env = {k: v for k, v in os.environ.items() if not k.startswith(("ZELLIJ", "PHOSPHOR_"))}
+        r = subprocess.run([sys.executable, os.path.join(ROOT, "phosphor"), d["name"]], env=env,
+                           capture_output=True, text=True, timeout=30)
+        if r.returncode != 1 or "phosphor: " + cli.removed(d) not in r.stderr or r.stdout:
+            bad.append("phosphor %s: rc %d, stderr %r" % (d["name"], r.returncode, r.stderr[-200:]))
+    elif d["kind"] == "flag":
+        e = cli.get(d.get("command") or "") or {}
+        if d["name"] in e.get("options", []) + e.get("internal", []):
+            bad.append("%s: %s still takes it" % (label, d.get("command")))
+    elif d["kind"] == "key":
+        if d["name"] in profcheck.TABLES.get(d.get("table"), {}):
+            bad.append("%s: [%s] still has it in lib/profcheck.py" % (label, d.get("table")))
+        got = profcheck.problems({d["table"]: {d["name"]: True}})
+        if got != [("[%s]" % d["table"], cli.removed(d))]:
+            bad.append("%s: profcheck says %s" % (label, got))
+    else:
+        bad.append("%s: kind is command, flag or key" % label)
 
 # the real key still warns, and is still read
 for d in cli.deprecations("key"):

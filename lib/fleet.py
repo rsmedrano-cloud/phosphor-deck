@@ -146,7 +146,7 @@ def _alert(name, ok, text=None):
     it, off the poller thread so a slow or unreachable ntfy server never
     delays the next poll. Goes through `phosphor notify` like any other
     notification (SYS event, push if [push] is on, TTS if [tts] enabled
-    AND fleet_alerts is on, the floating toast if notifier is on) instead
+    AND fleet_alerts is on, a mark on SYS) instead
     of duplicating that. One cooldown per host covers every alert kind:
     a host already flapping doesn't also need a second, separate one for
     its services."""

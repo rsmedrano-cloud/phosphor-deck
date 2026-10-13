@@ -3,8 +3,9 @@ animations that slow down for them.
 
 A screen with no direct path to the brain goes through one of tailscale's
 relay servers. That link is thin: a phone or a Pi behind it froze up while
-pulse and the adjutant redrew ten times a second (seen on a Pi 4 whose peer
-said "relay mad" and had no address of its own), and was fine over the LAN.
+the adjutant and the old pulse panel redrew ten times a second (seen on a
+Pi 4 whose peer said "relay mad" and had no address of its own), and was
+fine over the LAN.
 zellij sends every redraw to every client of the session, so one animated
 pane is enough to clog it.
 

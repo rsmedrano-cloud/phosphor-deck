@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """phosphor notify marks the tab it came from (or SYS with none) with
-"<TAB> ●N", the same mechanism mentions.py already uses for COMMS -- but
-with notifier=false (the default, no floating panes), so a notification
-otherwise leaves no trace on screen (see #26). tabmark.tick() clears the
-mark once someone's actually on that tab; COMMS is skipped, mentions.py
-already owns that one.
+"<TAB> ●N", the same mechanism mentions.py already uses for COMMS -- with no
+floating panes, a notification would otherwise leave no trace on screen
+(see #26). tabmark.tick() clears the mark once someone's actually on that
+tab; COMMS is skipped, mentions.py already owns that one.
 
     python3 tests/tabmark-check.py
 
@@ -56,8 +55,7 @@ if not zjprobe.zellij():
     print("ok — zellij isn't installed, skipping"); sys.exit(0)
 
 with zjprobe.Probe(PROFILE, session="tabmark") as z:
-    # A notify naming a tab marks it, with no floating panes involved
-    # (notifier isn't even set -- defaults false).
+    # A notify naming a tab marks it, with no floating panes involved.
     notify(z, "--tab", "T1", "one thing happened")
     need("T1 got marked", by_name(z, "T1") == "T1 ●1")
     need("T2 untouched", by_name(z, "T2") == "T2")

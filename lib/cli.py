@@ -16,6 +16,7 @@ MANIFEST = os.path.join(REPO, "share", "commands.json")
 DEPRECATIONS = os.environ.get("PHOSPHOR_DEPRECATIONS") or os.path.join(REPO, "share", "deprecations.json")
 _cache = None
 _gone = None
+_went = None
 
 
 def manifest():
@@ -76,6 +77,29 @@ def deprecations(kind=None):
         except (OSError, ValueError):
             _gone = []
     return [d for d in _gone if kind is None or d.get("kind") == kind]
+
+
+def removals(kind=None):
+    """What already went (share/deprecations.json's `removed`): kept so the
+    deck can say what replaced it instead of calling it unknown."""
+    global _went
+    if _went is None:
+        try:
+            with open(DEPRECATIONS) as f:
+                _went = json.load(f).get("removed", [])
+        except (OSError, ValueError):
+            _went = []
+    return [d for d in _went if kind is None or d.get("kind") == kind]
+
+
+def removed(d):
+    """One removal, the way every reader says it."""
+    return "%s was removed in %s: use %s" % (d["name"], d["remove"], d["use"])
+
+
+def removed_cmd(name):
+    """The removal entry of a command that went, or None."""
+    return next((d for d in removals("command") if d["name"] == name), None)
 
 
 def warning(d):

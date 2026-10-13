@@ -1,11 +1,11 @@
 """Where a reading turns amber and where it turns red: the one place every
-panel asks. FLEET's cards, its 24h history, glance, digest, the adjutant
-and pulse all used to carry their own cuts, so the same disk at 88% was
+panel asks. FLEET's cards, its 24h history, glance, digest and the adjutant
+all used to carry their own cuts, so the same disk at 88% was
 red on a card and nowhere in glance.
 
 Each metric has two limits, warn and bad. Below warn it's fine; from warn
-it's amber; from bad it's red, and red is what glance, digest, the
-adjutant and pulse call out. The battery counts down: it warns at or
+it's amber; from bad it's red, and red is what glance, digest and the
+adjutant call out. The battery counts down: it warns at or
 below its first number and is bad at or below its second.
 
 The profile's [alerts] changes them, for every host or for one:
@@ -77,7 +77,7 @@ def table(prof):
 
 def _loaded():
     """table() of the profile on disk, read again only when it changes:
-    the adjutant and pulse ask many times a second."""
+    the adjutant asks many times a second."""
     import deckconf
     p = deckconf.path()
     try:

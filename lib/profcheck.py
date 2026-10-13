@@ -18,10 +18,9 @@ def _themes():
 DECK = {"session": None, "command": None, "theme": "themes", "mount_root": None,
         "projects": None, "mesh": ("auto", "tailscale", "headscale", "none"),
         "bar": ("tabs", "compact", "full"), "editor": None, "shell": None,
-        "connect": ("ssh", "mosh"), "web": BOOL, "web_port": None, "notifier": BOOL,
+        "connect": ("ssh", "mosh"), "web": BOOL, "web_port": None,
         "graphs": ("braille", "blocks"), "face": None, "splash": BOOL,
-        "notify_seconds": None, "demo": BOOL, "tour": BOOL,
-        "tts": BOOL,                     # deprecated: share/deprecations.json
+        "demo": BOOL, "tour": BOOL,
         "version": None}                 # migrate.py checks it
 HOST = {"name": None, "role": ("brain", "work", "desktop", "storage", "node", "viewer"),
         "local": BOOL, "ssh": None, "user": None, "ip": None, "mount": None,
@@ -94,9 +93,16 @@ def _array(where, items, known, out, name_key="name"):
 def _panes(where, panes, out):
     if not isinstance(panes, list):
         out.append((where, "panes is a list of panes")); return
+    import cli
     for p in panes:
         if isinstance(p, dict):
             _table(where, p, PANE, out)
+            # a pane still running a phosphor command that went
+            words = str(p.get("cmd") or "").split() + [str(a) for a in p.get("args") or []]
+            if len(words) > 1 and os.path.basename(words[0]) == "phosphor":
+                d = cli.removed_cmd(words[1])
+                if d:
+                    out.append((where, "phosphor " + cli.removed(d)))
             if "panes" in p:
                 _panes(where, p["panes"], out)
 
@@ -168,6 +174,13 @@ def problems(prof):
         t = (prof or {}).get(d["table"])
         if isinstance(t, dict) and d["name"] in t:
             out.append(("[%s]" % d["table"], cli.warning(d)))
+    for d in cli.removals("key"):  # already gone: say what replaced it, not "unknown"
+        t = (prof or {}).get(d["table"])
+        if isinstance(t, dict) and d["name"] in t:
+            where, unknown = "[%s]" % d["table"], "unknown key " + d["name"]
+            out = [(w, what) for w, what in out
+                   if not (w == where and (what == unknown or what.startswith(unknown + ":")))]
+            out.append((where, cli.removed(d)))
     return out
 
 

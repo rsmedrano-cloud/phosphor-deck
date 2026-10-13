@@ -24,8 +24,8 @@ role = "brain"
 local = true
 
 [[tabs]]
-name  = "PULSE"
-panes = [ { cmd = "phosphor", args = ["pulse"] } ]
+name  = "ADJ"
+panes = [ { cmd = "phosphor", args = ["adjutant"] } ]
 
 [[tabs]]
 name  = "SH"
@@ -57,16 +57,16 @@ def main():
             panes, end = [], time.time() + 10
             while time.time() < end:
                 panes = hotswap.live_panes("probe")
-                if len(panes) == 2 and any(hotswap.tool_of_argv(a) == "pulse" for _, a in panes):
+                if len(panes) == 2 and any(hotswap.tool_of_argv(a) == "adjutant" for _, a in panes):
                     break
                 time.sleep(0.3)
 
             need("finds both real panes", len(panes) == 2)
-            pulse = [(pid, argv) for pid, argv in panes if hotswap.tool_of_argv(argv) == "pulse"]
-            need("identifies the phosphor-pulse pane by its real argv", len(pulse) == 1)
-            if pulse:
-                pane_id, argv = pulse[0]
-                others = [(pid, argv) for pid, argv in panes if hotswap.tool_of_argv(argv) != "pulse"]
+            adjutant = [(pid, argv) for pid, argv in panes if hotswap.tool_of_argv(argv) == "adjutant"]
+            need("identifies the phosphor-adjutant pane by its real argv", len(adjutant) == 1)
+            if adjutant:
+                pane_id, argv = adjutant[0]
+                others = [(pid, argv) for pid, argv in panes if hotswap.tool_of_argv(argv) != "adjutant"]
                 need("the shell pane is never mistaken for a phosphor tool",
                      others and hotswap.tool_of_argv(others[0][1]) is None)
 
@@ -78,11 +78,11 @@ def main():
 
                 # zellij's own "--in-place" gives the fresh content a NEW pane
                 # id (it replaces what's shown, not the id) -- poll for a
-                # phosphor-pulse pane to reappear at all, not the old id.
+                # phosphor-adjutant pane to reappear at all, not the old id.
                 new_panes, end = [], time.time() + 10
                 while time.time() < end:
                     new_panes = hotswap.live_panes("probe")
-                    if len(new_panes) == 2 and any(hotswap.tool_of_argv(a) == "pulse" for _, a in new_panes):
+                    if len(new_panes) == 2 and any(hotswap.tool_of_argv(a) == "adjutant" for _, a in new_panes):
                         break
                     time.sleep(0.3)
 
@@ -90,13 +90,13 @@ def main():
                      all(not os.path.exists("/proc/%d" % p) for p in old_procs))
                 need("the tab is still there, same two tabs as before", len(z.tabs()) == 2)
 
-                new_pulse = [(pid, a) for pid, a in new_panes if hotswap.tool_of_argv(a) == "pulse"]
-                need("phosphor pulse is running again, exactly one pane",
-                     len(new_pulse) == 1)
+                new_adj = [(pid, a) for pid, a in new_panes if hotswap.tool_of_argv(a) == "adjutant"]
+                need("phosphor adjutant is running again, exactly one pane",
+                     len(new_adj) == 1)
                 need("total live panes is still 2 -- nothing left duplicated",
                      len(new_panes) == 2)
-                if new_pulse:
-                    new_procs = hotswap.pane_procs("probe", new_pulse[0][0])
+                if new_adj:
+                    new_procs = hotswap.pane_procs("probe", new_adj[0][0])
                     need("its processes are new pids, not the ones killed",
                          bool(new_procs) and not (set(new_procs) & set(old_procs)))
 

@@ -86,8 +86,6 @@ need("fleet.read_state: clean: %r" % st, "nova" in st and not dirty(json.dumps(s
 import glance
 g = "\n".join(glance.frame(80, 40))
 need("glance: shows the host, no escapes", "nova" in g and not dirty(g))
-import pulse
-need("pulse: its reason is text", not dirty(repr(pulse.read_state())))
 import adjutant
 need("adjutant: fleet.json is text", not dirty(json.dumps(adjutant._read_fleet(), ensure_ascii=False)))
 

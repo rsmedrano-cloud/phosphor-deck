@@ -135,7 +135,6 @@ def deck(prof, kind):
     for key in ("theme", "graphs"):
         if k.get(key):
             d[key] = k[key]
-    d["notifier"] = False        # no floating panes there: see [deck] notifier
     return d
 
 

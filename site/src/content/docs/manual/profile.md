@@ -42,33 +42,18 @@ The keys they know are the ones in the tables below (tabs.d files too).
 | connect | "ssh" | how other computers attach: ssh (mouse, touch) or mosh |
 | web | false | the deck in a browser, tailnet only (`phosphor web on`) |
 | web_port | 8443 | the HTTPS port tailscale serve publishes it on |
-| notifier | false | floating adjutant on every tab; deprecated, goes in 2.1.0 -- see notifier below |
 | graphs | "braille" | "blocks" draws the graphs with block characters, for fonts without Braille |
 | face | "" | adjutant face (see `phosphor face`) |
 | splash | true | a second of warm-up on the way in (any key skips it; never on paper, or when the same screen reconnects within a minute) |
-| notify_seconds | 8 | how long a floating notice stays (notifier = true); deprecated with it |
 | demo | false | fleet fakes its readings instead of polling ssh (what `phosphor demo` sets) |
 | tour | false | a guide in a floating pane on every tab (what `phosphor demo --tour` sets; demo only) |
 
-`notifier` opens a floating pane per tab for `phosphor notify`'s toast. It's
-deprecated since 1.9.3 and goes in 2.1.0, with `notify_seconds`
-(`phosphor migrate` drops both lines): the tab mark and `[push]` below
-say the same without floating panes. It was
-off by default: zellij 0.45's screen thread froze twice in real use, both
-times right after `hide-floating-panes -t` ran across every tab -- shown or
-not -- to clear the toast. No isolated repro exists for the freeze itself
-(see issue #14), but that "touch every tab, whether it needs it or not"
-pattern was the only clue there was, and it's gone: `phosphor notify` now
-targets only the tab it actually showed the toast on, both to show it (a
-bare `show-floating-panes`, with no tab named, can itself answer "Tab not
-found" when called from outside the client -- naming the tab fixes that
-too) and to hide it again. If you turn `notifier` on, this is lower-risk
-than before, not risk-free.
-
-With `notifier` off (the default) a notification still isn't silent: the
-tab `phosphor notify` names (`--tab`, or SYS with none) reads "`<TAB> ●N`"
-until you look, the same mechanism mentions.py uses for "COMMS ●2" (see
-mentions) -- no floating panes, so none of the risk above.
+A notification never opens a floating pane: the tab `phosphor notify`
+names (`--tab`, or SYS with none) reads "`<TAB> ●N`" until you look, the
+same mechanism mentions.py uses for "COMMS ●2" (see mentions), and
+`[push]` below takes it to your phone. (`notifier` and `notify_seconds`,
+the floating toast that zellij 0.45 froze around, went in 2.1.0;
+`phosphor migrate` drops both lines.)
 
 `theme` recolors more than zellij and the web client: `phosphor gen` also
 writes it into yazi's `theme.toml`, btop's own `phosphor` theme (set as

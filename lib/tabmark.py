@@ -1,9 +1,9 @@
 """phosphor tabmark - a generic "<TAB> <mark>N" on any tab's name, the same
 mechanism mentions.py already uses for COMMS (rename-tab-by-id, no floating
 panes -- see #14) but for `phosphor notify` in general: the tab it names
-with --tab, or SYS with none. With `notifier = false` (the default) a
-notification otherwise leaves no trace on screen until you happen to look
-at SYS's adjutant -- this is the "you'd have missed it" fix for that.
+with --tab, or SYS with none. Without it a notification would leave no
+trace on screen until you happened to look at SYS's adjutant -- this is
+the "you'd have missed it" fix for that.
 
 `bump()` is called straight from `phosphor notify`: one more unseen for
 that tab, renamed right away. `tick()`, run every few seconds from the same

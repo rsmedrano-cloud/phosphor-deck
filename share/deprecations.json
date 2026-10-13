@@ -6,9 +6,11 @@
     "table": "key only: the profile table it sits in, as in [deck].",
     "since": "the version whose release first warns about it.",
     "remove": "the version that drops it: the minor after the first stable (main) minor that carried the warning. tests/deprecations-check.py fails once VERSION reaches it.",
-    "use": "what to do instead, one line: the warning ends with it."
+    "use": "what to do instead, one line: the warning ends with it.",
+    "removed": "the entries that already went, moved here unchanged from deprecated: the deck says what replaced them (a command, a pane running it, a profile key) instead of calling them unknown, and phosphor migrate still rewrites the keys."
   },
-  "deprecated": [
+  "deprecated": [],
+  "removed": [
     {"kind": "key", "table": "deck", "name": "tts",
      "since": "1.9.2", "remove": "2.1.0",
      "use": "[tts] enabled (phosphor migrate moves it)"},

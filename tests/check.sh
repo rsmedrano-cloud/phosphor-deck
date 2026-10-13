@@ -24,6 +24,14 @@ step "shell scripts parse"
 out=$(for f in install.sh tests/*.sh; do sh -n "$f" || echo "$f"; done 2>&1)
 [ -z "$out" ] && ok || bad "$out"
 
+step "install: a failed clone stops it"
+# a git whose clone fails and a curl that never reaches the network (CI's image has neither)
+out=$(t=$(mktemp -d) && mkdir "$t/bin" && printf '#!/bin/sh\nexit 128\n' > "$t/bin/git" &&
+      printf '#!/bin/sh\nexit 1\n' > "$t/bin/curl" && chmod +x "$t/bin/git" "$t/bin/curl" &&
+      PATH="$t/bin:$PATH" HOME=$t PHOSPHOR_DEST=$t/dest PHOSPHOR_REPO=$t/no-such-repo \
+      PHOSPHOR_NO_WIZARD=1 sh install.sh 2>&1; echo "rc=$?"; rm -rf "$t")
+case "$out" in *"couldn't clone"*rc=1) ok ;; *) bad "$out" ;; esac
+
 step "the docs name every command"
 out=$(python3 tests/docs-check.py 2>&1) && ok || bad "$out"
 

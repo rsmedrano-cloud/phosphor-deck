@@ -68,8 +68,8 @@ step "curl | sh on a clean machine (no local copy, no PHOSPHOR_REPO): clones the
 # run from a folder that holds a file called phosphor: piped, that folder isn't a copy to install
 out=$(docker exec -i -u deck -w /home/deck/phosphor-src -e HOME=/home/deck -e PHOSPHOR_DEST=/home/deck/clean-install \
       -e PHOSPHOR_PROFILE=/home/deck/no-such-profile.toml -e PHOSPHOR_NO_WIZARD=1 $C sh < install.sh 2>&1) \
-      || fail "curl | sh from a clean machine"
-$X test -d /home/deck/clean-install/.git || fail "it didn't clone the public repo"
+      || { echo "$out" | tail -20; fail "curl | sh from a clean machine"; }
+$X test -d /home/deck/clean-install/.git || { echo "$out"; fail "it didn't clone the public repo"; }
 $X test -f /home/deck/clean-install/phosphor || fail "the clone has no phosphor command"
 echo "$out" | grep -q "cloning the public repo" || fail "it didn't say it was cloning the public repo"
 echo "$out" | grep -q "copied" && fail "piped, it installed the folder it ran from"

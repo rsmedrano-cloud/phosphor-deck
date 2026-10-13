@@ -6,6 +6,25 @@ before it updates.
 
 ## Unreleased
 
+## 2.0.2 — the installer stops on a failed clone
+
+- The installer stops when it can't clone Phosphor (GitHub busy, no
+  network) and says to run it again, instead of going on and finishing
+  without the code.
+
+## 2.0.1 — pulse and the floating notifier go
+
+- Gone, as 2.0 warned (they stay until 2.1.0 on the stable channel):
+  `phosphor pulse` (use `phosphor fleet`), and the `[deck]` keys
+  `notifier`, `notify_seconds` and `tts` (use `[tts] enabled`). Run
+  `phosphor migrate` if `phosphor doctor` names one in your profile: it
+  moves `tts` and drops the other two lines. A notice still marks its tab
+  ("SYS ●1") and goes to `[push]`; it just never opens a floating pane.
+- What went is still known: `phosphor pulse`, a pane that still runs it,
+  or one of those keys gets "removed in 2.1.0: use ..." instead of
+  "unknown". The list is `removed` in `share/deprecations.json`, and
+  `phosphor help api` shows it.
+
 ## 2.0.0 — the contract
 
 Phosphor 2.0 is a promise more than new features: `phosphor help api` says
