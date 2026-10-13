@@ -94,6 +94,7 @@ def main():
 
         # 2. unlock, resize, put it back
         saved = sizes()
+        before = len(sleeps(z))
         z.keys(ALT_E, 1); z.wait(lambda: "EDIT SYS" in z.text(), 5); z.keys(b"\r", 1)
         z.wait(lambda: tab() == "SYS ✎", 5)
         z.keys(CTRL_N, 0.3); z.keys(b"k", 0.3); z.keys(b"k", 0.3); z.keys(b"k", 0.3); z.keys(ESC, 0.5)
@@ -104,6 +105,7 @@ def main():
         need("d puts the tab back as the profile has it",
              z.wait(lambda: sizes() == saved and z.tabs() == ["SYS", "SH"], 15))
         need("putting back leaves the profile alone", edited[0] in open(prof).read())
+        need("putting back leaves nothing of the old tab running", z.wait(lambda: len(sleeps(z)) == before, 10))
 
         # 3. swap the program of the focused pane, then save
         items = z.py("import edit\nfor i in edit.options(): print(i[0])").splitlines()
@@ -117,10 +119,7 @@ def main():
         for _ in range(idx): z.keys(b"j", 0.15)
         z.keys(b"\r", 1)
         need("r swaps the pane's program", z.wait(lambda: '"903"' in z.action("dump-layout"), 15))
-        need("the swapped-out program is gone",
-             z.wait(lambda: not any("sleep 601" in open("/proc/%s/cmdline" % d).read().replace("\0", " ")
-                                    for d in os.listdir("/proc") if d.isdigit() and os.path.exists("/proc/%s/cmdline" % d)
-                                    and z.home.encode() in _env(d)), 10))
+        need("the swapped-out program is gone", z.wait(lambda: not sleeps(z), 10))
         z.out = b""
         z.keys(ALT_E, 1)
         need("the swap shows as a change", z.wait(lambda: "sleep 601 → sleep 903" in z.text(), 10))
@@ -280,6 +279,18 @@ def own_keys():
         z.action("go-to-tab-name", "SYS"); z.pump(2)
         z.keys(b"\x1bu", 1.5)
         need("shortcuts: the new key works without a restart", z.wait(full, 8))
+
+def sleeps(z):
+    """This probe's `sleep 601` processes."""
+    out = []
+    for d in os.listdir("/proc"):
+        if not d.isdigit(): continue
+        try:
+            if "sleep 601" in open("/proc/%s/cmdline" % d).read().replace("\0", " ") and z.home.encode() in _env(d):
+                out.append(d)
+        except OSError:
+            pass
+    return out
 
 def _env(d):
     try: return open("/proc/%s/environ" % d, "rb").read()

@@ -117,7 +117,8 @@ hand, same as any other git repo.
 ## Commands
 
 - `phosphor workspace new [NAME] [--shape one|two|shell] [--parts "a b"] [--assistant claude|gemini|codex|opencode|aider|agy]`
-  `[--brief FILE | --note TEXT] [--folder-only]` — `--note` takes the note whose title contains TEXT;
+  `[--brief FILE | --note TEXT | --note-file FILE] [--folder-only]` — `--note` takes the note whose title contains TEXT,
+  `--note-file` a note's exact text from a file (the NOTES tab uses it);
   `--folder-only` writes the folder and leaves the profile and tabs alone (an assistant can use it).
 - `phosphor workspace open NAME` — go to its tab, or open it (inside the deck).
 - `phosphor workspace list [--json]` — the workspaces in your projects folder (`--json`: with

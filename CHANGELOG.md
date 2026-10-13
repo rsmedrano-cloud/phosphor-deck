@@ -6,6 +6,35 @@ before it updates.
 
 ## Unreleased
 
+## 2.0.0 — the contract
+
+Phosphor 2.0 is a promise more than new features: `phosphor help api` says
+what stays the same between versions, and nothing public goes away without a
+warning for one full stable minor. Coming from 1.9.0, look at:
+
+- A flag a command doesn't take is an error now (exit 2 with the usage), not
+  text or a silent no-op: check scripts that pass a misspelled flag.
+- Going away in 2.1.0, warning until then: `phosphor pulse` (use `phosphor
+  fleet`), `[deck] notifier` and `notify_seconds`, and `[deck] tts` (use
+  `[tts] enabled`). `phosphor migrate` updates the profile.
+- Notes can belong to a project (`--project`, folders in NOTES), and
+  `[notes] require_project = true` refuses one it can't file.
+- `phosphor glance` suits an e-ink panel: it repaints only on change, goes
+  mono by itself, and acts with up, down and Enter.
+- Tab completion knows every flag: run `phosphor completion bash` (or `zsh`)
+  again to get it.
+
+The details are in 1.9.1 to 1.9.7 below. New in this one:
+
+- `d` in `phosphor edit` (put the tab back) could leave the old tab's
+  programs running unseen when the tab closed before the pane under the
+  edit screen showed again; they are stopped now, as a swap already did.
+- `phosphor note --help` shows `--file PATH`, and the workspaces manual
+  `--note-file FILE`; the commands manifest says `mutates` speaks for the
+  bare command only, and its note names the arguments that change things.
+- Tests that start a throwaway zellij no longer inherit the deck's
+  `PHOSPHOR_*` variables, so they can't write to your notebook or cache.
+
 ## 1.9.7 — glance acts from an e-ink wheel
 
 - `phosphor glance` can act, with nothing but up, down and Enter (all an

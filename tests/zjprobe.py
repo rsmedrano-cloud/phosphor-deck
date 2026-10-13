@@ -23,7 +23,8 @@ class Probe:
 
     def __enter__(self):
         self.home = tempfile.mkdtemp(prefix="zjprobe-")
-        self.env = {k: v for k, v in os.environ.items() if not k.startswith("ZELLIJ")}
+        # nothing of the deck this runs in: its session, nor its notebook, cache or data
+        self.env = {k: v for k, v in os.environ.items() if not k.startswith(("ZELLIJ", "PHOSPHOR_"))}
         self.env.update(HOME=self.home, XDG_CONFIG_HOME=os.path.join(self.home, ".config"),
                         XDG_CACHE_HOME=os.path.join(self.home, ".cache"),
                         XDG_DATA_HOME=os.path.join(self.home, ".local/share"),

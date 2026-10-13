@@ -1,6 +1,6 @@
 {
   "_schema": {
-    "mutates": "true when running the command as shown, with no further interactive confirmation, changes persistent state: the deck's zellij session, a systemd unit, the profile, or any file phosphor generates -- or otherwise leaves this machine different than before. false is the safe-by-default reading: some entries still name a flag or an interactive key that escalates past it, in \"note\".",
+    "mutates": "true when running the command bare (no arguments), with no further interactive confirmation, changes persistent state: the deck's zellij session, a systemd unit, the profile, or any file phosphor generates -- or otherwise leaves this machine different than before. false speaks only for that bare run (the menu and / run it on Enter): an argument, flag or interactive key that escalates past it is named in \"note\" -- read it before passing one unattended.",
     "needs_deck": "true when the command needs the phosphor session already running, or to be run from inside it, to do anything meaningful.",
     "note": "one line of nuance: which flag or interactive key changes the plain answer above, and how.",
     "category": "the group it's listed under, one of _categories (phosphor help, phosphor commands, the manual).",
@@ -158,7 +158,7 @@
     "needs_deck": false,
     "note": "fetches a web page (or searches DuckDuckGo with the words given) and prints or pages its text; nothing is written. --ask sends the page and the question to an installed assistant CLI with no tools; the search words and the page's address leave the brain."},
   "note": {"category": "Notes",
-    "usage": "phosphor note [--kind KIND] [--by NAME] [--book NAME] [--tab TAB] [--project NAME] [--here] TEXT | -",
+    "usage": "phosphor note [--kind KIND] [--by NAME] [--book NAME | --file PATH] [--tab TAB] [--project NAME] [--here] TEXT | -",
     "summary": "add a note to the shared notebook",
     "takes_value": ["--book", "--by", "--file", "--kind", "--project", "--tab"],
     "free_text": true,

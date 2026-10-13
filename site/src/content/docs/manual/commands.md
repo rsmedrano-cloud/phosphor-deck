@@ -114,7 +114,7 @@ sidebar:
   text with JavaScript has none to give: it says so. Standard library only, nothing to install.
 
 ## Notes
-- `phosphor note [--kind note|idea|decision|todo|summary] [--by NAME] [--book NAME] [--tab TAB] [--project NAME] TEXT` (`-` reads stdin).
+- `phosphor note [--kind note|idea|decision|todo|summary] [--by NAME] [--book NAME | --file PATH] [--tab TAB] [--project NAME] TEXT` (`-` reads stdin).
   `--tab` says which tab it came from; `--project` which project it's about (one word: spaces become `-`).
   Written from a workspace's folder or tab with no `--project`, a note is filed under that workspace; from any other tab,
   under the project of the last note from that tab. With `[notes] require_project = true` (profile) a note nothing

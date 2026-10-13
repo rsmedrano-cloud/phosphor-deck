@@ -372,7 +372,13 @@ def run_later(argv, caller):
         ntabs = len({p["tab_id"] for p in panes()})
         for _ in range(max(0, ntabs - 1 - pos)):
             zj("move-tab", "left")
+        old = [pid for p in panes() if not p["is_plugin"] and str(p["tab_id"]) == tab_id and p["id"] != caller
+               for pid in pane_procs(p["id"])]
         zj("close-tab-by-id", tab_id)
+        time.sleep(0.5)
+        for p in old:                     # a pane still hidden under this screen outlives its closed tab
+            try: os.kill(p, signal.SIGKILL)
+            except OSError: pass
 
 def main():
     a = sys.argv[1:]
