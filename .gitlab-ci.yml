@@ -4,7 +4,7 @@
 # anyone's machine. The project is private, so GitLab's shared runners would
 # spend its CI minutes.
 #
-# check: the fast checks. Seconds; no network.
+# check: the fast checks. Under a minute (one step per core); no network.
 #
 # install: a clean install in a systemd container, then a first-time user
 # driving it on a real terminal, on the brain's docker.

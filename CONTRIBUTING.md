@@ -17,7 +17,8 @@ feature existing in your fork is not, by itself, a reason to merge it.
 
 Before a pull request:
 
-- `sh tests/check.sh` passes: the fast checks, seconds, no docker;
+- `sh tests/check.sh` passes: the fast checks, under a minute (one
+  step per core; `-j1` for one at a time), no docker;
 - `python3 tests/edit-check.py` passes if you touched keys, tabs or the +
   menu: a throwaway zellij in its own HOME, driven by keys and taps (needs
   zellij; `tests/fetch-zellij.py` gets the pinned one, `--latest` the newest);

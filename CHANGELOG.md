@@ -6,6 +6,13 @@ before it updates.
 
 ## Unreleased
 
+## 2.0.3 — the fast checks are fast again
+
+- For contributors: `sh tests/check.sh` runs its steps side by side, one
+  per core, and still reports them in order: about 35 seconds instead of
+  three and a half minutes on an 8-core machine. `-j1` runs them one at a
+  time.
+
 ## 2.0.2 — the installer stops on a failed clone
 
 - The installer stops when it can't clone Phosphor (GitHub busy, no

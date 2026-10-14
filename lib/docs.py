@@ -79,7 +79,7 @@ not in any one assistant's memory.
   their own deck, say so plainly and offer the matching edit to their profile
   (a `deck.toml.bak` first) -- in the reply itself, not buried in a summary.
   A topic isn't closed while one of their questions is still unanswered.
-- **Verify through CI, not by hand:** `sh tests/check.sh` locally (seconds),
+- **Verify through CI, not by hand:** `sh tests/check.sh` locally (under a minute),
   push `dev`, then `python3 tests/ci.py`: it waits for that commit's pipeline
   and prints one line per job, plus the end of the log of any job that failed.
   Don't poll pipelines, click through the deck or drive screens yourself to

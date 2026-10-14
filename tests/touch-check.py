@@ -24,40 +24,52 @@ ENV.update(TERM="xterm-256color", PHOSPHOR_CACHE=os.path.join(TMP, "cache"),
 
 CPR_ROW = 10        # where the test's "terminal" says the cursor is when asked
 
-def session(argv, taps, wait=1.0):
-    """Run phosphor in a pty, answer its cursor query, tap (x, y)s. (ended, output)."""
+def session(argv, taps, ready="close this tab", until=None, settle=1.0):
+    """Run phosphor in a pty, answer its cursor query, tap (x, y)s once `ready`
+    is on screen and it takes taps. Then wait for it to end, for `until` to show, or `settle`
+    seconds of neither -- on conditions, not sleeps, so a busy machine (the
+    other checks running alongside) only makes it slower. (ended, output)."""
     pid, fd = pty.fork()
     if pid == 0:
         os.execve(sys.executable, [sys.executable, os.path.join(ROOT, "phosphor")] + argv, ENV)
     fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", 24, 80, 0, 0))
     out = b""
-    def drain(t):
+    status = [0]
+    def text():
+        return re.sub(r"\x1b\[[0-9;?]*[A-Za-z]", "", out.decode("utf-8", "replace"))
+    def drain(t, done):
         nonlocal out
         end = time.time() + t
-        while time.time() < end:
+        while time.time() < end and not done():
             if select.select([fd], [], [], 0.05)[0]:
                 try: chunk = os.read(fd, 65536)
-                except OSError: return
+                except OSError: chunk = b""
                 out += chunk
                 if b"\x1b[6n" in chunk:
                     os.write(fd, b"\x1b[%d;1R" % CPR_ROW)
-    drain(wait)
+            if not status[0]:
+                status[0] = os.waitpid(pid, os.WNOHANG)[0]
+    # the menu on screen and mouse reporting on (run turns it on last, after
+    # asking where the cursor is), then a beat to reach its read
+    drain(15, lambda: b"\x1b[?1006h" in out and ready in text())
+    time.sleep(0.2)
     for x, y in taps:
-        os.write(fd, ("\x1b[<0;%d;%dM\x1b[<0;%d;%dm" % (x, y, x, y)).encode()); drain(0.6)
-    ended = os.waitpid(pid, os.WNOHANG)[0] != 0
+        os.write(fd, ("\x1b[<0;%d;%dM\x1b[<0;%d;%dm" % (x, y, x, y)).encode())
+    drain(settle, lambda: status[0] or (until and until(text())))
+    ended = bool(status[0]) or os.waitpid(pid, os.WNOHANG)[0] != 0
     if not ended:
         os.kill(pid, 9); os.waitpid(pid, 0)
-    return ended, re.sub(r"\x1b\[[0-9;?]*[A-Za-z]", "", out.decode("utf-8", "replace"))
+    return ended, text()
 
 # a pane that ended, in a tab the profile doesn't keep: Enter, x, l -- one row
 # each, the last of them just above the cursor
 run = ["run", "--name", "TOUCH", "--", "true"]
 again, close, log = CPR_ROW - 3, CPR_ROW - 2, CPR_ROW - 1
-ended, out = session(run, [(6, close)])
+ended, out = session(run, [(6, close)], settle=15)
 check("ended pane: a tap on 'close this tab' closes it (%s)" % out[-200:], ended)
-ended, out = session(run, [(6, log)])
+ended, out = session(run, [(6, log)], until=lambda t: "phosphor logs touch" in t, settle=15)
 check("ended pane: a tap on 'see the log' shows it and stays", not ended and "phosphor logs touch" in out)
-ended, out = session(run, [(6, again)])
+ended, out = session(run, [(6, again)], until=lambda t: t.count("close this tab") >= 2, settle=15)
 check("ended pane: a tap on 'open it again' runs it again", not ended and out.count("close this tab") >= 2)
 ended, _ = session(run, [(6, 1)])
 check("ended pane: a tap elsewhere does nothing", not ended)
@@ -69,7 +81,7 @@ prof, _ = deckconf.load()
 rows, acts = newtab.render(newtab.entries(prof), 0, False, 80)
 check("the + menu has a 'close' row", "close" in acts)
 y = acts.index("close") + 1 if "close" in acts else 1
-ended, out = session(["new"], [(4, y)])
+ended, out = session(["new"], [(4, y)], ready="close", settle=15)
 check("the + menu: a tap on 'close this tab' closes it (%s)" % out[-200:], ended)
 
 if fail:
