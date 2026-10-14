@@ -15,10 +15,14 @@ room for the full deck.
     phosphor glance --json  the same answers as one JSON object
     phosphor glance --serve that JSON over HTTP, for a gadget that can't ssh
                             (an ESP32 with e-paper, a Pi Zero with an OLED)
+    phosphor glance --serve --lan   the same on the LAN, for a gadget with no
+                            tailnet (a SolarOS panel on the home Wi-Fi)
 
 --serve listens only on the brain's tailnet address (the LAN's without
-one), answers GET with the token and nothing else, and runs in the
-foreground: put it in a tab to keep it up.
+one, or with --lan), answers GET with the token and nothing else, and runs
+in the foreground: put it in a tab to keep it up. With the token it also
+hands out /solaros.py, share/glance-solaros.py with this address and token
+filled in: a SolarOS panel fetches it with curl and runs it with python.
 """
 import hmac, json, os, secrets, shutil, sys, termios, textwrap, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -327,7 +331,8 @@ def mono(line):
 
 # ── --serve ───────────────────────────────────────────────────
 PORT = 8484
-SERVE_USAGE = "usage: phosphor glance [--mono] [--once | --json | --serve [--port N] [--new-token]]"
+SERVE_USAGE = "usage: phosphor glance [--mono] [--once | --json | --serve [--lan] [--port N] [--new-token]]"
+CLIENT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "share", "glance-solaros.py")
 
 def token_path():
     return os.path.join(deckconf.data_dir(), "glance-token")
@@ -361,6 +366,12 @@ def authorized(path, headers, secret):
     bearer = auth[7:].strip() if auth.lower().startswith("bearer ") else ""
     return any(c and hmac.compare_digest(c.encode(), secret.encode()) for c in (q, bearer))
 
+def client_source(url_):
+    """The SolarOS client with the URL it reads (token included) written
+    in, so the panel needs nothing typed by hand."""
+    src = open(CLIENT).read()
+    return src.replace('URL = ""', "URL = %s" % json.dumps(url_), 1).encode()
+
 def handler_for(secret):
     from http.server import BaseHTTPRequestHandler
     from urllib.parse import urlsplit
@@ -370,6 +381,7 @@ def handler_for(secret):
         timeout = 5                     # a client that opens and says nothing
         server_version = "phosphor-glance"
         sys_version = ""
+        client = b""                    # set by bind(), once the address is known
 
         def reply(self, code, body, ctype="application/json"):
             self.send_response(code)
@@ -380,10 +392,13 @@ def handler_for(secret):
             self.wfile.write(body)
 
         def do_GET(self):
-            if urlsplit(self.path).path not in ("/", "/glance", "/glance.json"):
+            path = urlsplit(self.path).path
+            if path not in ("/", "/glance", "/glance.json", "/solaros.py"):
                 return self.reply(404, b'{"error": "not found"}\n')
             if not authorized(self.path, self.headers, secret):
                 return self.reply(401, b'{"error": "token"}\n')
+            if path == "/solaros.py":           # it carries the token: same door
+                return self.reply(200, self.client, "text/x-python; charset=utf-8")
             if time.time() - cache["t"] > 2:      # a gadget polling fast doesn't re-run git
                 cache["body"] = (json.dumps(payload()) + "\n").encode()
                 cache["t"] = time.time()
@@ -401,22 +416,38 @@ def server(addr, secret):
     httpd.daemon_threads = True
     return httpd
 
-def serve(port=PORT, new_token=False):
+def bind(port=PORT, new_token=False, lan=False):
+    """(httpd, url, where): listening on the tailnet address, or the LAN's
+    (without a tailnet, or asked for with lan=True). Raises OSError."""
     import send
-    prof, _ = deckconf.load()
-    ip, where = send.pick_address(prof)
+    if lan:
+        ip, where = send.lan_ip(), "LAN"
+    else:
+        ip, where = send.pick_address(deckconf.load()[0])
     secret = token(new=new_token)
     try:
         httpd = server((ip, port), secret)
     except OSError as e:
-        print(ui.row(ui.BAD, "glance", "can't listen on %s:%d" % (ip, port), note=str(e.strerror or e)))
-        return 1
+        e.addr = "%s:%d" % (ip, port)
+        raise
     url_ = "http://%s:%d/glance?token=%s" % (ip, httpd.server_port, secret)
+    httpd.RequestHandlerClass.client = client_source(url_)
+    return httpd, url_, where
+
+def serve(port=PORT, new_token=False, lan=False):
+    import send
+    try:
+        httpd, url_, where = bind(port, new_token, lan)
+    except OSError as e:
+        print(ui.row(ui.BAD, "glance", "can't listen on %s" % getattr(e, "addr", port), note=str(e.strerror or e)))
+        return 1
     print(ui.row(ui.OK, "serving", url_, note=where + ", read-only JSON"))
     if where == "LAN":
-        print(DIM + "  no tailnet: the token crosses the LAN in the clear." + RST)
+        print(DIM + "  on the LAN: the token crosses it in the clear (--new-token if it leaks)." + RST)
     for l in send.qr_lines(url_):
         print("  " + l)
+    print(DIM + "  a SolarOS panel:  curl -o /glance.py \"%s\"" % url_.replace("/glance?", "/solaros.py?") + RST)
+    print(DIM + "                    python /glance.py" + RST)
     print(DIM + "  Ctrl-C stops it; --new-token replaces the token." + RST)
     try:
         httpd.serve_forever()
@@ -439,7 +470,7 @@ def main():
                 port = int(a[a.index("--port") + 1])
             except (IndexError, ValueError):
                 print(SERVE_USAGE); return 1
-        return serve(port, new_token="--new-token" in a)
+        return serve(port, new_token="--new-token" in a, lan="--lan" in a)
     show = mono if "--mono" in a or ui.mono_term() else (lambda l: l)
     if "--once" in a:
         w = shutil.get_terminal_size((60, 20)).columns

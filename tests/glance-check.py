@@ -124,6 +124,97 @@ r = subprocess.run([sys.executable, os.path.join(ROOT, "lib", "glance.py"), "--j
                    capture_output=True, text=True, env=dict(os.environ, HOME=home), timeout=20)
 need("phosphor glance --json prints JSON", r.returncode == 0 and json.loads(r.stdout).get("status"))
 
+# --serve --lan (#53): the LAN address even with a tailnet, and the SolarOS
+# client handed out behind the same token, its URL already filled in.
+import send
+send.lan_ip = lambda: "127.0.0.1"
+def tailnet_first(prof): raise AssertionError("--lan asked for the tailnet address")
+send.pick_address = tailnet_first
+httpd, url_, where = glance.bind(0, lan=True)
+threading.Thread(target=httpd.serve_forever, daemon=True).start()
+base = "http://127.0.0.1:%d" % httpd.server_port
+need("--lan listens on the LAN address", httpd.server_address[0] == "127.0.0.1" and where == "LAN")
+need("no token, no client", get("/solaros.py")[0] == 401)
+code, src = get("/solaros.py?token=" + secret)
+need("the client comes with its URL and token in",
+     code == 200 and ('URL = "%s"' % url_).encode() in src and url_.endswith(secret))
+compile(src, "glance-solaros.py", "exec")
+
+# the client itself, under a fake solaros module: real HTTP to that server,
+# keys from a list, every tui.refresh() a frame in a log.
+fake = tempfile.mkdtemp()
+open(os.path.join(fake, "solaros.py"), "w").write(r'''
+import json, os, time as _t, urllib.request, urllib.error
+LOG, KEYS, _n, _f = os.environ["FAKE_LOG"], json.loads(os.environ["FAKE_KEYS"]), [0], []
+def _log(o): open(LOG, "a").write(json.dumps(o) + "\n")
+def write(t): _log({"write": t})
+def should_exit(): return _n[0] > len(KEYS)
+class http:
+    @staticmethod
+    def get(url, headers=None, timeout_ms=10000, max_bytes=65536, follow=True):
+        try:
+            with urllib.request.urlopen(url, timeout=timeout_ms / 1000) as r:
+                code, body = r.status, r.read()
+        except urllib.error.HTTPError as e:
+            code, body = e.code, e.read()
+        except OSError:
+            raise OSError("ESP_ERR_HTTP_CONNECT")
+        return {"status_code": code, "body": body[:max_bytes], "truncated": len(body) > max_bytes}
+class tui:
+    NORMAL, BOLD, INVERSE, KEY_UP, KEY_DOWN, KEY_ESCAPE = 0, 1, 2, 0x101, 0x102, 27
+    size = staticmethod(lambda: (17, 60))
+    clear = staticmethod(lambda: _f.clear())
+    addstr = staticmethod(lambda r, c, t, a=0: _f.append([r, t, a]))
+    refresh = staticmethod(lambda: _log({"frame": list(_f)}))
+    @staticmethod
+    def getch(ms):
+        k = KEYS[_n[0]] if _n[0] < len(KEYS) else None
+        _n[0] += 1
+        if k == "mention":              # something changes on the brain
+            open(os.environ["FAKE_MENTIONS"], "a").write(json.dumps({"t": _t.time(), "from": "sam", "message": "hi"}) + "\n")
+            _t.sleep(2.2)               # past the server's 2 s cache
+            return None
+        return k
+class time:
+    datetime = staticmethod(lambda: {"hour": 9, "minute": 5})
+    uptime_ms = staticmethod(lambda: int(_t.time() * 1000))
+''')
+open(os.path.join(fake, "glance.py"), "wb").write(src)
+mfile = os.path.join(home, ".local/share/phosphor/mentions.jsonl")
+open(mfile, "w").write("")
+json.dump({"t": 9999999999, "hosts": {"forge": {"ok": False, "err": "connection refused"}}},
+          open(os.path.join(home, ".cache/phosphor/fleet.json"), "w"))
+def panel(keys, *argv):
+    log = os.path.join(fake, "log.jsonl")
+    open(log, "w").close()
+    r = subprocess.run([sys.executable, os.path.join(fake, "glance.py")] + list(argv),
+                       capture_output=True, text=True, timeout=30, cwd=fake,
+                       env=dict(os.environ, PYTHONPATH=fake, FAKE_LOG=log, FAKE_MENTIONS=mfile,
+                                FAKE_KEYS=json.dumps(keys)))
+    need("the panel client runs (%s)" % r.stderr.strip()[-200:], r.returncode == 0)
+    return [json.loads(l) for l in open(log)]
+UP, DOWN = 0x101, 0x102
+ev = panel([None] * 70 + [DOWN, UP, "mention", 13, ord("q")])
+frames = [e["frame"] for e in ev if "frame" in e]
+texts = lambda f: [t for _, t, _ in f]
+need("panel: paints once while nothing changes, again on a change, blank on the way out",
+     len(frames) == 3 and frames[-1] == [])
+need("panel: the light, the fleet and the counts",
+     frames and any("PHOSPHOR" in t and "attention" in t.lower() for t in texts(frames[0]))
+     and any("forge: connection refused" in t for t in texts(frames[0]))
+     and any("nothing unread" in t for t in texts(frames[0])))
+need("panel: red is reversed, readable with no color",
+     frames and frames[0][0][2] == 2)
+need("panel: a new mention shows after Enter",
+     len(frames) > 1 and any("1 unread" in t for t in texts(frames[1])))
+need("panel: nothing wider than the screen", all(len(t) <= 60 for f in frames for t in texts(f)))
+ev = panel([ord("q")], url_.replace(secret, "nope"))
+need("panel: a refused token says so", any("token refused" in t for e in ev for t in texts(e.get("frame", []))))
+httpd.shutdown(); httpd.server_close()
+ev = panel([27], url_)
+need("panel: a brain that's gone says so, Esc leaves",
+     any("no answer from the brain" in t for e in ev for t in texts(e.get("frame", []))))
+
 # a wide, short screen (a 130x17 e-ink panel): all four sections in a 2x2
 # grid, nothing past the edges, the light in words on top.
 json.dump({"t": 9999999999, "hosts": {"forge": {"ok": False, "err": "connection refused"}}},

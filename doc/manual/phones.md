@@ -214,7 +214,10 @@ Open todos and dirty workspaces are counted but never change the color.
 
 It's read-only and listens only on the brain's tailnet address (the LAN's
 without a tailnet, where the token crosses the network in the clear); any
-other path, or a request without the token, gets nothing. The token is kept
+other path, or a request without the token, gets nothing. A gadget on the
+home Wi-Fi with no tailnet (most microcontrollers) can't reach the tailnet
+address: `--lan` listens on the LAN's instead, with the token in the clear
+there too. The token is kept
 in `~/.local/share/phosphor/glance-token` (only you can read it) so a
 flashed gadget keeps working across restarts; `--new-token` replaces it.
 It runs in the foreground, Ctrl-C stops it. To keep it up, give it a tab of
@@ -223,3 +226,21 @@ its own -- `phosphor run` brings it back if it ends:
     [[tabs]]
     name  = "GLANCE"
     panes = [{ cmd = "phosphor glance", args = ["--serve"] }]
+
+**A SolarOS panel** (an ESP32-S3 e-ink like the CrowPanel) runs the glance
+itself instead of an ssh session, which floods a slow screen: `--serve`
+also hands out a small MicroPython app, `share/glance-solaros.py`, with its
+own address and token already in it, and prints the two lines to type on
+the panel's shell:
+
+    phosphor glance --serve --lan        # on the brain
+    curl -o /glance.py "http://<brain>:8484/solaros.py?token=..."
+    python /glance.py                    # on the panel
+
+It asks every 30 seconds and repaints only when an answer changes (and
+every 10 minutes, so a clock that stops says the panel did): the light in
+words, reversed when it's red, the hosts with a problem, and the three
+counts. Enter (the wheel's press) or `r` asks now; Esc, `q` or the EXIT
+button leave. It only reads: a todo marked done or the mentions read stay
+with `phosphor glance` over ssh. Its `/solaros.py` needs the token like the
+JSON does, since it carries it; `--new-token` makes the old copy useless.

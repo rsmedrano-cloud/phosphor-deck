@@ -6,6 +6,16 @@ before it updates.
 
 ## Unreleased
 
+## 2.0.4 — a SolarOS panel runs the glance itself
+
+- `phosphor glance --serve --lan` listens on the LAN instead of the
+  tailnet, for a gadget on the home Wi-Fi that has no tailnet (the token
+  crosses the LAN in the clear, as it says).
+- A SolarOS e-ink panel can run the glance itself instead of an ssh
+  session: `--serve` hands out a small app with its address and token in
+  it, and prints the `curl` and `python` lines to type on the panel. It
+  repaints only when something changed; Enter asks now.
+
 ## 2.0.3 — the fast checks are fast again
 
 - For contributors: `sh tests/check.sh` runs its steps side by side, one
