@@ -17,7 +17,6 @@ from solaros import tui
 
 URL = ""            # filled in by the brain when it serves this file
 EVERY = 30          # seconds between checks
-HEARTBEAT = 600     # repaint at least this often: a time that stops moving means a dead panel
 WORDS = {"green": "all clear", "amber": "worth a look", "red": "ATTENTION", "unknown": "no data"}
 
 
@@ -81,19 +80,11 @@ def lines(p, why, rows):
     return out
 
 
-def clock():
-    try:
-        d = solaros.time.datetime()
-        return "%02d:%02d" % (d["hour"], d["minute"])
-    except Exception:
-        return "--:--"
-
-
 def paint(body, rows, cols):
     tui.clear()
     for i, (text, attr) in enumerate(body[:rows - 1]):
         tui.addstr(i, 0, text[:cols], attr or tui.NORMAL)
-    tui.addstr(rows - 1, 0, ("%s  Enter checks now, Esc leaves" % clock())[:cols], tui.NORMAL)
+    tui.addstr(rows - 1, 0, "Enter checks now, Esc leaves"[:cols], tui.NORMAL)   # SolarOS's bar has the time
     tui.refresh()
 
 
@@ -123,17 +114,16 @@ def main():
     if not hasattr(solaros, "http"):
         solaros.write("this SolarOS build has no HTTP client (network.http-client)\n")
         return
-    last, shown, painted = None, None, 0
+    last, shown = None, None
     while not solaros.should_exit():
         p, why = fetch(url)
         if p is not None:
             last = p
         rows, cols = tui.size()
         body = lines(last, why, rows)
-        now = solaros.time.uptime_ms()
-        if body != shown or now - painted >= HEARTBEAT * 1000:
+        if body != shown:
             paint(body, rows, cols)
-            shown, painted = body, now
+            shown = body
         if wait(EVERY) == "quit":
             break
     tui.clear()

@@ -237,10 +237,16 @@ the panel's shell:
     curl -o /glance.py "http://<brain>:8484/solaros.py?token=..."
     python /glance.py                    # on the panel
 
-It asks every 30 seconds and repaints only when an answer changes (and
-every 10 minutes, so a clock that stops says the panel did): the light in
-words, reversed when it's red, the hosts with a problem, and the three
-counts. Enter (the wheel's press) or `r` asks now; Esc, `q` or the EXIT
-button leave. It only reads: a todo marked done or the mentions read stay
-with `phosphor glance` over ssh. Its `/solaros.py` needs the token like the
-JSON does, since it carries it; `--new-token` makes the old copy useless.
+From a serial console instead of the panel's own shell, put it on the
+display with `session create python display0 /glance.py`.
+
+It asks every 30 seconds and repaints only when an answer changes: the
+light in words, reversed when it's red, the hosts with a problem, and the
+three counts (the time is in SolarOS's own status bar, and a brain that
+stops answering says so on the screen). Enter (the wheel's press) or `r`
+asks now; Esc, `q` or the EXIT button leave. It only reads: a todo marked
+done or the mentions read stay with `phosphor glance` over ssh. Its
+`/solaros.py` needs the token like the JSON does, since it carries it;
+`--new-token` makes the old copy useless. On the CrowPanel 5.79" keep the
+display's default refresh (`display mode display0 refresh=auto`): `fast`
+and `full` left that panel black or frozen until a reboot.

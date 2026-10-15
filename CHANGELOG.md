@@ -6,6 +6,14 @@ before it updates.
 
 ## Unreleased
 
+## 2.0.5 — the SolarOS glance, tried on a real panel
+
+- The SolarOS glance app, tried on a real CrowPanel 5.79": it no longer
+  draws a clock of its own (SolarOS's status bar already has the time, and
+  without a time set it showed `--:--`), so it repaints only when the
+  answer changes. The screens manual says how to start it from a serial
+  console, and to keep that panel's display refresh on `auto`.
+
 ## 2.0.4 — a SolarOS panel runs the glance itself
 
 - `phosphor glance --serve --lan` listens on the LAN instead of the
