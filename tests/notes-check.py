@@ -164,11 +164,11 @@ check("and misses without crashing", not notes.matches(e, "zzz"))
 # a tap on a note picks it (rows below the top bar): it used to compare the
 # entry regex, which shadowed ui.HEAD, with the row and crash the tab
 import pty, select, time, struct, fcntl, termios
-def tapped(argv, taps):
+def tapped(argv, taps, term="xterm-256color"):
     pid, fd = pty.fork()
     if pid == 0:
         os.execve(sys.executable, [sys.executable, os.path.join(os.path.dirname(LIB), "phosphor")] + argv,
-                  dict(os.environ, TERM="xterm-256color"))
+                  dict(os.environ, TERM=term))
     fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", 24, 80, 0, 0))
     out = b""
     def drain(t):
@@ -189,6 +189,10 @@ gone, out = tapped(["notes", "--file", p], [(10, 4), (10, 5), (10, 23)])
 check("a tap on a note doesn't end the tab" + (" (%s)" % out[out.find("Error"):][:120] if gone else ""),
       not gone and "Traceback" not in out)
 check("and picks it", "\u258c" in out)
+
+gone, out = tapped(["notes", "--file", p], [], term="xterm-mono")
+check("no 24-bit color on a mono terminal (an e-ink panel over ssh)",
+      not gone and "e edit" in out and "38;2;" not in out)
 
 # projects: #NAME after the tab in the header, one notebook, folders in the tab
 pp = os.path.join(d, "projects.md")

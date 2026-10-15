@@ -26,7 +26,7 @@ filled in: a SolarOS panel fetches it with curl and runs it with python.
 """
 import hmac, json, os, secrets, shutil, sys, termios, textwrap, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from ui import DIM, MUTE, FG, PH, AMB, RED, RULE, BLOOM, RST, rule
+from ui import DIM, MUTE, FG, PH, AMB, RED, RULE, BLOOM, RST, rule, paint
 import deckconf
 import dlog
 from sanitize import clean_tree
@@ -491,20 +491,6 @@ def wait(seconds):
     if k is None:                        # a timeout, or an end of input that returns at once
         time.sleep(max(0, seconds - (time.time() - t0)))
     return k
-
-def paint(out, prev):
-    """What to write so the screen shows out when it shows prev: every
-    line when prev is None (a first paint, a clear, a new size), else only
-    the lines that differ, each where it goes -- an e-ink panel redraws
-    what reaches it, so a cursor that moves sends two lines, not the
-    screen."""
-    if prev is None:
-        return "\x1b[H" + "\x1b[K\n".join(out) + "\x1b[K\x1b[J"
-    w = "".join("\x1b[%d;1H%s\x1b[K" % (i + 1, l)
-                for i, l in enumerate(out) if i >= len(prev) or prev[i] != l)
-    if len(out) < len(prev):
-        w += "\x1b[%d;1H\x1b[J" % (len(out) + 1)
-    return w
 
 def watch(show):
     """The screen that stays up. It repaints only when what it says changes,

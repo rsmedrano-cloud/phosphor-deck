@@ -116,6 +116,7 @@ check "security: who reaches a file, secrets, sshd" python3 tests/security-check
 check "digest: the day as one note, fenced for an assistant with no tools" python3 tests/digest-check.py
 check "read: a page as text, a web search, --ask fenced for an assistant with no tools" python3 tests/read-check.py
 check "glance: fleet, mentions, todos"     python3 tests/glance-check.py
+check "mirror: one pane for a slow screen"  python3 tests/mirror-check.py
 check "phosphor review: MRs/PRs, safely"   python3 tests/review-check.py
 check "phosphor screens: who's attached, kick one" python3 tests/screens-check.py
 check "phosphor mem: memory per tab and pane" python3 tests/mem-check.py

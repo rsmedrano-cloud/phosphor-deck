@@ -250,3 +250,36 @@ done or the mentions read stay with `phosphor glance` over ssh. Its
 `--new-token` makes the old copy useless. On the CrowPanel 5.79" keep the
 display's default refresh (`display mode display0 refresh=auto`): `fast`
 and `full` left that panel black or frozen until a reboot.
+
+## One pane instead of the whole deck
+
+A screen that reads slower than zellij writes can't attach at all: zellij
+drops a client that falls behind ("client too slow") and the screen
+freezes. An e-ink panel takes a few KB a second; one busy tab, an
+assistant redrawing its spinner, sends megabytes a minute, mostly colors a
+mono screen can't show. `phosphor mirror` shows one pane without attaching:
+
+    ssh -t you@brain ~/.local/bin/phosphor mirror --tab AI
+
+It reads that pane's text from the deck's session -- a tab nobody is
+looking at works too -- and sends only the lines that changed, with no
+color, once a second at most. It reads the pane again only once the last
+paint went through, so a slow link sets the pace and what changed
+meanwhile arrives as one paint, never as a backlog. The pane keeps the
+size the deck gave it: a line wider than the screen wraps (a rule of box
+lines is cut instead) and the screen shows the bottom, where the prompt is.
+
+What you type goes into that pane, so a BLE keyboard on the panel holds a
+conversation with the assistant in AI. That's typing in the pane itself:
+Ctrl-C and all reach the program there; only Ctrl-] stays with mirror, and
+leaves it. `--view` only watches (no key reaches the pane; `q` and Ctrl-C
+leave too), `--pane ID` picks one pane of a tab with several (`phosphor
+mirror` alone lists them), and `--once` prints one frame, for a script.
+A key that should only ever watch the AI tab can say so in
+`~/.ssh/authorized_keys`: `command="~/.local/bin/phosphor mirror --tab AI
+--view" ssh-ed25519 ...`.
+
+The notebook works the same way, no zellij in between:
+`ssh -t you@brain ~/.local/bin/phosphor notes`. On a terminal with no color
+(`TERM` like `xterm-mono`, or `NO_COLOR`) it drops its colors and keeps
+bold and reverse, as glance does.

@@ -791,6 +791,7 @@ def main():
         except BrokenPipeError:                      # | head
             sys.stdout = None
         return 0
+    mono_stdout()                                    # an e-ink screen over ssh
     st = {"off": 0, "sel": None, "msg": "", "msg_t": 0, "mt": None, "q": ""}
     lastw, lastq, notes, lines, owner = None, None, [], [], []
     closed = set()                                   # folders toggled from how they start

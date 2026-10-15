@@ -447,6 +447,7 @@ more depth on every one of these.
 | `phosphor fleet` | fleet panel: pick a card, then `s` ssh, `l` logs, `t` triage, `c` containers, each in its own tab; `h` its last 24 hours |
 | `phosphor usage` | how much of your Claude Code and Antigravity plans you've used (5-hour window, week) and when each refills |
 | `phosphor glance` | fleet, unread mentions, open todos -- for a small screen, no zellij needed; up, down and Enter mark a todo done or the mentions read; `--serve` hands it as JSON to a gadget that can't ssh (ESP32, Pi Zero), `--lan` on the LAN, with an app for a SolarOS panel |
+| `phosphor mirror --tab AI` | one pane for a screen too slow for zellij (e-ink): only the lines that changed, no color, and what you type goes back into that pane; `--view` only watches |
 | `phosphor adjutant` | the SYS panel that speaks up: `phosphor notify MESSAGE` makes it announce something |
 | `phosphor notify --push` | the same notice on your phone (ntfy), for a brain nobody sits near: `[push]` in the profile; with `[tts]` on, what the brain said rides along as audio |
 | `phosphor push [--qr\|on\|off]` | `[push]`'s status, on or off, or a QR to subscribe on the phone without typing the server/topic in |

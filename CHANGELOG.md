@@ -6,6 +6,19 @@ before it updates.
 
 ## Unreleased
 
+## 2.0.6 — one pane for a slow screen
+
+- `phosphor mirror --tab AI` shows one pane of the deck on a screen too
+  slow for zellij, like an e-ink panel: it reads the pane's text without
+  attaching (a tab nobody looks at works too), sends only the lines that
+  changed, with no color, and waits for each paint to go through before
+  the next, so a slow link never falls behind. What you type goes into
+  that pane, so a keyboard on the panel holds a conversation with the
+  assistant there; Ctrl-] leaves, `--view` only watches.
+- `phosphor notes` on a terminal with no color (`TERM=xterm-mono`,
+  `NO_COLOR`) drops its colors and keeps bold and reverse, so the notebook
+  reads cleanly over ssh from an e-ink panel.
+
 ## 2.0.5 — the SolarOS glance, tried on a real panel
 
 - The SolarOS glance app, tried on a real CrowPanel 5.79": it no longer

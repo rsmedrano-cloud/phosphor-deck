@@ -112,6 +112,35 @@ def mono_term(env=None):
     t = env.get("TERM", "")
     return bool(env.get("NO_COLOR")) or t in MONO_TERMS or t.endswith(("-mono", "-m"))
 
+class _Mono:
+    """sys.stdout with every write uncolored (see mono_stdout)."""
+    def __init__(self, f): self.f = f
+    def write(self, s): return self.f.write(uncolor(s))
+    def __getattr__(self, k): return getattr(self.f, k)
+
+def mono_stdout():
+    """On a terminal with no color (mono_term), sys.stdout drops 24-bit
+    colors from here on, bold and inverse kept: a panel that paints with
+    the palette, read over ssh from an e-ink screen that would show those
+    numbers as random bold and reverse. Each write must carry its own
+    resets (uncolor sees one write at a time)."""
+    if mono_term() and not isinstance(sys.stdout, _Mono):
+        sys.stdout = _Mono(sys.stdout)
+
+def paint(out, prev):
+    """What to write so the screen shows out when it shows prev: every
+    line when prev is None (a first paint, a clear, a new size), else only
+    the lines that differ, each where it goes -- an e-ink panel redraws
+    what reaches it, so a cursor that moves sends two lines, not the
+    screen."""
+    if prev is None:
+        return "\x1b[H" + "\x1b[K\n".join(out) + "\x1b[K\x1b[J"
+    w = "".join("\x1b[%d;1H%s\x1b[K" % (i + 1, l)
+                for i, l in enumerate(out) if i >= len(prev) or prev[i] != l)
+    if len(out) < len(prev):
+        w += "\x1b[%d;1H\x1b[J" % (len(out) + 1)
+    return w
+
 def width(cap=100): return min(shutil.get_terminal_size((80, 24)).columns, cap)
 
 def getkey(timeout=None, text=False, mouse=False):

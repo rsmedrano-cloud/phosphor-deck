@@ -194,6 +194,11 @@
   same provider, every two minutes; it never refreshes a token, so an expired one says "open claude
   (or agy) once" until that CLI renews it. Antigravity has no separate weekly figure to show: its
   answer is one fraction per pool.
+- `phosphor mirror (--tab NAME | --pane ID) [--view | --once]` — one pane of the deck for a screen
+  too slow for zellij (an e-ink panel): its text, read without attaching a client, sent as only the
+  lines that changed, no color, at the pace the screen's link takes; a line wider than the screen
+  wraps and the screen shows the bottom. Keys typed on it go into that pane (Ctrl-] leaves);
+  `--view` only watches, `--once` prints one frame. Alone, it lists the session's panes (see screens).
 - `phosphor glance [--mono] [--once | --json | --serve [--lan] [--port N] [--new-token]]` — the fleet's problem hosts (or "all N ok"), unread
   mentions, open todos, and any workspace with uncommitted changes or commits ahead/behind its
   upstream ("one device, then another" makes those easy to forget). For a small screen:
