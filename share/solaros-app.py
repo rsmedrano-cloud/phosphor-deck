@@ -3,7 +3,7 @@
 The brain hands this file out with its address and token already in URL
 (`phosphor solaros on` prints the two lines and copies them):
 
-    curl -o /phosphor.py "http://BRAIN:8484/solaros.py?token=TOKEN"
+    curl -o /phosphor.py http://BRAIN:8484/p/CODE      (once, within 10 minutes)
     python /phosphor.py
 
 What it reads comes over HTTP: the glance (the fleet's light, mentions,
@@ -33,7 +33,9 @@ SELF = "/phosphor.py"
 EVERY = 30          # seconds between reads while a screen sits there
 WORDS = {"green": "all clear", "amber": "worth a look", "red": "ATTENTION", "unknown": "no data"}
 LAUNCHER = "/launcher.json"
-ICON = "dashboard"
+ICON = "terminal"                   # Open Iconic: the square one
+LOGO = "/icons/phosphor.pbm"        # Phosphor's own, where the launcher takes a file (a patched SolarOS)
+OURS = "python /phosphor.py"
 ALIAS = "/.shell/alias"
 ALIAS_LINE = "phosphor python " + SELF
 STATE = "/.phosphor.json"   # what this panel was already asked
@@ -258,19 +260,56 @@ def pair(url, scr):
     return False
 
 
-def launcher_state():
-    """'there', 'room' (it can go in), or None (no launcher file, or full)."""
+def read_launcher():
     st = getattr(solaros, "storage", None)
     if st is None or not st.exists(LAUNCHER):
         return None
     try:
-        conf = json.loads(st.read_file(LAUNCHER, 16384).decode())
+        return json.loads(st.read_file(LAUNCHER, 16384).decode())
     except Exception:
         return None
+
+
+def is_phosphor(item):
+    """A cell that opens Phosphor: this app's, or one made by hand (named
+    Phosphor, or running it or ssh to the brain under that name)."""
+    return (item.get("name") or "").strip().lower() == "phosphor" or "phosphor" in (item.get("command") or "")
+
+
+def tidy_launcher():
+    """One Phosphor cell: the copies this app put next to another one go
+    (the hand-made one stays; of two of its own, the first)."""
+    conf = read_launcher()
+    if not conf:
+        return
     items = conf.get("items", [])
-    if any("phosphor.py" in (i.get("command") or "") for i in items):
+    ph = [i for i in items if is_phosphor(i)]
+    keep = next((i for i in ph if i.get("command") != OURS), ph[0] if ph else None)
+    out = [i for i in items if not (is_phosphor(i) and i.get("command") == OURS and i is not keep)]
+    if len(out) != len(items):
+        conf["items"] = out
+        try:
+            solaros.storage.write_file(LAUNCHER, json.dumps(conf))
+        except Exception:
+            pass
+
+
+def launcher_state():
+    """'there', 'room' (it can go in), or None (no launcher file, or full)."""
+    conf = read_launcher()
+    if conf is None:
+        return None
+    if any(is_phosphor(i) for i in conf.get("items", [])):
         return "there"
     return "room" if free_cell(conf) else None
+
+
+def icon_for(conf):
+    """Phosphor's logo when this launcher already shows a file as an icon
+    (SolarOS's own only takes Open Iconic names: a path there would make
+    it reject the whole file), else the square terminal."""
+    takes_files = any(str(i.get("icon", "")).startswith("/") for i in conf.get("items", []))
+    return LOGO if takes_files and solaros.storage.exists(LOGO) else ICON
 
 
 def free_cell(conf):
@@ -290,8 +329,8 @@ def add_to_launcher(scr):
     try:
         conf = json.loads(st.read_file(LAUNCHER, 16384).decode())
         c, r = free_cell(conf)
-        conf.setdefault("items", []).append({"name": "Phosphor", "icon": ICON,
-                                             "command": "python /phosphor.py", "column": c, "row": r})
+        conf.setdefault("items", []).append({"name": "Phosphor", "icon": icon_for(conf),
+                                             "command": OURS, "column": c, "row": r})
         st.write_file(LAUNCHER, json.dumps(conf))
         done = "Phosphor is in the launcher now"
     except Exception as e:
@@ -421,6 +460,7 @@ def main():
                 return                      # the new app runs instead
             if ensure_alias():
                 notice = notice or "type phosphor in the SolarOS shell to come back"
+            tidy_launcher()
             if launcher_state() == "room" and not state().get("launcher_asked"):
                 ask_launcher(scr)
                 scr.shown = None

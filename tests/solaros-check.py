@@ -137,9 +137,10 @@ need("getkey: two keys in one read come back one each (typeahead)",
 
 # ── what the panel can open ───────────────────────────────────
 ids = [i for i, _ in solaros.entries(prof)]
-need("the menu: glance, the deck's tabs, notes, a note, fleet",
-     ids == ["glance", "tab:AI", "tab:NOTES", "notes", "note", "fleet"])
-mirror.panes = lambda sess: [{"tab_name": "AI ●2"}, {"tab_name": "AI"}, {"tab_name": "SHOP"}]
+need("the menu: glance, the deck's tabs, FLEET added once (no tab has it), a note; notes only once",
+     ids == ["glance", "tab:AI", "tab:NOTES", "tab:FLEET", "note"])
+mirror.panes = lambda sess: [{"id": 1, "tab_name": "AI ●2"}, {"id": 2, "tab_name": "AI"},
+                             {"id": 3, "tab_name": "SHOP", "tab_position": 1}]
 need("a live deck's tabs win (a workspace opened since), without unread marks",
      [i for i, _ in solaros.entries(prof)][1:3] == ["tab:AI", "tab:SHOP"])
 mirror.panes = lambda sess: []
@@ -176,6 +177,31 @@ need("POST /open: on the menu", req("/open?token=" + secret, {"open": "fleet"}) 
 need("POST /pair: a paired key", req("/pair?token=" + secret, {"key": panel_key}) == (200, {"state": "paired"}))
 os.remove(solaros.data("intent.json"))
 
+# the line typed on the panel: short, a code good once for ten minutes
+import re as _re
+def fetch(path):
+    try:
+        with urllib.request.urlopen(base + path, timeout=5) as f:
+            return f.status, f.read().decode()
+    except urllib.error.HTTPError as e:
+        return e.code, ""
+lines = solaros.panel_lines(prof)
+m = _re.fullmatch(r"curl -o /phosphor\.py http://[0-9.]+:8484/p/([a-z2-9]{5})", lines[0])
+need("the panel's line: short, a code instead of the token, nothing to quote", m and "token" not in lines[0]
+     and lines[1] == "python /phosphor.py")
+need("the code: no 0/o, 1/l/i to misread on the panel", m and not set(m.group(1)) & set("01oli"))
+st, src = fetch("/p/" + m.group(1))
+need("GET /p/CODE: the app, its token written in", st == 200 and ("token=" + secret) in src and "BUILD = \"" in src)
+need("the code works once", fetch("/p/" + m.group(1))[0] == 404)
+code = _re.search(r"/p/(\w+)$", solaros.panel_lines(prof)[0]).group(1)
+for i in range(solaros.MISSES):
+    fetch("/p/zzzzz")
+need("guessing closes the window: the right code no longer works", fetch("/p/" + code)[0] == 404)
+code = _re.search(r"/p/(\w+)$", solaros.panel_lines(prof)[0]).group(1)
+b = json.load(open(solaros.data("bootstrap.json"))); b["until"] = time.time() - 1
+solaros.write_private(solaros.data("bootstrap.json"), json.dumps(b))
+need("ten minutes on, the code is gone", fetch("/p/" + code)[0] == 404)
+
 # ── the session the panel's key runs (a pty: the panel's terminal) ──
 ENV = dict(os.environ, TERM="xterm-mono")
 class Pty:
@@ -188,6 +214,8 @@ class Pty:
     def pump(self, t):
         end = time.time() + t
         while time.time() < end:
+            if self.fd is None:
+                time.sleep(t); return
             if select.select([self.fd], [], [], 0.05)[0]:
                 try: self.out += os.read(self.fd, 65536)
                 except OSError: return
@@ -208,35 +236,83 @@ class Pty:
         os.kill(self.pid, signal.SIGKILL); os.waitpid(self.pid, 0)
         return None
 
-s = Pty(["solaros", "session"], dict(ENV, SSH_ORIGINAL_COMMAND="bash -i"))
-need("session: a command off the menu shows the menu instead", s.wait("write a note") and s.wait("fleet"))
-need("session: no color on xterm-mono", b"\x1b[38;2" not in s.out)
-s.type("\x1b")
-need("session: Esc on the menu ends it", s.done() == 0)
+# the emulator the panel's own screens draw into
+import vt
+t = vt.Screen(20, 4)
+t.feed(b"\x1b[2J\x1b[Hhello\x1b[2;3H\x1b[7msel\x1b[0m x\x1b[38;2;1;2;3mcolor\x1b[0m")
+need("vt: positions, inverse kept, colors dropped", t.lines()[:2] == ["hello", "  \x1b[7msel\x1b[0m xcolor"])
+t.feed("\x1b[4;1Hlast\r\nscrolled")
+need("vt: a newline at the bottom scrolls", t.lines()[2:] == ["last", "scrolled"] and t.lines()[0].startswith("  "))
+t.feed("\x1b[H\x1b[K\x1b[3;1H\x1b[1Mz\x1b]0;title\x07")
+need("vt: erase, delete line, a title skipped", t.lines()[0] == "" and t.lines()[2:] == ["zcrolled", ""])
+t.feed("\x1b[2J\x1b[1;20H\u754cX")
+need("vt: a wide char at the edge wraps", t.lines()[1] == "\u754cX")
 
-# write a note from the panel: the 5th entry, kind note, no project here
+P = solaros.PHOSPHOR
+need("own: a phosphor screen or a viewer runs here, fleet in its panel form, the rest mirrored",
+     solaros.own_screen("python3 /x/phosphor run --name NOTES -- /x/phosphor notes") == [P, "notes"] and
+     solaros.own_screen("phosphor fleet") == [P, "solaros", "fleet"] and
+     solaros.own_screen("phosphor run --name Y --wait 1 -- /u/bin/yazi /home/u/fleet") == ["/u/bin/yazi", "/home/u/fleet"] and
+     solaros.own_screen("phosphor run --name B -- bash -lc claude") is None and
+     solaros.own_screen("phosphor adjutant") is None and solaros.own_screen("matterhorn") is None)
+need("keys: Alt-Down, Alt-2 and Ctrl-] taken out, the rest goes through",
+     [solaros.KEYS.get(x, x) for x in solaros.SPLIT.split(b"ab\x1b\x1b[Bc\x1b2\x1b[A\x1d") if x] ==
+     [b"ab", "next", b"c", 2, b"\x1b[A", "leave"])
+need("keys: Ctrl-Left/Right the tab before/after, Ctrl-Up/Down the pane (a keyboard with AltGr only)",
+     [solaros.KEYS.get(k) for k in (b"\x1b[1;5D", b"\x1b[1;5C", b"\x1b[1;5A", b"\x1b[1;5B")] ==
+     ["prev", "next", "pane-prev", "pane"])
+b_ = solaros.bar(["AI", "NOTES", "FLEET"], 1, 30, "x 1/2")
+need("bar: the tab shown in inverse, the pane at the right, the width kept",
+     "\x1b[7m 2 NOTES \x1b[0m" in b_ and b_.endswith(" x 1/2") and len(b_.replace("\x1b[7m", "").replace("\x1b[0m", "")) == 30)
+b_ = solaros.bar(["AI", "NOTES"], 0, 80, "x 1/2")
+need("bar: with room, how to leave", b_.endswith(" x 1/2 · Ctrl-q leaves") and len(b_.replace("\x1b[7m", "").replace("\x1b[0m", "")) == 80)
+need("keys: Ctrl-q leaves, as in the deck", solaros.KEYS.get(b"\x11") == "leave")
+
+s = Pty(["solaros", "session"], dict(ENV, SSH_ORIGINAL_COMMAND="bash -i"))
+need("session: a command off the menu starts on the first tab", s.wait("\x1b[7m 1 AI \x1b[0m") and s.wait("3 FLEET"))
+need("session: a mirrored tab the deck doesn't have waits for it", s.wait("AI isn't in the deck right now"))
+need("session: no color on xterm-mono", b"\x1b[38;2" not in s.out)
+s.type("\x1b2")
+need("session: Alt-2, NOTES runs here at the panel's size", s.wait("\x1b[7m 2 NOTES \x1b[0m") and s.wait("search"))
+s.type("\x1b[1;5C")
+need("session: Ctrl-Right, the next tab", s.wait("\x1b[7m 3 FLEET \x1b[0m"))
+mark = len(s.out)
+s.type("\x1b\x1b[A")
+end = time.time() + 10
+while b"\x1b[7m 2 NOTES \x1b[0m" not in s.out[mark:] and time.time() < end:
+    s.pump(0.2)
+need("session: Alt-Up, the one before", b"\x1b[7m 2 NOTES \x1b[0m" in s.out[mark:])
+s.type("\x11")
+need("session: Ctrl-q ends it", s.done() == 0)
+
+# write a note from the panel: the hint first, then the deck
+solaros.want("note", prof)
 s = Pty(["solaros", "session"], ENV)
-s.wait("write a note")
-s.type("5"); s.wait("what kind")
+s.wait("what kind")
 s.type("\r"); s.wait("text, Enter saves")
 s.type("hello from the panel\r"); s.wait("saved", 10)
-s.type("\x1b")
+need("session: after the note, the deck", s.wait(" 1 AI "))
+s.type("\x1d")
 need("session: a note written from the panel", s.done() == 0 and
      "hello from the panel" in open(os.path.join(home, ".local/share/phosphor/notes.md")).read())
 
-# the hint: the session opens fleet first, then its menu
+# the hint: the session opens FLEET first, with what it flags
 json.dump({"t": 9999999999, "hosts": {"box": {"ok": True, "mnt": [], "UPD": "4|1", "REBOOT": "1"}}},
           open(os.path.join(home, ".cache/phosphor/fleet.json"), "w"))
-solaros.want("fleet", prof)
+solaros.want("tab:FLEET", prof)
 s = Pty(["solaros", "session"], ENV)
-need("session: the hint opens fleet, with what it flags",
-     s.wait("fleet: a machine") and s.wait("4 updates (1 security), reboot pending"))
+need("session: the hint opens FLEET, with what it flags",
+     s.wait("\x1b[7m 3 FLEET \x1b[0m") and s.wait("4 updates (1 security), reboot pending"))
 s.type("\r"); s.wait("upgrade")
 s.type("\x1b"); s.wait("fleet: a machine")
-s.type("\x1b"); s.wait("write a note")
 s.type("\x1b")
-need("session: Esc goes back up and out, nothing upgraded", s.done() == 0 and b"Enter runs it" not in s.out)
+need("session: Esc leaves FLEET's screen, Enter would start it again", s.wait("FLEET ended"))
 need("session: the hint was used once", not os.path.exists(solaros.data("intent.json")))
+os.close(s.fd); s.fd = None
+need("session: the panel's EXIT (a hangup) ends it, nothing upgraded",
+     s.done() == 0 and b"Enter runs it" not in s.out)
+log = open(os.path.join(home, ".cache/phosphor/deck.log")).read()
+need("session: ended by the hangup, no crash", "end    hangup" in log and "Traceback" not in log)
 
 r = subprocess.run([sys.executable, os.path.join(ROOT, "phosphor"), "solaros", "session"],
                    stdin=subprocess.DEVNULL, capture_output=True, text=True, env=ENV, timeout=20)
@@ -349,7 +425,7 @@ need("app: nothing to update when the brain's build is this one",
 
 # pairing from the panel: the window open on the brain, its Enter there
 solaros.write_private(solaros.data("pair.json"), json.dumps({"until": time.time() + 60}))
-items = ["glance", "AI", "NOTES", "notes", "write a note", "fleet", "pair with the brain"]
+items = ["glance", "AI", "NOTES", "FLEET", "write a note", "pair with the brain"]
 go_pair = [DOWN] * items.index("pair with the brain") + [13]
 ev = app(go_pair + [None, "brain-enter", None, None, None, None, None, None, 13, ord("q")], nokey)
 t = texts(ev)
@@ -406,6 +482,41 @@ ev = app([27, ord("q")], nokey)
 need("app: Esc says no, and that's remembered too",
      len(json.load(open(STORE + "/launcher.json"))["items"]) == 1
      and json.load(open(STORE + "/.phosphor.json")) == {"launcher_asked": True})
+
+# a Phosphor cell made by hand (its own icon, ssh straight in) counts as Phosphor
+mine = {"name": "Phosphor", "icon": "/icons/phosphor.pbm", "command": "ssh someone@192.0.2.1", "column": 1, "row": 0}
+dup = {"name": "Phosphor", "icon": "dashboard", "command": "python /phosphor.py", "column": 0, "row": 1}
+files = cells["items"][0]
+os.remove(STORE + "/.phosphor.json")
+json.dump({"layout": {"columns": 2, "rows": 2}, "items": [files, mine]}, open(STORE + "/launcher.json", "w"))
+ev = app([ord("q")], nokey)
+need("app: a Phosphor cell made by hand: not asked, not offered, nothing added",
+     not any("launcher" in x for x in texts(ev)) and
+     json.load(open(STORE + "/launcher.json"))["items"] == [files, mine])
+json.dump({"layout": {"columns": 2, "rows": 2}, "items": [files, mine, dup]}, open(STORE + "/launcher.json", "w"))
+app([ord("q")], nokey)
+need("app: the copy an older install added next to it goes, the hand-made one stays",
+     json.load(open(STORE + "/launcher.json"))["items"] == [files, mine])
+json.dump({"layout": {"columns": 2, "rows": 2}, "items": [files, dup, dict(dup, column=1, row=1)]},
+          open(STORE + "/launcher.json", "w"))
+app([ord("q")], nokey)
+need("app: two it added itself: the first stays",
+     json.load(open(STORE + "/launcher.json"))["items"] == [files, dup])
+
+# the icon it puts: the square terminal; Phosphor's own logo where the launcher takes a file
+json.dump(cells, open(STORE + "/launcher.json", "w"))
+app([UP, 13, 13, ord("q")], nokey)
+need("app: on a stock SolarOS the icon is terminal (a path would break its launcher.json)",
+     json.load(open(STORE + "/launcher.json"))["items"][1]["icon"] == "terminal")
+os.makedirs(STORE + "/icons", exist_ok=True)
+open(STORE + "/icons/phosphor.pbm", "w").write("P1\n1 1\n1\n")
+patched = {"layout": {"columns": 3, "rows": 1},
+           "items": [files, {"name": "Mine", "icon": "/icons/mine.pbm", "command": "x", "column": 1, "row": 0}]}
+json.dump(patched, open(STORE + "/launcher.json", "w"))
+app([UP, 13, 13, ord("q")], nokey)
+need("app: a launcher that already shows a file as an icon gets /icons/phosphor.pbm",
+     json.load(open(STORE + "/launcher.json"))["items"][2]["icon"] == "/icons/phosphor.pbm")
+os.remove(STORE + "/icons/phosphor.pbm")
 
 # an older copy: it fetches the brain's, writes it over /phosphor.py, starts it
 build = glance.client_build()

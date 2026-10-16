@@ -157,7 +157,10 @@ def raw_input():
     new[3] &= ~(termios.ECHO | termios.ICANON | termios.ISIG | termios.IEXTEN)
     new[6][termios.VMIN], new[6][termios.VTIME] = 1, 0
     termios.tcsetattr(fd, termios.TCSANOW, new)
-    return lambda: termios.tcsetattr(fd, termios.TCSANOW, old)
+    def undo():
+        try: termios.tcsetattr(fd, termios.TCSANOW, old)
+        except (termios.error, OSError): pass     # the screen hung up: nothing to put back
+    return undo
 
 
 def send(sess, pid, data):

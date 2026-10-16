@@ -5,7 +5,9 @@ One switch, like `phosphor web on`: `on` keeps `phosphor glance --serve`
 running as a user service (on the LAN, where a panel on the home Wi-Fi
 finds it), prints the two lines to type on the panel and puts them on the
 clipboard of every screen looking at the deck. The panel fetches the
-Phosphor app from the brain and runs it: a menu of the deck.
+Phosphor app from the brain and runs it: a menu of the deck's tabs, and
+a tab opens the panel's own deck over ssh (`session`): the tab bar on
+top, one tab below, Ctrl-arrows between them.
 
 What the panel reads (the glance, which tabs it can open) comes over
 HTTP, behind the token. What writes -- typing to an assistant, a note,
@@ -14,7 +16,7 @@ token crosses the LAN in the clear, and a sniffed token must never be
 able to type into a pane. That key is paired once: the panel sends it,
 `phosphor solaros pair` shows its fingerprint (the panel shows the same
 one) and waits for your Enter. It lands in authorized_keys with a forced
-command: the panel gets this module's menu, whatever it asks to run --
+command: the panel gets this module's session, whatever it asks to run --
 though the deck's tabs the menu opens take what's typed, a shell's
 included, so pairing a panel is handing it the deck.
 
@@ -29,7 +31,7 @@ is still on the menu's list. Without one the session starts on the menu.
     phosphor solaros pair       let one panel in: its key, your Enter
     phosphor solaros forget     take every paired panel's key out again
 """
-import base64, getpass, hashlib, json, os, re, shlex, shutil, subprocess, sys, time
+import base64, getpass, hashlib, json, os, re, select, shlex, shutil, subprocess, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import DIM, MUTE, FG, PH, AMB, RED, RST, OK, BAD, WARN, row
 import deckconf
@@ -128,12 +130,33 @@ def systemctl(*a):
 def active():
     return systemctl("is-active", UNIT).stdout.strip() == "active"
 
+CODE = "23456789abcdefghjkmnpqrstuvwxyz"   # nothing to misread on a panel (0/o, 1/l/i), no Shift
+MISSES = 20                                 # wrong codes before the window closes
+
 def panel_lines(prof):
-    """The two lines a panel types, or None while nothing is served."""
-    import glance, send
+    """The two lines a panel types. The first carries a short code, not
+    the token: good once, for WINDOW seconds (it opens a new window)."""
+    import secrets, send
     ip = send.lan_ip() if serve_mode(prof) == "lan" else send.pick_address(prof)[0]
-    url = "http://%s:%d/solaros.py?token=%s" % (ip, port(prof), glance.token())
-    return ['curl -o /phosphor.py "%s"' % url, "python /phosphor.py"]
+    code = "".join(secrets.choice(CODE) for _ in range(5))
+    write_private(data("bootstrap.json"), json.dumps({"code": code, "until": time.time() + WINDOW, "misses": 0}))
+    return ["curl -o /phosphor.py http://%s:%d/p/%s" % (ip, port(prof), code), "python /phosphor.py"]
+
+def take_code(code):
+    """GET /p/CODE: True once, while the window is open. MISSES wrong
+    guesses close it, so a code can't be walked through on the LAN."""
+    import hmac
+    b = read_json(data("bootstrap.json"))
+    if not b or time.time() > b.get("until", 0):
+        rm(data("bootstrap.json")); return False
+    if hmac.compare_digest(code.encode(), str(b.get("code", "")).encode()):
+        rm(data("bootstrap.json")); return True
+    b["misses"] = b.get("misses", 0) + 1
+    if b["misses"] >= MISSES:
+        rm(data("bootstrap.json"))
+    else:
+        write_private(data("bootstrap.json"), json.dumps(b))
+    return False
 
 # ── pairing: the panel's key, your Enter ──────────────────────
 
@@ -265,7 +288,7 @@ def pair(wait=WINDOW):
         if where_key(got["key"]) == "other":
             print("  " + AMB + "that key is already in authorized_keys without the menu: pairing replaces its line" + RST)
         print("  " + DIM + "the panel shows its own; the same means nobody swapped it on the way." + RST)
-        print("  " + DIM + "it gets the panel's menu over ssh (the glance, the deck's tabs, notes, fleet), not a login;" + RST)
+        print("  " + DIM + "it gets the panel's deck over ssh (the deck's tabs, notes, fleet), not a login;" + RST)
         print("  " + AMB + "  what it types in a tab of the deck goes there: pair only a panel you'd hand the deck to." + RST)
         try:
             import termios                  # an Enter typed before the question doesn't answer it
@@ -289,28 +312,83 @@ def pair(wait=WINDOW):
 
 # ── what the panel can open: the whitelist ────────────────────
 
-def tab_names(prof):
+VIEWERS = {"yazi", "btop", "ctop", "htop", "gping", "lazydocker", "lazygit"}   # nothing in them but what they show
+
+def own_screen(cmd):
+    """The argv to run here for a pane of the deck, so it fits the panel
+    instead of being copied at the size of the screen that last looked at
+    the deck: one of phosphor's own screens, or a viewer that keeps
+    nothing (VIEWERS). None for anything else -- a shell, an assistant, a
+    chat -- which lives in that pane and is mirrored."""
+    try:
+        words = shlex.split(cmd or "")
+    except ValueError:
+        return None
+    if "--" in words:                       # phosphor run --name X -- CMD
+        words = words[words.index("--") + 1:]
+    if not words:
+        return None
+    exe = os.path.basename(words[0])
+    if exe in VIEWERS:
+        return words
+    if exe != "phosphor" or len(words) < 2 or words[1] in ("solaros", "mirror", "run", "adjutant"):
+        return None                         # adjutant speaks: a second one would say everything twice
+    if words[1] == "fleet":                 # upgrade and reboot right here, not in a new tab of the deck
+        return [PHOSPHOR, "solaros", "fleet"]
+    return [PHOSPHOR] + words[1:]
+
+def runs(v, *sub):
+    return bool(v.argv) and v.argv[0] == PHOSPHOR and v.argv[1:1 + len(sub)] == list(sub)
+
+class View:
+    """One pane the panel's deck shows: `argv` runs here (one of
+    phosphor's screens), else `pane` (or the tab's focused one) is
+    mirrored from the deck."""
+    def __init__(self, tab, title, argv=None, pane=None, focused=False):
+        self.tab, self.title, self.argv, self.pane, self.focused = tab, title, argv, pane, focused
+    @property
+    def key(self):
+        return (self.tab, self.title, self.pane, tuple(self.argv or ()))
+
+def views(prof=None):
     """The deck's tabs as they are now (a workspace opened since counts),
-    or the profile's when the deck isn't up."""
+    or the profile's when the deck isn't up, pane by pane; NOTES and
+    FLEET at the end when no tab has them."""
+    prof = prof if prof is not None else (deckconf.load()[0] or {})
+    out = []
     try:
         import mirror
-        names = []
-        for p in mirror.panes(mirror.session()):
-            n = mirror.tab_name(p)
-            if n and n not in names:
-                names.append(n)
-        if names:
-            return names
+        ps = [p for p in mirror.panes(mirror.session()) if not p.get("is_plugin")]
     except Exception:
-        pass
-    return [t.get("name") for t in (prof or {}).get("tabs", []) if t.get("name")]
+        ps = []
+    for p in sorted(ps, key=lambda p: (p.get("tab_position", 0), p.get("pane_y", 0), p.get("pane_x", 0), p.get("id", 0))):
+        name = mirror.tab_name(p)
+        if name:
+            out.append(View(name, (p.get("title") or name).strip(), own_screen(p.get("pane_command") or p.get("terminal_command")),
+                            "terminal_%d" % p["id"], bool(p.get("is_focused"))))
+    if not out:
+        for t in prof.get("tabs", []):
+            for pane in t.get("panes", []) if t.get("name") else []:
+                cmd = pane.get("cmd") if isinstance(pane, dict) else None
+                out.append(View(t["name"], (pane.get("name") if isinstance(pane, dict) else None) or t["name"], own_screen(cmd)))
+    if not any(runs(v, "notes") for v in out):
+        out.append(View("NOTES", "NOTES", [PHOSPHOR, "notes"]))
+    if not any(runs(v, "solaros", "fleet") for v in out):
+        out.append(View("FLEET", "FLEET", [PHOSPHOR, "solaros", "fleet"]))
+    return out
+
+def tab_names(views_):
+    names = []
+    for v in views_:
+        if v.tab not in names:
+            names.append(v.tab)
+    return names
 
 def entries(prof=None):
-    """[(id, label)], in the menu's order: the only things a panel opens."""
-    prof = prof if prof is not None else (deckconf.load()[0] or {})
+    """[(id, label)], in the menu's order: what a panel can start on."""
     out = [("glance", "glance")]
-    out += [("tab:" + n, n) for n in tab_names(prof)]
-    out += [("notes", "notes"), ("note", "write a note"), ("fleet", "fleet")]
+    out += [("tab:" + n, n) for n in tab_names(views(prof))]
+    out += [("note", "write a note")]
     return out
 
 def menu(ip="", prof=None):
@@ -321,7 +399,7 @@ def menu(ip="", prof=None):
 def want(what, prof=None):
     """POST /open: the session that connects next starts on `what` (one
     of entries). It's only a hint: the session checks it again."""
-    if what not in [i for i, _ in entries(prof)]:
+    if what not in [i for i, _ in entries(prof)] + ["notes", "fleet"]:     # those two: a copy of the app from before tabs
         return {"ok": False, "why": "not on the menu"}
     write_private(data("intent.json"), json.dumps({"open": what, "t": time.time()}))
     return {"ok": True}
@@ -449,47 +527,300 @@ def fleet():
             upkeep.run(("upgrade", "reboot")[a], name)
             ask("\n Enter goes back ")
 
-def run_entry(what):
-    if what == "glance":
-        phosphor("glance")
-    elif what.startswith("tab:"):
-        phosphor("mirror", "--tab", what[4:])
-    elif what == "notes":
-        phosphor("notes")
-    elif what == "note":
-        write_note()
-    elif what == "fleet":
-        fleet()
+# ── the panel's deck: its tabs, over one ssh session ──────────
+
+LEAVE = b"\x1d"                    # Ctrl-] (and Ctrl-q): the whole session, as EXIT on the panel
+PACE = 0.3                          # a paint reaches the panel at most this often
+EVERY = 1.0                         # a mirrored pane is read again this often
+ECHO = 0.3                          # ...and this soon after a key, so what was typed shows up
+REREAD = 10.0                       # the deck's tabs are listed again this often
+KEEP = 4                            # screens of phosphor's kept running, the last ones looked at
+# SolarOS keeps Alt-Left/Right and Alt-Tab for its own sessions, and a
+# keyboard with only AltGr sends no Alt at all: Ctrl and the arrows get through
+KEYS = {b"\x1b[1;5D": "prev", b"\x1b[1;5C": "next", b"\x1b[1;5A": "pane-prev", b"\x1b[1;5B": "pane",
+        b"\x1b\x1b[A": "prev", b"\x1b\x1bOA": "prev", b"\x1b[1;3A": "prev",
+        b"\x1b\x1b[B": "next", b"\x1b\x1bOB": "next", b"\x1b[1;3B": "next",
+        b"\x1bp": "pane", LEAVE: "leave", b"\x11": "leave"}      # Ctrl-q: as in the deck
+KEYS.update({b"\x1b" + str(n).encode(): n for n in range(1, 10)})
+KEYS[b"\x1b0"] = 10
+SPLIT = re.compile(b"(" + b"|".join(re.escape(k) for k in sorted(KEYS, key=len, reverse=True)) + b")")
+
+def term_size():
+    try:
+        s = os.get_terminal_size(sys.stdout.fileno())
+        return max(20, s.columns), max(4, s.lines)
+    except OSError:
+        return 60, 17
+
+class Own:
+    """One of phosphor's screens, run here in a pty of its own at the
+    panel's size; what it writes lands in a vt.Screen, not on the panel."""
+    def __init__(self, argv, cols, rows):
+        import pty, vt
+        self.screen, self.code = vt.Screen(cols, rows), None
+        self.pid, self.fd = pty.fork()
+        if self.pid == 0:
+            os.environ["TERM"] = "xterm-mono"
+            try:
+                os.execvp(argv[0], list(argv))
+            finally:
+                os._exit(127)
+        self.size(cols, rows)
+    def size(self, cols, rows):
+        import fcntl, struct, termios
+        if (cols, rows) != (self.screen.cols, self.screen.rows):
+            self.screen.resize(cols, rows)
+        try: fcntl.ioctl(self.fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
+        except OSError: pass
+    def read(self):
+        try:
+            got = os.read(self.fd, 65536)
+        except OSError:
+            got = b""
+        if got:
+            self.screen.feed(got)
+        else:
+            self.reap(wait=True)
+    def reap(self, wait=False):
+        if self.code is None:
+            try:
+                pid, st = os.waitpid(self.pid, 0 if wait else os.WNOHANG)
+            except ChildProcessError:
+                pid, st = self.pid, 0
+            if pid:
+                self.code = os.waitstatus_to_exitcode(st)
+                try: os.close(self.fd)
+                except OSError: pass
+        return self.code
+    def write(self, data):
+        if self.code is None:
+            try: os.write(self.fd, data)
+            except OSError: pass
+    def stop(self):
+        if self.code is None:
+            try: os.kill(self.pid, 15)
+            except OSError: pass
+            self.reap(wait=True)
+
+def bar(names, cur, cols, sub=""):
+    """The top line: the tabs, the one shown in inverse, scrolled so it
+    shows; the pane's name when the tab has more than one, and how to
+    leave when there's room."""
+    right = (" " + sub) if sub else ""
+    cells = [" %d %s " % (i + 1, n) if i < 10 else " %s " % n for i, n in enumerate(names)]
+    hinted = right + (" ·" if sub else "") + " Ctrl-q leaves"
+    if sum(len(c) for c in cells) + len(hinted) <= cols:
+        right = hinted
+    room = max(8, cols - len(right))
+    start, width = 0, sum(len(c) for c in cells[:cur + 1])
+    while start < cur and width > room:
+        width -= len(cells[start]); start += 1
+    out, n = "", 0
+    for i, c in enumerate(cells[start:], start):
+        if n + len(c) > room:
+            c = c[:max(0, room - n)]
+        out += (INV + c + RST) if i == cur else c
+        n += len(c)
+        if n >= room: break
+    return out + " " * max(0, cols - n - len(right)) + right
+
+class Deck:
+    def __init__(self, prof=None):
+        self.prof, self.tab, self.pane = prof, 0, {}
+        self.own, self.used = {}, []
+        self.prev, self.size, self.listed = None, None, 0
+        self.mirror_due, self.mirror_lines, self.mirror_pid = 0.0, [], None
+        self.reread()
+
+    def reread(self):
+        cur = self.current().key if getattr(self, "all", None) else None
+        self.all = views(self.prof)
+        self.names = tab_names(self.all)
+        self.listed = time.time()
+        if cur:
+            for v in self.all:
+                if v.key == cur:
+                    self.tab = self.names.index(v.tab)
+                    self.pane[v.tab] = self.panes(v.tab).index(v)
+                    break
+        self.tab = min(self.tab, len(self.names) - 1)
+
+    def panes(self, tab):
+        return [v for v in self.all if v.tab == tab]
+
+    def current(self):
+        ps = self.panes(self.names[self.tab])
+        if self.names[self.tab] not in self.pane:   # first time on a tab: its focused pane, as in the deck
+            self.pane[self.names[self.tab]] = next((i for i, v in enumerate(ps) if v.focused), 0)
+        return ps[min(self.pane[self.names[self.tab]], len(ps) - 1)]
+
+    def goto(self, what):
+        """Start on what the panel's menu picked: a tab, or notes/fleet."""
+        for i, n in enumerate(self.names):
+            if what == "tab:" + n:
+                self.tab = i; return
+        sub = {"notes": ["notes"], "fleet": ["solaros", "fleet"]}.get(what)
+        for v in self.all:
+            if sub and runs(v, *sub):
+                self.tab = self.names.index(v.tab)
+                self.pane[v.tab] = self.panes(v.tab).index(v)
+                return
+
+    def show(self, v):
+        self.mirror_due, self.mirror_pid = 0.0, None
+        if v.argv:
+            self.child(v)
+
+    def child(self, v):
+        cols, rows = term_size()
+        o = self.own.get(v.key)
+        if o is None:
+            o = self.own[v.key] = Own(v.argv, cols, rows - 1)
+            dlog.event("SOLAROS", "run", os.path.basename(v.argv[0]) + " " + " ".join(v.argv[1:2]))
+        if v.key in self.used: self.used.remove(v.key)
+        self.used.append(v.key)
+        while len(self.used) > KEEP:
+            old = self.used.pop(0)
+            if old in self.own: self.own.pop(old).stop()
+        return o
+
+    def key(self, k):
+        n = len(self.names)
+        if k == "prev": self.tab = (self.tab - 1) % n
+        elif k == "next": self.tab = (self.tab + 1) % n
+        elif k in ("pane", "pane-prev"):
+            t = self.names[self.tab]
+            self.current()                  # the tab's pane is known before it moves
+            self.pane[t] = (self.pane[t] + (1 if k == "pane" else -1)) % len(self.panes(t))
+        elif isinstance(k, int) and k <= n: self.tab = k - 1
+        else: return
+        self.show(self.current())
+
+    def typed(self, keys):
+        """Keys the panel sent: ours change the tab, the rest go to it."""
+        for part in SPLIT.split(keys):
+            if not part:
+                continue
+            k = KEYS.get(part)
+            if k == "leave":
+                raise SystemExit("key")
+            if k is not None:
+                self.key(k); continue
+            v = self.current()
+            if v.argv:
+                o = self.child(v)
+                if o.code is not None and part in (b"\r", b"\n"):
+                    self.own.pop(v.key, None); self.child(v)      # it ended: Enter starts it again
+                else:
+                    o.write(part)
+            elif self.mirror_pid:
+                import mirror
+                mirror.send(mirror.session(), self.mirror_pid, part)
+                self.mirror_due = min(self.mirror_due, time.time() + ECHO)
+
+    def body(self, v, cols, rows):
+        if v.argv:
+            o = self.child(v)
+            o.size(cols, rows)
+            lines = o.screen.lines()
+            if o.code is not None:
+                lines = lines[:rows - 1] + [INV + (" %s ended · Enter starts it again" % v.title)[:cols] + RST]
+            return lines
+        import mirror
+        if time.time() >= self.mirror_due:
+            sess = mirror.session()
+            hit = mirror.find(sess, pane=v.pane) if v.pane else mirror.find(sess, tab=v.tab)
+            text = mirror.zj(sess, "dump-screen", "-p", hit[0]) if hit else None
+            self.mirror_pid = hit[0] if hit else None
+            self.mirror_lines = mirror.view(text, cols, rows) if text is not None else \
+                [ui.cut("%s isn't in the deck right now: waiting for it" % v.tab, cols)]
+            self.mirror_due = time.time() + EVERY
+        return self.mirror_lines
+
+    def frame(self):
+        cols, rows = term_size()
+        v = self.current()
+        ps = self.panes(v.tab)
+        sub = "%s %d/%d" % (v.title, ps.index(v) + 1, len(ps)) if len(ps) > 1 else ""
+        out = [bar(self.names, self.tab, cols, sub)] + self.body(v, cols, rows - 1)[:rows - 1]     # both already fit cols
+        out += [""] * (rows - len(out))
+        fresh = (cols, rows) != self.size
+        self.size = (cols, rows)
+        paint = ui.paint(out, None if fresh else self.prev)
+        self.prev = out
+        return paint
+
+    def run(self):
+        """Keys in, the panel painted at most every PACE: only the lines
+        that changed reach it (ui.paint), however often the screen behind
+        them redraws."""
+        self.show(self.current())
+        painted = 0.0
+        while True:
+            if time.time() - self.listed > REREAD:
+                self.reread()
+            v = self.current()
+            o = self.own.get(v.key) if v.argv else None
+            fds = [sys.stdin] + ([o.fd] if o and o.code is None else [])
+            r = select.select(fds, [], [], max(0.0, painted + PACE - time.time()))[0]
+            if sys.stdin in r:
+                keys = os.read(sys.stdin.fileno(), 4096)
+                if not keys:
+                    raise SystemExit("end of input")
+                self.typed(keys)
+            if o and o.code is None:
+                if o.fd in r:
+                    o.read()
+                o.reap()
+            if time.time() - painted >= PACE:
+                paint = self.frame()
+                painted = time.time()
+                if paint:
+                    os.write(sys.stdout.fileno(), paint.encode())
+
+    def stop(self):
+        for o in self.own.values():
+            o.stop()
 
 def session():
-    """The forced command of a paired panel's key: the menu, and whatever
-    it opens, in this ssh session. Esc on the menu ends it."""
+    """The forced command of a paired panel's key: the deck's tabs, one at
+    a time, in this ssh session. EXIT on the panel ends it."""
     if not sys.stdin.isatty():
         print("phosphor solaros session: needs the panel's terminal"); return 2
+    import mirror, signal
     os.environ.setdefault("TERM", "xterm-mono")
+    local = os.path.expanduser("~/.local/bin")     # a forced ssh command's PATH: where yazi and the rest are
+    if local not in os.environ.get("PATH", "").split(":"):
+        os.environ["PATH"] = local + ":" + os.environ.get("PATH", "/usr/bin:/bin")
     ui.mono_stdout()                    # upkeep and the menu paint in color: not on e-ink
     dlog.event("SOLAROS", "session", "TERM=%s" % os.environ.get("TERM"))
     first = take_intent() or (os.environ.get("SSH_ORIGINAL_COMMAND") or "").strip() or None
-    sys.stdout.write("\x1b[?1049h\x1b[?25l")
-    sel = 0
+    if first == "note":
+        sys.stdout.write("\x1b[?1049h\x1b[?25l")
+        write_note()
+    def hangup(*_): raise SystemExit("hangup")
+    signal.signal(signal.SIGHUP, hangup)
+    signal.signal(signal.SIGTERM, hangup)
+    deck, why = Deck(), "?"
+    deck.goto(first)
+    undo = mirror.raw_input()
+    sys.stdout.write("\x1b[?1049h\x1b[?25l\x1b[2J"); sys.stdout.flush()
     try:
-        while True:
-            items = entries()
-            ids = [i for i, _ in items]
-            if first in ids:
-                what, first = first, None
-            else:
-                first = None
-                i = pick("PHOSPHOR", [l for _, l in items], "↑↓ Enter opens · Esc leaves", sel)
-                if i is None: break
-                sel, what = i, ids[i]
-            dlog.event("SOLAROS", "open", what)
-            run_entry(what)
-            sys.stdout.write("\x1b[?1049h\x1b[?25l")
+        deck.run()
+    except SystemExit as e:
+        why = str(e) or "exit"
     except KeyboardInterrupt:
-        pass
+        why = "interrupt"
+    except OSError as e:
+        why = "screen gone (%s)" % type(e).__name__
     finally:
-        sys.stdout.write("\x1b[?1049l\x1b[?25h"); sys.stdout.flush()
+        dlog.event("SOLAROS", "end", why)
+        deck.stop()
+        undo()
+        try:
+            sys.stdout.write("\x1b[?1049l\x1b[?25h"); sys.stdout.flush()
+        except OSError:                 # the panel hung up: nothing left to flush at exit either
+            sys.stdout = open(os.devnull, "w")
     return 0
 
 # ── on / off / status ─────────────────────────────────────────
@@ -508,7 +839,7 @@ def show_lines(prof):
         print("    " + PH + l + RST)
     if copy("\n".join(lines) + "\n"):
         print("  " + DIM + "they're on the clipboard of every screen looking at the deck: paste them" + RST)
-    print("  " + DIM + "once: then it's phosphor at that prompt, and the app updates itself" + RST)
+    print("  " + DIM + "once (its code works one time, for 10 minutes): then it's phosphor at that prompt, and the app updates itself" + RST)
     if serve_mode(prof) == "lan":
         print("  " + DIM + "on the LAN the token crosses it in the clear: it only reads; writing goes over ssh" + RST)
 
@@ -578,6 +909,7 @@ def main():
     if cmd == "pair": return pair()
     if cmd == "forget": return forget()
     if cmd == "session": return session()
+    if cmd == "fleet": return fleet() or 0            # the FLEET tab of a panel's session
     print(USAGE); return 2
 
 if __name__ == "__main__":

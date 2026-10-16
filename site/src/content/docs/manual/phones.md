@@ -282,19 +282,24 @@ comes back after a reboot), prints the two lines to type on the panel's
 SolarOS prompt and puts them on the clipboard of every screen looking at
 the deck (`E` in the DECK tab's actions does the same):
 
-    curl -o /phosphor.py "http://<brain>:8484/solaros.py?token=..."
+    curl -o /phosphor.py http://<brain>:8484/p/k7q2m
     python /phosphor.py
 
 From a serial console instead, put it on the display with `session
 create python display0 /phosphor.py`.
 
-Those two lines are typed once. The first run adds `phosphor` to the
+Those two lines are typed once. The code at the end of the first (five
+letters and digits, none you could misread) works one time, for 10
+minutes; `phosphor solaros on` again prints a new one. The first run adds `phosphor` to the
 SolarOS shell (a line in `/.shell/alias`; one you already have for that
 name is left alone), so later it's one word at the prompt, and, when
 SolarOS's launcher has a free cell, asks once whether to put Phosphor
 there (Enter yes, Esc no; `put Phosphor in the launcher` stays in the menu
-for later). The launcher only takes SolarOS's own icons, so it shows
-`dashboard`. And it updates itself: at every start the app asks the brain
+for later). A cell named Phosphor that you made yourself counts: nothing
+is added next to it, and a copy an older install put there goes. SolarOS's
+launcher only takes its own icons, so the cell shows `terminal`; on a
+launcher patched to take a file as an icon (one of its cells already
+shows one), it shows `/icons/phosphor.pbm` when that file is there. And it updates itself: at every start the app asks the brain
 which copy it hands out (the brain reads `share/solaros-app.py` on each
 request, so a `phosphor update` there is enough) and, when it's another
 one, fetches it, writes it over `/phosphor.py` and starts it, one line on
@@ -304,21 +309,42 @@ more.
 The app shows the glance's light and counts on top and, below, the menu:
 **glance** (the hosts with a problem, the counts; read over HTTP, repainted
 only when it changes), one entry per tab of the deck as it is now (AI,
-AGY, a workspace you opened since), **notes**, **write a note** and
-**fleet**. Up, Down (the wheel) and Enter; `r` reads the brain again; Esc,
-`q` or EXIT leave. On the CrowPanel 5.79" keep the display's default
-refresh (`display mode display0 refresh=auto`): `fast` and `full` left
-that panel black or frozen until a reboot.
+AGY, a workspace you opened since; NOTES and FLEET at the end when no tab
+has them) and **write a note**. Up, Down (the wheel) and Enter; `r` reads
+the brain again; Esc, `q` or EXIT leave. On the CrowPanel 5.79" keep the
+display's default refresh (`display mode display0 refresh=auto`): `fast`
+and `full` left that panel black or frozen until a reboot.
+
+A tab opens the panel's own deck, over ssh with the panel's key, on that
+tab: the tab bar on top, the one you're on in inverse, and the tab below.
+**Ctrl-Left** / **Ctrl-Right** go to the tab before or after, and
+**Ctrl-Up** / **Ctrl-Down** to the pane before or after in a tab with
+several (its name at the right of the bar). With a left Alt key,
+**Alt-1** ... **Alt-9** (**Alt-0** the tenth) go straight to a tab, as in
+the deck, and Alt-Up / Alt-Down and Alt-p work too. A keyboard with only
+AltGr sends no Alt, and SolarOS keeps Alt-Left, Alt-Right and Alt-Tab for
+its own sessions: those never reach the deck. Everything else you type goes to the tab: the wheel
+scrolls its list, and in AI you talk to the assistant. **Ctrl-q**, as in
+the deck, or the panel's EXIT closes the session (the bar says so when
+there's room): you're back where you opened it, the launcher or the
+SolarOS prompt, where `phosphor` opens the menu again.
+
+phosphor's own screens (NOTES, DECK, FLEET, CI...) and viewers that keep
+nothing of their own (yazi, btop, ctop, gping) run right there at the
+panel's size. Anything else (a shell, an assistant, a chat) lives in its
+pane of the deck and is mirrored (`phosphor mirror`), at the size the
+last screen on the deck gave it: a long line wraps. Either way the panel
+gets only the lines that changed, at most about three times a second,
+however often the screen behind them redraws. FLEET lists each machine
+with its pending updates and reboot, where `upgrade` and `reboot` run
+`phosphor upkeep` right there: it shows the command and waits for you,
+and sudo asks on the panel. A screen you leave keeps running (the last
+four), so coming back to it is instant; one that ends says so, and Enter
+starts it again.
 
 What only reads comes over HTTP, behind the token. Everything that does
-something goes over ssh with the panel's own key: a tab of the deck
-opens in `phosphor mirror` (type to the assistant there, Ctrl-] back to
-the menu), notes in `phosphor notes`, a note is a kind, a project and a
-line of text, and fleet lists each machine with its pending updates and
-reboot, where `upgrade` and `reboot` run `phosphor upkeep` right there:
-it shows the command and waits for you, and sudo asks on the panel. On
-the LAN the token crosses the network in the clear, so it can read, never
-type.
+something goes over ssh with the panel's own key. On the LAN the token
+crosses the network in the clear, so it can read, never type.
 
 The key is paired once. On the brain:
 
@@ -329,7 +355,7 @@ the panel's ssh key (the first time; it can take a minute) and sends it.
 Both screens show its fingerprint: the same on both means nobody swapped
 it on the way, and Enter on the brain lets it in. It lands in
 `~/.ssh/authorized_keys` with a forced command (`restrict,pty`, no
-forwarding): that key gets the panel's menu, whatever it asks to run,
+forwarding): that key gets the panel's deck, whatever it asks to run,
 not a login of its own. Still, pair only a panel you'd hand the deck to:
 the menu opens the deck's tabs, and typing in one -- a shell, an
 assistant -- is typing there. The old file stays as `authorized_keys.bak.solaros`; a line

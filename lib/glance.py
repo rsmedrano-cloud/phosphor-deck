@@ -401,6 +401,11 @@ def handler_for(secret):
 
         def do_GET(self):
             path = urlsplit(self.path).path
+            if path.startswith("/p/"):           # the panel's first line: a short code instead of the token
+                import solaros
+                if not solaros.take_code(path[3:]):
+                    return self.reply(404, b'{"error": "not found"}\n')
+                return self.reply(200, client_source(self.url), "text/x-python; charset=utf-8")
             if path not in ("/", "/glance", "/glance.json", "/solaros.py", "/menu"):
                 return self.reply(404, b'{"error": "not found"}\n')
             if not authorized(self.path, self.headers, secret):

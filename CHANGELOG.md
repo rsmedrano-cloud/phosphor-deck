@@ -6,6 +6,30 @@ before it updates.
 
 ## Unreleased
 
+## 2.1.2 — the SolarOS panel, a deck of its own
+
+- A SolarOS panel gets a deck of its own: a tab picked on its menu opens
+  with the tab bar on top, and Ctrl-Left/Right (tabs), Ctrl-Up/Down
+  (panes) and, with a left Alt key, Alt-1...9 move around without
+  leaving, and Ctrl-q leaves, as in the deck -- before, the panel's EXIT was the
+  only way out of a tab, and it dropped you at the SolarOS prompt.
+  NOTES, DECK, FLEET and the rest of phosphor's screens, and yazi, btop,
+  ctop and gping, now run at the panel's size instead of being copied at
+  the size of the last screen on the deck (NOTES and DECK showed blank or
+  broken lines, CLOUD only its borders). The panel gets only the lines
+  that changed, however often the screen behind them redraws. The menu
+  lists NOTES once (it showed it twice).
+- The SolarOS app no longer puts a second Phosphor in the launcher next
+  to one you made yourself, and takes out the copy an older install
+  added. Its cell shows the square `terminal` icon instead of the round
+  `dashboard`, or `/icons/phosphor.pbm` on a launcher patched to take
+  files as icons.
+- The line typed on a SolarOS panel is short now: `curl -o /phosphor.py
+  http://<brain>:8484/p/k7q2m`, a code good once for 10 minutes instead
+  of the token, nothing to quote (twenty wrong guesses close it).
+- `phosphor mirror` no longer ends in a traceback when the screen hangs
+  up under it (a SolarOS panel's EXIT closes its whole ssh session).
+
 ## 2.1.1 — every command declares its card
 
 - Every public command now says how it shows in the deck, not only how

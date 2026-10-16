@@ -47,6 +47,8 @@ class Screen:
     def pump(self, t):
         end = time.time() + t
         while time.time() < end:
+            if self.fd is None:
+                time.sleep(t); return
             if select.select([self.fd], [], [], 0.05)[0]:
                 try: self.out += os.read(self.fd, 65536)
                 except OSError: return
@@ -122,6 +124,16 @@ def main():
         need("--view sends no key", "never-2" not in dump())
         s.type("q")
         need("--view: q leaves", s.done() == 0)
+
+        # the panel's EXIT closes its ssh: the pty goes away under mirror
+        s = Screen(env, ["--tab", "AI", "--view"])
+        need("paints before the hangup", s.wait(lambda: b"flood-over" in s.out))
+        os.close(s.fd); s.fd = None
+        log = os.path.join(env.get("PHOSPHOR_CACHE") or os.path.join(env["HOME"], ".cache", "phosphor"), "deck.log")
+        code = s.done()
+        tail = open(log, errors="replace").read()[-2000:] if os.path.exists(log) else ""
+        need("a hangup ends it quietly (exit %s, no crash in deck.log)" % code,
+             code == 0 and "crash" not in tail and "Traceback" not in tail)
     for f in fails:
         print("FAIL:", f)
     print("mirror-check", "ok" if not fails else "FAILED")
