@@ -77,8 +77,8 @@ check("fleet.py is nobody else's import: a real leaf", not hotswap.imported_else
 tools, reason = hotswap.classify(["lib/fleet.py"])
 check("a lone leaf change: no restart, just that tool", tools == {"fleet"} and reason is None)
 
-tools, reason = hotswap.classify(["lib/fleet.py", "lib/usage.py"])
-check("two leaf changes: both tools, no restart", tools == {"fleet", "usage"} and reason is None)
+tools, reason = hotswap.classify(["lib/fleet.py", "lib/prom.py"])
+check("two leaf changes: both tools, no restart", tools == {"fleet", "prom"} and reason is None)
 
 tools, reason = hotswap.classify(["lib/gen.py"])
 check("gen.py always triggers a restart (writes config.kdl/units)", reason is not None and tools == set())

@@ -70,5 +70,11 @@ menu, and its last row ("close this tab") takes the tab back out if you
 opened it by mistake. On phones, taps go to the deck, so the keyboard needs its own key (the
 phone kit adds KEYBOARD, EDIT, ZOOM and EXIT).
 
+A panel's title ends in ⤢: a tap there zooms its pane, the same as Alt-z,
+and Esc gives the tab back. A panel in a pane too short for it (under six
+rows: SYS's row of cards, a phone's split) draws a summary of one to three
+lines under its title instead, and a tap anywhere on it zooms: the whole
+panel, with its keys, is one tap away.
+
 The DECK tab has every phosphor action (a key or a tap each), and `?` there
 lists the keys of every installed tool.

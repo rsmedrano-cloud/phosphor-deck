@@ -117,6 +117,9 @@ panes = [ { ssh = "@work", reconnect = true } ]
 name  = "SYS"
 split = "rows"
 panes = [
+  # a row of cards (phosphor dash): + adds one, the title's ⤢ zooms it.
+  # init puts in only what's set up: usage, ci, web, tunnel when they are.
+  { dash = ["version", "screens"], size = 5 },
   { split = "cols", panes = [{ cmd = "phosphor fleet" }, { cmd = "phosphor adjutant", size = "25%" }], size = "50%" },
   { cmd = "gping", alt = true, args = ["@hosts"], size = "25%" },
   { cmd = "phosphor services" },

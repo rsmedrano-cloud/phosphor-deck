@@ -30,6 +30,10 @@ CLAUDE_URL = "https://api.anthropic.com/api/oauth/usage"
 AGY_URL = "https://daily-cloudcode-pa.googleapis.com/v1internal:"
 FETCH_EVERY = 120   # seconds between asking the providers; the countdowns redraw every 15
 
+def signed_in():
+    """True when claude or agy keeps a token here: there's a plan to show."""
+    return os.path.exists(CLAUDE_CREDS) or os.path.exists(AGY_TOKEN)
+
 def _ts(s):
     """An RFC 3339 time (2026-10-02T00:40:00.16+00:00, ...Z) as epoch seconds."""
     if not s:

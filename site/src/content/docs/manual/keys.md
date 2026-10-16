@@ -21,6 +21,7 @@ except these.
 | phosphor clip F | a file or a pipe onto that clipboard (up to ~70 KB) |
 | Alt-← ↑ ↓ → | move between panes; left/right past the edge: the next tab |
 | Alt-z | zoom — the focused pane takes the whole tab |
+| ⤢ (a title) | the same with a tap; Esc gives the tab back |
 | Alt-x · Ctrl-q | leave the deck — the session keeps running |
 | exit · q | a tab asks before closing: Enter opens it again, x closes it |
 | Ctrl-z | harmless: a pane it stops wakes up by itself in a few seconds |
@@ -97,6 +98,12 @@ Tap a tab to switch, a pane to focus it; `+` in the tab bar opens the new-tab
 menu, and its last row ("close this tab") takes the tab back out if you
 opened it by mistake. On phones, taps go to the deck, so the keyboard needs its own key (the
 phone kit adds KEYBOARD, EDIT, ZOOM and EXIT).
+
+A panel's title ends in ⤢: a tap there zooms its pane, the same as Alt-z,
+and Esc gives the tab back. A panel in a pane too short for it (under six
+rows: SYS's row of cards, a phone's split) draws a summary of one to three
+lines under its title instead, and a tap anywhere on it zooms: the whole
+panel, with its keys, is one tap away.
 
 The DECK tab has every phosphor action (a key or a tap each), and `?` there
 lists the keys of every installed tool.

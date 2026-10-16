@@ -26,6 +26,10 @@ as "enter"; g and G jump to the first and last row. lines() may put a Head
 among the rows: a group's title, never picked. A fix to keys or taps here
 reaches every panel at once.
 
+The title line ends in zoom's mark: a tap there zooms the pane (Alt-z), Esc
+gives the tab back. A pane too short for the panel (zoom.short) shows
+summary() under the title instead, and a tap anywhere on it zooms.
+
 A panel whose rows have names (row_name(row): a tty, a unit, a host) opens
 already on one with `--select NAME` on its command line: the shortcut a
 card or a script takes straight to it (exact name first, else the first
@@ -35,6 +39,7 @@ import os, shutil, sys, time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import DIM, AMB, PH, RED, RST, FG, getkey, HEAD, topbar
+import zoom
 
 INV = "\x1b[7m"                                     # the picked row, for a panel of yours
 
@@ -90,6 +95,7 @@ class ListPanel:
         self.ask = None            # (prompt, do, note) while a question waits
         self.msg = ""
         self.layout = (0, 0, 0, [], {})   # first screen row, top line, lines shown, key spans, line -> row
+        self.width, self.short = 80, False  # as last drawn: short, its summary instead
         self.want = selected()     # --select NAME: picked on the first fetch that has it
 
     # ── what a panel says ─────────────────────────────────────
@@ -106,6 +112,17 @@ class ListPanel:
 
     def act(self, k, row):
         pass
+
+    def summary(self, w, n):
+        """At most n lines saying what the panel holds, for a pane too
+        short to show it: its problem, else its first rows and how many
+        more a zoom shows."""
+        if self.problem:
+            return [" " + AMB + self.problem + RST]
+        body = [l for l in self.lines(w, None) if not isinstance(l, Head)]
+        if len(body) > n:
+            body = body[:n - 1] + [" " + DIM + "+%d more · a tap shows them all" % (len(body) - n + 1) + RST]
+        return body
 
     def row_name(self, row):
         """What --select NAME matches this row against; None: no names."""
@@ -172,7 +189,15 @@ class ListPanel:
     def frame(self, cols, height):
         """The screen's lines; remembers where rows and keys landed, for taps."""
         w = max(20, cols)
+        self.width, self.short = w, zoom.short(height)
         out = self.header(w)
+        if out and zoom.here():               # the count makes room for the mark
+            out[0] = zoom.mark(self.header(w - 3)[0], w)
+        if self.short:
+            out = out[:1] + self.summary(w, max(1, min(zoom.SUMMARY, height - 1)))
+            if self.msg:
+                out = out[:height - 1] + [" " + self.msg]
+            return out[:height]
         if self.problem:
             body = [" " + AMB + self.problem + RST]
         else:
@@ -209,6 +234,8 @@ class ListPanel:
             if k[1] in (64, 65):
                 self.move(-1 if k[1] == 64 else 1); return True
             x, y = k[2], k[3]
+            if self.short or zoom.on_mark(x, y, self.width):
+                zoom.toggle(); return True
             if self.ask:
                 self.ask = None; self.say("left alone", DIM); return True
             first, top, n, spans, row = self.layout
@@ -227,6 +254,8 @@ class ListPanel:
                 self.refresh()
             else:
                 self.say("left alone", DIM)
+            return True
+        if k == "\x1b" and zoom.back():
             return True
         if k in QUIT:
             return False

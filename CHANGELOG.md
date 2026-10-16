@@ -6,6 +6,20 @@ before it updates.
 
 ## Unreleased
 
+## 2.1.6 — a row of cards in SYS, zoom you can tap
+
+- A row of cards in SYS. A new deck (`phosphor init`) starts its SYS tab
+  with a small dashboard: the version and the attached screens, then only
+  what you set up -- the AI plans when claude or agy is signed in, browser
+  access, tunnels, CI once there's a `[ci]`. Its cards sit side by side.
+  Your profile doesn't change: to get the row, add
+  `{ dash = ["version", "screens"], size = 5 },` as the first of SYS's panes.
+- Zoom with a tap. A panel's title ends in ⤢: a tap zooms its pane, the same
+  as Alt-z, and Esc gives the tab back (FLEET too, with no card picked). A
+  panel in a pane only a few rows high shows a one-to-three-line summary
+  under its title instead of a cut-off list, and a tap on it zooms to the
+  whole panel. `+` on a dashboard in a short pane zooms it for the gallery.
+
 ## 2.1.5 — dashboards of your own
 
 - Dashboards of your own. `dashboard` in the + menu opens a gallery of

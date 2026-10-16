@@ -107,6 +107,14 @@ in the + menu starts one the same way. A name that has no card is said by
 `phosphor doctor`, with the rest of the profile's mistakes. A whole tab of
 them: `name = "WATCH"` and `panes = [ { dash = ["usage", "ci", "web", "screens"] } ]`.
 
+A deck `phosphor init` writes starts SYS with a row of them,
+`{ dash = [...], size = 5 }`: the version and the attached screens, then
+only what's set up (the AI plans when claude or agy is signed in, browser
+access, tunnels; CI once there's a `[ci]`). A pane that short shows the
+cards side by side, and any panel drawn in a few rows shows a summary
+instead (keys, below). A profile you already have doesn't change: add the
+line to its SYS by hand, or let `+` on a dashboard pane write it.
+
 ### tabs.d: tabs you can share
 
 A `[[tabs]]` block dropped into `~/.config/phosphor/tabs.d/*.toml` (one file,

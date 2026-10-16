@@ -448,8 +448,25 @@ def tools():
 
 SHAPES = ["homelab", "revived", "dev"]
 
+def sys_cards(web=False, tun=(), ci=False):
+    """The cards of SYS's top row: only what this deck has. The version
+    and the attached screens always; web, tunnels and CI when they're set
+    up; the AI plans when claude or agy is signed in."""
+    import usage
+    cards = ["version", "screens"]
+    if usage.signed_in(): cards.append("usage")
+    if ci: cards.append("ci")
+    if web: cards.append("web")
+    if tun: cards.append("tunnel")
+    return cards
+
+def dash_pane(cards):
+    """SYS's row of cards as a profile pane: the title and one line of them
+    (a frame takes two more rows); a tap on the title zooms it."""
+    return '  { dash = [%s], size = 5 },' % ", ".join('"%s"' % c for c in cards)
+
 def render(hosts, theme, comms, net="auto", web=False, tun=(), editor=None, shell=None,
-           notes_folder=None, shape="homelab"):
+           notes_folder=None, shape="homelab", cards=None):
     L = ["# Written by `phosphor init`. Edit it freely.",
          "# The deck's source of truth: change it and run `phosphor gen`.", "",
          "[deck]", "version = %d" % migrate.CURRENT, 'session = "deck"', 'theme   = "%s"' % theme,
@@ -468,12 +485,13 @@ def render(hosts, theme, comms, net="auto", web=False, tun=(), editor=None, shel
     if any(h["role"] == "work" for h in hosts):
         L += ["[[tabs]]", 'name  = "WORK"',
               'panes = [ { ssh = "@work", reconnect = true } ]', ""]
+    cards_row = dash_pane(sys_cards(web, tun) if cards is None else cards)
     if shape == "revived":
-        L += ["[[tabs]]", 'name  = "SYS"', 'split = "rows"', "panes = [",
+        L += ["[[tabs]]", 'name  = "SYS"', 'split = "rows"', "panes = [", cards_row,
               '  { split = "cols", panes = [{ cmd = "phosphor fleet" }, { cmd = "phosphor adjutant", size = "25%" }], size = "78%" },',
               '  { cmd = "phosphor services" },', "]", ""]
     else:
-        L += ["[[tabs]]", 'name  = "SYS"', 'split = "rows"', "panes = [",
+        L += ["[[tabs]]", 'name  = "SYS"', 'split = "rows"', "panes = [", cards_row,
               '  { split = "cols", panes = [{ cmd = "phosphor fleet" }, { cmd = "phosphor adjutant", size = "25%" }], size = "50%" },',
               '  { cmd = "gping", alt = true, args = ["@hosts"], size = "25%" },',
               '  { cmd = "phosphor services" },', "]", ""]

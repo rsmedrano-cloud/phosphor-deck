@@ -15,6 +15,8 @@ import os, sys, tempfile
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "lib"))
 os.environ["HOME"] = tempfile.mkdtemp()
+for k in [k for k in os.environ if k.startswith("ZELLIJ")]:
+    del os.environ[k]                      # outside zellij: a title with no zoom mark
 import tui, ui
 from ui import HEAD
 

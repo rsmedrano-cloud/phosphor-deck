@@ -14,6 +14,7 @@
 ["phosphor clip F", "a file or a pipe onto that clipboard (up to ~70 KB)"],
 ["Alt-← ↑ ↓ →", "move between panes; left/right past the edge: the next tab"],
 ["Alt-z", "zoom — the focused pane takes the whole tab"],
+["⤢ (a title)", "the same with a tap; Esc gives the tab back"],
 ["Alt-x · Ctrl-q", "leave the deck — the session keeps running"],
 ["exit · q", "a tab asks before closing: Enter opens it again, x closes it"],
 ["Ctrl-z", "harmless: a pane it stops wakes up by itself in a few seconds"],

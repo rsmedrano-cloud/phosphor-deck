@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
 import deckconf, proc
 from health import sensors, updates
-import limits
+import limits, zoom
 from sanitize import clean, clean_tree
 
 HOME     = os.path.expanduser("~")
@@ -822,6 +822,8 @@ def main():
             if k in ("\x1b[A", "\x1b[B", "\x1b[C", "\x1b[D", "\t"):
                 sel = move(sel, k, per_row, n)
             elif k == "\x1b":
+                if sel is None:
+                    zoom.back()                      # nothing picked: Esc gives the tab back
                 sel = None
             elif k == HISTORY[0]:
                 if sel is None:

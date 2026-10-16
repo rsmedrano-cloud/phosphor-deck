@@ -275,8 +275,10 @@ sidebar:
   `+` opens the gallery, every card there is with its live value (Enter or a tap adds one or
   takes it away), `-` then a key takes one away. With no cards it opens on the gallery;
   `dashboard` in the `+` menu is the same, in a tab of its own. A `dash` pane in a profile tab
-  (see profile) keeps what you add or take away in that tab of deck.toml. `--json` prints each
-  card's `name`, `kind`, `state`, `value` and `why`, and runs nothing.
+  (see profile) keeps what you add or take away in that tab of deck.toml. In a pane a few rows
+  high (SYS's top row) the cards sit side by side under the title, as many to a line as fit,
+  and `+` zooms the pane for the gallery. `--json` prints each card's `name`, `kind`, `state`,
+  `value` and `why`, and runs nothing.
 - `phosphor keys` — the key guide, a key per row (the wheel, j/k or a tap move through it; `s` runs setup); `phosphor store` — install TUIs, no sudo: Enter installs (or opens what you have in a tab), `d` removes one (only from ~/.local/bin, asks y/n first), `i` shows only what's installed, `/` filters, Esc clears; rows and keys answer a tap.
   Enter on an installed app opens it in a new tab; `i` shows only what's installed. Your own apps
   (`apps.toml`, see profile) come first, as "yours".

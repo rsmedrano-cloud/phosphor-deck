@@ -43,6 +43,7 @@ folder = "~/.cache/phosphor/demo-state/notes"   # under demo-state: --stop and e
 name  = "SYS"
 split = "rows"
 panes = [
+  { dash = ["version", "screens"], size = 5 },
   { split = "cols", panes = [{ cmd = "phosphor fleet" }, { cmd = "phosphor adjutant", size = "25%" }] },
 ]
 

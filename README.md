@@ -121,7 +121,11 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
   browser access, who's attached...). Pick some and they're a tab; `+` there
   adds more, `-` takes one away, a tap runs one. In the profile it's one
   pane, `{ dash = ["usage", "ci", "web", "screens"] }`; in a terminal,
-  `phosphor dash usage ci web screens`.
+  `phosphor dash usage ci web screens`. A new deck's SYS starts with a row
+  of them, holding only what's set up.
+- **Zoom with a tap.** A panel's title ends in ⤢: a tap zooms its pane
+  (Alt-z), Esc gives the tab back. A panel squeezed into a few rows shows a
+  one-to-three-line summary instead, and a tap on it shows the whole panel.
 - **Containers, from the fleet.** `c` over a machine's card in FLEET (or
   `phosphor containers HOST`) lists its docker or podman containers, a failed
   one in red: read its logs, restart it, start or stop it (it asks first),
@@ -307,7 +311,8 @@ tool inside. Only these are the deck's:
 ```
 Alt-1..9       go to a tab (or tap it)
 Alt-← ↑ ↓ →    move between panes (or tap one)
-Alt-z          zoom: the focused pane takes the whole tab
+Alt-z          zoom: the focused pane takes the whole tab (or tap ⤢ on a
+               panel's title; Esc gives it back)
 Alt-x, Ctrl-q  leave — the session keeps running
 Alt-n          new tab in the folder of the pane you're in
 Alt-r          edit this tab: unlock, change, save or put it back

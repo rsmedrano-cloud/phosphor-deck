@@ -10,12 +10,16 @@ dashboard is a pane showing some of them, in your order:
 + opens the gallery (every card, each with its live value) to add one,
 - then a card's key takes one away. In a profile tab (gen passes --tab),
 a change is kept in deck.toml, the usual way (a .bak first).
+
+In a pane too short for one card a line (zoom.short: a row of SYS), the
+cards sit side by side under the title; the title's mark zooms (Alt-z),
+Esc gives the tab back.
 """
 import json, os, shutil, subprocess, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
 from ui import getkey
-import card, cli, deckconf
+import card, cli, deckconf, zoom
 
 PHOSPHOR = os.path.join(REPO, "phosphor")
 KEYS = "123456789abcdefghijklmnoprstuvwyz"     # q leaves, + adds, - removes
@@ -106,6 +110,11 @@ def tapped(k):
     return None
 
 
+def tapped_at(k):
+    """(x, y) of a tap, or None."""
+    return (k[1], k[2]) if isinstance(k, tuple) and k[0] == "TAP" else None
+
+
 def gallery(have, rows=None, cols=None):
     """Every card with its live value; Enter or a tap adds or takes one
     away. The dashboard's new list (its order kept, new ones last), or
@@ -156,9 +165,46 @@ def gallery(have, rows=None, cols=None):
         live.stop()
 
 
+CELL = card.HEAD_W + card.LABEL_W + 1 + card.VALUE_W     # the narrowest card, side by side
+
+
+def heading(names, w):
+    """The topbar, its first line ending in zoom's mark."""
+    count = "%d card%s" % (len(names), "" if len(names) == 1 else "s")
+    lines = topbar("DASH", "your cards, live", count, w)
+    if zoom.here():
+        lines[0] = zoom.mark(topbar("DASH", "your cards, live", count, w - 3)[0], w)
+    return lines
+
+
+def draw_short(names, live, w, rows, msg=None, removing=False):
+    """A pane a few rows high: the title, then the cards side by side,
+    as many to a line as fit. Its lines and tap targets ({(row, column):
+    key}, cell width); a tap on the title or on "+N more" zooms."""
+    per = max(1, (w + 1) // (CELL + 1))
+    cw = (w + 1) // per - 1
+    room = max(1, rows - 1 - (1 if msg or removing else 0)) * per
+    shown = names if len(names) <= room else names[:room - 1]
+    cells = [(KEYS[i], row(KEYS[i], n, live, cw)) for i, n in enumerate(shown)]
+    if len(shown) < len(names):
+        cells.append((None, DIM + "  +%d more · a tap shows them all" % (len(names) - len(shown)) + RST))
+    lines, hit = heading(names, w)[:1], {}
+    for i in range(0, len(cells), per):
+        for j, (key, _) in enumerate(cells[i:i + per]):
+            if key:
+                hit[(len(lines) + 1, j)] = key
+        lines.append(" ".join(pad(vcut(t, cw), cw) for _, t in cells[i:i + per]))
+    if not names:
+        lines.append(vcut("  " + FG + "no cards yet: " + AMB + "+" + RST + FG + " picks some" + RST, w))
+    if msg or removing:
+        lines.append(vcut(" " + (DIM + "which one? its key · Esc: none" if removing else
+                                 (OK if msg.startswith("kept") else WARN) + msg) + RST, w))
+    return lines[:rows], (hit, cw)
+
+
 def draw(names, live, w, rows, msg=None, removing=False):
     """The dashboard's lines and its tap targets {row: key}."""
-    lines, hit = topbar("DASH", "your cards, live", "%d card%s" % (len(names), "" if len(names) == 1 else "s"), w), {}
+    lines, hit = heading(names, w), {}
     if not names:
         lines.append("")
         lines.append(vcut("  " + FG + "no cards yet: " + AMB + "+" + RST + FG + " picks some from the gallery" + RST, w))
@@ -218,13 +264,25 @@ def main():
             msg = save(tab, [], names)
         while True:
             w, rows = shutil.get_terminal_size((60, 30))
-            lines, hit = draw(names, live, w, rows, msg, removing)
+            short = zoom.short(rows)
+            lines, hit = (draw_short if short else draw)(names, live, w, rows, msg, removing)
             paint(lines, rows)
             k = getkey(1.0, mouse=True)
-            y = tapped(k)
-            if y is not None:
-                k = hit.get(y)
+            at = tapped_at(k)
+            if at is not None:
+                x, y = at
+                if zoom.on_mark(x, y, w) or (short and y == 1):
+                    zoom.toggle(); continue
+                if short:
+                    cells, cw = hit
+                    k = cells.get((y, (x - 1) // (cw + 1)))
+                    if k is None and y > 1:
+                        zoom.toggle(); continue      # "+N more", or between cards
+                else:
+                    k = hit.get(y)
             if k is None or k in ("WUP", "WDN"):
+                continue
+            if k == "\x1b" and not removing and zoom.back():
                 continue
             msg = None
             if removing:
@@ -235,7 +293,12 @@ def main():
             elif k == "-" and names:
                 removing = True
             elif k == "+":
+                grew = short and not zoom.zoomed()
+                if grew:
+                    zoom.toggle()                    # the gallery needs the whole tab
                 new = gallery(names)
+                if grew:
+                    zoom.toggle()
                 if new is not None:
                     old, names = names, new
                     live.set(names); msg = save(tab, old, names)
