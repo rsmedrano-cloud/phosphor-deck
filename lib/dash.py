@@ -251,7 +251,7 @@ def main():
         return 2
     if as_json:
         print(json.dumps(values(names), indent=1)); return 0
-    if not sys.stdin.isatty():
+    if not (sys.stdin.isatty() and sys.stdout.isatty()):
         print("phosphor dash needs a terminal (or --json)"); return 1
     mono_stdout()
     live = card.Live(names)

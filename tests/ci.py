@@ -47,6 +47,8 @@ def main():
         i = args.index("--sha"); at = args[i + 1]; del args[i:i + 2]
     sha = sh("git", "rev-parse", at).stdout.strip()
     refs = args or [sh("git", "rev-parse", "--abbrev-ref", "HEAD").stdout.strip()]
+    if refs == ["HEAD"]:                     # detached: no pipeline ever has ref=HEAD
+        print("ci: HEAD is detached; name the ref (python3 tests/ci.py dev)"); return 2
     print("ci: %s at %s" % (" ".join(refs), sha[:8]))
     end, pipes = time.time() + WAIT, {}
     while time.time() < end:

@@ -227,7 +227,9 @@ def main():
 
     # 2. the fast checks
     print("release: fast checks")
-    if subprocess.run(["sh", "tests/check.sh"], capture_output=True).returncode != 0:
+    r = subprocess.run(["sh", "tests/check.sh"], capture_output=True, text=True)
+    if r.returncode != 0:
+        for l in (r.stdout + r.stderr).strip().splitlines()[-15:]: print("    " + l)
         stop("sh tests/check.sh fails")
 
     # 3. the version commit, on dev

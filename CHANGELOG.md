@@ -6,6 +6,17 @@ before it updates.
 
 ## Unreleased
 
+## 2.2.0 — the deck as a dashboard
+
+- `phosphor tabs`, `screens`, `store` and `dash` piped into something
+  (`phosphor tabs | head`) print their plain listing instead of waiting
+  for keys that never come, like `keys` and `tunnels` already did.
+- `phosphor review`'s plain listing numbers GitLab merge requests `!N`,
+  the way GitLab does, not `#N`.
+- Help and completion now offer `phosphor ask --assistant NAME`,
+  `phosphor shortcuts --kdl` and `phosphor tabs --forget NAME`, which the
+  manual already described.
+
 ## 2.1.6 — a row of cards in SYS, zoom you can tap
 
 - A row of cards in SYS. A new deck (`phosphor init`) starts its SYS tab

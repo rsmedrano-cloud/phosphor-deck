@@ -258,7 +258,7 @@ def main():
             if tab and panes == 1 and kept(tab):
                 print(tab)
         return 0
-    if "--list" in argv or not sys.stdin.isatty():
+    if "--list" in argv or not (sys.stdin.isatty() and sys.stdout.isatty()):
         live = open_now()
         for t in all_tabs(prof):
             print("%-16s %s" % (t["name"], note(t["name"], live)))

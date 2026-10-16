@@ -329,7 +329,7 @@ def main():
         return emit({"session": p.base, "problem": p.problem or None,
                      "screens": [dict(r, said=r["said"] or None, relay=bool(p.link(r))) for r in rows]},
                     1 if p.problem else 0)
-    if "--list" in sys.argv[1:] or not sys.stdin.isatty():
+    if "--list" in sys.argv[1:] or not (sys.stdin.isatty() and sys.stdout.isatty()):
         p = Panel(prof)
         rows = p.fetch()
         if p.problem:

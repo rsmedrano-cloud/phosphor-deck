@@ -300,8 +300,8 @@ sidebar:
 - `phosphor keep [TAB]` — read the tab as it is now (splits, sizes, what runs in each pane)
   and write it into your profile; `--pick` chooses the tab, `--dry-run` only shows it.
   Also `k` in the DECK tab.
-- `phosphor tabs [--list]` — the tabs your profile brings back after a restart, and which are open now:
-  `f` forgets one (out of the profile, after a y/n), `K`/`J` move it, `o` opens a closed one
+- `phosphor tabs [--list | --forget NAME]` — the tabs your profile brings back after a restart, and which are open now:
+  `f` forgets one (out of the profile, after a y/n; `--forget NAME` does it with no question), `K`/`J` move it, `o` opens a closed one
   again; rows and keys answer a tap, and the list refreshes on its own. Also `b` in the DECK tab.
   Lists tabs.d's tabs too: `K`/`J` place one (a name-only stub in your profile marks where,
   its content stays in the file), and `f` on a placed one un-places it instead of deleting it.

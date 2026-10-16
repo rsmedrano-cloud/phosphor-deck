@@ -39,7 +39,7 @@ keybinds {
     }
 
     // The deck's own keys (Alt-r edits a tab, Alt-n opens one, Alt-1..9,
-    // Alt-arrows, Alt-z, Alt-x, Alt-g). Change them with `phosphor shortcuts`
+    // Alt-arrows, Alt-z, Alt-x, Alt-g, Alt-j). Change them with `phosphor shortcuts`
     // or [keys] in your profile: gen rewrites only the part between the
     // markers, so an update never resets them.
     // ── PHOSPHOR KEYS: phosphor gen writes from here to END PHOSPHOR KEYS, from [keys] in your profile.
@@ -47,6 +47,7 @@ keybinds {
     locked {
         bind "Alt r" { Run "sh" "-c" "exec \"$HOME/.local/bin/phosphor\" edit" { in_place true; close_on_exit true; name "EDIT"; }; }
         bind "Alt n" { Run "sh" "-c" "exec \"$HOME/.local/bin/phosphor\" new --here" { in_place true; close_on_exit true; name "NEW"; }; }
+        bind "Alt j" { Run "sh" "-c" "exec \"$HOME/.local/bin/phosphor\" note --here" { in_place true; close_on_exit true; name "NOTE"; }; }
         bind "Alt g" { SwitchToMode "Normal"; }
         bind "Alt 1" { GoToTab 1; }
         bind "Alt 2" { GoToTab 2; }

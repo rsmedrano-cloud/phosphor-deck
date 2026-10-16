@@ -236,7 +236,7 @@ class Panel(tui.ListPanel):
 def main():
     global CATALOG
     CATALOG = share("store.json")
-    if not sys.stdin.isatty():
+    if not (sys.stdin.isatty() and sys.stdout.isatty()):
         dump(); return 0
     return Panel(catalog()[1]).run()
 

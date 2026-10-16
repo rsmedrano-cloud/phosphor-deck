@@ -263,7 +263,7 @@ def main():
             print(err); return 1
         for it in items:
             flag = "CONFLICTS" if it["conflicts"] else ("draft" if it["draft"] else "")
-            print("%s%-4s %-40s %-12s %s" % ("#" if prov == "gitlab" else "#", it["id"], it["title"][:40], it["author"], flag))
+            print("%s%-4s %-40s %-12s %s" % ("!" if prov == "gitlab" else "#", it["id"], it["title"][:40], it["author"], flag))
         return 0
     return Panel(prov, repo).run()
 
