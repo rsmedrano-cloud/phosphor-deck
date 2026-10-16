@@ -6,6 +6,16 @@ before it updates.
 
 ## Unreleased
 
+## 2.0.10 — phosphor stats: what you actually run
+
+- `phosphor stats` says which phosphor commands you actually run: how
+  many times each, whether typed, opened as a tab or started by a script,
+  and the day it last ran, then the ones never run since counting began.
+  Every `phosphor CMD` adds one to a small file on this machine
+  (`~/.cache/phosphor/stats.json`): the command's name, never its
+  arguments, and nothing sends it anywhere. It's what the next round of
+  removals gets decided on. `--json` for scripts, `--clear` to start over.
+
 ## 2.0.9 — the SolarOS app looks after itself
 
 - The SolarOS panel's app looks after itself. At every start it asks the

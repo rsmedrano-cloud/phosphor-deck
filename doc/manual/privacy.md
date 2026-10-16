@@ -8,6 +8,10 @@
   (where `smartctl` exists) and `phosphor-updates` (the pending updates).
   The day of readings FLEET's `h` draws stays on the brain
   (`~/.cache/phosphor/history.json`).
+- Each `phosphor CMD` adds one to that command's count in
+  `~/.cache/phosphor/stats.json` (`phosphor stats` reads it): the name, how it
+  started and the day, never its arguments. It stays on this machine; nothing
+  sends it anywhere. `phosphor stats --clear`, or deleting the file, empties it.
 - The session and everything it shows live on the brain: it is the valuable
   machine now (updates, backups, who can log in). On a shared brain other users
   may reach what the deck reaches: `phosphor security` says where they would

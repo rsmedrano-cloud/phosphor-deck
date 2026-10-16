@@ -390,6 +390,12 @@
   off after about 30 minutes, or sooner with `phosphor trace off TOOL`. No `TOOL`: lists whatever is
   tracing right now; on a terminal, a panel of what's on and the tools deck.log has lines for:
   Enter starts or stops one, `/` names another.
+- `phosphor stats [--json] [--clear]` — which phosphor commands get run here: each one's count,
+  split by how it started (`terminal`: typed, or a key that opens it; `pane`: a tab's pane;
+  `script`: no terminal, like a timer or a hook) and the day it last ran, most run first, then
+  the commands never run since counting began. Every `phosphor CMD` adds one in
+  `~/.cache/phosphor/stats.json`: the name only, never its arguments, and it never leaves this
+  machine. It's what decides the next removals (see api). `--clear` starts over from today.
 
 ## For scripts: --json
 Every read-only listing prints its data once as one JSON object with `--json`: no color, no
@@ -418,6 +424,8 @@ read that instead of scraping colored text. Nothing in it writes or restarts any
 - `phosphor workspace list --json` — `root` and `workspaces`: `name`, `path`, `git` (`dirty`,
   `ahead`, `behind`).
 - `phosphor panels --json` — `folder` and `panels`: `name`, `desc`, `file`.
+- `phosphor stats --json` — `since` and `commands`: `name`, `runs`, `terminal`, `pane`,
+  `script`, `last`; and `never`, the commands not run since then.
 
 ### For assistants: phosphor mcp
 `phosphor mcp` is the same data for an assistant that speaks MCP (Model Context Protocol): a

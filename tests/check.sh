@@ -96,6 +96,7 @@ check "prometheus gauges, fake server"     python3 tests/prom-check.py
 check "CI pipelines status, fake server"   python3 tests/ci-check.py
 check "QR codes read back"                 qr
 check "deck logs: crash, hang, trace"      python3 tests/log-check.py
+check "stats: commands counted locally"    python3 tests/stats-check.py
 check "--json on the read-only commands"   python3 tests/json-check.py
 check "phosphor mcp: read-only, clean JSON-RPC" python3 tests/mcp-check.py
 check "panels.d: your own panels"          python3 tests/panels-check.py

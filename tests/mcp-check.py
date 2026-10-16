@@ -39,7 +39,9 @@ def snapshot():
     for base, _, files in os.walk(home):
         for f in files:
             p = os.path.join(base, f)
-            if "__pycache__" not in p:
+            # stats.json is the dispatcher counting `phosphor mcp` itself
+            # (phosphor stats), before the server starts: not a tool writing
+            if "__pycache__" not in p and not f.startswith("stats.json"):
                 out[p] = hashlib.sha1(open(p, "rb").read()).hexdigest()
     return out
 

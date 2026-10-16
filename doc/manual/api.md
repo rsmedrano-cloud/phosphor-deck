@@ -45,7 +45,9 @@ Everything else, even when you can see it:
 
 ## How something goes away
 
-Nothing public disappears without a warning first:
+What goes is picked from `phosphor stats` (the commands run on this
+machine, counted on it alone), not from a guess. Nothing public disappears
+without a warning first:
 
 1. It's listed in `share/deprecations.json`, with the version that first
    warns (`since`), the one that drops it (`remove`) and what to use

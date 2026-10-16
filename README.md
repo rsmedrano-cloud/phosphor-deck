@@ -486,6 +486,7 @@ more depth on every one of these.
 | `phosphor face` | turn an image into the adjutant's face (`--bitmap`: drawn at the pane's size, up to 28 columns, in color) |
 | `phosphor logs` | the deck's own log: crashes with traceback, hangs, exits, restarts; `-f` follows |
 | `phosphor trace` | verbose logging for one tool, for about 30 minutes, then it turns itself off (`off TOOL` sooner) |
+| `phosphor stats` | which phosphor commands get run here and how often, counted on this machine only (`--json`, `--clear`) |
 
 ### Before you push a fork
 

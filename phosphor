@@ -21,6 +21,15 @@ def crash_name(cmd):
     pid, _, name = os.environ.get("PHOSPHOR_RUN", "").partition(" ")
     return name if name and pid == str(os.getppid()) else cmd.upper()
 
+def count(cmd):
+    """One more run of cmd in stats.json (`phosphor stats`): its name only,
+    on this machine only, and never in the way of the command itself."""
+    try:
+        import stats
+        stats.count(cmd)
+    except Exception:
+        pass
+
 def main():
     import cli
     cmd = sys.argv[1] if len(sys.argv) > 1 else "help"
@@ -29,6 +38,7 @@ def main():
         cmd = "version"
 
     if cmd in ("-h", "--help", "help"):
+        count("help")
         if len(sys.argv) > 2 and cmd == "help" and sys.argv[2] not in ("-h", "--help"):
             import docs
             return docs.help(sys.argv[2])
@@ -53,6 +63,7 @@ def main():
         print("phosphor %s: unknown option %s" % (cmd, wrong), file=sys.stderr)
         print("usage: " + cli.get(cmd)["usage"], file=sys.stderr)
         return 2
+    count(cmd)
     # on its way out (doc/manual/api.md): it still runs, and says so on stderr
     for w in cli.deprecated(cmd, sys.argv[2:]):
         print("phosphor: " + w, file=sys.stderr)
