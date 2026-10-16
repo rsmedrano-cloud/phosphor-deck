@@ -84,6 +84,12 @@ def pane_kdl(spec, ctx, ind):
         return run_pane(pad, sz, spec["_run"], extra, name=spec.get("_name"),
                         reconnect=spec.get("reconnect", False))
 
+    if "dash" in spec:
+        # a dashboard of cards (phosphor dash): --tab lets it keep its changes
+        tab = getattr(ctx, "tab", None)
+        return run_pane(pad, sz, [PHOSPHOR, "dash"] + [str(n) for n in spec["dash"] or []]
+                        + (["--tab", tab] if tab else []), extra, name="DASH")
+
     if "ssh" in spec:
         tgt = ctx.expand(spec["ssh"])
         tgt = tgt[0] if tgt else "localhost"
@@ -149,6 +155,7 @@ def floating_tour(ind):
         pad + "}"])
 
 def tab_body(tab, ctx, ind):
+    ctx.tab = tab.get("name")             # a dashboard pane keeps its changes in this tab
     panes = tab.get("panes", [{}])
     if len(panes) == 1 and "panes" not in panes[0]:
         return pane_kdl(panes[0], ctx, ind)

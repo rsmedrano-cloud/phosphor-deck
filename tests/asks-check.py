@@ -180,7 +180,9 @@ need("face: the picked image is the one it reads", "no such file" not in out and
      ("pic.png" in out.split("phosphor face")[-1] or "ImageMagick" in out), out)
 
 # push: o turns it on, with a long random topic, and keeps a .bak
-t = Term("push").keys("o", "q")
+t = Term("push")
+t.wait_for("turn it on")          # a key before its first read is dropped: wait for the screen
+t.keys("o", "q")
 rc = t.done()
 text = open(PROFILE).read()
 need("push: o turns it on and makes up a topic", rc == 0 and re.search(r"\[push\][^\[]*enabled = true", text)

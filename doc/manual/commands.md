@@ -263,11 +263,22 @@
   on the kit every panel uses (see profile, "panels.d"): with no name, which there are and what
   each is (read from the file, not run); with one, it opens there. They're in the store and the
   `+` menu too, as "yours".
+- `phosphor dash [CARD...]` — a dashboard of your own: the cards you name (`phosphor dash usage
+  ci web screens`), each one a command's live value with the command beside it, keyed 1, 2, 3...
+  A key or a tap runs that card the way its card says (a toggle flips, what publishes or restarts
+  asks first) and comes back; a card that wants a look has a `!` and its reason under the cards.
+  `+` opens the gallery, every card there is with its live value (Enter or a tap adds one or
+  takes it away), `-` then a key takes one away. With no cards it opens on the gallery;
+  `dashboard` in the `+` menu is the same, in a tab of its own. A `dash` pane in a profile tab
+  (see profile) keeps what you add or take away in that tab of deck.toml. `--json` prints each
+  card's `name`, `kind`, `state`, `value` and `why`, and runs nothing.
 - `phosphor keys` — the key guide, a key per row (the wheel, j/k or a tap move through it; `s` runs setup); `phosphor store` — install TUIs, no sudo: Enter installs (or opens what you have in a tab), `d` removes one (only from ~/.local/bin, asks y/n first), `i` shows only what's installed, `/` filters, Esc clears; rows and keys answer a tap.
   Enter on an installed app opens it in a new tab; `i` shows only what's installed. Your own apps
   (`apps.toml`, see profile) come first, as "yours".
 - `phosphor new` — the new-tab menu (what + and Alt-n open). **layout** in it: pick a shape (2 columns,
   2 rows, 2 × 2, 3 columns), then what goes in each pane, or "the same in the rest"; all by tap too.
+  **dashboard** in it opens the gallery of cards first: the ones you pick are the tab (`phosphor
+  dash`, above), and with "keep" on they're a `dash` pane in your profile.
   An **assistant** in it asks which folder it starts in: here, a folder of `[deck] projects`
   (workspaces say so), one you typed before, or `/` to type another (`~` and relative paths
   work); the tab takes that folder's name.
@@ -436,6 +447,8 @@ reading them every few seconds never gets them rate-limited.
 - `phosphor workspace list --json` — `root` and `workspaces`: `name`, `path`, `git` (`dirty`,
   `ahead`, `behind`).
 - `phosphor panels --json` — `folder` and `panels`: `name`, `desc`, `file`.
+- `phosphor dash CARD... --json` — one object per card: `name`, `kind`, `state` (the command's
+  own value), `value` (as the card shows it) and `why`.
 - `phosphor web status --json` — `on` (the address published or the server up), `published`,
   `server`, `profile` (its `web =`), `url` while published, and `why` when the profile and what
   runs disagree.

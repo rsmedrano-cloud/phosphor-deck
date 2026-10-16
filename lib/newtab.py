@@ -75,6 +75,8 @@ def entries(prof):
     if any(have(b) for b in ("claude", "gemini", "codex", "opencode")):
         out.append(("workspace", "a project folder with assistants", "WORKSPACE",
                     [sys.executable, PHOSPHOR, "workspace", "new", "--pause-on-error"], None))
+    out.append(("dashboard", "the cards you pick, live: usage, ci, web...", "DASH",
+                [sys.executable, PHOSPHOR, "dash"], {"dash": []}))
     out.append(("layout", "several panes at once", "LAYOUT", [], None))
     y = have("yazi")
     if y:
@@ -177,10 +179,11 @@ def toml(v):
     return json.dumps(v)            # a JSON string is a valid TOML basic string
 
 def keep_tab(name, spec):
-    """Append the tab to the profile, check it parses, then regenerate."""
+    """Append the tab to the profile, check it parses, then regenerate.
+    (why not, or None; the name it's kept under)."""
     p = os.environ.get("PHOSPHOR_PROFILE", deckconf.CONF)   # never the repo's example
     if not os.path.exists(p) or deckconf.tomllib is None:
-        return "no profile to write to"
+        return "no profile to write to", name
     text = open(p).read()
     have_names = {t.get("name") for t in deckconf.tomllib.loads(text).get("tabs", [])}
     name = unique(name, have_names)
@@ -192,9 +195,9 @@ def keep_tab(name, spec):
     err = deckconf.write_profile(new, lambda prof: any(t.get("name") == name for t in prof.get("tabs", [])),
                                  expect=text, p=p)
     if err:
-        return err + ", left it alone"
+        return err + ", left it alone", name
     subprocess.run([sys.executable, PHOSPHOR, "gen"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    return None
+    return None, name
 
 def launch(name, argv, spec, keep):
     sys.stdout.write("\x1b[?1006l\x1b[?1000l\x1b[?1049l\x1b[?25h\x1b[2J\x1b[H"); sys.stdout.flush()
@@ -204,8 +207,10 @@ def launch(name, argv, spec, keep):
         if tid is not None: zj("rename-tab-by-id", tid, name)
         else: zj("rename-tab", name)
     if keep:
-        err = keep_tab(name, spec)
-        print(("  " + WARN + " not kept: " + err) if err else ("  " + OK + " kept in your profile as " + name))
+        err, kept = keep_tab(name, spec)
+        print(("  " + WARN + " not kept: " + err) if err else ("  " + OK + " kept in your profile as " + kept))
+        if not err and "dash" in spec:
+            argv = argv + ["--tab", kept]     # what it adds or takes away from now on is kept too
     # through `phosphor run`: when it ends, the tab asks before closing
     opts = ["--name", name] + (["--reconnect"] if argv[0] == "ssh" else []) \
         + (["--wait", "1"] if spec.get("needs_size") else []) + (["--alt"] if spec.get("alt") else [])
@@ -570,6 +575,13 @@ def main():
                 if layout(prof, keep):
                     return 0                  # the new tab is open: this menu's tab closes
                 sys.stdout.write("\x1b[?1000h\x1b[?1006h"); continue
+            if label == "dashboard":          # its cards first, from the gallery
+                import dash
+                names = dash.gallery([])
+                sys.stdout.write("\x1b[?1000h\x1b[?1006h")
+                if not names:
+                    continue
+                argv, spec = argv + names, {"dash": names}
             if spec is None:                  # a wizard, not a tab of its own: it opens the real one
                 sys.stdout.write("\x1b[?1006l\x1b[?1000l\x1b[?1049l\x1b[?25h\x1b[2J\x1b[H"); sys.stdout.flush()
                 os.execv(argv[0], argv)

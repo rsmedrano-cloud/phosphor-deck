@@ -6,6 +6,19 @@ before it updates.
 
 ## Unreleased
 
+## 2.1.5 — dashboards of your own
+
+- Dashboards of your own. `dashboard` in the + menu opens a gallery of
+  every command as a card, each with its live value: pick the ones you want
+  and they're a tab, each card with the command beside it, a key or a tap
+  to run it, and a `!` with its reason when one wants a look. `+` on a
+  dashboard adds more from the gallery, `-` takes one away. Kept, it's one
+  pane in your profile, `{ dash = ["usage", "ci", "web", "screens"] }`, and
+  what you add or take away later is written back there (a `.bak` first).
+  In a terminal: `phosphor dash usage ci web screens`, or `--json` for
+  scripts. Every card now has a door in the deck: the ones only `/` found
+  before (note, ask, backup, stats...) are in the gallery.
+
 ## 2.1.4 — every switch's state in JSON, and --select
 
 - Every switch says its state in JSON: `phosphor web status --json`,

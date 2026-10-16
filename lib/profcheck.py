@@ -28,7 +28,7 @@ HOST = {"name": None, "role": ("brain", "work", "desktop", "storage", "node", "v
 TAB = {"name": None, "split": ("rows", "cols"), "panes": None}
 PANE = {"cmd": None, "args": None, "ssh": None, "reconnect": BOOL, "size": None,
         "cwd": None, "needs_size": BOOL, "alt": BOOL, "split": ("rows", "cols"),
-        "panes": None}
+        "panes": None, "dash": None}
 TABLES = {
     "deck": DECK,
     "keys": {"edit": None, "new_tab": None, "note": None, "zoom": None, "leave": None,
@@ -104,6 +104,14 @@ def _panes(where, panes, out):
                 d = cli.removed_cmd(words[1])
                 if d:
                     out.append((where, "phosphor " + cli.removed(d)))
+            if "dash" in p:
+                d = p["dash"]
+                if not isinstance(d, list) or not all(isinstance(n, str) for n in d):
+                    out.append((where, 'dash is a list of command names, like ["usage", "ci"]'))
+                else:
+                    import dash
+                    for n in dash.unknown(d):
+                        out.append((where, "dash: %s has no card (+ in a dashboard shows them all)" % n))
             if "panes" in p:
                 _panes(where, p["panes"], out)
 

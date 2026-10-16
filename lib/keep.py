@@ -138,6 +138,14 @@ def spec_of(pane, ctx):
     if exe == "ssh":
         spec["ssh"] = fold_ssh(cmd[-1], ctx)
         spec["reconnect"] = "--reconnect" in flags
+    elif (cmd[0].endswith("/phosphor") or exe == "phosphor") and cmd[1:2] == ["dash"]:
+        rest, names = cmd[2:], []         # a dashboard: its cards, not the --tab gen gave it
+        while rest:
+            if rest[0] == "--tab":
+                rest = rest[2:]
+            else:
+                names.append(rest.pop(0))
+        spec["dash"] = names
     elif cmd[0].endswith("/phosphor") or exe == "phosphor":
         spec["cmd"] = "phosphor " + " ".join(cmd[1:2])
         rest = fold(cmd[2:], ctx) if cmd[2:] else []

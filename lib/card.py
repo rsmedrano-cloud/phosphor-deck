@@ -70,13 +70,26 @@ class Live:
     `every` seconds: drawing never waits on a command."""
 
     def __init__(self, names, every=15):
-        self.names, self.every, self.got = [n for n in names if (spec(n) or {}).get("state")], every, {}
-        if self.names:
+        self.every, self.got, self.names, self.running, self.stopped = every, {}, [], False, False
+        self.set(names)
+
+    def set(self, names):
+        """Keep the values of these cards from now on (a dashboard that
+        gained or lost one); a new one is fetched on the next round."""
+        self.names = [n for n in names if (spec(n) or {}).get("state")]
+        if self.names and not self.running:
+            self.running = True
             threading.Thread(target=self._loop, daemon=True).start()
 
+    def stop(self):
+        """No more fetching: a screen that's closing (the gallery)."""
+        self.stopped = True
+
     def _loop(self):
-        while True:
-            for n in self.names:
+        while not self.stopped:
+            for n in list(self.names):
+                if self.stopped:
+                    return
                 self.got[n] = fetch(n)
             time.sleep(self.every)
 

@@ -16,9 +16,13 @@ finds. So every public entry of share/commands.json declares its `card`
 - the DECK tab's keys (lib/panel.py's OPENS) name real commands, one entry
   per key.
 
-It then lists, without failing, what the next issue closes: the commands
-whose card is their only door so far (no DECK key, no + menu or fleet entry,
-no pane in a shipped shape or the layout).
+- the gallery (lib/dash.py, + on any dashboard and `dashboard` in the +
+  menu) holds every card that isn't plumbing, so no card is left without
+  a door.
+
+It then lists, without failing, the commands whose only door is that
+gallery (no DECK key, no + menu or fleet entry, no pane in a shipped shape
+or the layout).
 """
 import json, os, re, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -109,6 +113,12 @@ for rel, pats in (("lib/newtab.py", (PANE, ARGV)), ("lib/fleet.py", (PANE,)), ("
     text = open(os.path.join(ROOT, rel)).read()
     for pat in pats:
         doors |= set(pat.findall(text))
+import dash
+gallery = set(dash.gallery_names())
+gone = {d["name"] for d in cli.deprecations("command")}
+for n, c in cards.items():
+    if c["kind"] != "plumbing" and n not in gallery and n not in gone and not entries[n].get("hidden"):
+        bad.append("%s has a %s card the gallery (lib/dash.py) doesn't offer" % (n, c["kind"]))
 for c in doors:
     if c not in entries and c != "panel":
         bad.append("a deck door opens `phosphor %s`, which isn't a command" % c)
@@ -123,4 +133,4 @@ by_kind = {}
 for c in cards.values():
     by_kind[c["kind"]] = by_kind.get(c["kind"], 0) + 1
 print("doors-check ok (%d cards: %s)" % (len(cards), ", ".join("%d %s" % (v, k) for k, v in sorted(by_kind.items()))))
-print("  only their card so far (#64): " + (" ".join(only_card) or "none"))
+print("  only in the gallery: " + (" ".join(only_card) or "none"))
