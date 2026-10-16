@@ -494,3 +494,11 @@ Its tools only read what's already on the brain, and none of them sends, restart
   are what an unknown flag is checked against. `tests/commands-manifest-check.py` checks every
   flag it declares is one the code reads; `tests/argv-check.py`, that phosphor never calls
   itself with a flag it would refuse.
+- Every public command's entry also has a `card`: how it shows in the deck besides being
+  typed. A `sensor` shows live state (the `--json` field named in `state`) and opens the
+  command on a tap; a `toggle` shows on/off and names the `on` and `off` arguments; a `button`
+  runs it; a `shortcut` goes straight into a screen inside a panel (a host's containers, its
+  logs); `plumbing` has no card and says `why` (`attach`, `mcp`, `completion`...). `ask` names
+  what a tap asks for first, `confirm` that it asks y/n. `tests/doors-check.py` fails a
+  command with no card, or one whose card passes an argument the command doesn't take, and
+  lists the commands that today are only reachable by typing or searching them.

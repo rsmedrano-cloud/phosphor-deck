@@ -6,6 +6,19 @@ before it updates.
 
 ## Unreleased
 
+## 2.1.1 — every command declares its card
+
+- Every public command now says how it shows in the deck, not only how
+  it's typed: a `card` in `share/commands.json` (sensor, toggle, button,
+  shortcut, or plumbing for the ones that stay terminal-only, with the
+  reason). The cards themselves come next in this milestone; for now a
+  new check lists the commands you can only reach by typing or searching
+  them -- `ask`, `digest`, `glance`, `security`, `stats`, `usage` and a
+  few more.
+- `phosphor theme` with no arguments is marked as not changing anything
+  in `share/commands.json`, which is what it does: its picker only saves
+  on Enter.
+
 ## 2.1.0 — slow screens, less baggage
 
 - `phosphor keys | head` and `phosphor tunnel | cat` print the plain

@@ -44,6 +44,15 @@ GROUPS = [("screens",  [("v", "screens",          "who's attached; kick one loos
                         ("r", "restart",          "every screen comes back by itself"),
                         ("h", "manual",           "phosphor help, by topic")])]
 ACTIONS = [a for _, acts in GROUPS for a in acts]
+# the phosphor commands each key opens (act() below), as data: tests/doors-check.py
+# counts them as those commands' doors in the deck; s is a plain shell, f and P
+# show up only when the profile wants them
+OPENS = {"v": ["screens"], "p": ["phone"], "w": ["web"], "E": ["solaros"], "m": ["setup"],
+         "g": ["triage"], "j": ["tail"], "y": ["services"], "t": ["tunnel"], "e": ["commands"],
+         "z": ["workspace"], "x": ["review"], "i": ["store"], "s": [], "k": ["keep"], "b": ["tabs"],
+         "a": ["recipe"], "o": ["theme"], "c": ["shortcuts"], "?": ["keys"],
+         "n": ["push", "tts", "trace"], "d": ["doctor"], "M": ["mem"], "l": ["logs"],
+         "u": ["version", "update"], "r": ["restart"], "h": ["help"], "P": ["migrate"], "f": ["gen", "restart"]}
 NOTE_W = max(len(a[2]) for a in ACTIONS)
 CARD_W = 34                   # the narrowest a card gets: key, label, a little air
 WIDE = 23 + NOTE_W            # wide enough for every note: past this, another column fits

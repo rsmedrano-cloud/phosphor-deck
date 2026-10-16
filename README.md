@@ -387,7 +387,8 @@ page per topic. `phosphor help TOPIC` shows it inside the deck, and
 [AGENTS.md](AGENTS.md), built from the same pages, is what AI assistants
 should read: the rules, the concepts and an index pointing into the manual. [`share/commands.json`](share/commands.json) is every
 command's one definition in JSON -- usage, flags, which commands mutate live
-state, which need the deck running; `phosphor help`, `--help`, completion
+state, which need the deck running, how each one shows in the deck as a
+card; `phosphor help`, `--help`, completion
 and the check that refuses an unknown flag are built from it -- for a CI job, a cron, or a policy tool that wants to know
 without parsing prose. What you can build on -- the profile, the commands
 and their flags, `--json`, `phosphor mcp`, tabs.d, apps.toml, panels.d --

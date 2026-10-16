@@ -75,6 +75,7 @@ check "a workspace, folder to tab"         python3 tests/workspace-check.py
 check "a workspace's tab marks when NOTES.md changes" python3 tests/workspace-notes-watch-check.py
 check "ask picks an assistant, no tab"     python3 tests/ask-check.py
 check "commands.json: one definition for help, completion and the menu" python3 tests/commands-manifest-check.py
+check "doors: every public command has a card, a door in the deck" python3 tests/doors-check.py
 check "an unknown flag is a usage error; no call of phosphor's own is one" python3 tests/argv-check.py
 check "deprecated: warns on stderr, goes when it said it would" python3 tests/deprecations-check.py
 check "web on: never restarts unattended without --yes" python3 tests/web-check.py

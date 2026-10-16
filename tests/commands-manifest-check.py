@@ -32,7 +32,8 @@ for group in re.findall(r"cmd in \(([^)]*)\)", dispatcher):
 
 required = {"category": str, "usage": str, "summary": str, "mutates": bool, "needs_deck": bool, "note": str}
 optional = {"options": list, "words": list, "values": dict, "aliases": list, "module": (str, type(None)),
-            "own_help": bool, "hidden": bool, "internal": list, "takes_value": list, "free_text": bool}
+            "own_help": bool, "hidden": bool, "internal": list, "takes_value": list, "free_text": bool,
+            "card": dict}
 names = set(entries)
 seen_alias = set()
 for name, e in entries.items():
