@@ -9,12 +9,12 @@ loop instead of only the ones deck.log always keeps. It turns itself off
 on its own after 30 minutes, so nothing verbose is ever left running by
 accident. `off TOOL` stops one sooner. With no TOOL, it lists whatever is
 tracing right now -- and on a terminal, offers to start one (the tools
-deck.log has lines for) or stop one.
+deck.log has lines for, or any name) or stop one, in a panel.
 """
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import dlog
-from ui import FG, DIM, AMB, RST
+import dlog, tui
+from ui import FG, DIM, AMB, PH, RST, pad
 
 MINUTES = 30
 
@@ -36,33 +36,54 @@ def start(tool):
     return 0
 
 
+class Panel(tui.ListPanel):
+    """The tools deck.log has lines for, and whatever is tracing: Enter
+    starts one for MINUTES or stops it, / names one deck.log hasn't seen."""
+    KEYS = [("enter", "trace / stop"), ("/", "another name"), ("q", "quit")]
+    TITLE = "TRACE"
+    SUB = "a tool's verbose log, %d minutes" % MINUTES
+
+    def fetch(self):
+        on = dict(dlog.active_traces())
+        names = list(on) + [t for t in dlog.tools_seen() if t not in on]
+        if not names:
+            self.problem = "deck.log has no tools yet: / names one"
+        return [(t, on.get(t)) for t in names]
+
+    def lines(self, w, sel):
+        out = []
+        for i, (tool, left) in enumerate(self.rows):
+            state = "%d min left" % left if left is not None else ""
+            if i == sel:
+                out.append(" " + tui.INV + pad(" %-12s %s" % (tool, state), w - 2)[:w - 2] + RST)
+            else:
+                out.append("  " + (AMB if left is not None else FG) + "%-12s" % tool + RST + " " + DIM + state + RST)
+        return out
+
+    def key(self, k):
+        if k == "/" and not self.ask:      # works with no rows too
+            name = self.line("trace which tool?")
+            if name and name.strip():
+                self.toggle(name.strip().upper(), None)
+            return True
+        return super().key(k)
+
+    def act(self, k, row):
+        self.toggle(*row)
+
+    def toggle(self, tool, left):
+        if left is None:
+            dlog.start_trace(tool, MINUTES)
+            self.say("tracing %s for %d minutes · phosphor logs %s reads it back" % (tool, MINUTES, tool.lower()), PH)
+        else:
+            dlog.stop_trace(tool)
+            self.say("%s stopped" % tool)
+        self.refresh()
+
+
 def interactive():
     """No arguments, on a terminal: what's on, then start or stop one."""
-    import edit, form
-    while True:
-        on = listing()
-        opts = [("t", "trace a tool")] + ([("x", "stop one")] if on else [])
-        k = form.choice(opts)
-        if k == "t":
-            active = {t for t, _ in on}
-            items = [(t, "on" if t in active else "") for t in dlog.tools_seen()]
-            got = edit.pick("trace which tool, for %d minutes?" % MINUTES, items,
-                            extra=[("/", "another name")])
-            if got == "/":
-                name = form.line("trace which tool?", "its name as deck.log writes it (FLEET, PROM...)")
-                got = (name.strip(),) if name and name.strip() else None
-            form.leave()
-            if got:
-                start(got[0])
-        elif k == "x":
-            got = edit.pick("stop which trace?", [(t, "%d min left" % m) for t, m in on])
-            form.leave()
-            if got:
-                dlog.stop_trace(got[0])
-                print("  " + AMB + got[0] + RST + " stopped")
-        else:
-            return 0
-        print()
+    return Panel().run()
 
 
 def main():

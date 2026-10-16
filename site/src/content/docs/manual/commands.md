@@ -265,7 +265,7 @@ sidebar:
   on the kit every panel uses (see profile, "panels.d"): with no name, which there are and what
   each is (read from the file, not run); with one, it opens there. They're in the store and the
   `+` menu too, as "yours".
-- `phosphor keys` — the key guide; `phosphor store` — install TUIs, no sudo: Enter installs (or opens what you have in a tab), `d` removes one (only from ~/.local/bin, asks y/n first), `i` shows only what's installed, `/` filters, Esc clears; rows and keys answer a tap.
+- `phosphor keys` — the key guide, a key per row (the wheel, j/k or a tap move through it; `s` runs setup); `phosphor store` — install TUIs, no sudo: Enter installs (or opens what you have in a tab), `d` removes one (only from ~/.local/bin, asks y/n first), `i` shows only what's installed, `/` filters, Esc clears; rows and keys answer a tap.
   Enter on an installed app opens it in a new tab; `i` shows only what's installed. Your own apps
   (`apps.toml`, see profile) come first, as "yours".
 - `phosphor new` — the new-tab menu (what + and Alt-n open). **layout** in it: pick a shape (2 columns,
@@ -393,8 +393,8 @@ sidebar:
   one on, else its lines from the base log); `-f` follows, like `tail -f`. Also `l` in the DECK tab.
 - `phosphor trace TOOL` — verbose logging for that tool alone, into `trace-TOOL.log`; turns itself
   off after about 30 minutes, or sooner with `phosphor trace off TOOL`. No `TOOL`: lists whatever is
-  tracing right now, and on a terminal `t` starts one (the tools deck.log has lines for) and `x`
-  stops one.
+  tracing right now; on a terminal, a panel of what's on and the tools deck.log has lines for:
+  Enter starts or stops one, `/` names another.
 
 ## For scripts: --json
 Every read-only listing prints its data once as one JSON object with `--json`: no color, no

@@ -5,8 +5,9 @@ frame(). j/k and the wheel pick, a tap on a row picks it, a tap on the key
 bar presses that key, a question runs its action only on y, a tap while it
 waits says no, rows that don't fit scroll with the pick, a problem line
 can't be picked or acted on, q quits. Then the real panels on it:
-services, containers, screens, review, store. Last, ui.getkey itself, the
-one keyboard reader every screen shares, through a pty.
+services, containers, screens, review, store, tunnels, trace, keys.
+Last, ui.getkey itself, the one keyboard reader every screen shares,
+through a pty.
 
     python3 tests/tui-check.py
 """
@@ -235,6 +236,64 @@ tp.rows[2] = ("SHARED", True, "shared.toml", True)
 tp.key("f"); need("tabs: a placed one asks to un-place", tp.ask and "un-place SHARED" in tp.ask[0])
 tp.key("y"); need("tabs: y un-places", forgot == ["SYS", "SHARED"] and "un-placed" in tp.msg)
 need("tabs: keys", [k for k, _ in tp.KEYS] == ["f", "K", "J", "o", "q"])
+
+# ── tunnels: a host per row, its forwards under it; Enter asks, the warning as its note
+import tunnels as TN
+toggled = []
+TN.listing = lambda: [{"host": "db-box", "state": "off", "forwards": [{"local": "33307", "target": "127.0.0.1:3306",
+                                                                      "label": "mysql", "listening": None}]},
+                      {"host": "nimbus", "state": "up", "forwards": []}]
+TN.on = lambda h: (toggled.append(("on", h)), print("  ✓ db-box 1/1 forwards listening"))[0] or 0
+TN.off = lambda h: (toggled.append(("off", h)), print("  ✓ nimbus tunnels stopped"))[0] or 0
+tn = TN.Panel(); tn.draw = lambda: None; tn.update(); out = tn.frame(80, 24)
+need("tunnels: a row per host, forwards under it", "db-box" in out[HEAD] and "33307" in out[HEAD + 1] and "nimbus" in out[HEAD + 2])
+tn.key("j"); need("tunnels: forwards are never picked", tn.sel == 1)
+tn.key("k"); tn.key("\r")
+need("tunnels: enter asks first, and says what it costs", tn.ask and "keep db-box" in tn.ask[0] and not toggled
+     and "other users" in "".join(tn.frame(80, 24)))
+tn.key("y"); need("tunnels: y keeps it up, its output as one line", toggled == [("on", "db-box")] and "forwards listening" in tn.msg
+                  and "\x1b[" not in tn.msg.replace(ui.PH, "").replace(ui.RST, ""))
+tn.key("j"); tn.key("\r"); tn.key("n"); need("tunnels: n leaves it", toggled == [("on", "db-box")] and "left alone" in tn.msg)
+tn.key("\r"); tn.key("y"); need("tunnels: an up one turns off", toggled[-1] == ("off", "nimbus"))
+TN.listing = lambda: []
+tn = TN.Panel(); tn.update()
+need("tunnels: none says so", "no LocalForward lines" in "".join(tn.frame(80, 24)) and tn.key("\r") and tn.ask is None)
+
+# ── trace: what's on first, then what deck.log has seen; enter toggles, / names one
+import trace as TR, dlog
+on_now = {"RUN": 12}
+dlog.active_traces = lambda: list(on_now.items())
+dlog.tools_seen = lambda: ["FLEET", "RUN"]
+dlog.start_trace = lambda t, m=30: on_now.__setitem__(t, m)
+dlog.stop_trace = lambda t: on_now.pop(t, None) is not None
+tr = TR.Panel(); tr.draw = lambda: None; tr.update(); out = tr.frame(80, 24)
+need("trace: what's on comes first", "RUN" in out[HEAD] and "12 min left" in out[HEAD] and "FLEET" in out[HEAD + 1])
+tr.key("\r"); need("trace: enter stops one that's on", "RUN" not in on_now and "stopped" in tr.msg)
+tr.update()
+tr.sel = [t for t, _ in tr.rows].index("FLEET"); tr.key("\r")
+need("trace: enter starts one for 30 minutes", on_now.get("FLEET") == 30 and "phosphor logs fleet" in tr.msg)
+typed = iter(["p", "r", "o", "m", "\r"])
+real_getkey, tui.getkey = tui.getkey, (lambda *a, **kw: next(typed))
+tr.key("/"); need("trace: / names another", on_now.get("PROM") == 30)
+dlog.tools_seen, on_now = (lambda: []), {}
+tr = TR.Panel(); tr.draw = lambda: None; tr.update()
+need("trace: none seen says so", "/ names one" in "".join(tr.frame(80, 24)))
+typed = iter(["x", "\r"]); tr.key("/"); need("trace: / works with no rows", "X" in on_now)
+tui.getkey = real_getkey
+
+# ── keys: a section's title is never picked, every key a row, s runs setup
+import keys as KY
+kdb = os.path.join(os.environ["HOME"], "keys.json")
+json.dump({"_tool": {"t": "TOOL", "always": True, "k": [["Alt a", "one"], ["", "a note"], ["Alt b", "two"]]},
+           "gone": {"t": "GONE", "k": [["x", "never shown"]]}}, open(kdb, "w"))
+KY.DB, setups = kdb, []
+KY.run_setup = lambda: setups.append(1)
+ky = KY.Panel(); ky.update(); out = ky.frame(80, 24)
+need("keys: installed tools only", "TOOL" in "".join(out) and "GONE" not in "".join(out) and "1 tools" in "".join(out[:HEAD]))
+need("keys: the keys are the rows", [k for _, k in ky.rows] == ["Alt a", "Alt b"])
+ky.key("j"); need("keys: j skips the note", ky.sel == 1 and "\x1b[7m" in [l for l in ky.frame(80, 24) if "two" in l][0])
+ky.key("s"); need("keys: s runs setup", setups == [1])
+need("keys: no tty prints it plain", "Alt b" in "\n".join(KY.build(KY.load(), 78)[0]))
 
 # ── run() on a real terminal (a pty, no zellij): draws, takes j, quits on q
 import pty, select, subprocess, time

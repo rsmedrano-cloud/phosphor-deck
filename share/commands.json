@@ -502,7 +502,7 @@
     "module": "tunnels",
     "mutates": false,
     "needs_deck": false,
-    "note": "listing (and --json) is read-only; `on HOST`/`off HOST` write the profile and start/stop a systemd unit that keeps `ssh -N HOST` running, unconditionally."},
+    "note": "listing (and --json) is read-only; `on HOST`/`off HOST` write the profile and start/stop a systemd unit that keeps `ssh -N HOST` running, unconditionally. On a terminal with no HOST, its panel does the same for the picked host on Enter, after a y/n."},
   "face": {"category": "In the deck",
     "usage": "phosphor face IMAGE [--name NAME] [--w N] [--h N]",
     "summary": "turn an image into the adjutant's face",

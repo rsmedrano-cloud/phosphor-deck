@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """phosphor keys - the key guide. Shows a section for every installed tool
 (share/keys.json) and picks up new installs by itself."""
-import json, os, select, shutil, subprocess, sys, termios, time, tty
+import json, os, shutil, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from ui import FG, DIM, MUTE, PH, BLOOM, AMB, RULE, RST, REPO, share, vlen, pad, topbar
-from ui import getkey
+from ui import FG, DIM, BLOOM, AMB, RULE, RST, REPO, share, vlen, pad, topbar
+import tui
 
 HOME = os.path.expanduser("~")
 BIN  = os.path.join(HOME, ".local/bin")
@@ -16,31 +16,41 @@ def have(name):
     if os.path.isfile(p) and os.access(p, os.X_OK): return True
     return shutil.which(name) is not None
 
-def build(db, w):
+def sections(db):
+    """[(title, [(key, what)])] for every installed tool; a key "" is a note."""
+    return [(sec["t"], sec["k"]) for key, sec in db.items() if sec.get("always") or have(key)]
+
+def build(db, w, sel=None):
+    """The guide's lines: a section's title and its notes are Heads, every
+    key a row; sel, the picked key (counted across sections), in reverse."""
     kw = min(20, max(12, w // 3))
-    lines, n = [], 0
-    for key, sec in db.items():
-        if not sec.get("always") and not have(key): continue
+    lines, n, i = [], 0, 0
+    for t, keys in sections(db):
         n += 1
-        lines.append("")
-        title = " " + BLOOM + sec["t"] + RST
-        lines.append(title + " " + RULE + "─"*max(0, w - vlen(title) - 2) + RST)
-        for k, act in sec["k"]:
+        lines.append(tui.Head(""))
+        title = " " + BLOOM + t + RST
+        lines.append(tui.Head(title + " " + RULE + "─"*max(0, w - vlen(title) - 2) + RST))
+        for k, act in keys:
             if not k:
-                lines.append("   " + DIM + act + RST)
+                lines.append(tui.Head("   " + DIM + act + RST))
+                continue
+            if i == sel:
+                lines.append("  " + tui.INV + pad(" " + "%-*s" % (kw, k) + act, w - 3)[:w - 3] + RST)
             else:
                 lines.append("   " + AMB + ("%-*s" % (kw, k)) + RST + FG + act + RST)
+            i += 1
     return lines, n
 
 def run_setup():
     """s runs setup in this same pane (no new tab, no floating pane) and the
     guide comes back when it exits. The DECK panel next to it has the rest."""
-    sys.stdout.write("\x1b[?1006l\x1b[?1000l\x1b[?25h\x1b[2J\x1b[H"); sys.stdout.flush()
+    tui.off()
+    sys.stdout.write("\x1b[2J\x1b[H"); sys.stdout.flush()
     try:
         subprocess.run([sys.executable, os.path.join(REPO, "phosphor"), "setup"])
     except KeyboardInterrupt:
         pass
-    sys.stdout.write("\x1b[?25l\x1b[?1000h\x1b[?1006h"); sys.stdout.flush()
+    tui.on()
 
 def mine(db):
     """The deck's own keys as [keys] in the profile has them."""
@@ -49,62 +59,55 @@ def mine(db):
         db["_deck"]["k"] = shortcuts.guide_rows(db["_deck"]["k"], deckconf.load()[0])
     return db
 
-def dump():
-    """No TTY (a pipe, |less, a script): plain dump and exit."""
-    try: db = mine(json.load(open(DB)))
+def load(throttled=False):
+    try: return mine(json.load(open(DB)))
     except Exception:
         import dlog
-        dlog.event("KEYS", "load-failed")   # never str(e): it can quote the install path
-        db = {}
-    lines, n = build(db, 78)
+        # never str(e): it can quote the install path
+        (dlog.event_throttled if throttled else dlog.event)("KEYS", "load-failed")
+        return {}
+
+def dump():
+    """No TTY (a pipe, |less, a script): plain dump and exit."""
+    lines, n = build(load(), 78)
     print("\n".join(lines))
     print()
+
+
+class Panel(tui.ListPanel):
+    """The guide on the shared list panel: the wheel, j/k and taps scroll
+    through the keys (the picked one shows where you are), s runs setup."""
+    KEYS = [("s", "setup: machines and color"), ("q", "quit")]
+    INTERVAL = RESCAN
+
+    def __init__(self):
+        super().__init__()
+        self.db = {}
+
+    def fetch(self):
+        self.db = load(throttled=True)
+        rows = [(t, k) for t, keys in sections(self.db) for k, _ in keys if k]
+        if not rows:
+            self.problem = "no keys to show: share/keys.json didn't load (phosphor logs)"
+        return rows
+
+    def header(self, w):
+        return topbar("KEYS", "every installed tool", "%d tools" % len(sections(self.db)), min(w, 100))
+
+    def lines(self, w, sel):
+        return build(self.db, min(w, 100), sel)[0]
+
+    def act(self, k, row):
+        run_setup()
+        self.refresh()
+
 
 def main():
     global DB
     DB = share("keys.json")
-
     if not sys.stdin.isatty():
         dump(); return
-    off, last, db = 0, 0, {}
-    lines, n = [], 0
-    sys.stdout.write("\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h")
-    try:
-        while True:
-            cols, rows = shutil.get_terminal_size((60, 30))
-            w = min(cols, 100)
-            if time.time() - last > RESCAN:
-                try: db = mine(json.load(open(DB)))
-                except Exception:
-                    import dlog
-                    dlog.event_throttled("KEYS", "load-failed")
-                    db = {}
-                lines, n = build(db, w); last = time.time()
-            body = max(3, rows - 3)
-            maxoff = max(0, len(lines) - body)
-            off = max(0, min(off, maxoff))
-            at = " · %d/%d" % (min(off+body, len(lines)), len(lines)) if maxoff else ""
-            out = topbar("KEYS", "every installed tool", "%d tools%s" % (n, at), w)
-            win = lines[off:off+body]
-            out += win + [""] * (body - len(win))
-            out.append(DIM + " j/k or two fingers: scroll · " + RST + AMB + "s" + RST
-                       + DIM + " setup: machines and color" + RST)
-            sys.stdout.write("\x1b[H" + "\x1b[K\n".join(out) + "\x1b[K\x1b[J"); sys.stdout.flush()
-
-            k = getkey(1.0, mouse=True)
-            if k is None: continue
-            if k in ("q", "\x03"): break
-            elif k in ("j", "\x1b[B", "WDN"): off += 3 if k == "WDN" else 1
-            elif k in ("k", "\x1b[A", "WUP"): off -= 3 if k == "WUP" else 1
-            elif k == " ": off += body
-            elif k == "g": off = 0
-            elif k == "G": off = maxoff
-            elif k == "r": last = 0
-            elif k == "s": run_setup(); last = 0
-    except KeyboardInterrupt:
-        pass
-    finally:
-        sys.stdout.write("\x1b[?1006l\x1b[?1000l\x1b[?1049l\x1b[?25h\n")
+    Panel().run()
 
 if __name__ == "__main__":
     main()

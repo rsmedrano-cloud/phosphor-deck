@@ -20,7 +20,7 @@ host, and the unit reconnects when the link drops. Port 33307 on the brain now
 reaches the remote 3306.
 
     phosphor tunnel              list hosts, forwards and whether each port listens
-                                 (on a terminal: pick one to turn on or off)
+                                 (on a terminal: a panel, Enter turns one on or off)
     phosphor tunnel on HOST
     phosphor tunnel off HOST     stop it and remove it from the profile
 

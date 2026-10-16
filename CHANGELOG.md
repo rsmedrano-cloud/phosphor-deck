@@ -6,6 +6,22 @@ before it updates.
 
 ## Unreleased
 
+## 2.0.8 — tunnels, trace and keys on the shared list panel
+
+- `phosphor tunnel` on a terminal (and `t` in the DECK tab, the tunnels
+  entry in setup) is now a list panel like services: a host per row with
+  its forwards under it, refreshing on its own; Enter keeps one up or turns
+  it off after a y/n that shows what keeping it up costs. Rows and keys
+  answer a tap.
+- `phosphor trace` with no tool, on a terminal (and from `n` in the DECK
+  tab), is that same panel: what's tracing first, with its minutes left,
+  then every tool deck.log has lines for; Enter starts or stops one, `/`
+  names one deck.log hasn't seen.
+- `phosphor keys` (`?` in the DECK tab) is on that panel too: each key is a
+  row, so the wheel, j/k and a tap move through them and the picked one
+  shows where you are; `s` (setup) is on a tappable key bar. Space and `r`
+  are gone: it pages with the pick and rereads keys.json every 5 seconds.
+
 ## 2.0.7 — a SolarOS panel as a face of the deck
 
 - A SolarOS e-ink panel gets an app that's a menu of the deck, and one

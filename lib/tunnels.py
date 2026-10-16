@@ -9,7 +9,7 @@ Two things to know: the forwards listen on this machine's 127.0.0.1, so its
 other users can reach them too; and this machine keeps a key that logs into
 those hosts.
 
-    phosphor tunnel              list them (on a terminal: pick one to toggle)
+    phosphor tunnel              list them (on a terminal: a panel, Enter toggles one)
     phosphor tunnel --json       the same list as JSON
     phosphor tunnel on HOST      keep HOST's tunnels up
     phosphor tunnel off HOST     stop them and forget them
@@ -17,7 +17,7 @@ those hosts.
 import os, re, shutil, socket, subprocess, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
-import deckconf, proc
+import deckconf, proc, tui
 
 UDIR = os.path.expanduser("~/.config/systemd/user")
 WARN_TEXT = ("the forwards listen on this machine's 127.0.0.1: other users of this machine can reach them",
@@ -184,19 +184,60 @@ def off(host):
     print(row(OK, host, "tunnels stopped" + (" and forgotten" if removed else "")))
     return 0
 
+def quietly(fn, host):
+    """on()/off() on the panel's screen: what they print becomes one line. (ok, msg)"""
+    import contextlib, io
+    buf = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(buf):
+            rc = fn(host)
+    except (OSError, RuntimeError, subprocess.SubprocessError) as e:
+        return False, "%s: %s" % (host, e.__class__.__name__ if isinstance(e, OSError) else e)
+    said = [re.sub(r"\x1b\[[0-9;]*m", "", l).strip() for l in buf.getvalue().splitlines()]
+    said = [l.lstrip("✓✗⚠ ").strip() for l in said if l]
+    return rc == 0, " · ".join(said[-2:] if rc else said[-1:]) or host
+
+
+class Panel(tui.ListPanel):
+    """Every host with forwards: Enter keeps it up or turns it off."""
+    KEYS = [("enter", "keep up / turn off"), ("q", "quit")]
+    INTERVAL = 10
+    TITLE, SUB = "TUNNELS", "LocalForward lines kept up"
+
+    def fetch(self):
+        ts = listing()
+        if not ts:
+            self.problem = "no LocalForward lines in ~/.ssh/config: nothing to keep up"
+        return ts
+
+    def lines(self, w, sel):
+        out = []
+        for i, t in enumerate(self.rows):
+            state = t["state"]
+            mark = OK if state == "up" else (BAD if state == "down" else DIM + "·" + RST)
+            if i == sel:
+                out.append(" " + tui.INV + pad(" %-24s %s" % (t["host"], state), w - 2)[:w - 2] + RST)
+            else:
+                out.append(vcut("  " + mark + " " + FG + "%-24s" % t["host"] + RST + " " + DIM + state + RST, w))
+            for f in t["forwards"]:
+                m = " " if f["listening"] is None else (OK if f["listening"] else BAD)
+                out.append(tui.Head(vcut("      %s %s → %s%s" % (m, PH + f["local"] + RST, f["target"],
+                                         DIM + ("  " + f["label"] if f["label"] else "") + RST), w)))
+        return out
+
+    def act(self, k, row):
+        host = row["host"]
+        if row["state"] == "off":
+            def do():
+                self.say("logging into %s, then starting its forwards..." % host, DIM); self.draw()
+                return quietly(on, host)
+            self.confirm("keep %s's tunnels up?" % host, do, note="\n".join(WARN_TEXT))
+        else:
+            self.confirm("stop %s's tunnels and forget them?" % host, lambda: quietly(off, host))
+
+
 def interactive():
-    from init import pick
-    while True:
-        print()
-        show()
-        prof, _ = deckconf.load()
-        fw, on_ = ssh_config_forwards(), {t["host"] for t in kept(prof)}
-        hosts = sorted(set(fw) | on_)
-        if not hosts: return 0
-        opts = ["%-24s %s" % (h, "turn off" if h in on_ else "keep up") for h in hosts] + ["done"]
-        k = pick("toggle which?", opts, len(opts) - 1)
-        if k == len(opts) - 1: return 0
-        (off if hosts[k] in on_ else on)(hosts[k])
+    return Panel().run()
 
 def main():
     a = sys.argv[1:]
