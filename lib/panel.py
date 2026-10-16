@@ -1,5 +1,6 @@
 """phosphor panel - the DECK tab: the deck's own state, what's left to set
-up, and every phosphor action one key (or one tap) away.
+up, and every phosphor action one key (or one tap) away, each one a card
+(lib/card.py): its live value, and the command that does it in a terminal.
 
 It runs on the brain, so phosphor always has a place to run even when every
 other tab is an ssh to somewhere else. Actions run in this same pane and
@@ -8,7 +9,7 @@ come back here: no new tabs, no floating panes.
 import os, shutil, subprocess, sys, termios, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
-import deckconf, migrate, proc, version
+import card, deckconf, migrate, proc, version
 
 PHOSPHOR = os.path.join(REPO, "phosphor")
 STEPS = os.path.join(deckconf.data_dir(), "steps")
@@ -52,11 +53,21 @@ OPENS = {"v": ["screens"], "p": ["phone"], "w": ["web"], "E": ["solaros"], "m": 
          "z": ["workspace"], "x": ["review"], "i": ["store"], "s": [], "k": ["keep"], "b": ["tabs"],
          "a": ["recipe"], "o": ["theme"], "c": ["shortcuts"], "?": ["keys"],
          "n": ["push", "tts", "trace"], "d": ["doctor"], "M": ["mem"], "l": ["logs"],
-         "u": ["version", "update"], "r": ["restart"], "h": ["help"], "P": ["migrate"], "f": ["gen", "restart"]}
-NOTE_W = max(len(a[2]) for a in ACTIONS)
-CARD_W = 34                   # the narrowest a card gets: key, label, a little air
-WIDE = 23 + NOTE_W            # wide enough for every note: past this, another column fits
+         "u": ["update", "version"], "r": ["restart"], "h": ["help"], "P": ["migrate"], "f": ["gen", "restart"]}
+# a key that opens one plain command (no picker or question of the panel's
+# own first) opens it as its card does: card.tap, the same as on a dashboard
+TAPS = {"e", "v", "M", "m", "i", "o", "y", "z", "c", "b", "a", "?", "d", "l", "h", "P"}
+WAITS = {"d", "l", "h", "P"}  # those that end on their own output wait for q, Esc or Enter
 GAP = 2
+
+def command(k):
+    """What a key does, typed in a terminal: the deck teaches it."""
+    return "phosphor " + OPENS[k][0] if OPENS.get(k) else ""   # the first: the one it's for
+
+LINE_W = card.HEAD_W + card.LABEL_W + 1 + card.VALUE_W   # key, label, value
+CARD_W = LINE_W + 5                                       # the narrowest a card gets: a little air
+CMD_W = max(len(command(a[0])) for a in ACTIONS)
+WIDE = LINE_W + 2 + CMD_W + 2 + 26       # room for a note's first clause: past this, another column fits
 
 def mark(step):
     """Called where the user does what a next step asks (phone kit, coming back)."""
@@ -97,6 +108,14 @@ def state(prof):
          "restart_pending": deckconf.restart_pending(sess),
          "version": version.current()["version"], "channel": version.current()["channel"],
          "news": version.news(), "migrate": len(migrate.pending())}
+    try:
+        import dlog, push, solaros, tts
+        s["solaros"] = bool(solaros.serve_mode(prof))
+        s["notices"] = (push.get_config(prof)["enabled"] + tts.get_config(prof)["enabled"]
+                        + bool(dlog.active_traces()))
+    except Exception:          # a value the card can't show, never a panel that won't draw
+        import dlog
+        dlog.event_throttled("PANEL", "state-failed")
     version.check_later()
     if os.environ.get("ZELLIJ"):
         # the header line aside, one line per screen looking at the deck
@@ -113,41 +132,60 @@ def steps(prof):
             ("add another machine (m)",                len(deckconf.hosts(prof)) > 1),
             ("make a tab yours: + in the tab bar, keep", any(n not in STOCK_TABS for n in tabs))]
 
-def cards(prof, st, with_steps=True):
-    """(title, items): an item is (key or "", text, note, warn)."""
+# the keys whose value the panel's own state() knows; the rest come from
+# their command's --json, in the background (card.Live)
+OWN = {"v", "w", "t", "E", "n", "u"}   # z: its dirty count, else its --json
+
+def live_names():
+    """The commands card.Live keeps a value of, for the DECK."""
+    return [OPENS[a[0]][0] for a in ACTIONS if a[0] not in OWN and len(OPENS[a[0]]) == 1]
+
+def value(k, st, live=None):
+    """(value, warn) a key's card shows."""
+    if k == "v" and st.get("screens") is not None:
+        return str(st["screens"]), False
+    if k == "w":
+        if st.get("web_mismatch"):
+            return "half", True
+        return ("local" if st.get("web_local") else "on") if st.get("web") else "off", False
+    if k == "t":
+        tu = st.get("tunnels") or []
+        return ("%d/%d up" % (sum(tu), len(tu)) if tu else "none"), sum(tu) < len(tu)
+    if k == "z" and st.get("dirty_workspaces"):
+        return "%d dirty" % st["dirty_workspaces"], True
+    if k == "E" and "solaros" in st:
+        return "on" if st["solaros"] else "off", False
+    if k == "n" and "notices" in st:
+        return ("%d on" % st["notices"] if st["notices"] else "off"), False
+    if k == "u":
+        return ("new", True) if st.get("news") else (None, False)
+    if live and len(OPENS.get(k, [])) == 1:
+        return live.get(OPENS[k][0])
+    return None, False
+
+def cards(prof, st, with_steps=True, live=None):
+    """(title, items): an item is (key or "", text, note, warn, value)."""
     deck = []
-    if st["screens"] is not None:
-        deck.append(("v", "%d screen%s in" % (st["screens"], "" if st["screens"] == 1 else "s"), "", False))
     if st["timer"] is not None:
-        deck.append(("", "watchdog " + ("on" if st["timer"] else "OFF"), "", not st["timer"]))
-    web = ("web half on" if st.get("web_mismatch") else
-           "web " + (("local" if st.get("web_local") else "on") if st["web"] else "off"))
-    deck.append(("w", web, "", bool(st.get("web_mismatch"))))
-    tu = st["tunnels"]
-    deck.append(("t", "tunnels %d/%d up" % (sum(tu), len(tu)) if tu else "no tunnels", "", sum(tu) < len(tu)))
-    if st.get("dirty_workspaces"):
-        n = st["dirty_workspaces"]
-        deck.append(("z", "%d workspace%s dirty" % (n, "" if n == 1 else "s"), "", True))
+        deck.append(("", "watchdog", "", not st["timer"], "on" if st["timer"] else "OFF"))
     if st.get("migrate"):
-        deck.append(("P", "profile: %d to migrate" % st["migrate"], "", True))
-    cs = [("deck", deck)]
+        deck.append(("P", "profile migrate", "", True, "%d step%s" % (st["migrate"], "" if st["migrate"] == 1 else "s")))
+    cs = [("deck", deck)] if deck else []
     todo = steps(prof)
     if with_steps and not all(done for _, done in todo):
-        cs.append(("next steps", [("", text, "", None if done else "todo") for text, done in todo]))
-    return cs + [(t, [(k, label, note, False) for k, label, note in acts]) for t, acts in GROUPS]
+        cs.append(("next steps", [("", text, "", None if done else "todo", None) for text, done in todo]))
+    return cs + [(t, [(k, label, note) + value(k, st, live)[::-1] for k, label, note in acts])
+                 for t, acts in GROUPS]
 
-def item(it, cw, notes):
-    k, text, note, warn = it
+def item(it, cw, notes, cmd_w=0):
+    k, text, note, warn, val = it
     if warn is None:                      # a next step already done
         return "  " + OK + " " + DIM + text[:cw - 4] + RST
     if warn == "todo":                    # a next step still to do
         return "  " + DIM + "·" + RST + " " + FG + text[:cw - 4] + RST
-    head = "  " + (AMB + k + RST if k else " ") + "  "
-    room = cw - 5
-    color = AMB if warn is True else FG
-    if notes and note:
-        return head + color + "%-17s" % text[:17] + RST + " " + DIM + note[:max(0, room - 18)] + RST
-    return head + color + text[:room] + RST
+    cmd = command(k)
+    return card.line(k, text, val, cmd.ljust(cmd_w) if notes and cmd else cmd,
+                     note if notes else "", cw, warn is True)
 
 def layout(cs, w, avail):
     """The fewest columns that show every card at once, so the notes get
@@ -165,9 +203,10 @@ def layout(cs, w, avail):
         if tall <= avail or n == most:
             return cols, cw
 
-def draw(prof, st, w, rows, off=0, with_steps=True):
+def draw(prof, st, w, rows, off=0, with_steps=True, live=None):
     """The lines, the tap targets ({row: [(x0, x1, key)]}, 1-based like the
-    mouse) and how far it scrolls."""
+    mouse) and how far it scrolls. live: a card.Live for the values the
+    panel doesn't know itself."""
     L, hit = [], {}
     ver = "v" + st["version"] + (" nightly" if st.get("channel") == "nightly" else "")
     L.append(pad(BLOOM + " PHOSPHOR DECK" + RST + DIM + " · " + st["session"] + RST, w - len(ver) - 1)
@@ -185,8 +224,8 @@ def draw(prof, st, w, rows, off=0, with_steps=True):
     else:
         L.append(" " + DIM + "a key or a tap" + RST)
     avail = max(3, rows - 3)
-    cols, cw = layout(cards(prof, st, with_steps), w, avail)
-    notes = cw >= WIDE
+    cols, cw = layout(cards(prof, st, with_steps, live), w, avail)
+    notes = cw >= LINE_W + 2 + CMD_W + 16     # a note cut at a word still says something
     body, spots = [], []                  # spots: (body row, x0, x1, key)
     for c, col in enumerate(cols):
         x0, r = c * (cw + GAP), 0
@@ -196,8 +235,9 @@ def draw(prof, st, w, rows, off=0, with_steps=True):
             while len(body) <= r + len(items):
                 body.append([""] * len(cols))
             body[r][c] = rule(title, cw)
+            cmd_w = max(len(command(it[0])) for it in items)   # the notes line up, card by card
             for i, it in enumerate(items):
-                body[r + 1 + i][c] = item(it, cw, notes)
+                body[r + 1 + i][c] = item(it, cw, notes, cmd_w)
                 if it[0]:
                     spots.append((r + 1 + i, x0 + 1, x0 + cw, it[0]))
             r += 1 + len(items)
@@ -229,16 +269,12 @@ def act(k, st):
     sys.stdout.write("\x1b[?1006l\x1b[?1000l\x1b[?25h\x1b[2J\x1b[H"); sys.stdout.flush()
     P = lambda *a: subprocess.run([sys.executable, PHOSPHOR] + list(a))
     try:
-        if k == "e":
-            P("commands")
-        elif k == "v":
-            P("screens")
-        elif k == "M":
-            P("mem")
+        if k in TAPS:
+            card.tap(OPENS[k][0])
+            if k in WAITS:
+                pause()
         elif k == "p":
             P("phone"); pause()
-        elif k == "m":
-            P("setup")
         elif k == "w":
             P("web", "status")
             print()
@@ -287,8 +323,6 @@ def act(k, st):
         elif k == "t":
             import tunnels
             tunnels.interactive()
-        elif k == "i":
-            P("store")
         elif k == "k":
             P("keep", "--pick"); pause()
         elif k == "g":
@@ -306,12 +340,6 @@ def act(k, st):
                     except (EOFError, KeyboardInterrupt):
                         svc = ""
                     P(*(["tail", picked[0]] + ([svc] if svc else [])))
-        elif k == "o":
-            P("theme")
-        elif k == "y":
-            P("services")
-        elif k == "z":
-            P("workspace")
         elif k == "x":
             if not (deckconf.exe("glab") or deckconf.exe("gh")):
                 print(DIM + "  review needs glab (GitLab) or gh (GitHub; i installs it)." + RST); pause()
@@ -323,10 +351,6 @@ def act(k, st):
         elif k == "s":
             print(DIM + "  a shell on this machine. exit (or Ctrl-d) comes back to the panel." + RST)
             subprocess.run([deckconf.shell(deckconf.load()[0]), "-l"])
-        elif k == "d":
-            P("doctor"); pause()
-        elif k == "l":
-            P("logs"); pause()
         elif k == "u":
             P("version", "--new")
             if yes("update Phosphor now? the deck restarts and every screen comes back", True):
@@ -334,8 +358,6 @@ def act(k, st):
         elif k == "r":
             if yes("restart the deck? every screen comes back by itself", False):
                 P("restart"); pause()
-        elif k == "h":
-            P("help"); pause()
         elif k == "n":
             import dlog, edit, push, tts
             traces = dlog.active_traces()
@@ -346,16 +368,6 @@ def act(k, st):
             sys.stdout.write("\x1b[?1049l\x1b[2J\x1b[H"); sys.stdout.flush()
             if got:
                 P({"push": "push", "voice": "tts", "trace": "trace"}[got[0]])
-        elif k == "c":
-            P("shortcuts")
-        elif k == "b":
-            P("tabs")
-        elif k == "a":
-            P("recipe")
-        elif k == "?":
-            P("keys")
-        elif k == "P":
-            P("migrate"); pause()
         elif k == "f":
             # a hand edit of deck.toml (or tabs.d) only shows after gen and a
             # restart; never done behind anyone's back: the restart closes every pane
@@ -393,6 +405,8 @@ def main():
     if not sys.stdin.isatty():
         print("phosphor panel is the DECK tab: it needs a terminal"); return 1
     keys = {a[0] for a in ACTIONS}
+    mono_stdout()                       # an e-ink screen: the ! and the words carry it
+    live = card.Live(live_names())
     sys.stdout.write("\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h")
     prof, st, last, off = {}, None, 0, 0
     try:
@@ -401,7 +415,7 @@ def main():
                 prof = deckconf.load()[0] or {}
                 st = state(prof); last = time.time()
             cols, rows = shutil.get_terminal_size((60, 30))
-            lines, hit, maxoff = draw(prof, st, cols, rows, off)
+            lines, hit, maxoff = draw(prof, st, cols, rows, off, live=live)
             off = min(off, maxoff)
             sys.stdout.write("\x1b[H" + "\x1b[K\n".join(lines) + "\x1b[K\x1b[J"); sys.stdout.flush()
             k = getkey(1.0)

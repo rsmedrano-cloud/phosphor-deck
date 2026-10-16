@@ -124,5 +124,5 @@ by_kind = {}
 for c in cards.values():
     by_kind[c["kind"]] = by_kind.get(c["kind"], 0) + 1
 print("doors-check ok (%d cards: %s)" % (len(cards), ", ".join("%d %s" % (v, k) for k, v in sorted(by_kind.items()))))
-print("  only their card so far (#62, #64): " + (" ".join(only_card) or "none"))
+print("  only their card so far (#64): " + (" ".join(only_card) or "none"))
 print("  state not in --json yet (#63): " + (" ".join(no_state) or "none"))

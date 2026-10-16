@@ -1,0 +1,112 @@
+#!/usr/bin/env python3
+"""lib/card.py, the widget every card of the deck is drawn with: a live
+value from the command's own --json, one line that fits, and a tap that
+does what share/commands.json says -- no real terminal, no real subprocess.
+
+    python3 tests/card-check.py
+"""
+import builtins, json, os, re, subprocess, sys, types
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(ROOT, "lib"))
+import card, cli, init
+from ui import vlen
+
+fails = []
+def check(what, ok):
+    if not ok:
+        fails.append(what)
+
+plain = lambda s: re.sub(r"\x1b\[[0-9;?]*[a-zA-Z]", "", s)
+
+# a value in a few characters
+for v, want in ((True, "on"), (False, "off"), ([1, 2, 3], "3"), ([], "0"), (4, "4"), ("amber", "amber"),
+                ({"total": 200, "available": 50}, "25% free"), ({"x": 1}, None), (None, None)):
+    check("summary(%r) is %r" % (v, want), card.summary(v) == want)
+
+# one line: never wider than it's given, the command whole or left out
+for w in (20, 30, 40, 48, 60, 90, 140):
+    s = card.line("v", "screens", "2", "phosphor screens", "who's attached; kick one loose", w)
+    check("%d columns: fits" % w, vlen(s) <= w)
+    check("%d columns: the command whole or not at all" % w,
+          "phosphor screens" in plain(s) or "phosphor" not in plain(s))
+    check("%d columns: the key first" % w, plain(s).startswith("  v"))
+s = plain(card.line("t", "tunnels", "1/2 up", "phosphor tunnel", "", 60, warn=True))
+check("a card that wants a look has ! after its key (no color needed)", s.startswith("  t! "))
+check("the value sits right after the label", re.search(r"tunnels +1/2 up  phosphor tunnel", s))
+check("no command: just key, label, value", plain(card.line("s", "a shell here", None, "", "x", 60)).rstrip() == "  s  a shell here")
+
+# a note that doesn't fit: its first clauses, else cut at a word
+check("shorten: whole when it fits", card.shorten("who's attached", 20) == "who's attached")
+check("shorten: up to a clause", card.shorten("who's attached; kick one loose", 20) == "who's attached")
+check("shorten: the longest clauses that fit",
+      card.shorten("every workspace, its git state; open, diff, new", 32) == "every workspace, its git state")
+check("shorten: a word cut with an ellipsis", card.shorten("keep your ssh LocalForward tunnels up", 20) == "keep your ssh…")
+
+# fetch: the state field from the command's --json, dotted; none without --json
+real_run = subprocess.run
+calls = []
+def fake_run(argv, **kw):
+    calls.append(argv[2:])
+    out = {"version": {"check": {"behind": 3}}, "screens": {"screens": [{}, {}]}}.get(argv[2], {})
+    return types.SimpleNamespace(stdout=json.dumps(out), returncode=0)
+subprocess.run = fake_run
+try:
+    check("fetch: a list counted", card.fetch("screens") == ([{}, {}], "2"))
+    check("fetch: asks the command for --json", calls[-1] == ["screens", "--json"])
+    check("fetch: a dotted state", card.fetch("version") == (3, "3"))
+    check("fetch: from arguments as the card says", card.fetch("workspace") == (None, None)
+          and calls[-1] == ["workspace", "list", "--json"])
+    calls.clear()
+    no_json = [n for n, e in cli.entries().items() if (e.get("card") or {}).get("state")
+               and "--json" not in e.get("options", [])]
+    check("there's a card whose state isn't in --json yet, to test with", no_json)
+    check("fetch: no --json yet is no value, nothing run", card.fetch(no_json[0]) == (None, None) and not calls)
+    check("fetch: a button has no value", card.fetch("doctor") == (None, None) and not calls)
+    subprocess.run = lambda *a, **kw: (_ for _ in ()).throw(subprocess.TimeoutExpired("x", 10))
+    check("fetch: a command that hangs is no value, not a crash", card.fetch("screens") == (None, None))
+
+    # tap: what the card says, asking first when it says so
+    ran, asked, said = [], [], []
+    subprocess.run = lambda argv, **kw: ran.append(argv[2:]) or types.SimpleNamespace(returncode=0)
+    real_yes, real_input = init.yes, builtins.input
+    answer = [True]
+    init.yes = lambda q, default=True: asked.append(q) or answer[0]
+    builtins.input = lambda prompt="": said.append(prompt) or "nimbus"
+    try:
+        card.tap("doctor")
+        check("tap: a button runs bare, no question", ran[-1] == ["doctor"] and not asked)
+        card.tap("screens")
+        check("tap: a sensor opens its command", ran[-1] == ["screens"])
+        ran.clear(); asked.clear()
+        card.tap("web", False)
+        check("tap: a toggle that's off turns on, asking first (web publishes)",
+              ran == [["web", "on", "--yes"]] and asked)
+        ran.clear(); asked.clear()
+        card.tap("web", True)
+        check("tap: a toggle that's on turns off", ran == [["web", "off"]])
+        ran.clear(); answer[0] = False
+        card.tap("web", False)
+        check("tap: no at the question runs nothing", not ran)
+        answer[0] = True
+        card.tap("tts", None)
+        check("tap: a toggle whose state isn't known opens bare", ran[-1] == ["tts"])
+        ran.clear(); said.clear()
+        card.tap("triage")
+        check("tap: a shortcut asks what it needs, then goes there", ran == [["triage", "nimbus"]] and said)
+        ran.clear()
+        builtins.input = lambda prompt="": ""
+        card.tap("triage")
+        check("tap: an empty answer backs out, nothing runs", not ran)
+        check("tap: plumbing does nothing", card.tap("clip") is None and not ran)
+    finally:
+        init.yes, builtins.input = real_yes, real_input
+finally:
+    subprocess.run = real_run
+
+# Live keeps only the cards that have a value to keep
+live = card.Live([], every=60)
+check("Live with nothing to watch starts no thread", live.get("screens") == (None, False))
+
+if fails:
+    print("card-check FAILED:\n  " + "\n  ".join(fails)); sys.exit(1)
+print("card-check ok")

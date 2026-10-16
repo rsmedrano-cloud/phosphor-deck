@@ -316,10 +316,14 @@ in the DECK tab). Your keys live in the profile, so updates never reset them.
 The deck's own tab, and the one place every phosphor command lives, even
 when all your other tabs are ssh sessions somewhere else. It's laid out as
 cards that follow the screen's width -- one column on a phone (it scrolls:
-arrows or two fingers), two or more on a tablet or a computer, with a line
-about each action once there's room: the deck's state (screens in, watchdog,
-browser access, tunnels), the next steps while you're still setting it up,
-and one key or tap per action, grouped: screens, machines (setup, triage a
+arrows or two fingers), two or more on a tablet or a computer. Each action is
+a card of one line: its key, what it is, its live value where it has one
+(screens in, browser access on or off, tunnels up, services, memory free,
+dirty workspaces), the command that does the same in a terminal
+(`v screens 2 phosphor screens`), and a line about it once there's room; a `!`
+after the key marks one that wants a look, so it reads on an e-ink screen
+too. Above them, the watchdog and the next steps while you're still setting
+it up. One key or tap per action, grouped: screens, machines (setup, triage a
 flagged host, tail a host's logs, services, tunnels), work (every command,
 workspaces, merge requests to review, install tools, a shell on the brain),
 tabs & keys (keep a tab, tabs, recipes, the color, shortcuts, and `?`, the
@@ -328,7 +332,7 @@ upkeep (notices, doctor, memory per tab and pane, logs, update, restart, the man
 comes back the same way: q, Esc or Enter.
 
 A profile of an older shape (say, from before the panel took the whole DECK tab):
-the deck card offers **P** ("profile: N to migrate"), which runs `phosphor migrate`: each
+the deck card offers **P** ("profile migrate, N steps"), which runs `phosphor migrate`: each
 change as a diff first, a backup kept, `f` applies it. `phosphor doctor`, `gen` and `update`
 say so too.
 

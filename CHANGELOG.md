@@ -6,6 +6,25 @@ before it updates.
 
 ## Unreleased
 
+## 2.1.3 — the DECK tab as a dashboard
+
+- The DECK tab is a dashboard now. Every action is a card of one line: its
+  key, what it is, its live value where it has one (screens in, browser
+  access, the e-ink panel and notices on or off, tunnels up, services,
+  memory free, workspaces and the dirty ones), and the command that does
+  the same in a terminal, so the deck teaches the terminal
+  (`v  screens  2  phosphor screens`). The line about each action stays
+  where there's room, cut at a clause when it doesn't fit whole. A `!`
+  after a key marks what wants a look, so it reads on e-ink and other
+  screens with no color (the panel drops color there). The keys and taps
+  are the ones you know.
+- `lib/card.py`: the card widget, built from each command's `card` in
+  share/commands.json -- the value from the command's own `--json`
+  (fetched in the background, so drawing never waits), one line that fits
+  any width, and a tap that does what the card says (a toggle flips, a
+  shortcut asks what it needs, `confirm` asks y/n first). Dashboards of
+  your own build on it next.
+
 ## 2.1.2 — the SolarOS panel, a deck of its own
 
 - A SolarOS panel gets a deck of its own: a tab picked on its menu opens

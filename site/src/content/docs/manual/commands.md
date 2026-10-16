@@ -26,8 +26,11 @@ sidebar:
   a host, tail logs, services, workspaces, review, notices & traces, tabs, shortcuts, a shell here, doctor,
   memory, logs, update, restart, manual, and `?` for the keys of every installed tool). Laid out as cards that
   follow the pane's width: one column on a phone (arrows or two fingers scroll it), more on a
-  wider screen, with a line about each action once there's room. A profile of an older shape
-  gets **P** in the deck card ("profile: N to migrate"): it runs `phosphor migrate`. `n` (notices & traces) opens `phosphor push`, `phosphor tts` or
+  wider screen. Each action is one line: key, label, its live value where it has one (the
+  panel's own state, or the command's `--json`, refreshed in the background), the command
+  that does the same in a terminal, and a line about it once there's room; a `!` after the
+  key marks what wants a look, so it reads without color. A profile of an older shape
+  gets **P** in the deck card ("profile migrate, N steps"): it runs `phosphor migrate`. `n` (notices & traces) opens `phosphor push`, `phosphor tts` or
   `phosphor trace` on their own screen: what's on, and on or off one key away. Actions
   run in the same pane and come back the same way from every one: q, Esc or Enter (the ones
   that print and wait say "q · Enter: back", the TUIs take q) -- `tail`'s stream is the one
@@ -499,6 +502,8 @@ Its tools only read what's already on the brain, and none of them sends, restart
   command on a tap; a `toggle` shows on/off and names the `on` and `off` arguments; a `button`
   runs it; a `shortcut` goes straight into a screen inside a panel (a host's containers, its
   logs); `plumbing` has no card and says `why` (`attach`, `mcp`, `completion`...). `ask` names
-  what a tap asks for first, `confirm` that it asks y/n. `tests/doors-check.py` fails a
+  what a tap asks for first, `confirm` that it asks y/n; a toggle's tap flips it (`off` when
+  it's on). `lib/card.py` is the widget that draws a card and acts on its tap (the DECK tab
+  is built on it). `tests/doors-check.py` fails a
   command with no card, or one whose card passes an argument the command doesn't take, and
   lists the commands that today are only reachable by typing or searching them.

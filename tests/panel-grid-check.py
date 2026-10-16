@@ -48,8 +48,33 @@ check("a phone gets one column", columns(panel.draw({}, st, 40, 35)[0]) == 1)
 check("a phone scrolls instead of cutting actions off", panel.draw({}, st, 40, 35)[2] > 0)
 check("a tablet gets two columns and no scrolling",
       columns(panel.draw({}, st, 100, 30)[0]) == 2 and panel.draw({}, st, 100, 30)[2] == 0)
-check("a wide screen gets the notes", "every phosphor command, by category"
-      in "".join(map(plain, panel.draw({}, st, 160, 45)[0])))
+check("a wide screen gets the notes, whole", "every phosphor command, by category"
+      in "".join(map(plain, panel.draw({}, st, 200, 60)[0])))
+check("a narrower one gets their first clause, never a word cut in half",
+      "every phosphor command  " in "".join(p + "  " for p in map(plain, panel.draw({}, st, 160, 45)[0])))
+
+# every card says what it does in a terminal: whole, or not at all
+for w, rows in ((40, 35), (50, 35), (100, 30)):
+    lines, hit, maxoff = panel.draw({}, st, w, rows * 3)
+    text = "\n".join(map(plain, lines))
+    for x in re.findall(r"(?:^|  )(phosphor [a-z]*)(?=  |$)", text, re.M):
+        check("%dx%d: %r is a whole command" % (w, rows, x), x in {panel.command(a[0]) for a in panel.ACTIONS})
+check("a phone of 50 columns shows the commands", "phosphor workspace" in "".join(map(plain, panel.draw({}, st, 50, 120)[0])))
+check("a tablet shows the commands", "phosphor screens" in "".join(map(plain, panel.draw({}, st, 100, 30)[0])))
+
+# the values: the panel's own, and a card.Live's for the rest
+class Live:
+    def get(self, name): return ({"services": "12", "mem": "40% free"}.get(name), False)
+lv = dict(st, web=True, web_local=True, tunnels=[True, False], dirty_workspaces=3, solaros=False, notices=1, news="2.0 is out")
+text = "\n".join(map(plain, panel.draw({}, lv, 100, 120, live=Live())[0]))
+for k, want in (("v", "2"), ("w", "local"), ("t", "1/2 up"), ("z", "3 dirty"), ("E", "off"), ("n", "1 on"),
+                ("u", "new"), ("y", "12"), ("M", "40% free")):
+    check("%s shows %s" % (k, want), re.search(r"^  %s.? .*\b%s\b" % (re.escape(k), re.escape(want)), text, re.M))
+for k in ("t", "z", "u"):
+    check("%s wants a look: ! after its key, for a screen with no color" % k, re.search(r"^  %s! " % k, text, re.M))
+check("v doesn't", re.search(r"^  v  ", text, re.M))
+check("a key the panel has no value for asks card.Live: live_names",
+      {"services", "mem", "workspace"} <= set(panel.live_names()) and "screens" not in panel.live_names())
 check("a tall wide screen spreads out instead of one stretched column",
       columns(panel.draw({}, st, 200, 60)[0]) >= 2 and columns(panel.draw({}, st, 240, 60)[0]) >= 3)
 check("scrolled past the end: clamped, not blank",

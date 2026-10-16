@@ -92,6 +92,7 @@ check "triage: snapshot over ssh, piped into phosphor ask" python3 tests/triage-
 check "broadcast: asks first, then every host" python3 tests/broadcast-check.py
 check "panel: DECK tab actions (host pickers; q, Esc, Enter go back from every one)" python3 tests/panel-actions-check.py
 check "panel: cards reflow with the width" python3 tests/panel-grid-check.py
+check "card: the widget, its value, line and tap" python3 tests/card-check.py
 check "a hand-edited profile says so (DECK tab f, doctor)" python3 tests/profile-changed-check.py
 check "prometheus gauges, fake server"     python3 tests/prom-check.py
 check "CI pipelines status, fake server"   python3 tests/ci-check.py

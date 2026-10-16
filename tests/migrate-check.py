@@ -137,7 +137,7 @@ st = {"session": "deck", "web": False, "web_local": False, "web_mismatch": False
 plain = lambda s: deckconf.re.sub(r"\x1b\[[0-9;]*m", "", s)
 keys_of = lambda hit: [k for s in hit.values() for _, _, k in s]
 lines, hit, _ = panel.draw({}, dict(st, migrate=2), 100, 30)
-check("the deck card offers P", "profile: 2 to migrate" in "".join(map(plain, lines)) and "P" in keys_of(hit))
+check("the deck card offers P", deckconf.re.search(r"P! profile migrate +2 steps  phosphor migrate", "\n".join(map(plain, lines))) and "P" in keys_of(hit))
 check("without it, no P", "P" not in keys_of(panel.draw({}, st, 100, 30)[1]))
 
 if fails:
