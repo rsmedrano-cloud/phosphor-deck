@@ -232,29 +232,8 @@ its own -- `phosphor run` brings it back if it ends:
     name  = "GLANCE"
     panes = [{ cmd = "phosphor glance", args = ["--serve"] }]
 
-**A SolarOS panel** (an ESP32-S3 e-ink like the CrowPanel) runs the glance
-itself instead of an ssh session, which floods a slow screen: `--serve`
-also hands out a small MicroPython app, `share/glance-solaros.py`, with its
-own address and token already in it, and prints the two lines to type on
-the panel's shell:
-
-    phosphor glance --serve --lan        # on the brain
-    curl -o /glance.py "http://<brain>:8484/solaros.py?token=..."
-    python /glance.py                    # on the panel
-
-From a serial console instead of the panel's own shell, put it on the
-display with `session create python display0 /glance.py`.
-
-It asks every 30 seconds and repaints only when an answer changes: the
-light in words, reversed when it's red, the hosts with a problem, and the
-three counts (the time is in SolarOS's own status bar, and a brain that
-stops answering says so on the screen). Enter (the wheel's press) or `r`
-asks now; Esc, `q` or the EXIT button leave. It only reads: a todo marked
-done or the mentions read stay with `phosphor glance` over ssh. Its
-`/solaros.py` needs the token like the JSON does, since it carries it;
-`--new-token` makes the old copy useless. On the CrowPanel 5.79" keep the
-display's default refresh (`display mode display0 refresh=auto`): `fast`
-and `full` left that panel black or frozen until a reboot.
+**A SolarOS panel** (an ESP32-S3 e-ink like the CrowPanel) has a whole
+app of its own, built on this: see "A SolarOS panel" below.
 
 ## One pane instead of the whole deck
 
@@ -288,3 +267,68 @@ The notebook works the same way, no zellij in between:
 `ssh -t you@brain ~/.local/bin/phosphor notes`. On a terminal with no color
 (`TERM` like `xterm-mono`, or `NO_COLOR`) it drops its colors and keeps
 bold and reverse, as glance does.
+
+## A SolarOS panel
+
+A SolarOS panel (an ESP32-S3 e-ink like the CrowPanel) gets an app of its
+own: a menu of the deck. It never attaches a zellij client, so the deck's
+redraws can't flood it. One switch on the brain:
+
+    phosphor solaros on
+
+That keeps `phosphor glance --serve --lan` running as a user service
+(`phosphor-glance.service`, `[glance] serve = "lan"` in the profile; it
+comes back after a reboot), prints the two lines to type on the panel's
+SolarOS prompt and puts them on the clipboard of every screen looking at
+the deck (`p` in the DECK tab's actions does the same):
+
+    curl -o /phosphor.py "http://<brain>:8484/solaros.py?token=..."
+    python /phosphor.py
+
+From a serial console instead, put it on the display with `session
+create python display0 /phosphor.py`. The app can also put itself in
+SolarOS's launcher (`put Phosphor in the launcher`, when the launcher has
+a free cell).
+
+The app shows the glance's light and counts on top and, below, the menu:
+**glance** (the hosts with a problem, the counts; read over HTTP, repainted
+only when it changes), one entry per tab of the deck as it is now (AI,
+AGY, a workspace you opened since), **notes**, **write a note** and
+**fleet**. Up, Down (the wheel) and Enter; `r` reads the brain again; Esc,
+`q` or EXIT leave. On the CrowPanel 5.79" keep the display's default
+refresh (`display mode display0 refresh=auto`): `fast` and `full` left
+that panel black or frozen until a reboot.
+
+What only reads comes over HTTP, behind the token. Everything that does
+something goes over ssh with the panel's own key: a tab of the deck
+opens in `phosphor mirror` (type to the assistant there, Ctrl-] back to
+the menu), notes in `phosphor notes`, a note is a kind, a project and a
+line of text, and fleet lists each machine with its pending updates and
+reboot, where `upgrade` and `reboot` run `phosphor upkeep` right there:
+it shows the command and waits for you, and sudo asks on the panel. On
+the LAN the token crosses the network in the clear, so it can read, never
+type.
+
+The key is paired once. On the brain:
+
+    phosphor solaros pair
+
+opens a window for 10 minutes. On the panel, `pair with the brain` makes
+the panel's ssh key (the first time; it can take a minute) and sends it.
+Both screens show its fingerprint: the same on both means nobody swapped
+it on the way, and Enter on the brain lets it in. It lands in
+`~/.ssh/authorized_keys` with a forced command (`restrict,pty`, no
+forwarding): that key gets the panel's menu, whatever it asks to run,
+not a login of its own. Still, pair only a panel you'd hand the deck to:
+the menu opens the deck's tabs, and typing in one -- a shell, an
+assistant -- is typing there. The old file stays as `authorized_keys.bak.solaros`; a line
+that key already had (a panel set up by hand) is replaced.
+
+SolarOS's ssh can't send a remote command (it always asks for a shell),
+so the app tells the brain over HTTP which entry it's about to open, then
+connects; the session takes that once, within a minute, and only if it's
+on the menu. Without it, the session starts on the menu.
+
+    phosphor solaros            the service, the address, the paired panels
+    phosphor solaros off        stop serving (paired keys stay)
+    phosphor solaros forget     take every paired panel's key out

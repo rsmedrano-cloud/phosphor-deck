@@ -31,7 +31,31 @@ name, spec = fleet.action_tab("l", "box", None)
 need("l on the brain: journalctl right here", spec["_run"][0] == "journalctl" and not spec["reconnect"])
 name, spec = fleet.action_tab("t", "db-box", "deploy@db-box-alias")
 need("t: phosphor triage on that host", (name, spec) == ("TRIAGE-DB-BOX", {"cmd": "phosphor triage", "args": ["db-box"]}))
+need("u: phosphor upkeep upgrade, in a tab", fleet.action_tab("u", "db-box", "deploy@db-box-alias")
+     == ("UPGRADE-DB-BOX", {"cmd": "phosphor upkeep", "args": ["upgrade", "db-box"]}))
+need("b: phosphor upkeep reboot, in a tab", fleet.action_tab("b", "db-box", None)
+     == ("REBOOT-DB-BOX", {"cmd": "phosphor upkeep", "args": ["reboot", "db-box"]}))
 need("any other key opens nothing", fleet.action_tab("x", "db-box", None) is None)
+
+# upkeep: over ssh -t for a remote host, here for the brain; a name the
+# fleet doesn't watch and a run without a terminal never get that far
+import upkeep
+prof = {"hosts": [{"name": "box", "role": "brain", "local": True},
+                  {"name": "db-box", "role": "node", "ssh": "db-box-alias", "user": "deploy"}]}
+need("upkeep: a remote host's target", upkeep.where("db-box", prof) == ("db-box", "deploy@db-box-alias"))
+need("upkeep: the brain runs here", upkeep.where("box", prof) == ("box", None))
+need("upkeep: an unknown name", upkeep.where("nimbus", prof) is None)
+a = upkeep.argv("upgrade", "deploy@db-box-alias")
+need("upkeep upgrade: ssh -t, one sh -c, every manager it knows",
+     a[:3] == ["ssh", "-t", "deploy@db-box-alias"] and len(a) == 4 and a[3].startswith("sh -c ")
+     and all(m in a[3] for m in ("apt-get", "dnf", "pacman", "zypper", "apk")))
+need("upkeep reboot on the brain: right here", upkeep.argv("reboot", None) == ["sh", "-c", "sudo systemctl reboot"])
+ran = []
+upkeep.subprocess = type("never", (), {"call": staticmethod(lambda c: ran.append(c) or 0)})
+_stdin, sys.stdin = sys.stdin, open(os.devnull)
+need("upkeep: an unknown name runs nothing", upkeep.run("reboot", "nimbus", prof) == 2)
+need("upkeep: no terminal, nothing runs", upkeep.run("upgrade", "db-box", prof) == 2 and not ran)
+sys.stdin = _stdin
 
 # the l spec becomes a pane that runs that argv through phosphor run
 kdl = gen.pane_kdl(fleet.action_tab("l", "db-box", "db-box-alias")[1], gen.Ctx({}), 0)

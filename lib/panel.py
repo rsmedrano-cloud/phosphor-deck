@@ -18,7 +18,8 @@ STOCK_TABS = {"COMMS", "WORK", "SYS", "CLOUD", "DECK", "HELP", "NOTES"}
 # pane's width takes (one on a phone, two or three on a computer)
 GROUPS = [("screens",  [("v", "screens",          "who's attached; kick one loose"),
                         ("p", "add a screen",     "a phone, a tablet, another computer"),
-                        ("w", "browser access",   "the deck in a browser, tailnet only")]),
+                        ("w", "browser access",   "the deck in a browser, tailnet only"),
+                        ("E", "e-ink panel",      "a SolarOS panel: serve it, pair it, its lines copied")]),
           ("machines", [("m", "machines & setup", "add or remove machines, phone, notebook"),
                         ("g", "triage a host",    "pick a flagged one (or any), ask an assistant"),
                         ("j", "tail logs",        "pick a host and service, stream its logs (Ctrl-C back)"),
@@ -249,6 +250,30 @@ def act(k, st):
                     return
             elif yes("turn it on? your tailnet's devices only, with a login token (the deck restarts)", False):
                 P("web", "on")
+            pause()
+        elif k == "E":
+            import solaros
+            P("solaros", "status")
+            print()
+            if solaros.serve_mode(deckconf.load()[0]):
+                # every choice spelled out: anything else (q, Enter) changes nothing
+                sys.stdout.write("  " + AMB + "p" + RST + " pair a panel · " + AMB + "o" + RST
+                                 + " stop serving · " + DIM + "q · Enter: back " + RST); sys.stdout.flush()
+                try:
+                    a = (getkey() or "").lower()
+                except (termios.error, OSError, ValueError):
+                    a = ""
+                print()
+                if a == "p":
+                    P("solaros", "pair")
+                elif a == "o":
+                    P("solaros", "off")
+                else:
+                    return
+            elif yes("serve it? the glance on the LAN behind a token, its two lines on the clipboard", False):
+                if getattr(P("solaros", "on"), "returncode", 1) == 0 and not solaros.paired() and \
+                        yes("pair a panel now? its key, your Enter", True):
+                    P("solaros", "pair")
             pause()
         elif k == "t":
             import tunnels

@@ -21,8 +21,9 @@ room for the full deck.
 --serve listens only on the brain's tailnet address (the LAN's without
 one, or with --lan), answers GET with the token and nothing else, and runs
 in the foreground: put it in a tab to keep it up. With the token it also
-hands out /solaros.py, share/glance-solaros.py with this address and token
-filled in: a SolarOS panel fetches it with curl and runs it with python.
+hands out /solaros.py, share/solaros-app.py with this address and token
+filled in: a SolarOS panel fetches it with curl and runs it with python
+(lib/solaros.py has the rest: the service, pairing, the panel's menu).
 """
 import hmac, json, os, secrets, shutil, sys, termios, textwrap, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -332,7 +333,7 @@ def mono(line):
 # ── --serve ───────────────────────────────────────────────────
 PORT = 8484
 SERVE_USAGE = "usage: phosphor glance [--mono] [--once | --json | --serve [--lan] [--port N] [--new-token]]"
-CLIENT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "share", "glance-solaros.py")
+CLIENT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "share", "solaros-app.py")
 
 def token_path():
     return os.path.join(deckconf.data_dir(), "glance-token")
@@ -393,16 +394,43 @@ def handler_for(secret):
 
         def do_GET(self):
             path = urlsplit(self.path).path
-            if path not in ("/", "/glance", "/glance.json", "/solaros.py"):
+            if path not in ("/", "/glance", "/glance.json", "/solaros.py", "/menu"):
                 return self.reply(404, b'{"error": "not found"}\n')
             if not authorized(self.path, self.headers, secret):
                 return self.reply(401, b'{"error": "token"}\n')
             if path == "/solaros.py":           # it carries the token: same door
                 return self.reply(200, self.client, "text/x-python; charset=utf-8")
+            if path == "/menu":                 # what the panel's app offers (lib/solaros.py)
+                import solaros
+                return self.reply(200, (json.dumps(solaros.menu(self.server.server_address[0])) + "\n").encode())
             if time.time() - cache["t"] > 2:      # a gadget polling fast doesn't re-run git
                 cache["body"] = (json.dumps(payload()) + "\n").encode()
                 cache["t"] = time.time()
             self.reply(200, cache["body"])
+
+        def do_POST(self):
+            """The SolarOS app's two writes, neither of which touches the deck:
+            /pair offers the panel's ssh key (it waits for an Enter on the
+            brain), /open says which entry its next ssh session starts on.
+            Everything that changes something goes over that ssh."""
+            import solaros
+            path = urlsplit(self.path).path
+            if path not in ("/pair", "/open"):
+                return self.reply(404, b'{"error": "not found"}\n')
+            if not authorized(self.path, self.headers, secret):
+                return self.reply(401, b'{"error": "token"}\n')
+            try:
+                n = int(self.headers.get("Content-Length") or 0)
+                got = json.loads(self.rfile.read(n).decode() if 0 < n <= 8192 else "{}")
+                if not isinstance(got, dict): raise ValueError
+            except (ValueError, UnicodeDecodeError):
+                return self.reply(400, b'{"error": "a JSON object, at most 8 KB"}\n')
+            if path == "/pair":
+                ans = solaros.offer(got.get("key"), self.client_address[0])
+            else:
+                ans = solaros.want(got.get("open"))
+            dlog.event("GLANCE", path[1:], json.dumps(ans)[:80])
+            self.reply(200, (json.dumps(ans) + "\n").encode())
 
         def log_message(self, *a):      # the token is in the path: never print it
             pass
@@ -446,8 +474,8 @@ def serve(port=PORT, new_token=False, lan=False):
         print(DIM + "  on the LAN: the token crosses it in the clear (--new-token if it leaks)." + RST)
     for l in send.qr_lines(url_):
         print("  " + l)
-    print(DIM + "  a SolarOS panel:  curl -o /glance.py \"%s\"" % url_.replace("/glance?", "/solaros.py?") + RST)
-    print(DIM + "                    python /glance.py" + RST)
+    print(DIM + "  a SolarOS panel:  curl -o /phosphor.py \"%s\"" % url_.replace("/glance?", "/solaros.py?") + RST)
+    print(DIM + "                    python /phosphor.py      (phosphor solaros on keeps this up)" + RST)
     print(DIM + "  Ctrl-C stops it; --new-token replaces the token." + RST)
     try:
         httpd.serve_forever()

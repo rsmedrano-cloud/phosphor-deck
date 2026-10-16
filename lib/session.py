@@ -170,7 +170,7 @@ def updown(cmd):
     R("systemctl", "--user", "enable", "%s.service" % sess, "%s.timer" % sess)
     udir = os.path.expanduser("~/.config/systemd/user")
     mounts = [u for u in (os.listdir(udir) if os.path.isdir(udir) else [])
-              if u.startswith(("fleet-", "tunnel-")) and u.endswith(".service")]
+              if u.startswith(("fleet-", "tunnel-", "phosphor-glance")) and u.endswith(".service")]
     if mounts:
         R("systemctl", "--user", "enable", "--now", *mounts)
     R("systemctl", "--user", "start", "%s.service" % sess)

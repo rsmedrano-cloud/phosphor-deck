@@ -143,7 +143,7 @@ def paint(out, prev):
 
 def width(cap=100): return min(shutil.get_terminal_size((80, 24)).columns, cap)
 
-def getkey(timeout=None, text=False, mouse=False):
+def getkey(timeout=None, text=False, mouse=False, typeahead=False):
     """One key from the terminal, read straight from the fd. The only
     keyboard reader: every screen goes through it.
 
@@ -156,30 +156,48 @@ def getkey(timeout=None, text=False, mouse=False):
 
     With mouse=True a mouse event comes simplified: "WUP"/"WDN" for the
     wheel or a two-finger scroll, ("TAP", x, y) for a tap or left click,
-    None for anything else (a release, a drag, another button)."""
-    fd = sys.stdin.fileno(); old = termios.tcgetattr(fd)
-    try:
-        tty.setraw(fd)
-        if not select.select([fd], [], [], timeout)[0]:
-            return None
-        data = os.read(fd, 64)
-        while data.startswith(b"\x1b") and select.select([fd], [], [], 0.02)[0] and len(data) < 64:
-            data += os.read(fd, 64)                       # a sequence split in two writes
-    finally:
-        termios.tcsetattr(fd, termios.TCSADRAIN, old)
-    s = data.decode("utf-8", "ignore")
+    None for anything else (a release, a drag, another button).
+
+    Keys typed before the call are dropped (a stray Enter can't answer a
+    question it never saw), unless typeahead=True: a slow screen's wheel
+    sends its steps while the last paint is still going out, and keys
+    that came in one read (two steps of it) come back one per call."""
+    global _ahead
+    if typeahead and _ahead:
+        s, _ahead = _ahead, ""
+    else:
+        fd = sys.stdin.fileno(); old = termios.tcgetattr(fd)
+        try:
+            tty.setraw(fd, termios.TCSANOW if typeahead else termios.TCSAFLUSH)
+            if not select.select([fd], [], [], timeout)[0]:
+                return None
+            data = os.read(fd, 64)
+            while data.startswith(b"\x1b") and select.select([fd], [], [], 0.02)[0] and len(data) < 64:
+                data += os.read(fd, 64)                       # a sequence split in two writes
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old)
+        s = data.decode("utf-8", "ignore")
+    k, n = _first_key(s, text, mouse)
+    if typeahead:
+        _ahead = s[n:]
+    return k
+
+_ahead = ""        # what came after the key getkey(typeahead=True) returned
+
+def _first_key(s, text, mouse):
+    """(the first key in s as getkey returns it, how many chars it took)."""
     m = re.match(r"\x1b\[<(\d+);(\d+);(\d+)([Mm])", s)
     if m:
         b, x, y, down = int(m.group(1)), int(m.group(2)), int(m.group(3)), m.group(4) == "M"
         if not mouse:
-            return ("MOUSE", b, x, y, down)
-        if not down: return None
-        return {64: "WUP", 65: "WDN"}.get(b) or (("TAP", x, y) if b == 0 else None)
+            return ("MOUSE", b, x, y, down), m.end()
+        if not down: return None, m.end()
+        return {64: "WUP", 65: "WDN"}.get(b) or (("TAP", x, y) if b == 0 else None), m.end()
     if s.startswith("\x1b[") or s.startswith("\x1bO"):
-        return s[:3] if len(s) >= 3 else s
+        return (s[:3], 3) if len(s) >= 3 else (s, len(s))
     if text and s and s[0] >= " ":
-        return s
-    return s[:1] if s else None
+        return s, len(s)
+    return (s[:1], 1) if s else (None, 0)
 
 def quiet():
     """For a panel that only draws: until the function it returns is

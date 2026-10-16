@@ -131,7 +131,7 @@ try:
     panel.getkey = lambda timeout=None: "q"
     edit.pick = lambda title, items: None
     newtab.review_folder = lambda prof, rows: None     # git runs through the mocked subprocess.run
-    waits = {"p", "k", "g", "d", "l", "u", "r", "h", "w"}
+    waits = {"p", "k", "g", "d", "l", "u", "r", "h", "w", "E"}
     try:
         for k in keys:
             backs.clear(); prompts.clear()

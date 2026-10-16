@@ -349,6 +349,21 @@ pair the wrong way round or a host the profile doesn't have is a warning in
 `phosphor doctor` and `phosphor gen`. The panels read it again when the
 profile changes: no restart.
 
+## [glance]
+
+`phosphor glance --serve` kept up as a user service, for a gadget that
+reads the glance over HTTP -- a SolarOS panel's app above all (see
+phones, "A SolarOS panel"). `phosphor solaros on` and `off` write it;
+`phosphor gen` writes `phosphor-glance.service` from it.
+
+| key | default | what |
+|---|---|---|
+| serve | false | `"lan"` (the home Wi-Fi's address), `"tailnet"`, or false |
+| port | 8484 | the port it listens on |
+
+    [glance]
+    serve = "lan"
+
 ## [screens]
 
 A deck for each kind of screen: one block per kind (lowercase letters and

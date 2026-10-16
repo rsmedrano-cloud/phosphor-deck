@@ -294,6 +294,9 @@ def units(ctx):
     import tunnels
     for t in deckconf.tunnels(ctx.prof):
         out[tunnels.unit_name(t["host"])] = tunnels.unit(t)
+    import solaros
+    if solaros.serve_mode(ctx.prof):
+        out[solaros.UNIT] = solaros.unit(ctx.prof)
     for h in ctx.remotes():
         out["fleet-%s.service" % h["name"]] = UNIT % {
             "name": h["name"], "path": h["mount"],

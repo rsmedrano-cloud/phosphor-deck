@@ -497,7 +497,8 @@ def card(name, w, d):
 # that machine in a tab of its own. Nothing here changes the host itself:
 # a shell, its logs, a read-only look through `phosphor triage`, or its
 # containers (`phosphor containers`, which asks before touching one).
-ACTIONS = [("s", "ssh"), ("l", "logs"), ("t", "triage"), ("c", "containers")]
+ACTIONS = [("s", "ssh"), ("l", "logs"), ("t", "triage"), ("c", "containers"),
+           ("u", "upgrade"), ("b", "reboot")]
 # ...and one that stays in this pane: the card's last 24 hours (lib/history.py)
 HISTORY = ("h", "history")
 
@@ -517,6 +518,9 @@ def action_tab(key, name, target):
         return ("TRIAGE-" + name).upper()[:24], {"cmd": "phosphor triage", "args": [name]}
     if key == "c":
         return ("CTR-" + name).upper()[:24], {"cmd": "phosphor containers", "args": [name]}
+    if key in ("u", "b"):               # lib/upkeep.py: says what it runs, waits for you
+        what = "upgrade" if key == "u" else "reboot"
+        return (what.upper() + "-" + name).upper()[:24], {"cmd": "phosphor upkeep", "args": [what, name]}
     return None
 
 def demo_alias(target):

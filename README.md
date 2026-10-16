@@ -444,9 +444,10 @@ more depth on every one of these.
 
 | | |
 |---|---|
-| `phosphor fleet` | fleet panel: pick a card, then `s` ssh, `l` logs, `t` triage, `c` containers, each in its own tab; `h` its last 24 hours |
+| `phosphor fleet` | fleet panel: pick a card, then `s` ssh, `l` logs, `t` triage, `c` containers, `u` upgrade, `b` reboot, each in its own tab; `h` its last 24 hours |
 | `phosphor usage` | how much of your Claude Code and Antigravity plans you've used (5-hour window, week) and when each refills |
 | `phosphor glance` | fleet, unread mentions, open todos -- for a small screen, no zellij needed; up, down and Enter mark a todo done or the mentions read; `--serve` hands it as JSON to a gadget that can't ssh (ESP32, Pi Zero), `--lan` on the LAN, with an app for a SolarOS panel |
+| `phosphor solaros on` | a SolarOS e-ink panel as a face of the deck: serves it, copies the two lines to type there; `pair` lets its key in (your Enter), forced to a menu of glance, the deck's tabs, notes and fleet |
 | `phosphor mirror --tab AI` | one pane for a screen too slow for zellij (e-ink): only the lines that changed, no color, and what you type goes back into that pane; `--view` only watches |
 | `phosphor adjutant` | the SYS panel that speaks up: `phosphor notify MESSAGE` makes it announce something |
 | `phosphor notify --push` | the same notice on your phone (ntfy), for a brain nobody sits near: `[push]` in the profile; with `[tts]` on, what the brain said rides along as audio |
@@ -454,6 +455,7 @@ more depth on every one of these.
 | `phosphor tts` | speak notifications aloud with selectable voices (GLaDOS, Adjutant, HAL, Synth, System) |
 | `phosphor ci` | GitLab/GitHub pipeline status cards (see `[ci]` in the profile) |
 | `phosphor services` | systemd units and their state: Phosphor's own, plus any you add (see `[services]` in the profile); pick one for its logs, restart, start/stop |
+| `phosphor upkeep (upgrade \| reboot) HOST` | upgrade or reboot a fleet machine where you see it: says what it runs, waits for you, sudo asks in the same terminal (`u`/`b` over a card in FLEET) |
 | `phosphor containers [HOST]` | a host's docker/podman containers; pick one for its logs, restart, start/stop (`c` over a card in FLEET) |
 | `phosphor review` | open merge/pull requests: CI, conflicts, diff, try the branch in its own worktree |
 | `phosphor mem` | how much memory each tab and pane of the deck takes, heaviest first, every kind of screen's deck included |

@@ -43,6 +43,7 @@ TABLES = {
              "priority": ("min", "low", "default", "high", "max"), "title": None,
              "open_web": BOOL, "clip": BOOL},
     "services": {"interval": None, "extra": None},
+    "glance": {"serve": ("lan", "tailnet", False), "port": None},
 }
 GAUGE = {"name": None, "type": ("gauge", "arc", "sparkline"), "query": None, "min": None,
          "max": None, "warn": None, "crit": None, "unit": None}
@@ -79,7 +80,7 @@ def _table(where, t, known, out):
         if spec == BOOL and not isinstance(v, bool):
             out.append((where, "%s is %s, not %s" % (k, BOOL, _val(v))))
         elif isinstance(spec, tuple) and v not in spec:
-            out.append((where, "%s = %s isn't one of %s" % (k, _val(v), ", ".join(spec))))
+            out.append((where, "%s = %s isn't one of %s" % (k, _val(v), ", ".join(x if isinstance(x, str) else _val(x) for x in spec))))
 
 
 def _array(where, items, known, out, name_key="name"):

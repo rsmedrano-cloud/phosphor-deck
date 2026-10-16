@@ -6,6 +6,33 @@ before it updates.
 
 ## Unreleased
 
+## 2.0.7 — a SolarOS panel as a face of the deck
+
+- A SolarOS e-ink panel gets an app that's a menu of the deck, and one
+  switch on the brain: `phosphor solaros on` (or `E` in the DECK tab)
+  keeps the glance served on the LAN as a user service, prints the two
+  lines to type on the panel and puts them on your clipboard. The app
+  shows the light and counts, then the glance, every tab of the deck (an
+  assistant's conversation through `mirror`: you type to it from the
+  panel), notes, a new note (kind, project, a line) and fleet, where
+  upgrade and reboot run right there and sudo asks on the panel. It can
+  put itself in SolarOS's launcher.
+- Pairing the panel: `phosphor solaros pair` waits for the app's key and
+  shows its fingerprint, the same one the panel shows; only your Enter
+  puts it in `~/.ssh/authorized_keys`, forced to that menu whatever it
+  asks to run, no forwarding (the tabs it opens are the deck's own, so
+  typing there is typing in the deck). Reading goes over HTTP behind the token; anything
+  that types or changes something goes over that ssh key only.
+  `phosphor solaros forget` takes it out again. The app is now
+  `/phosphor.py` on the panel (it was `/glance.py`).
+- FLEET can do something about what it flags: over a picked card, `u`
+  upgrades that machine and `b` reboots it, each in a tab of its own
+  (`phosphor upkeep upgrade|reboot HOST`). It shows the command and the
+  machine and waits for you (Enter for an upgrade, the host's name typed
+  for a reboot), then runs it over `ssh -t` in that tab: sudo asks you
+  for its password and you see every line. The upgrade uses whatever the
+  host has: apt, dnf, pacman, zypper or apk.
+
 ## 2.0.6 — one pane for a slow screen
 
 - `phosphor mirror --tab AI` shows one pane of the deck on a screen too
