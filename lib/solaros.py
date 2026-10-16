@@ -46,7 +46,7 @@ MARK = "phosphor-solaros"            # the comment on a paired panel's authorize
 WINDOW = 600                         # seconds a pairing window stays open
 INTENT_TTL = 60                      # seconds an "open X next" from the panel stays good
 INV = "\x1b[7m"
-USAGE = "usage: phosphor solaros [status | on | off | pair | forget]"
+USAGE = "usage: phosphor solaros [status [--json] | on | off | pair | forget]"
 KEYLINE = re.compile(r"^(ssh-rsa|ssh-ed25519|ecdsa-sha2-nistp(?:256|384|521)) ([A-Za-z0-9+/]+={0,3})(?: .*)?$")
 
 def data(name):
@@ -882,8 +882,17 @@ def off():
     print(row(OK, "glance --serve", "stopped", note="paired panels keep their key: phosphor solaros forget"))
     return 0
 
-def status():
+def state(prof):
+    """status --json: on is the service serving, not the profile's word."""
+    mode, up = serve_mode(prof), active()
+    return {"on": up, "serve": mode, "paired": [{"fingerprint": fp, "comment": c} for fp, c in paired()],
+            "why": None if up or not mode else
+                   "the profile serves it but the service is down: journalctl --user -u " + UNIT}
+
+def status(as_json=False):
     prof = deckconf.load()[0] or {}
+    if as_json:
+        return ui.emit(state(prof))
     mode = serve_mode(prof)
     up = active()
     print(row(OK if up else (WARN if mode else DIM + "·" + RST), "service",
@@ -902,8 +911,10 @@ def main():
     a = sys.argv[1:]
     if a and a[0] in ("-h", "--help"):
         print(USAGE); return 0
+    as_json = "--json" in a
+    a = [x for x in a if x != "--json"]
     cmd = a[0] if a else "status"
-    if cmd == "status": return status()
+    if cmd == "status": return status(as_json)
     if cmd == "on": return on()
     if cmd == "off": return off()
     if cmd == "pair": return pair()

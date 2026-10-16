@@ -12,13 +12,13 @@ finds. So every public entry of share/commands.json declares its `card`
 - every argument a card passes (from, on, off, args) is one the command
   takes (lib/cli.py's check, and its fixed words);
 - a card whose command changes things on a bare run asks first (confirm);
+- a sensor's or toggle's state comes from the command's own --json;
 - the DECK tab's keys (lib/panel.py's OPENS) name real commands, one entry
   per key.
 
-It then lists, without failing, what the next issues close: the commands
+It then lists, without failing, what the next issue closes: the commands
 whose card is their only door so far (no DECK key, no + menu or fleet entry,
-no pane in a shipped shape or the layout), and the cards whose state isn't in the
-command's --json yet.
+no pane in a shipped shape or the layout).
 """
 import json, os, re, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -77,14 +77,15 @@ for name, e in entries.items():
         argv = c.get(f)
         if not strs(argv):
             continue
-        if f == "from" and "--json" not in e.get("options", []):
-            argv = [a for a in argv if a != "--json"]   # not there yet: listed below, for #63
         flag = cli.check(name, argv)
         if flag:
             bad.append("%s: card `%s` passes %s, which it doesn't take" % (where, f, flag))
         for w in argv:
             if not w.startswith("-") and e.get("words") and w not in words:
                 bad.append("%s: card `%s` passes `%s`, not one of its words" % (where, f, w))
+    if "state" in c and ("--json" not in c.get("from", ["--json"]) or "--json" not in e.get("options", [])):
+        bad.append("%s: a %s card's state comes from the command's --json: give it one, and say so in from"
+                   % (where, kind))
     cards[name] = c
 
 # the DECK tab's keys, as data
@@ -118,11 +119,8 @@ if bad:
         print("  - " + b)
     sys.exit(1)
 only_card = sorted(n for n, c in cards.items() if c["kind"] != "plumbing" and n not in doors)
-no_state = sorted(n for n, c in cards.items() if "state" in c and
-                  ("--json" not in c.get("from", ["--json"]) or "--json" not in entries[n].get("options", [])))
 by_kind = {}
 for c in cards.values():
     by_kind[c["kind"]] = by_kind.get(c["kind"], 0) + 1
 print("doors-check ok (%d cards: %s)" % (len(cards), ", ".join("%d %s" % (v, k) for k, v in sorted(by_kind.items()))))
 print("  only their card so far (#64): " + (" ".join(only_card) or "none"))
-print("  state not in --json yet (#63): " + (" ".join(no_state) or "none"))

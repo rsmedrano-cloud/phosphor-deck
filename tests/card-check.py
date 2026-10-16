@@ -47,23 +47,23 @@ real_run = subprocess.run
 calls = []
 def fake_run(argv, **kw):
     calls.append(argv[2:])
-    out = {"version": {"check": {"behind": 3}}, "screens": {"screens": [{}, {}]}}.get(argv[2], {})
+    out = {"version": {"check": {"behind": 3}}, "screens": {"screens": [{}, {}]},
+           "ci": {"pipelines": [{}], "why": "failing: app"}, "web": {"on": True, "why": None}}.get(argv[2], {})
     return types.SimpleNamespace(stdout=json.dumps(out), returncode=0)
 subprocess.run = fake_run
 try:
-    check("fetch: a list counted", card.fetch("screens") == ([{}, {}], "2"))
+    check("fetch: a list counted", card.fetch("screens") == ([{}, {}], "2", None))
     check("fetch: asks the command for --json", calls[-1] == ["screens", "--json"])
-    check("fetch: a dotted state", card.fetch("version") == (3, "3"))
-    check("fetch: from arguments as the card says", card.fetch("workspace") == (None, None)
+    check("fetch: a dotted state", card.fetch("version") == (3, "3", None))
+    check("fetch: from arguments as the card says", card.fetch("workspace") == (None, None, None)
           and calls[-1] == ["workspace", "list", "--json"])
+    check("fetch: the command's why comes along", card.fetch("ci") == ([{}], "1", "failing: app"))
+    check("fetch: a toggle's state from status --json", card.fetch("web") == (True, "on", None)
+          and calls[-1] == ["web", "status", "--json"])
     calls.clear()
-    no_json = [n for n, e in cli.entries().items() if (e.get("card") or {}).get("state")
-               and "--json" not in e.get("options", [])]
-    check("there's a card whose state isn't in --json yet, to test with", no_json)
-    check("fetch: no --json yet is no value, nothing run", card.fetch(no_json[0]) == (None, None) and not calls)
-    check("fetch: a button has no value", card.fetch("doctor") == (None, None) and not calls)
+    check("fetch: a button has no value", card.fetch("doctor") == (None, None, None) and not calls)
     subprocess.run = lambda *a, **kw: (_ for _ in ()).throw(subprocess.TimeoutExpired("x", 10))
-    check("fetch: a command that hangs is no value, not a crash", card.fetch("screens") == (None, None))
+    check("fetch: a command that hangs is no value, not a crash", card.fetch("screens") == (None, None, None))
 
     # tap: what the card says, asking first when it says so
     ran, asked, said = [], [], []
@@ -106,6 +106,8 @@ finally:
 # Live keeps only the cards that have a value to keep
 live = card.Live([], every=60)
 check("Live with nothing to watch starts no thread", live.get("screens") == (None, False))
+live.got["ci"] = ([{}], "1", "failing: app")
+check("Live: a why is a card that wants a look", live.get("ci") == ("1", True) and live.why("ci") == "failing: app")
 
 if fails:
     print("card-check FAILED:\n  " + "\n  ".join(fails)); sys.exit(1)

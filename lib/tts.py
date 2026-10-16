@@ -17,7 +17,7 @@ Assists the user in installing optional neural models and engines:
 import io, json, math, os, re, shutil, struct, subprocess, sys, tarfile, tempfile, threading, time, wave
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import deckconf, dlog
-from ui import OK, WARN, BAD, PH, AMB, DIM, RST
+from ui import OK, WARN, BAD, PH, AMB, DIM, RST, emit
 
 VOICES = {
     "glados": "GLaDOS (Portal AI, via nimaid/GLaDOS-TTS)",
@@ -710,6 +710,22 @@ def install_glados(target_dir=None):
     return 0
 
 
+def state():
+    """status --json: what speaks, and why it can't when it's on but mute."""
+    cfg = get_config()
+    g_ok, g_detail = is_glados_ready(get_glados_dir(cfg))
+    piper, (_, system), (player, _) = find_piper(), find_system_tts(), find_audio_player()
+    why = None
+    if cfg["enabled"] and not player:
+        why = "no audio player found (aplay, paplay or pw-play): nothing is heard"
+    elif cfg["enabled"] and cfg["voice"] == "glados" and not g_ok:
+        why = "the GLaDOS voice isn't ready (%s): phosphor tts install glados" % g_detail
+    return {"enabled": cfg["enabled"], "voice": cfg["voice"], "fleet_alerts": bool(cfg["fleet_alerts"]),
+            "glados": {"ready": g_ok, "detail": g_detail}, "piper": piper or None,
+            "models": {k: bool(v) for k, v in list_installed_models().items()},
+            "system": system or None, "player": player or None, "why": why}
+
+
 def status():
     """Print detailed status of TTS engines and voices."""
     cfg = get_config()
@@ -784,13 +800,13 @@ def main():
         print("usage: phosphor tts [\"message to speak\"]")
         print("       phosphor tts --voice VOICE \"message\"")
         print("       phosphor tts --list")
-        print("       phosphor tts status")
+        print("       phosphor tts status [--json]")
         print("       phosphor tts install [glados | piper | models | all]")
         print("       phosphor tts on | off")
         return 0
 
-    if argv[0] == "status":
-        return status()
+    if argv[0] in ("status", "--json"):
+        return emit(state()) if "--json" in argv else status()
 
     if argv[0] in ("--list", "--voices", "voices"):
         print("Available voices:")

@@ -7,6 +7,7 @@ colored by status (SUCCESS, RUNNING, FAILED, CANCELED).
 
     phosphor ci           the panel, redrawn every interval
     phosphor ci --once    one frame on stdout
+    phosphor ci --json    the same pipelines as JSON, for scripts and the deck's card
 """
 import json, os, re, shutil, subprocess, sys, time, urllib.request, urllib.parse
 from concurrent.futures import ThreadPoolExecutor
@@ -407,7 +408,27 @@ def screen(cols, rows):
     pipelines, interval = got
     return frame(cols, rows, fetch(pipelines)), interval
 
+def as_json(got):
+    """--json: the latest run of each pipeline; why names the failing ones."""
+    if got is None:
+        return {"configured": False, "pipelines": [], "why": None}
+    out = []
+    for p, data, err in fetch(got[0]):
+        d = dict(data or {})
+        rec = {"name": d.get("name") or p.get("name") or p.get("repo"),
+               "provider": d.get("provider") or p.get("provider") or "github",
+               "repo": p.get("repo"), "branch": d.get("branch") or p.get("branch")}
+        for k in ("status", "sha", "commit", "author", "event", "when", "jobs", "history"):
+            rec[k] = d.get(k)
+        rec["error"] = err or d.get("stale")
+        out.append(rec)
+    bad = [r["name"] for r in out if r["status"] in ("FAILED", "FAILURE")]
+    return {"configured": True, "pipelines": out, "why": ("failing: " + ", ".join(bad)) if bad else None}
+
 def main():
+    if "--json" in sys.argv:
+        got = settings(deckconf.load()[0])
+        return ui.emit(ui.remembered("ci", got[1] if got else 0, lambda: as_json(got)))
     if "--once" in sys.argv:
         cols = shutil.get_terminal_size((80, 24)).columns
         print("\n".join(screen(cols, 10000)[0]))
@@ -428,4 +449,4 @@ def main():
         sys.stdout.write("\x1b[?1049l\x1b[?25h\n")
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main() or 0)

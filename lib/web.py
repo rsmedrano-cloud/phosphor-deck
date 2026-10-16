@@ -9,6 +9,7 @@ funnel (that would be the internet). Two locks: the tailnet and the token.
     phosphor web on [--yes]   publish it, print the address and a login token
     phosphor web off         unpublish it and stop the web server
     phosphor web status      what's running and where
+    phosphor web status --json   the same, for scripts and the deck's card
     phosphor web token       a new login token (shown once, revocable)
 
 `on` restarts the deck so the browser can share its session: with a tty it
@@ -179,8 +180,22 @@ def off():
               note="the watchdog won't start it again" if not st["flag"] else ""))
     return 1 if (st["published"] or st["server"] or st["flag"]) else 0
 
-def status():
+def state(prof):
+    """status --json: on is what runs (the tailnet address or the server),
+    not the profile's word; why says what wants a look, else None."""
+    st = live(prof)
+    running = st["published"] or st["server"]
+    why = None
+    if st["flag"] != running:
+        why = ("the profile says web = true, but nothing runs" if st["flag"] else
+               "it runs, but the profile says web = false") + ": phosphor web on, or off, puts them straight"
+    return {"on": running, "published": st["published"], "server": st["server"], "profile": st["flag"],
+            "url": url(prof) if st["published"] else None, "why": why}
+
+def status(as_json=False):
     prof, _ = deckconf.load()
+    if as_json:
+        return emit(state(prof))
     st = live(prof)
     dot = DIM + "·" + RST
     print(row(OK if st["published"] else dot, "tailnet address",
@@ -216,6 +231,8 @@ def on_brain(args):
     if not b:
         print(row(BAD, "browser access", "no brain in the profile")); return 1
     tgt = deckconf.target(b)
+    if "--json" in args:            # no tty, nothing said: the brain's JSON is the answer
+        return subprocess.run(["ssh", tgt, "~/.local/bin/phosphor web " + " ".join(args)]).returncode
     print("  " + DIM + "the deck's web server lives on %s: asking it there" % b["name"] + RST)
     return subprocess.run(["ssh", "-t", tgt, "~/.local/bin/phosphor web " + " ".join(args)]).returncode
 
@@ -225,10 +242,13 @@ def main():
     if r is not None:
         return r
     yes = "--yes" in args or "-y" in args
-    args = [a for a in args if a not in ("--yes", "-y")]
+    as_json = "--json" in args
+    args = [a for a in args if a not in ("--yes", "-y", "--json")]
     cmd = (args or ["status"])[0]
     if cmd == "on":
         return on(yes=yes)
+    if cmd == "status":
+        return status(as_json)
     return {"off": off, "status": status, "token": token}.get(cmd, status)()
 
 if __name__ == "__main__":

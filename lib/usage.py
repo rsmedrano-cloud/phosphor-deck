@@ -13,6 +13,7 @@ feet); an expired one says "open claude (or agy) once" and waits.
 
     phosphor usage          the panel, refreshed every couple of minutes
     phosphor usage --once   one frame on stdout
+    phosphor usage --json   the same plans as JSON, for scripts and the deck's card
 """
 import json, os, shutil, sys, time, urllib.request
 from datetime import datetime
@@ -184,7 +185,23 @@ def collect():
     c, a = claude(), agy()
     return [("CLAUDE", c[0], c[1]), ("ANTIGRAVITY", a[0], a[1])]
 
+def as_json(results):
+    """--json: one plan per assistant signed in here, each window's share
+    used and when it refills; why names a window past 90% or an error."""
+    plans, loud = [], []
+    for title, rows, err in results:
+        if rows is None and err is None:          # never signed in on this machine
+            continue
+        win = [{"label": l, "used": round(u, 1), "resets_at": at} for l, u, at in rows or []]
+        plans.append({"name": title.lower(), "windows": win, "error": err})
+        loud += ["%s %s %d%%" % (title.lower(), w["label"], w["used"]) for w in win if w["used"] >= 90]
+        if err:
+            loud.append("%s: %s" % (title.lower(), err))
+    return {"plans": plans, "why": ", ".join(loud) or None}
+
 def main():
+    if "--json" in sys.argv:
+        return ui.emit(ui.remembered("usage", FETCH_EVERY, lambda: as_json(collect())))
     if "--once" in sys.argv:
         cols = shutil.get_terminal_size((80, 24)).columns
         print("\n".join(frame(collect(), cols, 10000)))
@@ -212,4 +229,4 @@ def main():
         sys.stdout.write("\x1b[?1049l\x1b[?25h\n")
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main() or 0)

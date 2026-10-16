@@ -7,6 +7,7 @@ sparkline, colored by its warn and crit thresholds.
 
     phosphor prom           the panel, redrawn every interval
     phosphor prom --once    one frame on stdout
+    phosphor prom --json    the same gauges as JSON, for scripts and the deck's card
 """
 import json, os, re, shutil, sys, time, urllib.request, urllib.parse
 from collections import deque
@@ -155,7 +156,26 @@ def screen(cols, rows):
     url, metrics, interval = got
     return frame(url, cols, rows, fetch(url, metrics)), interval
 
+def level(m, val, err):
+    """The card's tag as a word: ok, warn, crit, or error."""
+    if err is not None or val is None:
+        return "error"
+    return "crit" if val >= m.get("crit", 90) else "warn" if val >= m.get("warn", 80) else "ok"
+
+def as_json(got):
+    """--json: each gauge's value and level; why names the ones past warn."""
+    if got is None:
+        return {"configured": False, "url": None, "gauges": [], "why": None}
+    url, metrics, _ = got
+    out = [{"name": m.get("name", m.get("query", "?")), "query": m.get("query"), "value": val,
+            "unit": m.get("unit", ""), "level": level(m, val, err), "error": err}
+           for m, val, err in fetch(url, metrics)]
+    loud = ["%s %s" % (g["name"], g["level"]) for g in out if g["level"] != "ok"]
+    return {"configured": True, "url": url, "gauges": out, "why": ", ".join(loud) or None}
+
 def main():
+    if "--json" in sys.argv:
+        return ui.emit(as_json(settings(deckconf.load()[0])))
     if "--once" in sys.argv:
         cols = shutil.get_terminal_size((80, 24)).columns
         print("\n".join(screen(cols, 10000)[0]))
@@ -176,4 +196,4 @@ def main():
         sys.stdout.write("\x1b[?1049l\x1b[?25h\n")
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main() or 0)

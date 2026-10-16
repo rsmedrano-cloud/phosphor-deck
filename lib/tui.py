@@ -25,6 +25,11 @@ that takes a while, and line() asks for a line of text. Enter comes to act()
 as "enter"; g and G jump to the first and last row. lines() may put a Head
 among the rows: a group's title, never picked. A fix to keys or taps here
 reaches every panel at once.
+
+A panel whose rows have names (row_name(row): a tty, a unit, a host) opens
+already on one with `--select NAME` on its command line: the shortcut a
+card or a script takes straight to it (exact name first, else the first
+that starts with it, any case).
 """
 import os, shutil, sys, time
 
@@ -36,6 +41,30 @@ INV = "\x1b[7m"                                     # the picked row, for a pane
 ON = "\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h"     # alt screen, no cursor, SGR mouse
 OFF = "\x1b[?1006l\x1b[?1000l\x1b[?1049l\x1b[?25h"
 QUIT = ("q", "Q", "\x03", "\x1b")
+
+
+def selected(argv=None):
+    """The NAME of --select NAME (or --select=NAME), or None."""
+    a = sys.argv[1:] if argv is None else argv
+    for i, x in enumerate(a):
+        if x == "--select" and i + 1 < len(a):
+            return a[i + 1]
+        if x.startswith("--select="):
+            return x.split("=", 1)[1]
+    return None
+
+
+def unselected(argv):
+    """argv without --select and its NAME: what's left for the command."""
+    out, skip = [], False
+    for x in argv:
+        if skip:
+            skip = False
+        elif x == "--select":
+            skip = True
+        elif not x.startswith("--select="):
+            out.append(x)
+    return out
 
 
 class Head(str):
@@ -61,6 +90,7 @@ class ListPanel:
         self.ask = None            # (prompt, do, note) while a question waits
         self.msg = ""
         self.layout = (0, 0, 0, [], {})   # first screen row, top line, lines shown, key spans, line -> row
+        self.want = selected()     # --select NAME: picked on the first fetch that has it
 
     # ── what a panel says ─────────────────────────────────────
     def fetch(self):
@@ -76,6 +106,10 @@ class ListPanel:
 
     def act(self, k, row):
         pass
+
+    def row_name(self, row):
+        """What --select NAME matches this row against; None: no names."""
+        return None
 
     # ── what act() can answer with ────────────────────────────
     def confirm(self, prompt, do, note=""):
@@ -117,6 +151,23 @@ class ListPanel:
             self.problem = ""
             self.rows, self.last = self.fetch(), time.time()
             self.sel = min(self.sel, max(0, len(self.rows) - 1))
+            if self.want is not None:
+                self.pick(self.want)
+                self.want = None
+
+    def pick(self, want):
+        """Put the selection on the row named want; say so when there's none."""
+        if type(self).row_name is ListPanel.row_name:     # rows with no names: nothing to pick by
+            return
+        names = [(self.row_name(r) or "").lower() for r in self.rows]
+        w = want.lower()
+        hit = next((i for i, n in enumerate(names) if n == w), None)
+        if hit is None:
+            hit = next((i for i, n in enumerate(names) if w and n.startswith(w)), None)
+        if hit is None:
+            self.say("no %s here" % want, DIM)
+        else:
+            self.sel = hit
 
     def frame(self, cols, height):
         """The screen's lines; remembers where rows and keys landed, for taps."""

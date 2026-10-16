@@ -46,21 +46,23 @@ def summary(v):
 
 
 def fetch(name):
-    """(raw state, its summary) from the command's own --json, or (None,
-    None) when it has none yet or doesn't answer."""
+    """(raw state, its summary, why) from the command's own --json: why is
+    its top-level `why`, set when something wants a look. (None, None, None)
+    when it has none or doesn't answer."""
     c = spec(name) or {}
     argv = c.get("from", ["--json"])
     if "state" not in c or "--json" not in (cli.entries().get(name) or {}).get("options", []):
-        return None, None
+        return None, None, None
     try:
         r = subprocess.run([sys.executable, PHOSPHOR, name] + argv, stdin=subprocess.DEVNULL,
                            capture_output=True, text=True, timeout=10)
-        v = json.loads(r.stdout)
+        v = top = json.loads(r.stdout)
         for k in c["state"].split("."):
             v = v[k]
     except Exception:          # no answer is no value, never a broken card
-        return None, None
-    return v, summary(v)
+        return None, None, None
+    why = top.get("why") if isinstance(top, dict) else None
+    return v, summary(v), why if isinstance(why, str) and why else None
 
 
 class Live:
@@ -79,11 +81,16 @@ class Live:
             time.sleep(self.every)
 
     def get(self, name):
-        """(summary, warn) for line()."""
-        return (self.got.get(name) or (None, None))[1], False
+        """(summary, warn) for line(): warn when the command's why says so."""
+        _, v, why = self.got.get(name) or (None, None, None)
+        return v, bool(why)
 
     def raw(self, name):
-        return (self.got.get(name) or (None, None))[0]
+        return (self.got.get(name) or (None, None, None))[0]
+
+    def why(self, name):
+        """What wants a look, in the command's words, or None."""
+        return (self.got.get(name) or (None, None, None))[2]
 
 
 def line(key, label, value, cmd, note, w, warn=False):

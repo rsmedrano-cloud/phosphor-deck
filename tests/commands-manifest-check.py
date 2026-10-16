@@ -66,6 +66,8 @@ for name, e in entries.items():
     src = dispatcher
     if os.path.exists(os.path.join(ROOT, "lib", mod + ".py")):
         src += open(os.path.join(ROOT, "lib", mod + ".py")).read()
+    if "tui.ListPanel" in src:            # its panel reads --select (lib/tui.py)
+        src += open(os.path.join(ROOT, "lib", "tui.py")).read()
     if name == "screen":
         src += open(os.path.join(ROOT, "lib", "phone.py")).read()
     if name == "attach":

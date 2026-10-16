@@ -295,6 +295,38 @@ ky.key("j"); need("keys: j skips the note", ky.sel == 1 and "\x1b[7m" in [l for 
 ky.key("s"); need("keys: s runs setup", setups == [1])
 need("keys: no tty prints it plain", "Alt b" in "\n".join(KY.build(KY.load(), 78)[0]))
 
+# ── --select NAME: the panel opens on that row (a card's shortcut, a script's)
+need("selected: --select NAME", tui.selected(["--select", "pts/3"]) == "pts/3"
+     and tui.selected(["--json", "--select=web"]) == "web" and tui.selected(["--once"]) is None)
+need("unselected: the rest of the command line",
+     tui.unselected(["db-box", "--select", "web", "--once"]) == ["db-box", "--once"]
+     and tui.unselected(["--select=web", "db-box"]) == ["db-box"])
+class Named(Fake):
+    def row_name(self, row):
+        return row.upper()
+real_argv = sys.argv
+try:
+    sys.argv = ["phosphor-x", "--select", "row3"]
+    n = Named(); n.update()
+    need("--select: picked on the first fetch", n.sel == 3 and not n.msg)
+    n.key("k"); n.refresh(); n.update()
+    need("--select: only once, the pick is yours after", n.sel == 2)
+    sys.argv = ["phosphor-x", "--select", "ROW"]
+    n = Named(); n.update()
+    need("--select: a prefix, any case, takes the first", n.sel == 0)
+    sys.argv = ["phosphor-x", "--select", "nimbus"]
+    n = Named(); n.update()
+    need("--select: no such row says so, the pick stays", n.sel == 0 and "no nimbus here" in n.msg)
+    sys.argv = ["phosphor-x", "--select", "row1"]
+    f = Fake(); f.update()
+    need("--select: a panel with no names ignores it", f.sel == 0 and not f.msg)
+finally:
+    sys.argv = real_argv
+need("--select: screens by tty", sc.row_name({"tty": "pts/3", "from": "db-box"}) == "pts/3")
+need("--select: services by unit", S.Panel(prof).row_name(("user", "deck.service", {})) == "deck.service")
+need("--select: containers by name", cp.row_name(("web", "running", "")) == "web")
+need("--select: tunnels by host", tn.row_name({"host": "db-box", "state": "up"}) == "db-box")
+
 # ── run() on a real terminal (a pty, no zellij): draws, takes j, quits on q
 import pty, select, subprocess, time
 SCRIPT = """

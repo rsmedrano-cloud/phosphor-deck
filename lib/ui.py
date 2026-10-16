@@ -301,6 +301,28 @@ def emit(obj, rc=0):
     print(json.dumps(obj, indent=2, ensure_ascii=False))
     return rc
 
+def remembered(name, seconds, fn):
+    """fn()'s answer, kept `seconds` in the cache: a --json that asks a
+    remote API (a provider's quota, a forge's pipelines) answers a card
+    polling every few seconds at the pace its own panel asks, not faster."""
+    import json
+    p = os.path.join(deckconf.cache_dir(), "answer-%s.json" % name)
+    try:
+        if time.time() - os.path.getmtime(p) < seconds:
+            with open(p) as f:
+                return json.load(f)
+    except (OSError, ValueError):
+        pass
+    got = fn()
+    try:
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        with open(p + ".tmp", "w") as f:
+            json.dump(got, f)
+        os.replace(p + ".tmp", p)
+    except OSError:
+        pass
+    return got
+
 def tab_source(cmd):
     """Where the tab running `cmd` comes from, as a line saying how to take it
     out: a recipe, a tabs.d file of your own, or your profile. None if no tab runs it."""

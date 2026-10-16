@@ -105,8 +105,11 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
   (it asks first).
 - **JSON for scripts and assistants.** Every read-only listing (`fleet`,
   `services`, `containers`, `screens`, `mem`, `security`, `tunnel`, `version`,
-  `workspace list`, `panels`, `glance`) takes `--json` and prints the same data as one
-  JSON object: no colored text to scrape. `phosphor mcp` hands the same to any
+  `workspace list`, `panels`, `glance`, `ci`, `prom`, `usage`, `trace`) and every
+  switch's `status` (`web`, `push`, `tts`, `solaros`) takes `--json` and prints the
+  same data as one JSON object: no colored text to scrape, and a `why` when
+  something wants a look. The panels with named rows open straight on one with
+  `--select NAME` (`phosphor screens --select pts/3`). `phosphor mcp` hands the same to any
   assistant that speaks MCP (`claude mcp add phosphor -- phosphor mcp`):
   glance, fleet, notes, workspaces and the deck's log, read-only, over stdio.
 - **Panels of your own.** A Python file in `~/.config/phosphor/panels.d`
@@ -456,7 +459,7 @@ more depth on every one of these.
 | `phosphor mirror --tab AI` | one pane for a screen too slow for zellij (e-ink): only the lines that changed, no color, and what you type goes back into that pane; `--view` only watches |
 | `phosphor adjutant` | the SYS panel that speaks up: `phosphor notify MESSAGE` makes it announce something |
 | `phosphor notify --push` | the same notice on your phone (ntfy), for a brain nobody sits near: `[push]` in the profile; with `[tts]` on, what the brain said rides along as audio |
-| `phosphor push [--qr\|on\|off]` | `[push]`'s status, on or off, or a QR to subscribe on the phone without typing the server/topic in |
+| `phosphor push [--qr\|on\|off\|status]` | `[push]`'s status, on or off, or a QR to subscribe on the phone without typing the server/topic in |
 | `phosphor tts` | speak notifications aloud with selectable voices (GLaDOS, Adjutant, HAL, Synth, System) |
 | `phosphor ci` | GitLab/GitHub pipeline status cards (see `[ci]` in the profile) |
 | `phosphor services` | systemd units and their state: Phosphor's own, plus any you add (see `[services]` in the profile); pick one for its logs, restart, start/stop |

@@ -2,6 +2,7 @@
 
     phosphor trace TOOL
     phosphor trace off TOOL
+    phosphor trace --json   what's tracing, for scripts and the deck's card
 
 Turns on trace-TOOL.log (see `phosphor logs TOOL`): the tools that check
 in with dlog.tracing() (phosphor run, so far) write a line for every
@@ -14,7 +15,7 @@ deck.log has lines for, or any name) or stop one, in a panel.
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import dlog, tui
-from ui import FG, DIM, AMB, PH, RST, pad
+from ui import FG, DIM, AMB, PH, RST, pad, emit
 
 MINUTES = 30
 
@@ -88,6 +89,9 @@ def interactive():
 
 def main():
     a = sys.argv[1:]
+    if a == ["--json"]:
+        return emit({"traces": [{"tool": t, "minutes_left": left} for t, left in dlog.active_traces()],
+                     "minutes": MINUTES})
     if not a:
         if sys.stdin.isatty() and sys.stdout.isatty():
             return interactive()

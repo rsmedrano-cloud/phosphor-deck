@@ -280,6 +280,9 @@ class Panel(tui.ListPanel):
             out.append(INV + pad(" " + nm, min(w, 90) - 4) + RST if i == sel else " " + FG + nm + RST)
         return out
 
+    def row_name(self, r):
+        return r["tty"]
+
     def act(self, k, r):
         import kinds
         if k == "r":

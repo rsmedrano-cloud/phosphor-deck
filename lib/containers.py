@@ -241,6 +241,9 @@ class Panel(tui.ListPanel):
     def lines(self, w, sel):
         return lines(self.rows, w, sel)
 
+    def row_name(self, row):
+        return row[0]
+
     def act(self, k, row):
         if self.demo:
             return self.say("the demo's machines aren't real: nothing to touch")
@@ -260,7 +263,7 @@ def panel(name, target, demo=False):
 
 
 def main():
-    a = [x for x in sys.argv[1:] if not x.startswith("-")]
+    a = [x for x in tui.unselected(sys.argv[1:]) if not x.startswith("-")]
     prof, _ = deckconf.load()
     got = find(prof, a[0] if a else None)
     if got is None:

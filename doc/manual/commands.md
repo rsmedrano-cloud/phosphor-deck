@@ -190,14 +190,14 @@
   the first it has; apt and dnf still ask before changing anything), `reboot` is `sudo systemctl
   reboot`. HOST is a name FLEET shows; for the brain itself it runs right here. FLEET's `u` and `b`
   open it in a tab of its own; a SolarOS panel's fleet (`phosphor solaros`) runs it in place.
-- `phosphor containers [HOST] [--once | --json]` — a host's containers (docker, or podman where docker isn't
+- `phosphor containers [HOST] [--once | --json | --select NAME]` — a host's containers (docker, or podman where docker isn't
   there or doesn't answer -- the engine its FLEET card counts), running first, an exit that wasn't 0
   in red; no `HOST` means this machine. Listed over ssh the same way FLEET reaches it (a key, never
   a password prompt). On a terminal, pick one (j/k or a tap): `l` reads its last 300 log lines, `r`
   restarts it and `s` starts or stops it, each asking first (`y`). No sudo: if listing them works
   without it, so does acting on them. Also `c` over a card in FLEET, in a tab of its own. In
   `phosphor demo` it lists made-up containers and touches nothing.
-- `phosphor usage [--once]` — how much of your AI assistants' plans you've used, one card each:
+- `phosphor usage [--once | --json]` — how much of your AI assistants' plans you've used, one card each:
   Claude Code (the 5-hour window and the week) and Antigravity (each quota pool -- Gemini, and the
   Claude/GPT models it also offers), each with a bar and the time until it refills. Only the ones
   signed in on this machine show. It reads the token each CLI already keeps
@@ -210,7 +210,7 @@
   lines that changed, no color, at the pace the screen's link takes; a line wider than the screen
   wraps and the screen shows the bottom. Keys typed on it go into that pane (Ctrl-] leaves);
   `--view` only watches, `--once` prints one frame. Alone, it lists the session's panes (see screens).
-- `phosphor solaros [status | on | off | pair | forget]` — a SolarOS panel as a face of the deck
+- `phosphor solaros [status [--json] | on | off | pair | forget]` — a SolarOS panel as a face of the deck
   (see screens, "A SolarOS panel"). `on` keeps `glance --serve --lan` up as a user service
   (`[glance] serve = "lan"`), prints the two lines to type on the panel and copies them; `off`
   stops it. `pair` opens a 10-minute window: the panel's app sends its ssh key, both screens show
@@ -232,7 +232,7 @@
   tailnet or, with `--lan`, the LAN, plus a ready-made app for a SolarOS panel: see screens.
 - `phosphor notify [--tab TAB] [--voice VOICE] [--tts|--no-tts] [--push|--no-push] MESSAGE` — the adjutant announces it, speaks it if TTS is enabled, and pushes it to your phone if `[push]` is on -- with what it said attached as audio when it spoke it (`[push] clip`). The tab it names (or SYS with no `--tab`) also reads "`<TAB> ●N`" until you look.
 - `phosphor tts [MESSAGE]` — speak a message aloud with selectable voices (glados, adjutant, hal, synth, system); `phosphor tts install glados` assists with installing GLaDOS-TTS. `on`/`off` switch `[tts]`; with nothing, on a terminal, its status with on/off one key away.
-- `phosphor push [--qr | on | off]` — `[push]`'s status (on/off, server, topic, the "open the deck" button); `on`/`off`
+- `phosphor push [--qr | on | off | status [--json]]` — `[push]`'s status (on/off, server, topic, the "open the deck" button); `on`/`off`
   switch it (`on` with no topic makes up a long random one); with nothing, on a terminal, the same status with
   on/off and the QR one key away. `--qr` prints the subscribe
   link as a QR (also onto every screen's clipboard) so the phone's ntfy app can scan it instead of
@@ -245,7 +245,7 @@
   you're inside the deck -- your working copy is never touched, same spirit as `tests/mrs-check.py`;
   `x` drops that worktree (after a y/n: anything changed there is lost). `r` refreshes the
   list, which also refreshes on its own once a minute; rows and keys answer a tap.
-- `phosphor screens [--list | --json]` — who's attached (phone, tablet, another computer): where each is from and
+- `phosphor screens [--list | --json | --select TTY]` — who's attached (phone, tablet, another computer): where each is from and
   how long it's been idle, `x` kicks one loose, `o` changes its kind's deck (see
   screens) -- both ask y/n first -- and `r` refreshes; a tap picks a row or presses a key. A kick just ends that one
   ssh connection -- its own `deck` wrapper (see screens) notices and reconnects in a few seconds by
@@ -337,7 +337,7 @@
   you're actually holding onto this machine -- an AI assistant running in a pane here can then
   read it directly. Run bare on a terminal, the QR gets a screen of its own and, once the file
   lands, `y` opens it in yazi. See clipboard.
-- `phosphor web on|off|status|token` — browser access, tailnet only.
+- `phosphor web on|off|status [--json]|token` — browser access, tailnet only.
 - `phosphor path PATH` — `~/fleet/x/y` → `host:/y`.
 - `phosphor tail HOST [SERVICE]` — stream a fleet host's logs: `journalctl -f` with no `SERVICE`,
   `journalctl -f -u SERVICE` for a bare name or `systemd/NAME`, `docker logs -f` or `podman logs
@@ -373,7 +373,7 @@
   reboot). On a terminal it asks before each next host; with `--yes` it goes on by itself while
   they keep answering 0. With nothing at all, on a terminal, it asks: the hosts to tick, the
   command, all at once or one at a time, then the same confirmation.
-- `phosphor tunnel [on|off HOST | --json]` — keep your ssh config's LocalForward tunnels up. Bare, on a
+- `phosphor tunnel [on|off HOST | --json | --select HOST]` — keep your ssh config's LocalForward tunnels up. Bare, on a
   terminal, a panel to turn them on and off; piped, the plain list.
 - `phosphor face IMAGE [--name N] [--w 24] [--h 13] [--half] [--mode thr|dither|edge]`. No `IMAGE`, on a
   terminal: it asks which, listing only images. Needs ImageMagick (`convert`).
@@ -402,9 +402,17 @@
   machine. It's what decides the next removals (see api). `--clear` starts over from today.
 
 ## For scripts: --json
-Every read-only listing prints its data once as one JSON object with `--json`: no color, no
-screen codes, the same answers the panel shows. Scripts, gadgets and the assistants in your panes
-read that instead of scraping colored text. Nothing in it writes or restarts anything.
+Every read-only listing, and every switch's status, prints its data once as one JSON object with
+`--json`: no color, no screen codes, the same answers the panel shows. Scripts, gadgets and the
+assistants in your panes read that instead of scraping colored text, and so do the deck's own
+cards (each command's `card` in share/commands.json names the field it shows). Nothing in it writes
+or restarts anything.
+
+A switch answers what really runs, not only what the profile says, and most answers carry a `why`:
+null when all is as it says, else one line on what wants a look (half on, failing, past a
+threshold). A card with a `why` shows a `!` after its key. The ones that ask a service elsewhere
+(`ci`, `usage`) answer from a short cache, at the pace their own panel asks, so a dashboard
+reading them every few seconds never gets them rate-limited.
 
 - `phosphor fleet --json` — every host's latest readings, from the fleet's own cache (it polls
   nothing): `t`, `age` and `stale` (no reading for 90s: the deck's fleet isn't running), and
@@ -428,8 +436,32 @@ read that instead of scraping colored text. Nothing in it writes or restarts any
 - `phosphor workspace list --json` — `root` and `workspaces`: `name`, `path`, `git` (`dirty`,
   `ahead`, `behind`).
 - `phosphor panels --json` — `folder` and `panels`: `name`, `desc`, `file`.
+- `phosphor web status --json` — `on` (the address published or the server up), `published`,
+  `server`, `profile` (its `web =`), `url` while published, and `why` when the profile and what
+  runs disagree.
+- `phosphor push status --json` — `enabled`, `server`, `topic` and `token` (whether there is one,
+  never which: the topic is all a stranger needs on a public server), `clip`, `open_web`, and `why`
+  when it's on with no topic.
+- `phosphor tts status --json` — `enabled`, `voice`, `fleet_alerts`, `glados` (`ready`, `detail`),
+  `piper`, `models`, `system`, `player`, and `why` when it's on but nothing can be heard.
+- `phosphor solaros status --json` — `on` (the service serving), `serve` (lan, tailnet or null),
+  `paired` (`fingerprint`, `comment`), and `why` when the profile serves it but the service is down.
+- `phosphor trace --json` — `traces`: `tool` and `minutes_left`; `minutes`, how long one lasts.
+- `phosphor ci --json` — `configured` and `pipelines`: `name`, `provider`, `repo`, `branch`,
+  `status`, `sha`, `commit`, `author`, `event`, `when`, `jobs`, `history`, `error`; `why` names the
+  failing ones.
+- `phosphor prom --json` — `configured`, `url` and `gauges`: `name`, `query`, `value`, `unit`,
+  `level` (ok, warn, crit, error) and `error`; `why` names the ones past warn.
+- `phosphor usage --json` — `plans`, one per assistant signed in here: `name`, `error` and its
+  `windows` (`label`, `used` in %, `resets_at`); `why` names a window past 90% or an error.
 - `phosphor stats --json` — `since` and `commands`: `name`, `runs`, `terminal`, `pane`,
   `script`, `last`; and `never`, the commands not run since then.
+
+Straight to one row: the panels whose rows have names open already on one with `--select NAME`
+(the exact name, else the first that starts with it, any case), the way a card's shortcut or a
+script takes you there: `phosphor screens --select pts/3`, `phosphor services --select
+phosphor-glance`, `phosphor tunnel --select db-box`, `phosphor containers db-box --select web`.
+A name that isn't there says so and leaves the pick at the top.
 
 ### For assistants: phosphor mcp
 `phosphor mcp` is the same data for an assistant that speaks MCP (Model Context Protocol): a

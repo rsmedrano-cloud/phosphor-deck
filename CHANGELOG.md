@@ -6,6 +6,24 @@ before it updates.
 
 ## Unreleased
 
+## 2.1.4 — every switch's state in JSON, and --select
+
+- Every switch says its state in JSON: `phosphor web status --json`,
+  `push status --json`, `tts status --json`, `solaros status --json`, and
+  `phosphor ci`, `prom`, `usage` and `trace` take `--json` too. A switch
+  answers what really runs, not only what the profile says, and the answer
+  carries a `why` when something wants a look (web half on, push with no
+  topic, tts with nothing to play it, a failing pipeline, a gauge past warn,
+  a plan past 90%). The DECK's cards read these, and a `why` puts the `!`
+  after the key. `ci` and `usage` answer from a short cache, at their
+  panel's own pace, so a dashboard never gets them rate-limited.
+- `--select NAME` opens a panel straight on one row: `phosphor screens
+  --select pts/3`, `services --select phosphor-glance`, `tunnel --select
+  db-box`, `containers db-box --select web` -- the exact name, else the
+  first that starts with it. The way in for a card's shortcut, or a script.
+- `phosphor push status` is a word of its own now (it was only the bare
+  run).
+
 ## 2.1.3 — the DECK tab as a dashboard
 
 - The DECK tab is a dashboard now. Every action is a card of one line: its

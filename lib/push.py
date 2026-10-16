@@ -10,6 +10,7 @@ Off until [push] in the profile has enabled = true and a url + topic: the
 message text leaves this machine, so nothing is sent by default.
 
     phosphor push           status: on/off, server, topic
+    phosphor push status --json   the same, for scripts and the deck's card
     phosphor push --qr      the subscribe link as a QR (and on every clipboard):
                              scan it in the phone's ntfy app instead of typing
                              the server and topic in by hand
@@ -22,7 +23,7 @@ import os, sys, urllib.parse, urllib.request, urllib.error
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import deckconf
-from ui import OK, WARN, BAD, DIM, RST, row
+from ui import OK, WARN, BAD, DIM, RST, row, emit
 
 MAX_LEN = 500
 
@@ -143,6 +144,18 @@ def subscribe_url(cfg):
     return "%s/%s" % (cfg["url"], cfg["topic"]) if cfg["topic"] else ""
 
 
+def state(cfg=None):
+    """status --json. The topic is the only thing between a stranger and
+    your notices on a public server: whether there is one, never which."""
+    cfg = cfg or get_config()
+    why = None
+    if not cfg["topic"]:
+        why = "no [push] topic in the profile: nothing can reach the phone"
+    return {"enabled": cfg["enabled"], "server": cfg["url"], "topic": bool(cfg["topic"]),
+            "token": bool(cfg["token"]), "clip": bool(cfg["clip"]),
+            "open_web": bool(cfg["open_web"]) and bool(web_url()), "why": why if cfg["enabled"] else None}
+
+
 def status(cfg=None):
     cfg = cfg or get_config()
     print(row(OK if cfg["enabled"] else WARN, "push", "on" if cfg["enabled"] else "off",
@@ -227,11 +240,15 @@ def interactive():
 def main():
     a = sys.argv[1:]
     if a and a[0] in ("-h", "--help"):
-        print("usage: phosphor push [--qr | on | off]"); return 0
+        print("usage: phosphor push [--qr | on | off | status [--json]]"); return 0
+    if "--json" in a:
+        return emit(state())
     if "--qr" in a:
         return qr()
     if a and a[0] in ("on", "off"):
         return set_enabled(a[0] == "on")
+    if a and a[0] == "status":
+        return status()
     if not a and sys.stdin.isatty() and sys.stdout.isatty():
         return interactive()
     return status()

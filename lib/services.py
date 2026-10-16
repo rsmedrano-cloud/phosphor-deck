@@ -228,6 +228,9 @@ class Panel(tui.ListPanel):
     def lines(self, w, sel):
         return lines(self.rows, w, sel)
 
+    def row_name(self, row):
+        return row[1]
+
     def act(self, k, row):
         scope, name, info = row
         if k == "l":

@@ -225,6 +225,9 @@ class Panel(tui.ListPanel):
                                          DIM + ("  " + f["label"] if f["label"] else "") + RST), w)))
         return out
 
+    def row_name(self, row):
+        return row["host"]
+
     def act(self, k, row):
         host = row["host"]
         if row["state"] == "off":
@@ -240,7 +243,7 @@ def interactive():
     return Panel().run()
 
 def main():
-    a = sys.argv[1:]
+    a = tui.unselected(sys.argv[1:])
     if a[:1] == ["on"] and len(a) > 1: return on(a[1])
     if a[:1] == ["off"] and len(a) > 1: return off(a[1])
     if "--json" in a: return emit({"tunnels": listing()})
