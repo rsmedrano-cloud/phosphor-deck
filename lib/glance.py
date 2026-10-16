@@ -25,7 +25,7 @@ hands out /solaros.py, share/solaros-app.py with this address and token
 filled in: a SolarOS panel fetches it with curl and runs it with python
 (lib/solaros.py has the rest: the service, pairing, the panel's menu).
 """
-import hmac, json, os, secrets, shutil, sys, termios, textwrap, time
+import hashlib, hmac, json, os, secrets, shutil, sys, termios, textwrap, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import DIM, MUTE, FG, PH, AMB, RED, RULE, BLOOM, RST, rule, paint
 import deckconf
@@ -367,11 +367,18 @@ def authorized(path, headers, secret):
     bearer = auth[7:].strip() if auth.lower().startswith("bearer ") else ""
     return any(c and hmac.compare_digest(c.encode(), secret.encode()) for c in (q, bearer))
 
+def client_build():
+    """Which copy of the SolarOS app this brain hands out: a hash of its
+    source, so any change to it is news to a panel running an older one."""
+    return hashlib.sha256(open(CLIENT, "rb").read()).hexdigest()[:12]
+
 def client_source(url_):
-    """The SolarOS client with the URL it reads (token included) written
-    in, so the panel needs nothing typed by hand."""
+    """The SolarOS client with the URL it reads (token included) and its
+    build written in, so the panel needs nothing typed by hand and knows
+    when the brain has a newer copy."""
     src = open(CLIENT).read()
-    return src.replace('URL = ""', "URL = %s" % json.dumps(url_), 1).encode()
+    src = src.replace('URL = ""', "URL = %s" % json.dumps(url_), 1)
+    return src.replace('BUILD = ""', 'BUILD = "%s"' % client_build(), 1).encode()
 
 def handler_for(secret):
     from http.server import BaseHTTPRequestHandler
@@ -382,7 +389,7 @@ def handler_for(secret):
         timeout = 5                     # a client that opens and says nothing
         server_version = "phosphor-glance"
         sys_version = ""
-        client = b""                    # set by bind(), once the address is known
+        url = ""                        # set by bind(), once the address is known
 
         def reply(self, code, body, ctype="application/json"):
             self.send_response(code)
@@ -399,10 +406,11 @@ def handler_for(secret):
             if not authorized(self.path, self.headers, secret):
                 return self.reply(401, b'{"error": "token"}\n')
             if path == "/solaros.py":           # it carries the token: same door
-                return self.reply(200, self.client, "text/x-python; charset=utf-8")
+                return self.reply(200, client_source(self.url), "text/x-python; charset=utf-8")
             if path == "/menu":                 # what the panel's app offers (lib/solaros.py)
                 import solaros
-                return self.reply(200, (json.dumps(solaros.menu(self.server.server_address[0])) + "\n").encode())
+                m = dict(solaros.menu(self.server.server_address[0]), app=client_build())
+                return self.reply(200, (json.dumps(m) + "\n").encode())
             if time.time() - cache["t"] > 2:      # a gadget polling fast doesn't re-run git
                 cache["body"] = (json.dumps(payload()) + "\n").encode()
                 cache["t"] = time.time()
@@ -459,7 +467,7 @@ def bind(port=PORT, new_token=False, lan=False):
         e.addr = "%s:%d" % (ip, port)
         raise
     url_ = "http://%s:%d/glance?token=%s" % (ip, httpd.server_port, secret)
-    httpd.RequestHandlerClass.client = client_source(url_)
+    httpd.RequestHandlerClass.url = url_     # the app is read per request: an update reaches the panel
     return httpd, url_, where
 
 def serve(port=PORT, new_token=False, lan=False):

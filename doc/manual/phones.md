@@ -281,9 +281,20 @@ the deck (`p` in the DECK tab's actions does the same):
     python /phosphor.py
 
 From a serial console instead, put it on the display with `session
-create python display0 /phosphor.py`. The app can also put itself in
-SolarOS's launcher (`put Phosphor in the launcher`, when the launcher has
-a free cell).
+create python display0 /phosphor.py`.
+
+Those two lines are typed once. The first run adds `phosphor` to the
+SolarOS shell (a line in `/.shell/alias`; one you already have for that
+name is left alone), so later it's one word at the prompt, and, when
+SolarOS's launcher has a free cell, asks once whether to put Phosphor
+there (Enter yes, Esc no; `put Phosphor in the launcher` stays in the menu
+for later). The launcher only takes SolarOS's own icons, so it shows
+`dashboard`. And it updates itself: at every start the app asks the brain
+which copy it hands out (the brain reads `share/solaros-app.py` on each
+request, so a `phosphor update` there is enough) and, when it's another
+one, fetches it, writes it over `/phosphor.py` and starts it, one line on
+screen. A copy from before 2.0.9 can't do that: type the two lines once
+more.
 
 The app shows the glance's light and counts on top and, below, the menu:
 **glance** (the hosts with a problem, the counts; read over HTTP, repainted

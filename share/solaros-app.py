@@ -15,6 +15,11 @@ once (`pair with the brain` here, `phosphor solaros pair` there, the same
 fingerprint on both). The token crosses the LAN in the clear; it can read,
 never type.
 
+It looks after itself: at start it asks the brain which copy of this app
+it hands out and, if that's newer, fetches it, rewrites /phosphor.py and
+starts again. The first run adds `phosphor` to the SolarOS shell
+(/.shell/alias) and offers, once, a cell in the launcher.
+
 Up, Down (the wheel) and Enter; r reads the brain again; Esc, q or EXIT
 leave a screen.
 """
@@ -23,10 +28,15 @@ import solaros
 from solaros import tui
 
 URL = ""            # filled in by the brain when it serves this file
+BUILD = ""          # the same: which copy this is (lib/glance.py client_build)
+SELF = "/phosphor.py"
 EVERY = 30          # seconds between reads while a screen sits there
 WORDS = {"green": "all clear", "amber": "worth a look", "red": "ATTENTION", "unknown": "no data"}
 LAUNCHER = "/launcher.json"
 ICON = "dashboard"
+ALIAS = "/.shell/alias"
+ALIAS_LINE = "phosphor python " + SELF
+STATE = "/.phosphor.json"   # what this panel was already asked
 
 
 # -- the brain, over HTTP ---------------------------------------------
@@ -289,6 +299,88 @@ def add_to_launcher(scr):
     message(scr, [("LAUNCHER", tui.BOLD), ("", 0), (done, 0)])
 
 
+def ask_launcher(scr):
+    """Once, on the first run that finds room: a cell in the launcher."""
+    remember(launcher_asked=True)
+    scr.draw([("PHOSPHOR", tui.BOLD), ("", 0), ("put Phosphor in the launcher?", 0), ("", 0),
+              ("(the menu keeps the offer for later)", 0)], "Enter yes · Esc no")
+    k = None
+    while k not in ("enter", "quit") and not solaros.should_exit():
+        k = key(3600)
+    if k == "enter":
+        add_to_launcher(scr)
+
+
+# -- looking after itself ---------------------------------------------
+
+def state():
+    try:
+        return json.loads(solaros.storage.read_file(STATE, 4096).decode())
+    except Exception:
+        return {}
+
+
+def remember(**kw):
+    s = state()
+    s.update(kw)
+    try:
+        solaros.storage.write_file(STATE, json.dumps(s))
+    except Exception:
+        pass
+
+
+def ensure_alias():
+    """`phosphor` in the SolarOS shell: True when this run added it. A line
+    for that name already there (ours, or the owner's) is left alone."""
+    st = getattr(solaros, "storage", None)
+    if st is None:
+        return False
+    try:
+        old = st.read_file(ALIAS, 65536).decode() if st.exists(ALIAS) else ""
+        if any(l.split()[:1] == ["phosphor"] for l in old.splitlines()):
+            return False
+        st.makedirs("/.shell")
+        st.write_file(ALIAS, ("\n" if old and not old.endswith("\n") else "") + ALIAS_LINE + "\n", True)
+        return True
+    except Exception:
+        return False
+
+
+def update(url, scr, menu):
+    """The brain's copy of this app, when it's another build: fetched,
+    written over SELF, started. Returns only if it didn't hand over,
+    with why (None: nothing to do)."""
+    want = (menu or {}).get("app")
+    if not want or want == BUILD or getattr(solaros, "storage", None) is None:
+        return None
+    scr.draw([("PHOSPHOR", tui.BOLD), ("", 0), ("the brain has a newer app: updating", 0)], "")
+    try:
+        r = solaros.http.get(at(url, "/solaros.py"), None, 15000, 65536)
+    except OSError as e:
+        return "update: no answer from the brain (%s)" % e
+    body = r["body"]
+    if r["status_code"] != 200 or r["truncated"] or ('BUILD = "%s"' % want).encode() not in body:
+        return "update: the brain answered %d" % r["status_code"]
+    st, new = solaros.storage, SELF + ".new"
+    try:
+        st.write_file(new, body)
+        if st.read_file(new, 65536) != body:
+            raise OSError("short write")
+        try:
+            st.rename(new, SELF)
+        except OSError:                     # a FAT volume won't rename over a file
+            st.remove(SELF)
+            st.rename(new, SELF)
+    except OSError as e:
+        return "update: couldn't write %s (%s)" % (SELF, e)
+    scr.draw([("PHOSPHOR", tui.BOLD), ("", 0), ("updated: starting the new app", 0)], "")
+    try:
+        solaros.apps.launch("python", [SELF] + sys.argv[1:2])
+    except Exception as e:
+        return "updated: start Phosphor again (%s)" % e
+    return ""
+
+
 def open_over_ssh(url, scr, entry, ssh):
     """Tell the brain which entry, then hand the screen to SolarOS's ssh:
     the brain's session starts there. Comes back only if that failed."""
@@ -311,7 +403,7 @@ def main():
         solaros.write("this SolarOS build has no HTTP client (network.http-client)\n")
         return
     scr, sel, p, why, menu = Screen(), 0, None, None, None
-    paired, fresh = None, True
+    paired, fresh, started, notice = None, True, False, None
     while not solaros.should_exit():
         if fresh:
             got, why = call(url, "/glance")
@@ -322,6 +414,16 @@ def main():
                 a, _ = call(url, "/pair", {"key": my_key()})
                 paired = (a or {}).get("state") == "paired" if a else None
             fresh = False
+        if not started:                     # once a run, before the menu shows
+            started = True
+            notice = update(url, scr, menu)
+            if notice == "":
+                return                      # the new app runs instead
+            if ensure_alias():
+                notice = notice or "type phosphor in the SolarOS shell to come back"
+            if launcher_state() == "room" and not state().get("launcher_asked"):
+                ask_launcher(scr)
+                scr.shown = None
         items = []
         for e in (menu or {}).get("entries", []):
             items.append(("glance", e) if e["id"] == "glance" else ("ssh", e))
@@ -332,6 +434,8 @@ def main():
         sel = min(sel, max(0, len(items) - 1))
         rows, _ = tui.size()
         body = headline(p, why) + ([(summary(p), 0)] if p else []) + [("", 0)]
+        if notice:
+            body[-1:-1] = [(notice, 0)]
         room = max(1, rows - 1 - len(body))
         top = max(0, sel - room + 1)
         for i, (kind, e) in enumerate(items[top:top + room], top):
@@ -339,6 +443,7 @@ def main():
             body.append(("> " + label if i == sel else "  " + label, tui.INVERSE if i == sel else 0))
         scr.draw(body, "Enter opens · r reads again · Esc leaves")
         k = key(EVERY)
+        notice = None if k else notice
         if k is None or k == "r":
             fresh = True
         elif k == "quit":

@@ -447,7 +447,7 @@ more depth on every one of these.
 | `phosphor fleet` | fleet panel: pick a card, then `s` ssh, `l` logs, `t` triage, `c` containers, `u` upgrade, `b` reboot, each in its own tab; `h` its last 24 hours |
 | `phosphor usage` | how much of your Claude Code and Antigravity plans you've used (5-hour window, week) and when each refills |
 | `phosphor glance` | fleet, unread mentions, open todos -- for a small screen, no zellij needed; up, down and Enter mark a todo done or the mentions read; `--serve` hands it as JSON to a gadget that can't ssh (ESP32, Pi Zero), `--lan` on the LAN, with an app for a SolarOS panel |
-| `phosphor solaros on` | a SolarOS e-ink panel as a face of the deck: serves it, copies the two lines to type there; `pair` lets its key in (your Enter), forced to a menu of glance, the deck's tabs, notes and fleet |
+| `phosphor solaros on` | a SolarOS e-ink panel as a face of the deck: serves it, copies the two lines to type there once (the app updates itself and adds `phosphor` to the SolarOS shell); `pair` lets its key in (your Enter), forced to a menu of glance, the deck's tabs, notes and fleet |
 | `phosphor mirror --tab AI` | one pane for a screen too slow for zellij (e-ink): only the lines that changed, no color, and what you type goes back into that pane; `--view` only watches |
 | `phosphor adjutant` | the SYS panel that speaks up: `phosphor notify MESSAGE` makes it announce something |
 | `phosphor notify --push` | the same notice on your phone (ntfy), for a brain nobody sits near: `[push]` in the profile; with `[tts]` on, what the brain said rides along as audio |

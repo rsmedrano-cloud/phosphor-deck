@@ -282,7 +282,14 @@ class storage:
     read_file = staticmethod(lambda p, m=65536: open(STORE + p, "rb").read()[:m])
     @staticmethod
     def write_file(p, data, append=False):
-        open(STORE + p, "w").write(data)
+        open(STORE + p, "ab" if append else "wb").write(data.encode() if isinstance(data, str) else data)
+    makedirs = staticmethod(lambda p, exist_ok=True: os.makedirs(STORE + p, exist_ok=exist_ok))
+    remove = staticmethod(lambda p: os.remove(STORE + p))
+    @staticmethod
+    def rename(a, b):
+        if os.path.exists(STORE + b):
+            raise OSError("EEXIST")         # FAT: no rename over a file
+        os.rename(STORE + a, STORE + b)
 class tui:
     NORMAL, BOLD, INVERSE, KEY_UP, KEY_DOWN, KEY_ESCAPE = 0, 1, 2, 0x101, 0x102, 27
     size = staticmethod(lambda: (17, 60))
@@ -332,6 +339,11 @@ need("app: Enter on glance shows the glance", any("Enter reads again" in x for x
 need("app: no key is made just by looking", not any("generate" in e for e in ev) and not os.path.exists(nokey))
 need("app: nothing wider than the screen", all(len(x) <= 60 for x in t))
 need("app: nothing launched", not any("launch" in e for e in ev))
+need("app: the first run adds phosphor to the shell, and says so",
+     open(STORE + "/.shell/alias").read() == "phosphor python /phosphor.py\n"
+     and any("type phosphor in the SolarOS shell" in x for x in t))
+need("app: nothing to update when the brain's build is this one",
+     not os.path.exists(STORE + "/phosphor.py") and not any("updating" in x for x in t))
 
 # pairing from the panel: the window open on the brain, its Enter there
 solaros.write_private(solaros.data("pair.json"), json.dumps({"until": time.time() + 60}))
@@ -354,17 +366,64 @@ need("app: AI hands the screen to ssh, to the brain's user",
 need("app: the brain knows what to open", json.load(open(solaros.data("intent.json")))["open"] == "tab:AI")
 os.remove(solaros.data("intent.json"))
 
-# the launcher: a free cell, and Phosphor goes in once
-json.dump({"layout": {"columns": 2, "rows": 1},
-           "items": [{"name": "Files", "icon": "folder", "command": "files", "column": 0, "row": 0}]},
-          open(STORE + "/launcher.json", "w"))
-ev = app([UP, 13, 13, ord("q")], nokey)
+# the alias: never twice, someone else's lines kept
+ev = app([ord("q")], nokey)
+need("app: the alias goes in once, and the notice with it",
+     open(STORE + "/.shell/alias").read().count("phosphor") == 2
+     and not any("type phosphor" in x for x in texts(ev)))
+open(STORE + "/.shell/alias", "w").write("ll ls -l")
+app([ord("q")], nokey)
+need("app: an alias file without a last newline keeps its line",
+     open(STORE + "/.shell/alias").read() == "ll ls -l\nphosphor python /phosphor.py\n")
+open(STORE + "/.shell/alias", "w").write("phosphor python /sd/phosphor.py\n")
+app([ord("q")], nokey)
+need("app: the owner's own phosphor alias stays",
+     open(STORE + "/.shell/alias").read() == "phosphor python /sd/phosphor.py\n")
+
+# the launcher: asked once, Enter puts Phosphor in its free cell
+cells = {"layout": {"columns": 2, "rows": 1},
+         "items": [{"name": "Files", "icon": "folder", "command": "files", "column": 0, "row": 0}]}
+json.dump(cells, open(STORE + "/launcher.json", "w"))
+ev = app([13, 13, ord("q")], nokey)
 conf = json.load(open(STORE + "/launcher.json"))
-need("app: Phosphor goes in the launcher's free cell",
+need("app: the first run with room asks about the launcher",
+     any("put Phosphor in the launcher?" in x for x in texts(ev)))
+need("app: Enter puts Phosphor in the launcher's free cell",
      len(conf["items"]) == 2 and conf["items"][1]["command"] == "python /phosphor.py"
      and (conf["items"][1]["column"], conf["items"][1]["row"]) == (1, 0))
 ev = app([ord("q")], nokey)
 need("app: and the offer goes once it's there", not any("launcher" in x for x in texts(ev)))
+json.dump(cells, open(STORE + "/launcher.json", "w"))
+ev = app([UP, 13, 13, ord("q")], nokey)
+need("app: taken out again, it isn't asked twice; the menu entry still puts it back",
+     not any("launcher?" in x for x in texts(ev))
+     and len(json.load(open(STORE + "/launcher.json"))["items"]) == 2)
+os.remove(STORE + "/.phosphor.json")
+json.dump(cells, open(STORE + "/launcher.json", "w"))
+ev = app([27, ord("q")], nokey)
+need("app: Esc says no, and that's remembered too",
+     len(json.load(open(STORE + "/launcher.json"))["items"]) == 1
+     and json.load(open(STORE + "/.phosphor.json")) == {"launcher_asked": True})
+
+# an older copy: it fetches the brain's, writes it over /phosphor.py, starts it
+build = glance.client_build()
+need("the app comes with its build in", ('BUILD = "%s"' % build).encode() in code)
+need("GET /menu says which build it hands out", req("/menu?token=" + secret)[1]["app"] == build)
+old = code.replace(('BUILD = "%s"' % build).encode(), b'BUILD = "0ld"')
+open(os.path.join(fake, "phosphor.py"), "wb").write(old)
+open(STORE + "/phosphor.py", "wb").write(old)
+ev = app([ord("q")], nokey)
+need("app: an older build updates itself and starts the new one",
+     open(STORE + "/phosphor.py", "rb").read() == code and not os.path.exists(STORE + "/phosphor.py.new")
+     and [e["launch"] for e in ev if "launch" in e] == [["python", ["/phosphor.py"]]]
+     and any("updating" in x for x in texts(ev)))
+real_client = glance.CLIENT
+glance.CLIENT = os.path.join(fake, "edited-app.py")
+open(glance.CLIENT, "w").write(open(real_client).read() + "\n# edited\n")
+need("an edited app is served at once, under a new build",
+     glance.client_build() != build and req("/menu?token=" + secret)[1]["app"] == glance.client_build())
+glance.CLIENT = real_client
+open(os.path.join(fake, "phosphor.py"), "wb").write(code)
 
 # the brain gone: it says so and still leaves
 httpd.shutdown(); httpd.server_close()

@@ -508,6 +508,7 @@ def show_lines(prof):
         print("    " + PH + l + RST)
     if copy("\n".join(lines) + "\n"):
         print("  " + DIM + "they're on the clipboard of every screen looking at the deck: paste them" + RST)
+    print("  " + DIM + "once: then it's phosphor at that prompt, and the app updates itself" + RST)
     if serve_mode(prof) == "lan":
         print("  " + DIM + "on the LAN the token crosses it in the clear: it only reads; writing goes over ssh" + RST)
 

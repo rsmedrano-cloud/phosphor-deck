@@ -6,6 +6,18 @@ before it updates.
 
 ## Unreleased
 
+## 2.0.9 — the SolarOS app looks after itself
+
+- The SolarOS panel's app looks after itself. At every start it asks the
+  brain which copy it hands out and, when it's a newer one, fetches it,
+  writes it over `/phosphor.py` and starts it: a `phosphor update` on the
+  brain reaches the panel without retyping anything (the brain now reads
+  the app on each request, no service restart). The first run adds
+  `phosphor` to the SolarOS shell (`/.shell/alias`, never twice, your own
+  line for that name kept) and asks once about a cell in the launcher.
+  A panel running an older copy needs the two lines from `phosphor
+  solaros on` one last time.
+
 ## 2.0.8 — tunnels, trace and keys on the shared list panel
 
 - `phosphor tunnel` on a terminal (and `t` in the DECK tab, the tunnels
