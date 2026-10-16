@@ -244,7 +244,7 @@ def main():
     if a[:1] == ["on"] and len(a) > 1: return on(a[1])
     if a[:1] == ["off"] and len(a) > 1: return off(a[1])
     if "--json" in a: return emit({"tunnels": listing()})
-    if not a and sys.stdin.isatty(): return interactive()
+    if not a and sys.stdin.isatty() and sys.stdout.isatty(): return interactive()
     return show()
 
 if __name__ == "__main__":

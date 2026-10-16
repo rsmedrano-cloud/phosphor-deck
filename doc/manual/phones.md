@@ -275,7 +275,7 @@ That keeps `phosphor glance --serve --lan` running as a user service
 (`phosphor-glance.service`, `[glance] serve = "lan"` in the profile; it
 comes back after a reboot), prints the two lines to type on the panel's
 SolarOS prompt and puts them on the clipboard of every screen looking at
-the deck (`p` in the DECK tab's actions does the same):
+the deck (`E` in the DECK tab's actions does the same):
 
     curl -o /phosphor.py "http://<brain>:8484/solaros.py?token=..."
     python /phosphor.py

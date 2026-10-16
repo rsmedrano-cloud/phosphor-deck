@@ -168,9 +168,9 @@ panes = [ { cmd = "phosphor fleet" } ]
         need("t: a TRIAGE-DB-BOX tab", opened("TRIAGE-DB-BOX"))
         back()
         z.keys("\x1b", 1.5)
-        z.keys("s", 1.5)
+        z.keys("s", 0)
         need("Esc drops the pick, and s then only asks for one",
-             "pick a machine first" in z.text() and z.tabs().count("DB-BOX") == 0)
+             z.wait(lambda: "pick a machine first" in z.text()) and z.tabs().count("DB-BOX") == 0)
 
 if fails:
     print("FAIL:\n  " + "\n  ".join(fails)); sys.exit(1)

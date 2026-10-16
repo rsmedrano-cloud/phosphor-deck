@@ -105,7 +105,7 @@ class Panel(tui.ListPanel):
 def main():
     global DB
     DB = share("keys.json")
-    if not sys.stdin.isatty():
+    if not (sys.stdin.isatty() and sys.stdout.isatty()):
         dump(); return
     Panel().run()
 

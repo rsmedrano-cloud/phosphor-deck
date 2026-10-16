@@ -6,6 +6,13 @@ before it updates.
 
 ## Unreleased
 
+## 2.1.0 — slow screens, less baggage
+
+- `phosphor keys | head` and `phosphor tunnel | cat` print the plain
+  listing again: with a terminal in and a pipe out they opened their
+  panel, which then sat waiting for a key.
+- The SolarOS manual named the wrong key in the DECK tab: it's `E`, not `p`.
+
 ## 2.0.10 — phosphor stats: what you actually run
 
 - `phosphor stats` says which phosphor commands you actually run: how

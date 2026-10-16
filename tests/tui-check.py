@@ -326,6 +326,19 @@ except subprocess.TimeoutExpired: proc.kill(); rc = None
 seen = read_for(0.3)
 need("run: q exits 0 and gives the screen back", rc == 0 and tui.OFF in seen)
 
+# a terminal in, a pipe out (`phosphor keys | head`): the plain listing, never the panel
+for mod in ("keys", "tunnels"):
+    mfd2, sfd2 = pty.openpty()
+    try:                                     # the panel would sit waiting for a key
+        p = subprocess.run([sys.executable, "-c", "import sys; sys.path.insert(0, %r); sys.argv = [%r]; import %s; sys.exit(%s.main() or 0)"
+                            % (os.path.join(ROOT, "lib"), mod, mod, mod)],
+                           stdin=sfd2, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=10)
+        rc, out = p.returncode, p.stdout.decode("utf-8", "replace")
+    except subprocess.TimeoutExpired:
+        rc, out = None, ""
+    os.close(sfd2); os.close(mfd2)
+    need(mod + ": tty in, pipe out prints it plain", rc == 0 and tui.ON not in out and "Traceback" not in out)
+
 # ui.getkey through a pty: raw events, and mouse=True's simplified ones
 import pty as _pty
 gm, gs = _pty.openpty()

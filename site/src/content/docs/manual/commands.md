@@ -375,7 +375,8 @@ sidebar:
   reboot). On a terminal it asks before each next host; with `--yes` it goes on by itself while
   they keep answering 0. With nothing at all, on a terminal, it asks: the hosts to tick, the
   command, all at once or one at a time, then the same confirmation.
-- `phosphor tunnel [on|off HOST | --json]` — keep your ssh config's LocalForward tunnels up.
+- `phosphor tunnel [on|off HOST | --json]` — keep your ssh config's LocalForward tunnels up. Bare, on a
+  terminal, a panel to turn them on and off; piped, the plain list.
 - `phosphor face IMAGE [--name N] [--w 24] [--h 13] [--half] [--mode thr|dither|edge]`. No `IMAGE`, on a
   terminal: it asks which, listing only images. Needs ImageMagick (`convert`).
   `phosphor face IMAGE --bitmap [--closed IMAGE] [--px 96] [--crop WxH+X+Y]` keeps the picture as a

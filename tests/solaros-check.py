@@ -22,6 +22,8 @@ home = tempfile.mkdtemp()
 run_dir = tempfile.mkdtemp()
 os.environ.update(HOME=home, XDG_RUNTIME_DIR=run_dir, ZELLIJ_SESSION_NAME="solaros-check-none")
 os.environ.pop("ZELLIJ", None)
+for v in ("PHOSPHOR_DATA", "PHOSPHOR_CACHE", "PHOSPHOR_NOTES"):
+    os.environ.pop(v, None)                  # as check.sh does: the temp HOME, not yours
 for d in (".config/phosphor", ".cache/phosphor", ".local/share/phosphor", ".ssh"):
     os.makedirs(os.path.join(home, d))
 PROFILE = os.path.join(home, ".config/phosphor/deck.toml")
