@@ -264,9 +264,15 @@
   each is (read from the file, not run); with one, it opens there. They're in the store and the
   `+` menu too, as "yours".
 - `phosphor dash [CARD...]` — a dashboard of your own: the cards you name (`phosphor dash usage
-  ci web screens`), each one a command's live value with the command beside it, keyed 1, 2, 3...
-  A key or a tap runs that card the way its card says (a toggle flips, what publishes or restarts
-  asks first) and comes back; a card that wants a look has a `!` and its reason under the cards.
+  ci web screens`), each one a box keyed 1, 2, 3... on its border: the command's live value big,
+  a `!` and its reason when it wants a look, its first entries (pipelines, units, machines, each
+  with how it is) or what the command does, and the command at the foot. The boxes fill the pane
+  in rows and columns from how many there are and its size; the wheel or the arrows scroll the
+  ones that don't fit. A key or a tap zooms the pane and runs that card the way its card says (a
+  toggle flips, what publishes or restarts asks first); leaving it brings the boxes back and
+  gives the tab back. On a screen with no color, or a pane narrower than a box, the cards are one
+  line each instead, their reasons under them; piped (`phosphor dash ci web | cat`) that list
+  prints once, plain.
   `+` opens the gallery, every card there is with its live value: Space or a tap picks one
   (again takes it away), `a` picks all or none, Enter applies, Esc cancels with nothing
   changed. `-` then a key takes one away. With no cards it opens on the gallery; `cards` in

@@ -98,9 +98,10 @@ and `panes`, a list of pane specs:
 
 Every program runs through `phosphor run` (see keys).
 
-A dashboard pane is `phosphor dash` with those cards: each one a command's
-live value, the command itself beside it, and a tap that runs it (the
-toggles flip, the ones that publish or restart ask first). `+` on it opens
+A dashboard pane is `phosphor dash` with those cards: a box each, filling
+the pane, with a command's live value, its first entries, the command
+itself, and a tap that zooms the pane and runs it (the toggles flip, the
+ones that publish or restart ask first). `+` on it opens
 the gallery of every card there is (Space picks, Enter applies, Esc
 cancels), `-` takes one away, and either change is written back into this
 tab of your profile (a `.bak` first) -- `cards` in the + menu starts one

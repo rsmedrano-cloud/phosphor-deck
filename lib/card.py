@@ -10,6 +10,7 @@ the widget the DECK tab is drawn with, and any dashboard after it:
     v, warn = live.get("screens")
     card.line("v", "screens", v, "phosphor screens", note, w, warn)
     card.tap("web", live.raw("web"))         # asks first when the card says so
+    card.detail(live.raw("ci"), w, 3)        # its first entries, for a card drawn as a box
 
 A card always shows the command it stands for, so the deck teaches the
 terminal; on a screen with no color, a ! after the key is what wants a look.
@@ -42,7 +43,43 @@ def summary(v):
         return v
     if isinstance(v, dict) and v.get("total") and "available" in v:
         return "%d%% free" % (100 * v["available"] // v["total"])
+    if isinstance(v, dict) and v and all(isinstance(x, dict) for x in v.values()):
+        return str(len(v))                     # one entry per name: fleet's hosts
     return None
+
+
+NAMES = ("name", "unit", "host", "title", "label", "tty", "mount")
+STATES = ("status", "state", "error", "when")
+
+
+def item(x, key=None):
+    """One entry of a state as (what, how it is): a host and up, a unit
+    and its state, a pipeline and its status."""
+    if not isinstance(x, dict):
+        return str(x), ""
+    what = key or next((str(x[k]) for k in NAMES if x.get(k)), "")
+    how = next((str(x[k]) for k in STATES if x.get(k) not in (None, "", [])), "")
+    if not how and isinstance(x.get("ok"), bool):
+        how = "up" if x["ok"] else "down"
+    return what, how
+
+
+def detail(v, w, n):
+    """At most n lines, w wide, of what a state holds beyond its summary:
+    its first entries, each with how it is, and how many more there are.
+    [] for a single value (the summary said it all)."""
+    if isinstance(v, list):
+        items = [item(x) for x in v]
+    elif isinstance(v, dict) and v and all(isinstance(x, dict) for x in v.values()):
+        items = [item(x, k) for k, x in v.items()]
+    else:
+        return []
+    out = [FG + what + RST + ("  " + DIM + how + RST if how else "") for what, how in items if what]
+    if n <= 0:
+        return []
+    if len(out) > n:
+        out = out[:n - 1] + [DIM + "+%d more" % (len(out) - n + 1) + RST]
+    return [vcut(l, w) for l in out]
 
 
 def fetch(name):

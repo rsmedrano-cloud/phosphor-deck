@@ -6,6 +6,22 @@ before it updates.
 
 ## Unreleased
 
+## 2.2.2 — cards fill the tab
+
+- A dashboard is a tab full of cards now, not a list of keys: each card is
+  a box with its value big, a `!` and the reason when it wants a look, its
+  first entries (the pipelines, the units, the machines and how each is)
+  or what the command does, and the command at the foot. The boxes lay
+  themselves out in rows and columns from how many there are and the
+  pane's size; when there are more than fit, the wheel or the arrows
+  scroll them. A key or a tap zooms the pane and opens that card there;
+  leaving it (Esc or q) brings the boxes back and gives the tab back.
+- The one-line list stays where boxes don't fit: a screen with no color
+  (e-ink), a pane narrower than a box, SYS's short row. `phosphor dash
+  CARD...` piped (`phosphor dash ci web | cat`) prints that list once,
+  plain, instead of saying it needs a terminal.
+- The fleet card counts your machines; it showed no value before.
+
 ## 2.2.1 — the card gallery reads the way it works
 
 - The card gallery reads the way it works: Space or a tap picks a card,

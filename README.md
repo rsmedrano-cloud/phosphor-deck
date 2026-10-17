@@ -120,7 +120,8 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
   every command as a card, each with its live value (pipelines, plan usage,
   browser access, who's attached...). Space picks some, Enter makes them a
   tab; `+` there
-  adds more, `-` takes one away, a tap runs one. In the profile it's one
+  adds more, `-` takes one away. Each card is a box with its value big and
+  its first entries, the boxes fill the tab, and a tap zooms one open. In the profile it's one
   pane, `{ dash = ["usage", "ci", "web", "screens"] }`; in a terminal,
   `phosphor dash usage ci web screens`. A new deck's SYS starts with a row
   of them, holding only what's set up.

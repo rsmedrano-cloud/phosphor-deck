@@ -7,20 +7,27 @@ dashboard is a pane showing some of them, in your order:
     phosphor dash usage ci web screens        # in any terminal
     panes = [ { dash = ["usage", "ci"] } ]    # a pane in a profile tab
 
+Each card is a box: its value big, the why behind a !, its first entries,
+the command; the boxes fill the pane in rows and columns (grid). A key or a
+tap zooms the pane and opens the card there; Esc in it comes back to the
+boxes and gives the tab back.
+
 + opens the gallery (every card, each with its live value): Space picks,
 a picks all, Enter applies, Esc cancels; - then a card's key takes one
 away. In a profile tab (gen passes --tab),
 a change is kept in deck.toml, the usual way (a .bak first).
 
-In a pane too short for one card a line (zoom.short: a row of SYS), the
-cards sit side by side under the title; the title's mark zooms (Alt-z),
-Esc gives the tab back.
+The one-line list stays where boxes don't fit: piped (one line per card,
+once), a screen with no color (e-ink), a pane narrower than a box. In a
+pane too short for one card a line (zoom.short: a row of SYS), the cards
+sit side by side under the title; the title's mark zooms (Alt-z), Esc
+gives the tab back.
 """
-import json, os, shutil, subprocess, sys, time
+import json, os, re, shutil, subprocess, sys, textwrap, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
 from ui import getkey
-import card, cli, deckconf, zoom
+import card, cli, deckconf, ui, zoom
 
 PHOSPHOR = os.path.join(REPO, "phosphor")
 KEYS = "123456789abcdefghijklmnoprstuvwyz"     # q leaves, + adds, - removes
@@ -232,8 +239,111 @@ def draw(names, live, w, rows, msg=None, removing=False):
     return lines[:rows], hit
 
 
+TILE_W, TILE_H = 22, 4     # the smallest box: a border, the value, the command, a border
+BOLD = "\x1b[1m"
+
+
+def grid(n, w, h):
+    """How n boxes fill w x h: (columns, box width, box height, box rows
+    that fit). As square as a terminal cell allows, an empty slot costs
+    a box's width; when they don't fit at TILE_H, the smallest ones and
+    the rest a scroll away."""
+    best = None
+    for c in range(1, n + 1):
+        tw = (w + 1) // c - 1
+        if tw < TILE_W:
+            break
+        r = -(-n // c)
+        th = h // r
+        if th < TILE_H:
+            continue
+        score = abs(tw - 2.5 * th) + (r * c - n) * tw
+        if best is None or score < best[0]:
+            best = (score, c, tw, th, r)
+    if best:
+        return best[1:]
+    c = max(1, (w + 1) // (TILE_W + 1))
+    return c, (w + 1) // c - 1, TILE_H, max(1, h // TILE_H)
+
+
+def tile(key, name, live, tw, th):
+    """One card as a box tw x th: key and name on the border (and ! when it
+    wants a look), its value big, the why, its first entries or what the
+    command does, and the command at the foot."""
+    v, warn = live.get(name)
+    why, iw, ih = live.why(name), tw - 2, th - 2
+    top = []
+    if (card.spec(name) or {}).get("state"):
+        top.append(" " + BOLD + (AMB if warn else BLOOM) + (v or "–") + RST)
+        if why:
+            top.append(" " + AMB + "! " + RST + FG + why + RST)
+        room = ih - 1 - len(top)
+        more = [" " + l for l in card.detail(live.raw(name), iw - 1, room)]
+    else:
+        about = (cli.entries().get(name) or {}).get("summary", "")
+        more = [" " + DIM + l + RST for l in textwrap.wrap(about, max(8, iw - 1))]
+        more = more[:max(0, ih - 1)]
+    body = (top + more)[:max(1, ih - 1)]
+    if ih >= 2:
+        body += [""] * (ih - 1 - len(body)) + [" " + DIM + "phosphor " + name + RST]
+    title = (key + " " if key else "") + name
+    return ui.card(title, "!" if warn else "", [vcut(l, iw) for l in body], tw, AMB)
+
+
+def draw_tiles(names, live, w, rows, msg=None, removing=False, first=0):
+    """The dashboard as boxes filling the pane: its lines, tap targets
+    [(top, bottom, left, right, what)] (a card's index, or + on the foot)
+    and the first box row shown (first, kept in range)."""
+    lines = heading(names, w)
+    cols, tw, th, fit = grid(len(names), w, rows - HEAD - 2)
+    total = -(-len(names) // cols)
+    first = max(0, min(first, total - fit))
+    hit = []
+    for gr in range(first, min(total, first + fit)):
+        these = range(gr * cols, min(len(names), (gr + 1) * cols))
+        boxes = [tile(KEYS[i] if i < len(KEYS) else "", names[i], live, tw, th) for i in these]
+        y = len(lines) + 1
+        for j, i in enumerate(these):
+            hit.append((y, y + th - 1, j * (tw + 1) + 1, j * (tw + 1) + tw, i))
+        lines += [" ".join(b[r] for b in boxes) for r in range(th)]
+    lines += [""] * max(0, rows - 2 - len(lines))
+    lines.append(vcut(" " + (OK if msg.startswith("kept") else WARN) + " " + msg + RST, w) if msg else "")
+    more = " · ↑↓ more" if total > fit else ""
+    lines.append(vcut(DIM + (" which one? its key or a tap · Esc: none" if removing else
+                             " a key or a tap opens it · + add · - take one away · q leave" + more) + RST, w))
+    if not removing:
+        hit.append((rows, rows, 1, w, "+"))
+    return lines[:rows], hit, first
+
+
+def mode(names, w, rows):
+    """How the dashboard draws in a pane w x rows: short, list or tiles."""
+    if zoom.short(rows):
+        return "short"
+    if not names or mono_term() or w < TILE_W:
+        return "list"
+    return "tiles"
+
+
+def printed(names, w):
+    """The dashboard piped: one line per card, then the whys, no color."""
+    plain = lambda s: re.sub(r"\x1b\[[0-9;]*m", "", s).rstrip()
+    out, whys = [], []
+    for d in values(names):
+        e = cli.entries().get(d["name"]) or {}
+        out.append(plain(card.line("", d["name"], d["value"], "phosphor " + d["name"],
+                                   e.get("summary", ""), w, bool(d["why"]))))
+        if d["why"]:
+            whys.append("  ! %s  %s" % (d["name"], d["why"]))
+    return "\n".join(out + ([""] + whys if whys else []))
+
+
 def run_card(name, live):
-    """A tap on a card: card.tap in this pane, then back here."""
+    """A tap on a card: the pane takes the whole tab, card.tap in it, then
+    back here and the tab given back (Esc or q in the card's panel)."""
+    grew = zoom.here() and not zoom.zoomed()
+    if grew:
+        zoom.toggle()
     sys.stdout.write("\x1b[?1006l\x1b[?1000l\x1b[?1049l\x1b[?25h\x1b[2J\x1b[H"); sys.stdout.flush()
     try:
         r = card.tap(name, live.raw(name))
@@ -241,6 +351,8 @@ def run_card(name, live):
             back()
     finally:
         sys.stdout.write("\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h\x1b[2J"); sys.stdout.flush()
+        if grew:
+            zoom.toggle()
 
 
 def main():
@@ -259,12 +371,14 @@ def main():
         return 2
     if as_json:
         print(json.dumps(values(names), indent=1)); return 0
+    if not sys.stdout.isatty() and names:
+        print(printed(names, shutil.get_terminal_size((100, 24)).columns)); return 0
     if not (sys.stdin.isatty() and sys.stdout.isatty()):
         print("phosphor dash needs a terminal (or --json)"); return 1
     mono_stdout()
     live = card.Live(names)
     sys.stdout.write("\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h"); sys.stdout.flush()
-    msg, removing = None, False
+    msg, removing, first = None, False, 0
     try:
         if not names:
             names = gallery([], enter="show them") or []
@@ -272,8 +386,12 @@ def main():
             msg = save(tab, [], names)
         while True:
             w, rows = shutil.get_terminal_size((60, 30))
-            short = zoom.short(rows)
-            lines, hit = (draw_short if short else draw)(names, live, w, rows, msg, removing)
+            how = mode(names, w, rows)
+            short = how == "short"
+            if how == "tiles":
+                lines, hit, first = draw_tiles(names, live, w, rows, msg, removing, first)
+            else:
+                lines, hit = (draw_short if short else draw)(names, live, w, rows, msg, removing)
             paint(lines, rows)
             k = getkey(1.0, mouse=True)
             at = tapped_at(k)
@@ -286,17 +404,23 @@ def main():
                     k = cells.get((y, (x - 1) // (cw + 1)))
                     if k is None and y > 1:
                         zoom.toggle(); continue      # "+N more", or between cards
+                elif how == "tiles":
+                    k = next((t for top, bot, l, r, t in hit if top <= y <= bot and l <= x <= r), None)
                 else:
                     k = hit.get(y)
+            if how == "tiles" and k in ("WUP", "WDN", "\x1b[A", "\x1b[B"):
+                first += -1 if k in ("WUP", "\x1b[A") else 1
+                continue
             if k is None or k in ("WUP", "WDN"):
                 continue
             if k == "\x1b" and not removing and zoom.back():
                 continue
+            i = k if isinstance(k, int) else KEYS.index(k) if k in KEYS[:len(names)] else None
             msg = None
             if removing:
                 removing = False
-                if k in KEYS[:len(names)]:
-                    old, names = names, [n for n in names if n != names[KEYS.index(k)]]
+                if i is not None:
+                    old, names = names, names[:i] + names[i + 1:]
                     live.set(names); msg = save(tab, old, names)
             elif k == "-" and names:
                 removing = True
@@ -312,8 +436,8 @@ def main():
                     live.set(names); msg = save(tab, old, names)
             elif k in ("q", "\x1b", "\x03"):
                 return 0
-            elif k in KEYS[:len(names)]:
-                run_card(names[KEYS.index(k)], live)
+            elif i is not None:
+                run_card(names[i], live)
     except KeyboardInterrupt:
         return 0
     finally:

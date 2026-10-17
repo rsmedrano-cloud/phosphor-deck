@@ -118,6 +118,48 @@ check("draw: the foot says + and -", "+ add a card" in txt[-1] and "- take one a
 lines, hit = dash.draw([], FakeLive(), 60, 12)
 check("draw: no cards says + picks some", any("+ picks some" in plain(l) for l in lines))
 
+# the boxes: a grid that fills the pane, each card its value, why, entries, command
+check("grid: 3 cards in a wide pane sit in one row", dash.grid(3, 80, 8)[:1] == (3,) and dash.grid(3, 80, 8)[3] == 1)
+c, tw, th, fit = dash.grid(6, 100, 22)
+check("grid: 6 cards leave no slot empty", 6 % c == 0 and tw >= dash.TILE_W and th >= dash.TILE_H)
+c, tw, th, fit = dash.grid(54, 80, 20)
+check("grid: too many to fit: the smallest boxes, the rest a scroll away",
+      th == dash.TILE_H and fit * c < 54 and c * (tw + 1) - 1 <= 80)
+FAKE["fleet"] = ({"db-box": {"ok": True}, "nimbus": {"ok": False, "error": "timeout"}, "relay": {"ok": True}}, "3", None)
+for w, r in ((24, 12), (60, 20), (100, 30), (160, 50)):
+    lines, hit, first = dash.draw_tiles(["usage", "ci", "web", "fleet", "doctor"], FakeLive(), w, r)
+    check("tiles %dx%d: fit" % (w, r), all(vlen(l) <= w for l in lines) and len(lines) == r)
+lines, hit, first = dash.draw_tiles(["ci", "web", "fleet", "doctor"], FakeLive(), 100, 20)
+txt = [plain(l) for l in lines]
+box = "\n".join(txt)
+check("tiles: key and name on the border", "╭─ 1 ci " in box and "╭─ 3 fleet " in box)
+check("tiles: ci wants a look: ! on its border, its why inside", "─ ! ─╮" in txt[2] and "! failing: app" in box)
+check("tiles: the first entries, how each is", "nimbus  timeout" in box and "db-box  up" in box)
+check("tiles: a button says what it does", "preflight" in box)
+check("tiles: the command at each foot", all("phosphor " + n in box for n in ("ci", "web", "fleet", "doctor")))
+at = lambda x, y: next((t for top, bot, l, r, t in hit if top <= y <= bot and l <= x <= r), None)
+check("tiles: a tap anywhere on a box is that card", at(2, 3) == 0 and at(5, 7) == 0 and at(30, 5) == 1)
+check("tiles: a tap on the foot is +", at(10, 20) == "+")
+check("tiles: the foot says the keys", "+ add" in txt[-1] and "q leave" in txt[-1])
+many = dash.gallery_names()
+lines, hit, first = dash.draw_tiles(many, FakeLive(), 80, 20, first=99)
+check("tiles: scrolled past the end comes back in range", 0 < first and "↑↓ more" in plain(lines[-1]))
+check("detail: entries and how many more",
+      [plain(l) for l in card.detail([{"unit": "a", "state": "ok"}, {"unit": "b"}, {"unit": "c"}], 30, 2)]
+      == ["a  ok", "+2 more"])
+check("detail: one value says nothing more", card.detail(True, 30, 3) == [] and card.detail({"total": 1}, 30, 3) == [])
+check("summary: one entry per name counts them", card.summary({"a": {}, "b": {}}) == "2")
+os.environ.pop("NO_COLOR", None)
+check("mode: short pane, its row", dash.mode(["ci"], 80, 3) == "short")
+check("mode: boxes where they fit", dash.mode(["ci"], 80, 20) == "tiles")
+check("mode: the list when narrower than a box, or no cards", dash.mode(["ci"], 20, 20) == "list" and dash.mode([], 80, 20) == "list")
+os.environ["NO_COLOR"] = "1"
+check("mode: the list on a screen with no color", dash.mode(["ci"], 80, 20) == "list")
+del os.environ["NO_COLOR"]
+out = dash.printed(["ci", "web"], 100)
+check("piped: one plain line per card, then its why", "\x1b" not in out and out.splitlines()[0].lstrip().startswith("! ci")
+      and "phosphor web" in out and "! ci  failing: app" in out)
+
 # the gallery: Space or a tap picks, a all / none, Enter applies, Esc cancels
 sys.stdout = open(os.devnull, "w")
 def keys(*ks):
@@ -197,7 +239,7 @@ local = true
 
 [[tabs]]
 name  = "WATCH"
-panes = [ { cmd = "phosphor", args = ["dash", "version"] } ]
+panes = [ { cmd = "phosphor", args = ["dash", "version"] }, { cmd = "sleep", args = ["9999"] } ]
 """
     every = len(dash.gallery_names())
     with zjprobe.Probe(prof) as z:
@@ -211,6 +253,7 @@ panes = [ { cmd = "phosphor", args = ["dash", "version"] } ]
         check("live: the dash pane is there", z.wait(lambda: pane() is not None, 20))
         screen = lambda: plain(z.action("dump-screen", "-p", pane() or "") or "")
         check("live: it draws the dashboard", z.wait(lambda: "DASH" in screen(), 20))
+        check("live: its card is a box", z.wait(lambda: "╭─ 1 version" in screen(), 20))
         # a panel drops what came while it was drawing (getkey flushes):
         # under load a key can land then, so send again until it takes
         def until(key, cond, tries=4):
@@ -227,6 +270,17 @@ panes = [ { cmd = "phosphor", args = ["dash", "version"] } ]
         check("live: a picks every card", until("a", picked(every)))
         check("live: Enter applies, back on the dashboard", until("\r", lambda: "CARDS" not in screen()))
         check("live: and the next + has them all", until("+", picked(every)))
+        check("live: Esc back on the boxes", until("\x1b", lambda: "CARDS" not in screen()))
+        def full():
+            try:
+                ps = json.loads(z.action("list-panes", "-a", "-j") or "[]")
+            except ValueError:
+                return None
+            return next((p.get("is_fullscreen") for p in ps
+                         if not p.get("is_plugin") and "dash" in str(p.get("terminal_command") or "")), None)
+        check("live: a card's key zooms the pane and opens it", until("1", lambda: full() is True))
+        check("live: q in the card gives the tab back, the boxes again",
+              until("q", lambda: full() is False and "╭─ 1 version" in screen()))
 
 live()
 

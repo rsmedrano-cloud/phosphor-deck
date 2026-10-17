@@ -371,7 +371,7 @@
     "takes_value": ["--tab"],
     "mutates": false,
     "needs_deck": false,
-    "note": "bare it only shows cards (none: the gallery opens); a key or tap runs that card as its own card says, asking first where it would publish or restart. In a profile tab (gen passes --tab) adding or taking away a card rewrites that tab in deck.toml (a .bak first) and runs gen; --json only reads.",
+    "note": "bare it only shows cards, a box each filling the pane (none: the gallery opens); a key or tap zooms the pane and runs that card as its own card says, asking first where it would publish or restart. Piped, it prints one line per card, once. In a profile tab (gen passes --tab) adding or taking away a card rewrites that tab in deck.toml (a .bak first) and runs gen; --json only reads.",
     "card": {"kind": "plumbing", "why": "it is the dashboard: cards in the + menu opens it"}},
   "keys": {"category": "In the deck",
     "usage": "phosphor keys",
