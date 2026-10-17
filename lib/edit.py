@@ -268,22 +268,37 @@ def options():
             items.append(t)
     return items
 
-def pick(title, items, extra=()):
+LIST_W = 44     # what the list keeps when a preview sits beside it
+
+def pick(title, items, extra=(), side=None):
     """A list to pick from by key, tap or scroll. items: (label, note, ...);
-    extra: (key, label) rows above them. Returns an item, an extra's key, or
-    None for back."""
+    extra: (key, label) rows above them; side(item, w, h), when given, draws
+    what the item under the cursor will look like: beside the list on a
+    wide screen, under it on a tall one. Returns an item, an extra's key,
+    or None for back."""
     sel, top = 0, 0
     fixed = 3 + len(extra)
     while True:
         cols, rows = __import__("shutil").get_terminal_size((60, 20))
-        room = max(3, rows - fixed - 1)
+        lw, below = cols, []
+        if side and cols >= LIST_W + 24:
+            lw = LIST_W
+        elif side and rows >= fixed + 6 + 8:
+            below = [""] + side(items[sel] if items else None, cols - 4, min(10, rows // 3))
+        room = max(3, rows - fixed - 1 - len(below))
         top = min(max(top, sel - room + 1), sel)
         lines = ["", BLOOM + "  " + title + RST, "  " + AMB + "< back" + RST + DIM + "   (q)" + RST]
         lines += ["  " + AMB + "%-3s" % k + RST + FG + text + RST for k, text in extra]
         shown = items[top:top + room]
         for i, it in enumerate(shown, top):
-            t = "  %-16s %s" % (it[0][:16], it[1])
-            lines.append(("\x1b[7m" + t + RST) if i == sel else (FG + t + RST))
+            t = vcut("  %-16s %s" % (it[0][:16], it[1]), lw)
+            lines.append(("\x1b[7m" + pad(t, lw) + RST) if i == sel else (FG + t + RST))
+        if lw < cols:
+            import preview
+            right = side(items[sel] if items else None, cols - lw - 3, rows - 3)
+            lines = lines[:2] + preview.beside(lines[2:], [""] + right, lw + 1)
+        elif below:
+            lines += [""] * (fixed + room - len(lines)) + ["  " + l for l in below]
         sys.stdout.write("\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h\x1b[H\x1b[2J" + "\n".join(lines[:rows]))
         sys.stdout.flush()
         k = ui_getkey(None)
@@ -292,6 +307,7 @@ def pick(title, items, extra=()):
             if k[1] == 64: sel = max(0, sel - 3); continue          # wheel / touch scroll
             if k[1] == 65: sel = min(len(items) - 1, sel + 3); continue
             r = k[3]
+            if k[2] > lw: continue                                  # a tap on the preview
             if r == 3: return None
             if 3 < r <= fixed: return extra[r - 4][0]
             if fixed < r <= fixed + len(shown): return items[top + r - fixed - 1]
@@ -306,20 +322,26 @@ def run_flags(argv, spec):
     return (["--reconnect"] if argv[0] == "ssh" else []) \
         + (["--wait", "1"] if spec.get("needs_size") else []) + (["--alt"] if spec.get("alt") else [])
 
-def cards(it):
+def cards(it, cell=None):
     """An item of options() as it goes in a pane: cards are picked in the
-    gallery first. None if the gallery was left with Esc or none."""
+    gallery first, previewed at the pane's size (cell: its columns and rows,
+    this pane's when None). None if the gallery was left with Esc or none."""
     if "dash" not in (it[4] or {}): return it
     import dash
-    names = dash.gallery([], enter="put them here")
+    names = dash.gallery([], enter="put them here", cell=cell)
     if not names: return None
     return it[:3] + ([PHOSPHOR, "dash"] + names, {"dash": names})
 
 def choose():
     """Pick one of options(). Returns [name, flags..., "--", argv...] or None."""
+    import preview, shutil
     items = options()
+    def side(it, w, h):              # this pane: what goes in it, at the size it has
+        c, r = shutil.get_terminal_size((60, 20))
+        return [DIM + "this pane" + RST] + preview.shape_map(0, {0: it[0] if it else "?"}, 0,
+                                                            min(w, 36), min(h - 1, 8), (c + 2, r + 2))
     while True:
-        it = pick("what goes in this pane?", items)
+        it = pick("what goes in this pane?", items, side=side)
         if not it: return None
         it = cards(it)
         if it: break

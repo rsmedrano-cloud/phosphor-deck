@@ -13,8 +13,9 @@ tap zooms the pane and opens the card there; Esc in it comes back to the
 boxes and gives the tab back.
 
 + opens the gallery (every card, each with its live value): Space picks,
-a picks all, Enter applies, Esc cancels; - then a card's key takes one
-away. In a profile tab (gen passes --tab),
+a picks all, Enter applies, Esc cancels; beside the list, the card under
+the cursor as it'll look in its pane (placed). - then a card's key takes
+one away. In a profile tab (gen passes --tab),
 a change is kept in deck.toml, the usual way (a .bak first).
 
 The one-line list stays where boxes don't fit: piped (one line per card,
@@ -123,11 +124,35 @@ def tapped_at(k):
     return (k[1], k[2]) if isinstance(k, tuple) and k[0] == "TAP" else None
 
 
-def gallery(have, rows=None, cols=None, enter="make the tab"):
+def placed(name, picked, live, cell, pw, ph):
+    """The card under the cursor the way the dashboard will draw it in a
+    pane of cell (columns, rows), beside the cards picked so far: its box at
+    that size (smaller if it doesn't fit pw x ph), or its line where the
+    pane gets lines. Its lines, a caption under them, none wider than pw."""
+    have = picked if name in picked else picked + [name]
+    cw, ch = cell
+    how = mode(have, cw, ch)
+    where = "box %d of %d in a %d×%d pane" % (have.index(name) + 1, len(have), cw, ch)
+    if how == "tiles":
+        _, tw, th, _ = grid(len(have), cw, ch - HEAD - 2)
+        sw, sh = max(TILE_W, min(tw, pw)), max(TILE_H, min(th, ph - 3))
+        lines = tile(KEYS[have.index(name)] if have.index(name) < len(KEYS) else "", name, live, sw, sh)
+        note = "%s, %d×%d%s" % (where, tw, th, "" if (sw, sh) == (tw, th) else " (drawn smaller)")
+    else:
+        sw = min(pw, cw)
+        lines = [row("", name, live, sw)]
+        note = "a line in a %d×%d pane: %s" % (cw, ch, "too short for boxes" if how == "short" else
+                                               "no color here" if mono_term() else "too narrow for boxes")
+    return [MUTE + "as it'll look" + RST] + lines + [DIM + l + RST for l in textwrap.wrap(note, max(12, sw))]
+
+
+def gallery(have, rows=None, cols=None, enter="make the tab", cell=None):
     """Every card with its live value: Space or a tap picks one or takes it
     away, a all or none, Enter applies. The new list (its order kept, new
     ones last), or None for Esc: nothing changed. enter says what Enter
-    does here, on the top bar and the footer."""
+    does here, on the top bar and the footer; beside the list (under it on
+    a narrow screen) the card under the cursor as it'll look in the pane it
+    goes into: cell (columns, rows), this pane's own size when None."""
     names = gallery_names()
     live = card.Live(names, every=30)
     picked, sel, top = list(have), 0, 0
@@ -135,28 +160,42 @@ def gallery(have, rows=None, cols=None, enter="make the tab"):
         while True:
             c, r = shutil.get_terminal_size((60, 30))
             w, rows_ = cols or c, rows or r
+            lw, side, below = w, [], []
+            if w - GALLERY_W - 1 >= TILE_W:
+                side = placed(names[sel], picked, live, cell or (w, rows_), w - GALLERY_W - 1, rows_ - 4)
+                lw = w - max(vlen(l) for l in side) - 1
+            elif rows_ >= 4 + 6 + TILE_H + 3:
+                below = placed(names[sel], picked, live, cell or (w, rows_), w, min(TILE_H + 3, rows_ - 10))
             body, at = [], []                  # at: the card each body line is, or None
             for kind, title in KINDS:
                 these = [n for n in names if card.spec(n)["kind"] == kind]
                 if these:
-                    body.append(rule(title, w)); at.append(None)
+                    body.append(rule(title, lw)); at.append(None)
                     for n in these:
                         mark = (PH + "[x]" if n in picked else DIM + "[ ]") + RST
-                        line = row("", n, live, w - 4)
+                        line = row("", n, live, lw - 4)
                         idx = names.index(n)
                         body.append((AMB + ">" + RST if idx == sel else " ") + mark + line); at.append(idx)
-            room = max(3, rows_ - 4)
+            room = max(3, rows_ - 4 - len(below))
             mine = next(i for i, a in enumerate(at) if a == sel)
             top = min(max(top, mine - room + 1), mine)
             lines = topbar("CARDS", "Space or a tap picks a card",
                            "%d picked · Enter: %s" % (len(picked), enter), w)
-            lines += body[top:top + room]
+            shown = body[top:top + room]
+            if side:
+                import preview as pv
+                shown = pv.beside(shown + [""] * (room - len(shown)), side[:room], lw)
+            lines += shown
+            if below:
+                lines += [""] * max(0, 2 + room - len(lines)) + below
             lines += [""] * max(0, rows_ - 1 - len(lines))
             lines.append(vcut(DIM + " ↑↓ · Space or tap: pick · a: all / none · Enter: %s · Esc: cancel"
                               % enter + RST, w))
             paint(lines, rows_)
             k = getkey(1.0, mouse=True)
             y = tapped(k)
+            if y is not None and k[1] > lw:    # a tap on the preview
+                continue
             if y is not None:
                 i = y - 3 + top
                 if 0 <= y - 3 < room and i < len(at) and at[i] is not None:
@@ -180,6 +219,7 @@ def gallery(have, rows=None, cols=None, enter="make the tab"):
         live.stop()
 
 
+GALLERY_W = 46     # what the list keeps when the preview sits beside it
 CELL = card.HEAD_W + card.LABEL_W + 1 + card.VALUE_W     # the narrowest card, side by side
 
 

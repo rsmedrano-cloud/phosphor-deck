@@ -69,7 +69,58 @@ def pure():
     need("cards: the gallery's picks go in the pane", it[3][1:] == ["dash", "ci", "web"] and it[4] == {"dash": ["ci", "web"]})
     need("cards: Esc in the gallery puts nothing there", edit.cards(opts["cards"]) is None)
     need("cards: a program goes in as it is", edit.cards(opts["btop"]) == opts["btop"])
+    asked = []
+    dash.gallery = lambda have, **k: asked.append(k.get("cell"))
+    edit.cards(opts["cards"], (59, 18))
+    need("cards: the gallery previews at the pane's size", asked == [(59, 18)])
+    previews(edit, opts)
     os.environ.clear(); os.environ.update(env0)
+
+def previews(edit, opts):
+    """A preview before you place it: real cell sizes, the shape's map,
+    the list with the preview beside or under it, the layout asking the
+    gallery for its pane's size."""
+    import io, shutil, newtab, preview
+    plain = lambda s: re.sub(r"\x1b\[[0-9;?]*[a-zA-Z]", "", s)
+    quad = {"split": "cols", "panes": [{"split": "rows", "panes": [0, 1]}, {"split": "rows", "panes": [2, 3]}]}
+    c = preview.cells(quad, 122, 40)
+    need("cells: a 2 x 2 tab in four equal parts", c == {0: (0, 0, 61, 20), 1: (0, 20, 61, 20),
+                                                        2: (61, 0, 61, 20), 3: (61, 20, 61, 20)})
+    need("cells: three columns cover the tab", sum(v[2] for v in preview.cells(
+        {"split": "cols", "panes": [0, 1, 2]}, 100, 30).values()) == 100)
+    need("inside: a cell less its frame", preview.inside(quad, 1, (122, 40)) == (59, 18))
+    m = [plain(l) for l in preview.shape_map(quad, {0: "lazydocker", 1: "btop"}, 1, 32, 10, (122, 40))]
+    need("map: as wide as asked, the tab's proportions", all(len(l) == 32 for l in m) and len(m) == 10)
+    need("map: what's in each pane so far, this one's real size",
+         "lazydocker" in m[1] and "btop" in m[6] and "59×18" in m[7])
+    real = shutil.get_terminal_size
+    items = [opts["btop"], opts["cards"]]
+    side = lambda it, w, h: ["SIDE " + it[0]]
+    def screen(size, keys):
+        shutil.get_terminal_size = lambda d=None: os.terminal_size(size)
+        ks = iter(keys); edit.ui_getkey = lambda *a: next(ks)
+        buf, out = io.StringIO(), sys.stdout
+        sys.stdout = buf
+        try:
+            got = edit.pick("pane 2 of 4: what goes here?", items, (), side)
+        finally:
+            sys.stdout = out
+        return got, plain(buf.getvalue().split("\x1b[2J")[-1]).splitlines()
+    got, lines = screen((100, 24), ["j", "q"])
+    need("pick: the preview beside the list, for the one under the cursor",
+         any("cards" in l and "SIDE cards" not in l for l in lines) and
+         any(l.index("SIDE cards") > edit.LIST_W for l in lines if "SIDE cards" in l))
+    got, lines = screen((50, 30), ["q"])
+    need("pick: under the list on a narrow screen", lines and "SIDE btop" in lines[-1])
+    got, _ = screen((100, 24), [("MOUSE", 0, 80, 4, True), ("MOUSE", 0, 5, 4, True)])
+    need("pick: a tap on the preview picks nothing, one on the list does", got == opts["btop"])
+    picks, cells = [("2 × 2", ""), opts["cards"], None], []
+    edit.pick = lambda *a, **k: picks.pop(0)
+    edit.cards = lambda it, cell=None: cells.append(cell)
+    preview.tab_size = lambda: (122, 40)
+    newtab.layout({}, False)
+    need("layout: cards in pane 1 are previewed at its real size", cells == [(59, 18)])
+    shutil.get_terminal_size = real
 
 def main():
     pure()
@@ -161,7 +212,8 @@ def tap(z, label, timeout=10):
         except OSError: pass
         z.action("dump-screen", "--path", out)
         rows = open(out).read().splitlines() if os.path.exists(out) else []
-        hit = [i for i, r in enumerate(rows) if label in r]
+        hit = [i for i, r in enumerate(rows) if 0 <= r.find(label) < 44] \
+            or [i for i, r in enumerate(rows) if label in r]          # the list, not a preview beside it
         active = [t for t in json.loads(z.action("list-tabs", "-s", "-j") or "[]") if t.get("active")]
         tab_id = active[0].get("tab_id", active[0].get("id")) if active else None
         me = [p for p in json.loads(z.action("list-panes", "-a", "-j")) if p["is_focused"] and not p["is_plugin"]

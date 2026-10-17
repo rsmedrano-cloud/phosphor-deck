@@ -194,6 +194,29 @@ dash.gallery([], rows=24, cols=100, enter="make the tab")
 dash.paint = paint
 check("gallery: the top bar says how many and what Enter does", "1 picked · Enter: make the tab" in seen[0])
 check("gallery: the foot says the keys", all(w in seen[-1] for w in ("Space", "a: all / none", "Enter: make the tab", "Esc: cancel")))
+
+# the preview: the card under the cursor as it'll look in the pane it goes into
+paint, dash.paint = dash.paint, grab
+keys("\x1b[B", "\x1b")
+dash.gallery(["usage"], rows=30, cols=110, cell=(54, 28))
+_, tw, th, _ = dash.grid(2, 54, 28 - ui.HEAD - 2)
+check("preview: beside the list, the card under the cursor", any("as it'll look" in l for l in seen[2:4])
+      and any(("╭─ 2 %s " % names[1]) in l for l in seen))
+check("preview: at the box size it'll have beside the cards picked",
+      "box 2 of 2 in a 54×28 pane, %d×%d" % (tw, th) in " ".join(seen)
+      and max(len(l) - l.index("╭") for l in seen if "╭" in l) == tw)
+check("preview: the list keeps its width and nothing wraps", all(len(l) <= 110 for l in seen)
+      and any(l.startswith(">[ ]") for l in seen))
+keys("\x1b")
+dash.gallery([], rows=40, cols=60)
+check("preview: under the list on a narrow screen, at this pane's size", "box 1 of 1 in a 60×40 pane" in " ".join(seen[-9:])
+      and all(len(l) <= 60 for l in seen))
+keys("\x1b")
+dash.gallery([], rows=24, cols=110, cell=(30, 4))
+check("preview: a pane too short for boxes shows its line", "a line in a 30×4 pane:" in " ".join(seen) and "short for boxes" in " ".join(seen))
+dash.paint = paint
+keys(("TAP", 90, 4), "\r")
+check("preview: a tap on it picks nothing", dash.gallery([], rows=24, cols=110) == [])
 sys.stdout = sys.__stdout__
 
 # the whole screen in a pty: + opens the gallery, Space picks, Enter applies, -

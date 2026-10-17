@@ -6,6 +6,17 @@ before it updates.
 
 ## Unreleased
 
+## 2.2.4 — a preview before you place it
+
+- A preview before you place it. The gallery draws the card under the
+  cursor beside the list (under it on a narrow screen) the way it'll look
+  in the pane it goes into: the box at the size it'll have next to the
+  cards picked so far, or its one line where the pane is too short or has
+  no color. The layout's "what goes here?" shows a small map of the shape
+  with what's in each pane so far and the real size of the one you're
+  picking; Alt-r's r shows the pane's own size. Picking cards for a layout
+  pane previews them at that pane's size, not the whole screen's.
+
 ## 2.2.3 — cards in any pane
 
 - Cards go in any pane, not only a tab of their own: in a layout ("pane 2

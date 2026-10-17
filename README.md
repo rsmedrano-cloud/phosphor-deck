@@ -118,7 +118,8 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
   pager. `phosphor panels NAME` opens it; the store and the + menu list it.
 - **Dashboards of your own.** `cards` in the + menu opens the gallery:
   every command as a card, each with its live value (pipelines, plan usage,
-  browser access, who's attached...). Space picks some, Enter makes them a
+  browser access, who's attached...), and beside the list the one under the
+  cursor as it'll look in its pane. Space picks some, Enter makes them a
   tab; `+` there
   adds more, `-` takes one away. Each card is a box with its value big and
   its first entries, the boxes fill the tab, and a tap zooms one open. In the profile it's one

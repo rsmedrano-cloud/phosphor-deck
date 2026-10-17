@@ -275,7 +275,9 @@
   prints once, plain.
   `+` opens the gallery, every card there is with its live value: Space or a tap picks one
   (again takes it away), `a` picks all or none, Enter applies, Esc cancels with nothing
-  changed. `-` then a key takes one away. With no cards it opens on the gallery; `cards` in
+  changed. Beside the list (under it on a narrow screen) the card under the cursor is drawn as
+  it'll look in the pane it goes into: its box at the size it'll have next to the ones picked,
+  or its line where the pane gets lines. `-` then a key takes one away. With no cards it opens on the gallery; `cards` in
   the `+` menu is the same, in a tab of its own. `phosphor cards` is another name for it. A `dash` pane in a profile tab
   (see profile) keeps what you add or take away in that tab of deck.toml. In a pane a few rows
   high (SYS's top row) the cards sit side by side under the title, as many to a line as fit,
@@ -286,7 +288,10 @@
   (`apps.toml`, see profile) come first, as "yours".
 - `phosphor new` — the new-tab menu (what + and Alt-n open). **layout** in it: pick a shape (2 columns,
   2 rows, 2 × 2, 3 columns), then what goes in each pane, or "the same in the rest"; all by tap too.
-  A pane can hold cards: **cards** opens the gallery, and Enter puts the ones you picked there.
+  Beside the list a small map of the shape shows what's in each pane so far and the real size
+  of the one you're picking.
+  A pane can hold cards: **cards** opens the gallery, previewing them at that pane's size, and
+  Enter puts the ones you picked there.
   **cards** in it opens the gallery of cards first: the ones you pick (Enter) are the tab (`phosphor
   dash`, above), and with "keep" on they're a `dash` pane in your profile.
   An **assistant** in it asks which folder it starts in: here, a folder of `[deck] projects`

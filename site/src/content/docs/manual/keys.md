@@ -48,7 +48,8 @@ key, a click or a tap: each action is a row of its own.
    **s** save the tab into your profile · **d** put it back the way the
    profile has it · **r** swap the pane's program for anything the + menu or
    the store has, or for cards (**cards** opens the gallery: pick some,
-   Enter puts them in the pane) · **b** / **v** split it (a new pane below / beside) ·
+   Enter puts them in the pane; beside the list, what's under the cursor
+   at this pane's size) · **b** / **v** split it (a new pane below / beside) ·
    **x** close it · **e** keep editing.
 
 One thing zellij doesn't let us lock: dragging a border resizes a pane even

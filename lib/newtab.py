@@ -442,16 +442,23 @@ def layout(prof, keep):
     shape = edit.pick("which shape?", [(label, pic) for label, pic, _, _ in SHAPES])
     if not shape: return None
     label, _, n, make = next(s for s in SHAPES if s[0] == shape[0])
-    items, slots, names = edit.options(), [], []
+    import preview
+    tree = make(list(range(n)))
+    items, slots, names, picked = edit.options(), [], [], []
+    def side(it, w, h):              # the shape, what's in each pane so far, this one's real size
+        labels = dict(enumerate(picked))
+        labels[len(slots)] = it[0] if it else "?"
+        mw, mh = min(w, 36), min(h - 1, 10)
+        return [DIM + "the tab so far" + RST] + preview.shape_map(tree, labels, len(slots), mw, mh)
     while len(slots) < n:
         extra = [("=", "the same in the rest")] if slots else []
-        it = edit.pick("%s · pane %d of %d: what goes here?" % (label, len(slots) + 1, n), items, extra)
+        it = edit.pick("%s · pane %d of %d: what goes here?" % (label, len(slots) + 1, n), items, extra, side)
         if it is None: return None
         if it == "=":
             slots += [slots[-1]] * (n - len(slots)); names += [names[-1]] * (n - len(names)); break
-        it = edit.cards(it)
+        it = edit.cards(it, preview.inside(tree, len(slots)))
         if it is None: continue           # the gallery left with Esc: this pane again
-        slots.append({k: v for k, v in it[4].items()}); names.append(it[2])
+        slots.append({k: v for k, v in it[4].items()}); names.append(it[2]); picked.append(it[0])
     name = unique(names[0] if len(set(names)) == 1 else "LAYOUT", taken_names())
     tab = dict(make(slots), name=name)
     if keep:
