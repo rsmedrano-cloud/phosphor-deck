@@ -6,6 +6,13 @@ before it updates.
 
 ## Unreleased
 
+## 2.3.0 — cards you can place
+
+- Fixes from the 2.2.5 audit: swapping a tool's panes (and Alt-r on a pane) no longer picks up
+  the processes of a stray zellij session with the same name on another socket; the gallery's
+  preview, on a screen narrower than a box, shows the card's line instead of a box wider than
+  the screen; `phosphor help` says `phosphor cards` is another name for `phosphor dash`.
+
 ## 2.2.5 — the building flow, tested, and a first-time hint
 
 - The first few times you build a tab, the pickers say what their keys do

@@ -154,6 +154,7 @@ check("detail: entries and how many more",
 check("detail: one value says nothing more", card.detail(True, 30, 3) == [] and card.detail({"total": 1}, 30, 3) == [])
 check("summary: one entry per name counts them", card.summary({"a": {}, "b": {}}) == "2")
 os.environ.pop("NO_COLOR", None)
+os.environ["TERM"] = "xterm-256color"  # TERM=dumb would mean no color, so no boxes
 check("mode: short pane, its row", dash.mode(["ci"], 80, 3) == "short")
 check("mode: boxes where they fit", dash.mode(["ci"], 80, 20) == "tiles")
 check("mode: the list when narrower than a box, or no cards", dash.mode(["ci"], 20, 20) == "list" and dash.mode([], 80, 20) == "list")
@@ -214,6 +215,9 @@ check("preview: under the list on a narrow screen, at this pane's size", "box 1 
 keys("\x1b")
 dash.gallery([], rows=24, cols=110, cell=(30, 4))
 check("preview: a pane too short for boxes shows its line", "a line in a 30×4 pane:" in " ".join(seen) and "short for boxes" in " ".join(seen))
+narrow = [plain(l) for l in dash.placed("usage", [], card.Live([]), (80, 24), 18, 10)]
+check("preview: no room for its box here, its line, none wider than that",
+      all(len(l) <= 18 for l in narrow) and "no room here" in " ".join(narrow))
 dash.paint = paint
 keys(("TAP", 90, 4), "\r")
 check("preview: a tap on it picks nothing", dash.gallery([], rows=24, cols=110) == [])

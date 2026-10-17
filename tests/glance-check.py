@@ -7,6 +7,9 @@ from an item's page.
 import json, os, re, shutil, subprocess, sys, tempfile
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "lib"))
+# a caller's own data/cache/notebook (tests/audit.py sets them) would win over the test's HOME
+for v in ("PHOSPHOR_DATA", "PHOSPHOR_CACHE", "PHOSPHOR_NOTES"):
+    os.environ.pop(v, None)
 fails = []
 def need(what, ok):
     if not ok: fails.append(what)

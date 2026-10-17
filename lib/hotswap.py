@@ -143,6 +143,8 @@ def pane_procs(session, pane_id):
     """The processes of one pane of `session` -- by environment, not by
     the calling process's own (this may run detached, outside any pane)."""
     want = [("ZELLIJ_PANE_ID=%d" % pane_id).encode(), ("ZELLIJ_SESSION_NAME=%s" % session).encode()]
+    if os.environ.get("ZELLIJ_SOCKET_DIR"):  # a stray session of that name on another socket isn't this one
+        want.append(("ZELLIJ_SOCKET_DIR=%s" % os.environ["ZELLIJ_SOCKET_DIR"]).encode())
     out = []
     for d in os.listdir("/proc"):
         if not d.isdigit():

@@ -133,7 +133,7 @@ def placed(name, picked, live, cell, pw, ph):
     cw, ch = cell
     how = mode(have, cw, ch)
     where = "box %d of %d in a %d×%d pane" % (have.index(name) + 1, len(have), cw, ch)
-    if how == "tiles":
+    if how == "tiles" and pw >= TILE_W:
         _, tw, th, _ = grid(len(have), cw, ch - HEAD - 2)
         sw, sh = max(TILE_W, min(tw, pw)), max(TILE_H, min(th, ph - 3))
         lines = tile(KEYS[have.index(name)] if have.index(name) < len(KEYS) else "", name, live, sw, sh)
@@ -141,7 +141,8 @@ def placed(name, picked, live, cell, pw, ph):
     else:
         sw = min(pw, cw)
         lines = [row("", name, live, sw)]
-        note = "a line in a %d×%d pane: %s" % (cw, ch, "too short for boxes" if how == "short" else
+        note = "%s, no room here to draw its box" % where if how == "tiles" else \
+            "a line in a %d×%d pane: %s" % (cw, ch, "too short for boxes" if how == "short" else
                                                "no color here" if mono_term() else "too narrow for boxes")
     return [MUTE + "as it'll look" + RST] + lines + [DIM + l + RST for l in textwrap.wrap(note, max(12, sw))]
 

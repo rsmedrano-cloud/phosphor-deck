@@ -374,6 +374,8 @@ def pane_procs(pane_id):
     """The processes of one pane of this session."""
     want = [b"ZELLIJ_PANE_ID=%d" % pane_id,
             ("ZELLIJ_SESSION_NAME=%s" % os.environ.get("ZELLIJ_SESSION_NAME", "")).encode()]
+    if os.environ.get("ZELLIJ_SOCKET_DIR"):  # a stray session of that name on another socket isn't this one
+        want.append(("ZELLIJ_SOCKET_DIR=%s" % os.environ["ZELLIJ_SOCKET_DIR"]).encode())
     out = []
     for d in os.listdir("/proc"):
         if not d.isdigit() or int(d) == os.getpid(): continue

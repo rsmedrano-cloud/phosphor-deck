@@ -365,7 +365,7 @@
   "dash": {"category": "In the deck",
     "aliases": ["cards"],
     "usage": "phosphor dash [CARD...] [--json]",
-    "summary": "a dashboard of your own: the cards you pick, each with its live value; + adds one",
+    "summary": "a dashboard of your own: the cards you pick, each with its live value; + adds one (also: phosphor cards)",
     "options": ["--json"],
     "internal": ["--tab"],
     "takes_value": ["--tab"],

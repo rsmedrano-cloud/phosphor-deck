@@ -291,10 +291,10 @@
   Beside the list a small map of the shape shows what's in each pane so far and the real size
   of the one you're picking. The first few times each of these pickers opens (the shape, a pane,
   the gallery), its last row says what Enter and q / Esc do there.
-  A pane can hold cards: **cards** opens the gallery, previewing them at that pane's size, and
-  Enter puts the ones you picked there.
-  **cards** in it opens the gallery of cards first: the ones you pick (Enter) are the tab (`phosphor
-  dash`, above), and with "keep" on they're a `dash` pane in your profile.
+  **cards** in the menu opens the gallery first: the ones you pick (Enter) are the tab (`phosphor
+  dash`, above), and with "keep" on they're a `dash` pane in your profile. In a layout, **cards**
+  is what one pane holds: the gallery previews them at that pane's size, and Enter puts the ones
+  you picked there.
   An **assistant** in it asks which folder it starts in: here, a folder of `[deck] projects`
   (workspaces say so), one you typed before, or `/` to type another (`~` and relative paths
   work); the tab takes that folder's name.
