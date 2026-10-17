@@ -6,6 +6,15 @@ before it updates.
 
 ## Unreleased
 
+## 2.2.3 — cards in any pane
+
+- Cards go in any pane, not only a tab of their own: in a layout ("pane 2
+  of 4: what goes here?") and in Alt-r's r, **cards** opens the gallery;
+  Enter puts the cards you picked in that pane, Esc goes back to the list.
+  Saved with s, the pane is kept as `{ dash = [...] }` like any dashboard.
+- Saving a tab of cards opened from the + menu kept it as a python
+  command instead of `{ dash = [...] }`; it reads back as cards now.
+
 ## 2.2.2 — cards fill the tab
 
 - A dashboard is a tab full of cards now, not a list of keys: each card is

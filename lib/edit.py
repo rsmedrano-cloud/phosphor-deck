@@ -8,7 +8,7 @@ screen over the focused pane (zellij runs it in place):
 - the next Alt-r shows what changed against how the tab started, and asks:
   s saves it into the profile (as `phosphor keep` would), d puts the tab back
   the way the profile has it, r swaps the program of the pane underneath
-  (ctop for lazydocker), e goes on editing.
+  (ctop for lazydocker, or cards from the gallery), e goes on editing.
 
 Swapping and putting back need this screen gone first (it covers the very
 pane they change), so a small helper finishes them after it closes.
@@ -306,10 +306,23 @@ def run_flags(argv, spec):
     return (["--reconnect"] if argv[0] == "ssh" else []) \
         + (["--wait", "1"] if spec.get("needs_size") else []) + (["--alt"] if spec.get("alt") else [])
 
+def cards(it):
+    """An item of options() as it goes in a pane: cards are picked in the
+    gallery first. None if the gallery was left with Esc or none."""
+    if "dash" not in (it[4] or {}): return it
+    import dash
+    names = dash.gallery([], enter="put them here")
+    if not names: return None
+    return it[:3] + ([PHOSPHOR, "dash"] + names, {"dash": names})
+
 def choose():
     """Pick one of options(). Returns [name, flags..., "--", argv...] or None."""
-    it = pick("what goes in this pane?", options())
-    if not it: return None
+    items = options()
+    while True:
+        it = pick("what goes in this pane?", items)
+        if not it: return None
+        it = cards(it)
+        if it: break
     _, _, name, argv, spec = it
     return [name] + run_flags(argv, spec) + ["--"] + argv
 

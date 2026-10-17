@@ -62,6 +62,13 @@ def pure():
     need("r offers gping with the fleet's hosts, not bare (it exits with none)",
          g and "db-box" in g[3][1:] and g[4].get("args") == ["@hosts"])
     need("r offers btop", "btop" in opts)
+    import dash
+    got = [["ci", "web"], None]
+    dash.gallery = lambda have, **k: got.pop(0)
+    it = edit.cards(opts["cards"])
+    need("cards: the gallery's picks go in the pane", it[3][1:] == ["dash", "ci", "web"] and it[4] == {"dash": ["ci", "web"]})
+    need("cards: Esc in the gallery puts nothing there", edit.cards(opts["cards"]) is None)
+    need("cards: a program goes in as it is", edit.cards(opts["btop"]) == opts["btop"])
     os.environ.clear(); os.environ.update(env0)
 
 def main():
@@ -128,6 +135,9 @@ def main():
 
         # 4. taps only
         touch(z, prof)
+
+        # 4b. r puts cards in the pane: the gallery first, then save
+        cards(z, prof)
 
         # 5. Alt-n: a new tab in the folder of the pane you're in; Alt-← crosses tabs
         here(z)
@@ -196,6 +206,28 @@ def touch(z, prof):
     need("touch: the dragged size is saved", z.wait(lambda: open(prof).read() != before, 10))
     need("touch: saving locks the tab", z.wait(lambda: tab() == "SYS", 5))
 
+def cards(z, prof):
+    tab = lambda: z.tabs()[0] if z.tabs() else ""
+    z.action("go-to-tab-name", "SYS"); z.pump(1)
+    z.out = b""
+    z.keys(ALT_E, 1); z.wait(lambda: "EDIT SYS" in z.text(), 5); z.keys(b"\r", 1)
+    z.wait(lambda: tab() == "SYS ✎", 5)
+    z.out = b""
+    z.keys(ALT_E, 1); z.wait(lambda: "what changed" in z.text(), 10)
+    z.keys(b"r", 1)
+    if not need("r offers cards", tap(z, "the cards you pick")): return
+    if not need("cards: the gallery opens", z.wait(lambda: "Enter: put them here" in z.text(), 10)): return
+    z.keys(ESC, 1.5)
+    need("cards: Esc in the gallery goes back to the list", z.wait(lambda: "what goes in this pane" in z.text(), 5))
+    if not tap(z, "the cards you pick"): return
+    z.wait(lambda: "Enter: put them here" in z.text(), 10)
+    z.keys(b" ", 0.5); z.keys(b"\r", 1)
+    need("cards: the pane becomes a dashboard", z.wait(lambda: '"dash"' in z.action("dump-layout"), 15))
+    z.out = b""
+    z.keys(ALT_E, 1); z.wait(lambda: "what changed" in z.text(), 10)
+    z.keys(b"s", 1)
+    need("cards: s saves them as dash = [...]", z.wait(lambda: "dash = [" in open(prof).read(), 10))
+
 def here(z):
     import json
     focused = lambda: [p["tab_name"] for p in json.loads(z.action("list-panes", "-a", "-j"))
@@ -228,7 +260,15 @@ def shapes(z):
     if not need("pane 2: the same in the rest", tap(z, "the same in the rest")): return
     body = lambda: z.action("dump-layout").split("new_tab_template")[0]
     need("the layout opens as a tab with both panes",
-         z.wait(lambda: "MYTOOL" in z.tabs() and body().count('"903"') >= 3, 10))   # the SYS pane + two new
+         z.wait(lambda: "MYTOOL" in z.tabs() and body().count('"903"') >= 2, 10))
+    z.keys(b"\x1bn", 1)
+    tap(z, "several panes at once"); tap(z, "2 rows")
+    tap(z, "mytool")
+    if not need("grid: cards is a row to tap", tap(z, "the cards you pick")): return
+    if not need("grid: the gallery opens", z.wait(lambda: "Enter: put them here" in z.text(), 10)): return
+    z.keys(b" ", 0.5); z.keys(b"\r", 1)
+    need("grid: a program and cards side by side",
+         z.wait(lambda: "LAYOUT" in z.tabs() and '"dash"' in body(), 10))
     need("the menu's tab closes behind it", z.wait(lambda: not any(t.startswith("Tab #") for t in z.tabs()), 5))
 
 def jot(z):

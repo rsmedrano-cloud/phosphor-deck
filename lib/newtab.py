@@ -75,7 +75,7 @@ def entries(prof):
     if any(have(b) for b in ("claude", "gemini", "codex", "opencode")):
         out.append(("workspace", "a project folder with assistants", "WORKSPACE",
                     [sys.executable, PHOSPHOR, "workspace", "new", "--pause-on-error"], None))
-    out.append(("cards", "a tab of the cards you pick, live: usage, ci, web...", "CARDS",
+    out.append(("cards", "the cards you pick, live: usage, ci, web...", "CARDS",
                 [sys.executable, PHOSPHOR, "dash"], {"dash": []}))
     out.append(("layout", "several panes at once", "LAYOUT", [], None))
     y = have("yazi")
@@ -449,6 +449,8 @@ def layout(prof, keep):
         if it is None: return None
         if it == "=":
             slots += [slots[-1]] * (n - len(slots)); names += [names[-1]] * (n - len(names)); break
+        it = edit.cards(it)
+        if it is None: continue           # the gallery left with Esc: this pane again
         slots.append({k: v for k, v in it[4].items()}); names.append(it[2])
     name = unique(names[0] if len(set(names)) == 1 else "LAYOUT", taken_names())
     tab = dict(make(slots), name=name)

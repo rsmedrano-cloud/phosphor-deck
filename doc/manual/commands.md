@@ -286,6 +286,7 @@
   (`apps.toml`, see profile) come first, as "yours".
 - `phosphor new` — the new-tab menu (what + and Alt-n open). **layout** in it: pick a shape (2 columns,
   2 rows, 2 × 2, 3 columns), then what goes in each pane, or "the same in the rest"; all by tap too.
+  A pane can hold cards: **cards** opens the gallery, and Enter puts the ones you picked there.
   **cards** in it opens the gallery of cards first: the ones you pick (Enter) are the tab (`phosphor
   dash`, above), and with "keep" on they're a `dash` pane in your profile.
   An **assistant** in it asks which folder it starts in: here, a folder of `[deck] projects`

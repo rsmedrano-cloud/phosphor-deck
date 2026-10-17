@@ -134,6 +134,9 @@ def spec_of(pane, ctx):
         cmd, flags = flags[i + 1:], flags[:i]
     if not cmd:
         return None
+    if os.path.basename(cmd[0]).startswith("python") and cmd[1:2] and \
+            (cmd[1].endswith("/phosphor") or cmd[1] == "phosphor"):
+        cmd = cmd[1:]                     # the + menu runs phosphor through its interpreter
     exe = os.path.basename(cmd[0])
     if exe == "ssh":
         spec["ssh"] = fold_ssh(cmd[-1], ctx)

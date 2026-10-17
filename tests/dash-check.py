@@ -57,6 +57,10 @@ lay = keep.parse('layout {\n    tab name="WATCH" {\n%s\n    }\n}\n' % gen.pane_k
 kctx = {"root": "/nowhere", "expand": ctx.expand, "cwd": os.path.expanduser("~"), "tokens": []}
 _, specs, _ = keep.tab_specs(lay, "WATCH", kctx)
 check("keep: a running dashboard reads back as dash = [...], no --tab", specs == [{"dash": ["usage", "ci"]}])
+lay = keep.parse('layout {\n    tab name="WATCH" {\n        pane command="%s" {\n            args "run" "--name" "CARDS" "--" "%s" "%s" "dash" "ci"\n        }\n    }\n}\n'
+                 % (gen.PHOSPHOR, sys.executable, gen.PHOSPHOR))
+_, specs, _ = keep.tab_specs(lay, "WATCH", kctx)
+check("keep: the + menu's cards (phosphor through python) read back as dash = [...]", specs == [{"dash": ["ci"]}])
 
 # profcheck: a dash that isn't a list, or names no card
 found = profcheck.problems({"tabs": [{"name": "W", "panes": [{"dash": ["ci", "nope"]}, {"dash": "ci"}]}]})

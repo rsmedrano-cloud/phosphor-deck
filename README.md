@@ -74,7 +74,7 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
 - **A menu behind the "+".** Tap it for a new tab: a shell here or on any
   machine, an installed assistant, files, or any command. **layout** opens
   several at once: pick a shape, then what goes in each pane (four
-  assistants side by side in a few taps). Mark "keep" and
+  assistants side by side in a few taps, or a program beside some cards). Mark "keep" and
   the tab is written into your profile, so it survives restarts. `/` in it
   searches everything at once: open tabs, workspaces, installed tools, every
   command. On a touch screen with no keyboard, every menu and prompt
@@ -201,8 +201,8 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
   what they need -- a question, hosts to tick, a file to pick, on or off -- all
   by tap on a phone. With their arguments, or piped, nothing changes.
 - **Tabs that stay put.** Tabs are locked; Alt-r unlocks the one you're in,
-  lets you resize, split or swap what runs in a pane, and then asks: save it
-  into your profile, or put it back.
+  lets you resize, split or swap what runs in a pane (a program, or cards),
+  and then asks: save it into your profile, or put it back.
 - **Tabs you can share.** Drop a `[[tabs]]` file into `~/.config/phosphor/tabs.d/`
   and it shows up in the deck, `phosphor gen` away, without touching your own
   profile -- its content is read-only from Alt-r and `keep`, which point at the file
