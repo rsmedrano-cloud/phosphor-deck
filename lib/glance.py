@@ -53,9 +53,17 @@ def fleet_scan():
         return 0, None, False, []
     stale = time.time() - d.get("t", 0) > 90
     hosts = d.get("hosts", {})
+    ok, bad = host_problems(hosts)
+    return ok, len(hosts), stale, bad
+
+def host_problems(hosts):
+    """(ok_count, [(name, detail, down)]) for fleet.json's hosts: what
+    fleet_scan() and `fleet --json`'s why both say."""
     bad = []
     ok = 0
     for name, h in hosts.items():
+        if not h:
+            continue
         if not h.get("ok"):
             bad.append((name, h.get("err") or "unreachable", True))
             continue
@@ -71,7 +79,7 @@ def fleet_scan():
         if h.get("REBOOT"):
             bad.append((name, "reboot pending", False))
         bad += [(name, p, False) for p in health.sensor_problems(h, name)]
-    return ok, len(hosts), stale, bad
+    return ok, bad
 
 def fleet_state():
     """(ok_count, total, [(name, detail)] for hosts that need attention)."""

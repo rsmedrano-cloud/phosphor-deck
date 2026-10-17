@@ -111,6 +111,22 @@ check("Live with nothing to watch starts no thread", live.get("screens") == (Non
 live.got["ci"] = ([{}], "1", "failing: app")
 check("Live: a why is a card that wants a look", live.get("ci") == ("1", True) and live.why("ci") == "failing: app")
 
+# the second round comes soon (a screen attaches just after the first), then every `every`
+real_fetch, real_sleep, naps = card.fetch, card.time.sleep, []
+try:
+    card.fetch = lambda n: (None, None, None)
+    w = card.Live([], every=60)
+    w.names = ["screens"]
+    def nap(s):
+        naps.append(s)
+        if len(naps) == 3:
+            w.stop()
+    card.time.sleep = nap
+    w._loop()
+finally:
+    card.fetch, card.time.sleep = real_fetch, real_sleep
+check("Live: a second look %ds after the first, then every 60" % card.SOON, naps == [card.SOON, 60, 60])
+
 if fails:
     print("card-check FAILED:\n  " + "\n  ".join(fails)); sys.exit(1)
 print("card-check ok")

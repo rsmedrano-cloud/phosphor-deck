@@ -392,7 +392,16 @@ def as_json(hosts, now=None):
     t, state = read_cache()
     age = int((now or time.time()) - t) if t else None
     return {"t": int(t) or None, "age": age, "stale": age is None or age > 90,
-            "hosts": {name: reading(state.get(name)) for name, _ in hosts}}
+            "hosts": {name: reading(state.get(name)) for name, _ in hosts},
+            "why": why(dict((name, state.get(name)) for name, _ in hosts))}
+
+def why(state):
+    """What wants a look, glance's own list: per host, "vault: disk 95%"."""
+    import glance
+    per = {}
+    for name, detail, _ in glance.host_problems(state)[1]:
+        per.setdefault(name, []).append(detail)
+    return "; ".join("%s: %s" % (n, ", ".join(p)) for n, p in per.items()) or None
 
 def read_state():
     return read_cache()[1]

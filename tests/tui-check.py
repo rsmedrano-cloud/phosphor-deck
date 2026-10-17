@@ -131,6 +131,11 @@ sc.key("j"); sc.key("o"); need("screens: o on a kind's own deck asks to share", 
 sc.key("n"); need("screens: n leaves the profile alone", sc.ask is None and "left alone" in sc.msg)
 sc.rows, sc.problem = [], ""
 need("screens: none attached says so", "no screens attached" in "".join(sc.frame(80, 24)))
+sc.here = 1
+need("screens: a terminal on the brain still counts", "1 attached here on the brain, none over ssh" in "".join(sc.frame(80, 24))
+     and "1 · deck" in "".join(sc.header(80)))
+sc.rows, sc.here = [{"tty": "pts/3", "from": "db-box", "idle": "now", "pid": 4242, "session": "deck", "said": ""}], 2
+need("screens: the local ones under the ssh ones", "and 1 here on the brain" in "".join(sc.frame(80, 24)))
 
 import review as RV
 RV.ci_tag = lambda prov, it, repo, cache: (ui.DIM, "no CI")

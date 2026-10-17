@@ -45,6 +45,9 @@ for n in names:
     head, body = fleet.card(n, 32, fleet.demo_collect(n))
     check("%s: card renders" % n, head and body)
 
+# something wants a look, so a recording shows a card's ! (vault's backup disk lives full)
+check("the demo's fleet raises a why", "vault: disk 95%" in (fleet.why({n: fleet.demo_collect(n) for n in names}) or ""))
+
 # 4. The notebook is seeded once, and never clobbered afterwards
 with tempfile.TemporaryDirectory() as td:
     demo.seed_notes(td)

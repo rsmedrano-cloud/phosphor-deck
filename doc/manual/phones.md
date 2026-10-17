@@ -111,6 +111,9 @@ your PC squeezes everyone's pane down to phone size. `phosphor screens`
 it's from, how long it's been idle, which deck it's in) and lets you kick one loose with `x`
 (it asks y/n first, on purpose): it just ends that one ssh connection, and the `deck`
 wrapper above notices the drop and reconnects on its own in a few seconds.
+A terminal on the brain itself is no ssh login, so it has no row to kick, but it's
+counted all the same ("1 attached here on the brain, none over ssh"), the way the
+screens card and the header count it.
 Not a way to ban a device -- a way to force one reconnect without walking
 over to whichever screen is in the way.
 

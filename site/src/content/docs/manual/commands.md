@@ -452,7 +452,8 @@ reading them every few seconds never gets them rate-limited.
   nothing): `t`, `age` and `stale` (no reading for 90s: the deck's fleet isn't running), and
   `hosts`, one per profile host (null before its first poll) with `ok`, `cpu`, `memory`, `load`,
   `uptime`, `disks`, `containers`, `gpus`, `failed_units`, `reboot`, `temp`, `battery`, `smart`
-  and `updates`, or `ok: false` and its `error`.
+  and `updates`, or `ok: false` and its `error`; `why` is what glance would call out, per host
+  (`vault: disk 95%; relay: 1 service failed`).
 - `phosphor glance --json` — the four questions with a `status` light (see above).
 - `phosphor services --json` — `units`: `unit`, `scope`, `state` (the panel's word), `load`,
   `active`, `sub`, `memory` in bytes.

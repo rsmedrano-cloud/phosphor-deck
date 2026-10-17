@@ -6,6 +6,15 @@ before it updates.
 
 ## Unreleased
 
+## 2.3.2 — Fixes for the whats-new recording
+
+- The fleet card shows its `!` when a machine wants a look (a disk past its red line, a failed
+  unit, a host that doesn't answer: what glance calls out), and `phosphor fleet --json` says it
+  as `why`. The screens panel counts a terminal on the brain itself too, as the card does: "1
+  attached here on the brain, none over ssh" instead of "no screens attached" next to a card
+  that says 1. A row of cards that was just laid out reads its values again a few seconds later,
+  so SYS's screens card no longer starts at 0 for its first 15 seconds.
+
 ## 2.3.1 — Fixes from the 2.3 demo recording
 
 - Fixes from the 2.3 demo recording: the screens card and the DECK tab's `v` count the same

@@ -108,6 +108,9 @@ def fetch(name):
     return v, summary(v), why if isinstance(why, str) and why else None
 
 
+SOON = 3                        # seconds to the second round
+
+
 class Live:
     """The values of some cards, fetched in a background thread every
     `every` seconds: drawing never waits on a command."""
@@ -129,12 +132,16 @@ class Live:
         self.stopped = True
 
     def _loop(self):
+        first = True
         while not self.stopped:
             for n in list(self.names):
                 if self.stopped:
                     return
                 self.got[n] = fetch(n)
-            time.sleep(self.every)
+            # a deck that was just laid out: the screen that started it
+            # attaches a moment after the first round, so look again soon
+            time.sleep(SOON if first else self.every)
+            first = False
 
     def get(self, name):
         """(summary, warn) for line(): warn when the command's why says so."""

@@ -79,6 +79,8 @@ if d:
          and n.get("smart") == {"failing": 1, "checked": 4})
     need("fleet: updates without a security count", n.get("updates") == {"pending": 12, "security": None})
     need("fleet: failed units and reboot", n.get("failed_units") == 2 and n.get("reboot") is True)
+    need("fleet: why names the host and what wants a look",
+         (d.get("why") or "").startswith("nebula: 2 services failed, reboot pending"))
 rc, d, _ = run("containers", "nebula", "--json")
 if d:
     need("containers: the demo's engine", d["engine"] == "docker" and d["problem"] is None and rc == 0)

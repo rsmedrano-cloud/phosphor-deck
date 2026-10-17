@@ -250,6 +250,14 @@ def retype(action, kind, gen=_gen):
     return True, ""
 
 
+def none(here):
+    """No ssh login on the deck: a terminal on the brain still counts, the
+    way the card and DECK's v count it."""
+    if here:
+        return "%d attached here on the brain, none over ssh" % here
+    return "no screens attached"
+
+
 def close_session(name):
     """A kind's session nobody comes into anymore: its panes go."""
     import kinds
@@ -268,6 +276,7 @@ class Panel(tui.ListPanel):
         self.base = ((prof or {}).get("deck") or {}).get("session", "deck")
         self.session = sessions(prof)
         self.addrs = set()
+        self.here = None        # zellij's count: a terminal on the brain too
 
     def kind(self, r):
         # a screen that says a kind with no deck of its own: deck (phone)
@@ -283,6 +292,7 @@ class Panel(tui.ListPanel):
     def fetch(self):
         import relay
         self.addrs = relay.relayed(relay.ts_status())
+        self.here = attached(self.session)
         rows = screens(self.session)
         if rows is None:
             self.problem = "who isn't installed"
@@ -290,15 +300,18 @@ class Panel(tui.ListPanel):
         return rows
 
     def header(self, w):
-        return topbar("SCREENS", "who's attached", "%d · %s" % (len(self.rows), self.base), min(w, 90))
+        n = max(len(self.rows), self.here or 0)
+        return topbar("SCREENS", "who's attached", "%d · %s" % (n, self.base), min(w, 90))
 
     def lines(self, w, sel):
         if not self.rows:
-            return [" " + DIM + "no screens attached" + RST]
+            return [" " + DIM + none(self.here) + RST]
         out = []
         for i, r in enumerate(self.rows):
             nm = "%-16s %-14s %-12s idle %-8s %s" % (r["from"], self.kind(r), r["tty"], r["idle"], self.link(r))
             out.append(INV + pad(" " + nm, min(w, 90) - 4) + RST if i == sel else " " + FG + nm + RST)
+        if (self.here or 0) > len(self.rows):
+            out.append(" " + DIM + "and %d here on the brain" % (self.here - len(self.rows)) + RST)
         return out
 
     def row_name(self, r):
@@ -357,7 +370,7 @@ def main():
         if p.problem:
             print(p.problem); return 1
         if not rows:
-            print("no screens attached"); return 0
+            print(none(p.here)); return 0
         for r in rows:
             print("%-10s %-16s %-14s %-16s idle %-8s pid %d%s" %
                   (r["tty"], r["from"], p.kind(r), r["login"], r["idle"], r["pid"],
