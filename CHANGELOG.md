@@ -6,6 +6,15 @@ before it updates.
 
 ## Unreleased
 
+## 2.2.1 — the card gallery reads the way it works
+
+- The card gallery reads the way it works: Space or a tap picks a card,
+  `a` picks all (or none), Enter makes the tab (or updates the
+  dashboard), Esc cancels with nothing changed. The top bar says how many
+  are picked and what Enter does. In the + menu it's **cards** now (it
+  was "dashboard"), and `phosphor cards` is another name for
+  `phosphor dash`.
+
 ## 2.2.0 — the deck as a dashboard
 
 - `phosphor tabs`, `screens`, `store` and `dash` piped into something

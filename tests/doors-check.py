@@ -16,7 +16,7 @@ finds. So every public entry of share/commands.json declares its `card`
 - the DECK tab's keys (lib/panel.py's OPENS) name real commands, one entry
   per key.
 
-- the gallery (lib/dash.py, + on any dashboard and `dashboard` in the +
+- the gallery (lib/dash.py, + on any dashboard and `cards` in the +
   menu) holds every card that isn't plumbing, so no card is left without
   a door.
 

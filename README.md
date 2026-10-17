@@ -116,9 +116,10 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
   with a class on phosphor's `ListPanel` ("my restic backups" in about 20
   lines) is a panel like the deck's: keys, taps, a y/n before an action, a
   pager. `phosphor panels NAME` opens it; the store and the + menu list it.
-- **Dashboards of your own.** `dashboard` in the + menu opens the gallery:
+- **Dashboards of your own.** `cards` in the + menu opens the gallery:
   every command as a card, each with its live value (pipelines, plan usage,
-  browser access, who's attached...). Pick some and they're a tab; `+` there
+  browser access, who's attached...). Space picks some, Enter makes them a
+  tab; `+` there
   adds more, `-` takes one away, a tap runs one. In the profile it's one
   pane, `{ dash = ["usage", "ci", "web", "screens"] }`; in a terminal,
   `phosphor dash usage ci web screens`. A new deck's SYS starts with a row
@@ -479,11 +480,11 @@ more depth on every one of these.
 | `phosphor review` | open merge/pull requests: CI, conflicts, diff, try the branch in its own worktree |
 | `phosphor mem` | how much memory each tab and pane of the deck takes, heaviest first, every kind of screen's deck included |
 | `phosphor panels [NAME]` | your own panels: a Python file in `~/.config/phosphor/panels.d` on the same kit as every panel (keys, taps, y/n, pager); also in the store and the + menu |
-| `phosphor dash [CARD...]` | a dashboard of your own: the cards you pick, each with its live value and its command; `+` opens the gallery of every card, `-` takes one away; also `dashboard` in the + menu |
+| `phosphor dash [CARD...]` | a dashboard of your own: the cards you pick, each with its live value and its command; `+` opens the gallery of every card, `-` takes one away; also `cards` in the + menu (`phosphor cards`) |
 | `phosphor screens` | who's attached (phone, tablet, another computer), and which come through a tailscale relay; `x` kicks one loose, `o` gives its kind a deck of its own or shares this one (both ask y/n first) |
 | `phosphor keys` | key guide, updates itself when you install a tool |
 | `phosphor store` | install TUIs from their releases, no sudo; open what you have, and your own apps |
-| `phosphor new` | the + menu (also Alt-n): a shell, a machine, an assistant (in the folder you pick), your apps, a dashboard, a layout; `/` searches everything |
+| `phosphor new` | the + menu (also Alt-n): a shell, a machine, an assistant (in the folder you pick), your apps, a tab of cards, a layout; `/` searches everything |
 | `phosphor keep` | write a tab you arranged by hand into your profile |
 | `phosphor tabs` | the tabs your profile brings back: forget one, reorder, reopen |
 | `phosphor migrate` | bring an older profile up to date: a diff of each change first, a backup kept |

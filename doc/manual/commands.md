@@ -267,9 +267,10 @@
   ci web screens`), each one a command's live value with the command beside it, keyed 1, 2, 3...
   A key or a tap runs that card the way its card says (a toggle flips, what publishes or restarts
   asks first) and comes back; a card that wants a look has a `!` and its reason under the cards.
-  `+` opens the gallery, every card there is with its live value (Enter or a tap adds one or
-  takes it away), `-` then a key takes one away. With no cards it opens on the gallery;
-  `dashboard` in the `+` menu is the same, in a tab of its own. A `dash` pane in a profile tab
+  `+` opens the gallery, every card there is with its live value: Space or a tap picks one
+  (again takes it away), `a` picks all or none, Enter applies, Esc cancels with nothing
+  changed. `-` then a key takes one away. With no cards it opens on the gallery; `cards` in
+  the `+` menu is the same, in a tab of its own. `phosphor cards` is another name for it. A `dash` pane in a profile tab
   (see profile) keeps what you add or take away in that tab of deck.toml. In a pane a few rows
   high (SYS's top row) the cards sit side by side under the title, as many to a line as fit,
   and `+` zooms the pane for the gallery. `--json` prints each card's `name`, `kind`, `state`,
@@ -279,7 +280,7 @@
   (`apps.toml`, see profile) come first, as "yours".
 - `phosphor new` — the new-tab menu (what + and Alt-n open). **layout** in it: pick a shape (2 columns,
   2 rows, 2 × 2, 3 columns), then what goes in each pane, or "the same in the rest"; all by tap too.
-  **dashboard** in it opens the gallery of cards first: the ones you pick are the tab (`phosphor
+  **cards** in it opens the gallery of cards first: the ones you pick (Enter) are the tab (`phosphor
   dash`, above), and with "keep" on they're a `dash` pane in your profile.
   An **assistant** in it asks which folder it starts in: here, a folder of `[deck] projects`
   (workspaces say so), one you typed before, or `/` to type another (`~` and relative paths

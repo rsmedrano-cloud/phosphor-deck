@@ -101,9 +101,10 @@ Every program runs through `phosphor run` (see keys).
 A dashboard pane is `phosphor dash` with those cards: each one a command's
 live value, the command itself beside it, and a tap that runs it (the
 toggles flip, the ones that publish or restart ask first). `+` on it opens
-the gallery of every card there is, `-` takes one away, and either change is
-written back into this tab of your profile (a `.bak` first) -- `dashboard`
-in the + menu starts one the same way. A name that has no card is said by
+the gallery of every card there is (Space picks, Enter applies, Esc
+cancels), `-` takes one away, and either change is written back into this
+tab of your profile (a `.bak` first) -- `cards` in the + menu starts one
+the same way. A name that has no card is said by
 `phosphor doctor`, with the rest of the profile's mistakes. A whole tab of
 them: `name = "WATCH"` and `panes = [ { dash = ["usage", "ci", "web", "screens"] } ]`.
 

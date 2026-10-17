@@ -7,8 +7,9 @@ dashboard is a pane showing some of them, in your order:
     phosphor dash usage ci web screens        # in any terminal
     panes = [ { dash = ["usage", "ci"] } ]    # a pane in a profile tab
 
-+ opens the gallery (every card, each with its live value) to add one,
-- then a card's key takes one away. In a profile tab (gen passes --tab),
++ opens the gallery (every card, each with its live value): Space picks,
+a picks all, Enter applies, Esc cancels; - then a card's key takes one
+away. In a profile tab (gen passes --tab),
 a change is kept in deck.toml, the usual way (a .bak first).
 
 In a pane too short for one card a line (zoom.short: a row of SYS), the
@@ -115,10 +116,11 @@ def tapped_at(k):
     return (k[1], k[2]) if isinstance(k, tuple) and k[0] == "TAP" else None
 
 
-def gallery(have, rows=None, cols=None):
-    """Every card with its live value; Enter or a tap adds or takes one
-    away. The dashboard's new list (its order kept, new ones last), or
-    None for Esc with nothing changed."""
+def gallery(have, rows=None, cols=None, enter="make the tab"):
+    """Every card with its live value: Space or a tap picks one or takes it
+    away, a all or none, Enter applies. The new list (its order kept, new
+    ones last), or None for Esc: nothing changed. enter says what Enter
+    does here, on the top bar and the footer."""
     names = gallery_names()
     live = card.Live(names, every=30)
     picked, sel, top = list(have), 0, 0
@@ -139,28 +141,34 @@ def gallery(have, rows=None, cols=None):
             room = max(3, rows_ - 4)
             mine = next(i for i, a in enumerate(at) if a == sel)
             top = min(max(top, mine - room + 1), mine)
-            lines = topbar("CARDS", "every card, live; Enter or a tap adds it", "%d picked" % len(picked), w)
+            lines = topbar("CARDS", "Space or a tap picks a card",
+                           "%d picked · Enter: %s" % (len(picked), enter), w)
             lines += body[top:top + room]
             lines += [""] * max(0, rows_ - 1 - len(lines))
-            lines.append(DIM + " ↑↓ · Enter or tap: add / take away · q Esc: done" + RST)
+            lines.append(vcut(DIM + " ↑↓ · Space or tap: pick · a: all / none · Enter: %s · Esc: cancel"
+                              % enter + RST, w))
             paint(lines, rows_)
             k = getkey(1.0, mouse=True)
             y = tapped(k)
             if y is not None:
                 i = y - 3 + top
                 if 0 <= y - 3 < room and i < len(at) and at[i] is not None:
-                    sel, k = at[i], "\r"
+                    sel, k = at[i], " "
                 else:
                     continue
             if k == "WUP" or k == "\x1b[A":
                 sel = max(0, sel - (3 if k == "WUP" else 1))
             elif k == "WDN" or k == "\x1b[B":
                 sel = min(len(names) - 1, sel + (3 if k == "WDN" else 1))
-            elif k in ("\r", "\n", " "):
+            elif k == " ":
                 n = names[sel]
                 picked = [x for x in picked if x != n] if n in picked else picked + [n]
+            elif k == "a":                     # all, or none when all are picked already
+                picked = [] if set(names) <= set(picked) else picked + [n for n in names if n not in picked]
+            elif k in ("\r", "\n"):
+                return picked
             elif k in ("q", "\x1b", "\x03"):
-                return picked if picked != list(have) else None
+                return None
     finally:
         live.stop()
 
@@ -259,7 +267,7 @@ def main():
     msg, removing = None, False
     try:
         if not names:
-            names = gallery([]) or []
+            names = gallery([], enter="show them") or []
             live.set(names)
             msg = save(tab, [], names)
         while True:
@@ -296,7 +304,7 @@ def main():
                 grew = short and not zoom.zoomed()
                 if grew:
                     zoom.toggle()                    # the gallery needs the whole tab
-                new = gallery(names)
+                new = gallery(names, enter="update the tab" if tab else "show them")
                 if grew:
                     zoom.toggle()
                 if new is not None:

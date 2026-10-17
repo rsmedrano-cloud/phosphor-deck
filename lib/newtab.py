@@ -75,7 +75,7 @@ def entries(prof):
     if any(have(b) for b in ("claude", "gemini", "codex", "opencode")):
         out.append(("workspace", "a project folder with assistants", "WORKSPACE",
                     [sys.executable, PHOSPHOR, "workspace", "new", "--pause-on-error"], None))
-    out.append(("dashboard", "the cards you pick, live: usage, ci, web...", "DASH",
+    out.append(("cards", "a tab of the cards you pick, live: usage, ci, web...", "CARDS",
                 [sys.executable, PHOSPHOR, "dash"], {"dash": []}))
     out.append(("layout", "several panes at once", "LAYOUT", [], None))
     y = have("yazi")
@@ -575,7 +575,7 @@ def main():
                 if layout(prof, keep):
                     return 0                  # the new tab is open: this menu's tab closes
                 sys.stdout.write("\x1b[?1000h\x1b[?1006h"); continue
-            if label == "dashboard":          # its cards first, from the gallery
+            if label == "cards":              # its cards first, from the gallery
                 import dash
                 names = dash.gallery([])
                 sys.stdout.write("\x1b[?1000h\x1b[?1006h")

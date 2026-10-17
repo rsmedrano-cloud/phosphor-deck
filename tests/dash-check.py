@@ -118,23 +118,39 @@ check("draw: the foot says + and -", "+ add a card" in txt[-1] and "- take one a
 lines, hit = dash.draw([], FakeLive(), 60, 12)
 check("draw: no cards says + picks some", any("+ picks some" in plain(l) for l in lines))
 
-# the gallery: arrows, Enter adds, again takes away, q is done
+# the gallery: Space or a tap picks, a all / none, Enter applies, Esc cancels
 sys.stdout = open(os.devnull, "w")
 def keys(*ks):
     it = iter(ks)
     dash.getkey = lambda *a, **k: next(it)
-keys("\r", "\x1b[B", "\r", "q")
+keys(" ", "\x1b[B", " ", "\r")
 got = dash.gallery([], rows=24, cols=80)
-check("gallery: Enter adds the first card, then the next", got == names[:2])
-keys("\r", "q")
-check("gallery: Enter on a picked card takes it away", dash.gallery([names[0]], rows=24, cols=80) == [])
-keys("q")
-check("gallery: nothing changed is None", dash.gallery(["ci"], rows=24, cols=80) is None)
-keys(("TAP", 5, 4), "q")
-check("gallery: a tap on a card picks it", dash.gallery([], rows=24, cols=80) == [names[0]])
+check("gallery: Space picks the first card, then the next; Enter applies", got == names[:2])
+keys(" ", "\r")
+check("gallery: Space on a picked card takes it away", dash.gallery([names[0]], rows=24, cols=80) == [])
+keys(" ", "\x1b[B", " ", "\x1b")
+check("gallery: Esc cancels whatever was picked", dash.gallery(["ci"], rows=24, cols=80) is None)
+keys(" ", "q")
+check("gallery: q cancels too", dash.gallery([], rows=24, cols=80) is None)
+keys("\r")
+check("gallery: Enter with nothing changed gives the same list", dash.gallery(["ci"], rows=24, cols=80) == ["ci"])
+keys("a", "\r")
+check("gallery: a picks every card, the ones it had first", dash.gallery(["ci"], rows=24, cols=80) == ["ci"] + [n for n in names if n != "ci"])
+keys("a", "\r")
+check("gallery: a with all picked picks none", dash.gallery(list(names), rows=24, cols=80) == [])
+keys(("TAP", 5, 4), "\r")
+check("gallery: a tap on a card picks it, it doesn't apply", dash.gallery([], rows=24, cols=80) == [names[0]])
+seen = []
+def grab(lines, rows): seen[:] = [plain(l) for l in lines]
+paint, dash.paint = dash.paint, grab
+keys(" ", "\x1b")
+dash.gallery([], rows=24, cols=100, enter="make the tab")
+dash.paint = paint
+check("gallery: the top bar says how many and what Enter does", "1 picked · Enter: make the tab" in seen[0])
+check("gallery: the foot says the keys", all(w in seen[-1] for w in ("Space", "a: all / none", "Enter: make the tab", "Esc: cancel")))
 sys.stdout = sys.__stdout__
 
-# the whole screen in a pty: + opens the gallery, Enter adds, q back, -
+# the whole screen in a pty: + opens the gallery, Space picks, Enter applies, -
 # then 1 takes it away, q leaves; nothing raises, the exit is clean
 import pty, select, time
 WRAP = ("import sys; sys.path.insert(0, %r); import card; "
@@ -154,7 +170,7 @@ def drain(t):
                 out += os.read(fd, 65536)
             except OSError:
                 return
-for k in (b"+", b"\r", b"q", b"-", b"1", b"q"):
+for k in (b"+", b" ", b"\r", b"-", b"1", b"q"):
     drain(1.2); os.write(fd, k)
 drain(2)
 _, status = os.waitpid(pid, 0)
@@ -162,6 +178,57 @@ seen = plain(out.decode("utf-8", "replace"))
 check("pty: no traceback", "Traceback" not in seen)
 check("pty: it exits 0 on q", os.WIFEXITED(status) and os.WEXITSTATUS(status) == 0)
 check("pty: the dashboard and the gallery were drawn", "DASH" in seen and "CARDS" in seen)
+
+
+# the real thing, in a throwaway zellij: + opens the gallery, Space picks,
+# Esc cancels (the next + still shows what it had), a picks all, Enter applies
+def live():
+    import zjprobe
+    if not zjprobe.zellij():
+        print("no zellij here: live part skipped"); return
+    prof = """[deck]
+version = 3
+session = "probe"
+
+[[hosts]]
+name = "db-box"
+role = "brain"
+local = true
+
+[[tabs]]
+name  = "WATCH"
+panes = [ { cmd = "phosphor", args = ["dash", "version"] } ]
+"""
+    every = len(dash.gallery_names())
+    with zjprobe.Probe(prof) as z:
+        def pane():
+            try:
+                ps = json.loads(z.action("list-panes", "-a", "-j") or "[]")
+            except ValueError:
+                return None
+            return next(("terminal_%d" % p["id"] for p in ps
+                         if not p.get("is_plugin") and "dash" in str(p.get("terminal_command") or "")), None)
+        check("live: the dash pane is there", z.wait(lambda: pane() is not None, 20))
+        screen = lambda: plain(z.action("dump-screen", "-p", pane() or "") or "")
+        check("live: it draws the dashboard", z.wait(lambda: "DASH" in screen(), 20))
+        # a panel drops what came while it was drawing (getkey flushes):
+        # under load a key can land then, so send again until it takes
+        def until(key, cond, tries=4):
+            for _ in range(tries):
+                z.keys(key, settle=0.3)
+                if z.wait(cond, 5):
+                    return True
+            return False
+        picked = lambda n: (lambda: "%d picked" % n in screen())
+        check("live: + opens the gallery, the card it has picked", until("+", picked(1)))
+        check("live: Space picks or takes one", until(" ", lambda: "1 picked" not in screen()))
+        check("live: Esc cancels, back on the dashboard", until("\x1b", lambda: "CARDS" not in screen()))
+        check("live: what Esc cancelled isn't there on the next +", until("+", picked(1)))
+        check("live: a picks every card", until("a", picked(every)))
+        check("live: Enter applies, back on the dashboard", until("\r", lambda: "CARDS" not in screen()))
+        check("live: and the next + has them all", until("+", picked(every)))
+
+live()
 
 if fails:
     print("dash-check FAILED:")
