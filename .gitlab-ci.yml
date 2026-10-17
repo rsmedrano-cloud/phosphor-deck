@@ -18,7 +18,8 @@ check:
 
 # zellij: the deck's keys in a real zellij (the version in
 # share/versions.json, as installs get), with a client attached in a pty:
-# Alt-r edits, saves, puts back and swaps a pane. A throwaway session in its
+# Alt-r edits, saves, puts back and swaps a pane; a tab of cards is built
+# the whole way, from + and from Alt-r. A throwaway session in its
 # own HOME.
 zellij:
   tags: [homelab]
@@ -31,6 +32,7 @@ zellij:
     - python3 tests/fetch-zellij.py $ZELLIJ_FETCH /usr/local/bin
     - zellij --version
     - python3 tests/edit-check.py
+    - python3 tests/build-check.py --live
     - python3 tests/tour-check.py
     - python3 tests/tabmark-check.py
     - python3 tests/hotswap-live-check.py

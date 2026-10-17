@@ -294,7 +294,8 @@ sidebar:
 - `phosphor new` — the new-tab menu (what + and Alt-n open). **layout** in it: pick a shape (2 columns,
   2 rows, 2 × 2, 3 columns), then what goes in each pane, or "the same in the rest"; all by tap too.
   Beside the list a small map of the shape shows what's in each pane so far and the real size
-  of the one you're picking.
+  of the one you're picking. The first few times each of these pickers opens (the shape, a pane,
+  the gallery), its last row says what Enter and q / Esc do there.
   A pane can hold cards: **cards** opens the gallery, previewing them at that pane's size, and
   Enter puts the ones you picked there.
   **cards** in it opens the gallery of cards first: the ones you pick (Enter) are the tab (`phosphor

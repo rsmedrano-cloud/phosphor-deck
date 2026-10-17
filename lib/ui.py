@@ -323,6 +323,35 @@ def remembered(name, seconds, fn):
         pass
     return got
 
+FIRST_TIMES = 3     # opens of a picker with its hint line; then it's learned
+
+def first_times(name, hint):
+    """hint the first FIRST_TIMES times the picker `name` opens, None after
+    that: what Enter and Esc do there, for someone building their first tab
+    without the manual. Counted in the data dir's hints.json."""
+    import json
+    p = os.path.join(deckconf.data_dir(), "hints.json")
+    try:
+        with open(p) as f:
+            seen = json.load(f)
+        n = int(seen.get(name, 0))
+    except (OSError, ValueError, AttributeError, TypeError):
+        seen, n = {}, 0
+    if n >= FIRST_TIMES: return None
+    seen[name] = n + 1
+    try:
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        with open(p + ".tmp", "w") as f:
+            json.dump(seen, f)
+        os.replace(p + ".tmp", p)
+    except OSError:
+        pass
+    return hint
+
+def new_here(hint):
+    """A first_times hint as a foot line."""
+    return " " + AMB + "new here? " + RST + FG + hint + RST
+
 def tab_source(cmd):
     """Where the tab running `cmd` comes from, as a line saying how to take it
     out: a recipe, a tabs.d file of your own, or your profile. None if no tab runs it."""

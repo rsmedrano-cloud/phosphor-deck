@@ -187,9 +187,6 @@ def main():
         # 4. taps only
         touch(z, prof)
 
-        # 4b. r puts cards in the pane: the gallery first, then save
-        cards(z, prof)
-
         # 5. Alt-n: a new tab in the folder of the pane you're in; Alt-← crosses tabs
         here(z)
 
@@ -202,28 +199,7 @@ def main():
         # 8. closing a kept tab's last program offers to forget it
         forget(z)
 
-def tap(z, label, timeout=10):
-    """Tap the row of the focused pane that shows this text."""
-    import json
-    out = os.path.join(z.home, "screen.txt")
-    end = time.time() + timeout
-    while time.time() < end:
-        try: os.remove(out)
-        except OSError: pass
-        z.action("dump-screen", "--path", out)
-        rows = open(out).read().splitlines() if os.path.exists(out) else []
-        hit = [i for i, r in enumerate(rows) if 0 <= r.find(label) < 44] \
-            or [i for i, r in enumerate(rows) if label in r]          # the list, not a preview beside it
-        active = [t for t in json.loads(z.action("list-tabs", "-s", "-j") or "[]") if t.get("active")]
-        tab_id = active[0].get("tab_id", active[0].get("id")) if active else None
-        me = [p for p in json.loads(z.action("list-panes", "-a", "-j")) if p["is_focused"] and not p["is_plugin"]
-              and not p["is_suppressed"] and p["tab_id"] == tab_id]     # every tab has a focused pane
-        if hit and me:
-            x, y = me[0]["pane_content_x"] + 4, me[0]["pane_content_y"] + hit[0] + 1
-            z.keys(b"\x1b[<0;%d;%dM" % (x, y), 0.1); z.keys(b"\x1b[<0;%d;%dm" % (x, y), 0.8)
-            return True
-        z.pump(0.3)
-    return False
+tap = zjprobe.tap
 
 def drag(z, row0, row1, col=60):
     z.keys(b"\x1b[<0;%d;%dM" % (col, row0 + 1), 0.2)
@@ -257,28 +233,6 @@ def touch(z, prof):
     if not need("touch: save is a row to tap", tap(z, "save into the profile")): return
     need("touch: the dragged size is saved", z.wait(lambda: open(prof).read() != before, 10))
     need("touch: saving locks the tab", z.wait(lambda: tab() == "SYS", 5))
-
-def cards(z, prof):
-    tab = lambda: z.tabs()[0] if z.tabs() else ""
-    z.action("go-to-tab-name", "SYS"); z.pump(1)
-    z.out = b""
-    z.keys(ALT_E, 1); z.wait(lambda: "EDIT SYS" in z.text(), 5); z.keys(b"\r", 1)
-    z.wait(lambda: tab() == "SYS ✎", 5)
-    z.out = b""
-    z.keys(ALT_E, 1); z.wait(lambda: "what changed" in z.text(), 10)
-    z.keys(b"r", 1)
-    if not need("r offers cards", tap(z, "the cards you pick")): return
-    if not need("cards: the gallery opens", z.wait(lambda: "Enter: put them here" in z.text(), 10)): return
-    z.keys(ESC, 1.5)
-    need("cards: Esc in the gallery goes back to the list", z.wait(lambda: "what goes in this pane" in z.text(), 5))
-    if not tap(z, "the cards you pick"): return
-    z.wait(lambda: "Enter: put them here" in z.text(), 10)
-    z.keys(b" ", 0.5); z.keys(b"\r", 1)
-    need("cards: the pane becomes a dashboard", z.wait(lambda: '"dash"' in z.action("dump-layout"), 15))
-    z.out = b""
-    z.keys(ALT_E, 1); z.wait(lambda: "what changed" in z.text(), 10)
-    z.keys(b"s", 1)
-    need("cards: s saves them as dash = [...]", z.wait(lambda: "dash = [" in open(prof).read(), 10))
 
 def here(z):
     import json

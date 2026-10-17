@@ -127,3 +127,30 @@ print(d + "/layouts/deck.kdl"); print(d + "/config.kdl")
         """Tab names, in order (from the session's own layout)."""
         import re
         return re.findall(r'^\s*tab name="([^"]*)"', self.action("dump-layout"), re.M)
+
+    def screen(self):
+        """What the focused pane shows now (dump-screen), as lines."""
+        out = os.path.join(self.home, "screen.txt")
+        try: os.remove(out)
+        except OSError: pass
+        self.action("dump-screen", "--path", out)
+        return open(out).read().splitlines() if os.path.exists(out) else []
+
+def tap(z, label, timeout=10):
+    """Tap the row of the focused pane that shows this text."""
+    import json
+    end = time.time() + timeout
+    while time.time() < end:
+        rows = z.screen()
+        hit = [i for i, r in enumerate(rows) if 0 <= r.find(label) < 44] \
+            or [i for i, r in enumerate(rows) if label in r]          # the list, not a preview beside it
+        active = [t for t in json.loads(z.action("list-tabs", "-s", "-j") or "[]") if t.get("active")]
+        tab_id = active[0].get("tab_id", active[0].get("id")) if active else None
+        me = [p for p in json.loads(z.action("list-panes", "-a", "-j")) if p["is_focused"] and not p["is_plugin"]
+              and not p["is_suppressed"] and p["tab_id"] == tab_id]     # every tab has a focused pane
+        if hit and me:
+            x, y = me[0]["pane_content_x"] + 4, me[0]["pane_content_y"] + hit[0] + 1
+            z.keys(b"\x1b[<0;%d;%dM" % (x, y), 0.1); z.keys(b"\x1b[<0;%d;%dm" % (x, y), 0.8)
+            return True
+        z.pump(0.3)
+    return False

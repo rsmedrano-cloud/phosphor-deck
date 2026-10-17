@@ -94,6 +94,7 @@ check "panel: DECK tab actions (host pickers; q, Esc, Enter go back from every o
 check "panel: cards reflow with the width" python3 tests/panel-grid-check.py
 check "card: the widget, its value, line and tap" python3 tests/card-check.py
 check "dash: a dashboard of your own, its gallery, kept in its tab" python3 tests/dash-check.py
+check "build: the pickers' first-time hint (--live in CI: the whole path)" python3 tests/build-check.py
 check "zoom: a tap on a title, a summary in a short pane" python3 tests/zoom-check.py
 check "state: every card with a state finds it in the real --json" python3 tests/state-json-check.py
 check "a hand-edited profile says so (DECK tab f, doctor)" python3 tests/profile-changed-check.py

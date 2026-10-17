@@ -6,6 +6,18 @@ before it updates.
 
 ## Unreleased
 
+## 2.2.5 — the building flow, tested, and a first-time hint
+
+- The first few times you build a tab, the pickers say what their keys do
+  on their last row ("new here?"): the gallery that Space marks cards and
+  what Enter does with them, "what goes in this pane?" and the layout's
+  shape and panes that Enter puts it there and q goes back. After three
+  opens of each it's learned and the line goes away.
+- The whole way a tab of cards gets built is now a test that runs on every
+  push in a real zellij: + → cards → pick → Enter and the new tab full of
+  cards, kept; then Alt-r → r → cards → the preview → Enter → s on a tab
+  you already had.
+
 ## 2.2.4 — a preview before you place it
 
 - A preview before you place it. The gallery draws the card under the

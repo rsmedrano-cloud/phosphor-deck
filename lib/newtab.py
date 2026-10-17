@@ -439,7 +439,8 @@ SHAPES = [
 def layout(prof, keep):
     """Pick a shape, then what goes in each slot; opens the tab. None if backed out."""
     import edit, gen
-    shape = edit.pick("which shape?", [(label, pic) for label, pic, _, _ in SHAPES])
+    shape = edit.pick("which shape?", [(label, pic) for label, pic, _, _ in SHAPES],
+                      hint=first_times("shape", "Enter: this shape, then what goes in each pane · q: back"))
     if not shape: return None
     label, _, n, make = next(s for s in SHAPES if s[0] == shape[0])
     import preview
@@ -450,9 +451,10 @@ def layout(prof, keep):
         labels[len(slots)] = it[0] if it else "?"
         mw, mh = min(w, 36), min(h - 1, 10)
         return [DIM + "the tab so far" + RST] + preview.shape_map(tree, labels, len(slots), mw, mh)
+    tip = first_times("slot", "Enter: it goes in the lit pane, then the next one · q: back")
     while len(slots) < n:
         extra = [("=", "the same in the rest")] if slots else []
-        it = edit.pick("%s · pane %d of %d: what goes here?" % (label, len(slots) + 1, n), items, extra, side)
+        it = edit.pick("%s · pane %d of %d: what goes here?" % (label, len(slots) + 1, n), items, extra, side, tip)
         if it is None: return None
         if it == "=":
             slots += [slots[-1]] * (n - len(slots)); names += [names[-1]] * (n - len(names)); break

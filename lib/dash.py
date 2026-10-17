@@ -156,6 +156,7 @@ def gallery(have, rows=None, cols=None, enter="make the tab", cell=None):
     names = gallery_names()
     live = card.Live(names, every=30)
     picked, sel, top = list(have), 0, 0
+    tip = first_times("gallery", "Space marks the cards you want [x], then Enter: %s · Esc changes nothing" % enter)
     try:
         while True:
             c, r = shutil.get_terminal_size((60, 30))
@@ -176,7 +177,7 @@ def gallery(have, rows=None, cols=None, enter="make the tab", cell=None):
                         line = row("", n, live, lw - 4)
                         idx = names.index(n)
                         body.append((AMB + ">" + RST if idx == sel else " ") + mark + line); at.append(idx)
-            room = max(3, rows_ - 4 - len(below))
+            room = max(3, rows_ - 4 - len(below) - (1 if tip else 0))
             mine = next(i for i, a in enumerate(at) if a == sel)
             top = min(max(top, mine - room + 1), mine)
             lines = topbar("CARDS", "Space or a tap picks a card",
@@ -188,7 +189,9 @@ def gallery(have, rows=None, cols=None, enter="make the tab", cell=None):
             lines += shown
             if below:
                 lines += [""] * max(0, 2 + room - len(lines)) + below
-            lines += [""] * max(0, rows_ - 1 - len(lines))
+            lines += [""] * max(0, rows_ - (2 if tip else 1) - len(lines))
+            if tip:
+                lines.append(vcut(new_here(tip), w))
             lines.append(vcut(DIM + " ↑↓ · Space or tap: pick · a: all / none · Enter: %s · Esc: cancel"
                               % enter + RST, w))
             paint(lines, rows_)

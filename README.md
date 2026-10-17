@@ -125,7 +125,8 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
   its first entries, the boxes fill the tab, and a tap zooms one open. In the profile it's one
   pane, `{ dash = ["usage", "ci", "web", "screens"] }`; in a terminal,
   `phosphor dash usage ci web screens`. A new deck's SYS starts with a row
-  of them, holding only what's set up.
+  of them, holding only what's set up. The first few times, each picker
+  on the way says on its last row what Enter and Esc do there.
 - **Zoom with a tap.** A panel's title ends in ⤢: a tap zooms its pane
   (Alt-z), Esc gives the tab back. A panel squeezed into a few rows shows a
   one-to-three-line summary instead, and a tap on it shows the whole panel.
