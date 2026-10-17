@@ -6,6 +6,16 @@ before it updates.
 
 ## Unreleased
 
+## 2.3.1 — Fixes from the 2.3 demo recording
+
+- Fixes from the 2.3 demo recording: the screens card and the DECK tab's `v` count the same
+  screens now, a terminal on the brain itself too (the card counted only ssh logins and said 0
+  where DECK said 1); `phosphor screens --json` says it as `attached`. Leaving a card that opens
+  a screen of its own (screens, ci, services...) goes straight back to the dashboard, with no
+  extra "q · Enter: back" (a card that ends on its output still waits, so you can read it).
+  `--json` prints nothing but its answer: the "no profile yet" notice no longer comes along on
+  stderr.
+
 ## 2.3.0 — cards you can place
 
 - Fixes from the 2.2.5 audit: swapping a tool's panes (and Alt-r on a pane) no longer picks up

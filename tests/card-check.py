@@ -47,13 +47,15 @@ real_run = subprocess.run
 calls = []
 def fake_run(argv, **kw):
     calls.append(argv[2:])
-    out = {"version": {"check": {"behind": 3}}, "screens": {"screens": [{}, {}]},
-           "ci": {"pipelines": [{}], "why": "failing: app"}, "web": {"on": True, "why": None}}.get(argv[2], {})
+    out = {"version": {"check": {"behind": 3}}, "services": {"units": [{}, {}]},
+           "screens": {"attached": 1, "screens": []}, "ci": {"pipelines": [{}], "why": "failing: app"}, "web": {"on": True, "why": None}}.get(argv[2], {})
     return types.SimpleNamespace(stdout=json.dumps(out), returncode=0)
 subprocess.run = fake_run
 try:
-    check("fetch: a list counted", card.fetch("screens") == ([{}, {}], "2", None))
-    check("fetch: asks the command for --json", calls[-1] == ["screens", "--json"])
+    check("fetch: a list counted", card.fetch("services") == ([{}, {}], "2", None))
+    check("fetch: asks the command for --json", calls[-1] == ["services", "--json"])
+    check("fetch: screens counts every screen zellij has, not only ssh logins",
+          card.fetch("screens") == (1, "1", None))
     check("fetch: a dotted state", card.fetch("version") == (3, "3", None))
     check("fetch: from arguments as the card says", card.fetch("workspace") == (None, None, None)
           and calls[-1] == ["workspace", "list", "--json"])

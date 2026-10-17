@@ -275,7 +275,8 @@ sidebar:
   in rows and columns from how many there are and its size; the wheel or the arrows scroll the
   ones that don't fit. A key or a tap zooms the pane and runs that card the way its card says (a
   toggle flips, what publishes or restarts asks first); leaving it brings the boxes back and
-  gives the tab back. On a screen with no color, or a pane narrower than a box, the cards are one
+  gives the tab back: straight away from a screen of the card's own (q or Esc in it), after q,
+  Esc or Enter from a command that ends on its output, so it can be read first. On a screen with no color, or a pane narrower than a box, the cards are one
   line each instead, their reasons under them; piped (`phosphor dash ci web | cat`) that list
   prints once, plain.
   `+` opens the gallery, every card there is with its live value: Space or a tap picks one
@@ -438,7 +439,8 @@ Every read-only listing, and every switch's status, prints its data once as one 
 `--json`: no color, no screen codes, the same answers the panel shows. Scripts, gadgets and the
 assistants in your panes read that instead of scraping colored text, and so do the deck's own
 cards (each command's `card` in share/commands.json names the field it shows). Nothing in it writes
-or restarts anything.
+or restarts anything, and nothing else is printed with it: not even the "no profile yet" notice
+on stderr.
 
 A switch answers what really runs, not only what the profile says, and most answers carry a `why`:
 null when all is as it says, else one line on what wants a look (half on, failing, past a
@@ -456,8 +458,10 @@ reading them every few seconds never gets them rate-limited.
   `active`, `sub`, `memory` in bytes.
 - `phosphor containers [HOST] --json` — `host`, `engine`, `problem` (null when the list is good;
   exit 1 otherwise) and `containers`: `name`, `state`, `tag`, `status`, `image`, `exit`.
-- `phosphor screens --json` — `session` and `screens`: `tty`, `from`, `login`, `idle`, `pid`,
-  `session`, `said` (the kind it came in as), `relay`.
+- `phosphor screens --json` — `session`, `attached` (how many screens zellij has on the deck's
+  sessions, a terminal on the brain itself too: the number the DECK tab and the screens card show;
+  null with the deck down) and `screens`, the ssh logins among them: `tty`, `from`, `login`,
+  `idle`, `pid`, `session`, `said` (the kind it came in as), `relay`.
 - `phosphor mem --json` — `session`, `running`, `tabs` (each with its `panes`, in bytes),
   `zellij` and `machine` (`total`, `available`).
 - `phosphor security [--local] --json` — `sections`, each a `title` and its `findings`: `level`

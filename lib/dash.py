@@ -384,14 +384,15 @@ def printed(names, w):
 
 def run_card(name, live):
     """A tap on a card: the pane takes the whole tab, card.tap in it, then
-    back here and the tab given back (Esc or q in the card's panel)."""
+    back here and the tab given back: at once from a screen of the card's
+    own (Esc or q in it), after q, Esc or Enter from output to be read."""
     grew = zoom.here() and not zoom.zoomed()
     if grew:
         zoom.toggle()
     sys.stdout.write("\x1b[?1006l\x1b[?1000l\x1b[?1049l\x1b[?25h\x1b[2J\x1b[H"); sys.stdout.flush()
     try:
         r = card.tap(name, live.raw(name))
-        if r is not None:
+        if r is not None and card.waits(name):
             back()
     finally:
         sys.stdout.write("\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h\x1b[2J"); sys.stdout.flush()

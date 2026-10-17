@@ -38,6 +38,13 @@ r = subprocess.run([sys.executable, P, "dash", "nope"], capture_output=True, tex
 check("dash nope exits 2 and says why", r.returncode == 2 and "nope" in r.stderr)
 r = subprocess.run([sys.executable, P, "dash", "--json"], capture_output=True, text=True, timeout=30)
 check("dash --json with no cards is []", r.returncode == 0 and json.loads(r.stdout) == [])
+none = dict(os.environ, PHOSPHOR_PROFILE=os.path.join(TMP, "none.toml"))
+r = subprocess.run([sys.executable, P, "dash", "version", "--json"], capture_output=True, text=True,
+                   timeout=30, env=none, stdin=subprocess.DEVNULL)
+check("no profile: --json says nothing on stderr (a script reads 2>&1 too)", r.returncode == 0 and r.stderr == "")
+r = subprocess.run([sys.executable, P, "dash", "version"], capture_output=True, text=True,
+                   timeout=30, env=none, stdin=subprocess.DEVNULL)
+check("no profile: without --json it still says so", "no profile yet" in r.stderr)
 
 FAKE = {"ci": ([{"name": "app"}], "1", "failing: app"), "web": (True, "on", None),
         "usage": ([{}, {}], "2", None)}
@@ -221,6 +228,20 @@ check("preview: no room for its box here, its line, none wider than that",
 dash.paint = paint
 keys(("TAP", 90, 4), "\r")
 check("preview: a tap on it picks nothing", dash.gallery([], rows=24, cols=110) == [])
+
+# a tap on a card: output to read waits for q, Esc or Enter; a screen of the
+# card's own (left with q or Esc) comes straight back to the boxes
+waited, tap, here, back = [], card.tap, dash.zoom.here, dash.back
+card.tap = lambda n, raw=None: subprocess.CompletedProcess([n], 0)
+dash.zoom.here = lambda: False
+dash.back = lambda *a: waited.append(1)
+dash.run_card("doctor", card.Live([]))
+check("tap: doctor ends on its output, it waits", waited == [1])
+for n in ("screens", "ci", "services"):
+    waited[:] = []
+    dash.run_card(n, card.Live([]))
+    check("tap: %s is a screen of its own, no wait after it" % n, waited == [])
+card.tap, dash.zoom.here, dash.back = tap, here, back
 sys.stdout = sys.__stdout__
 
 # the whole screen in a pty: + opens the gallery, Space picks, Enter applies, -

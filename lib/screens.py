@@ -125,6 +125,29 @@ def screens(session):
     return rows
 
 
+def sessions(prof):
+    """The deck's own session and every kind of screen's (deck-phone...)."""
+    import kinds
+    return [((prof or {}).get("deck") or {}).get("session", "deck")] + kinds.all_sessions(prof)
+
+
+def attached(names):
+    """How many screens are looking at these sessions, local ones too (a
+    terminal on the brain is no login `who` lists): zellij's own client
+    list, the one count the DECK tab and the screens card both show. None
+    when none of them answers (the deck isn't running)."""
+    zj = proc.zellij()
+    if not zj:
+        return None
+    n = None
+    for s in names:
+        r = proc.run([zj, "--session", s, "action", "list-clients"], timeout=5)
+        if r.returncode == 0:
+            # the header line aside, one line per client
+            n = (n or 0) + max(0, len(r.stdout.strip().splitlines()) - 1)
+    return n
+
+
 def _mine(pid):
     try:
         return os.stat("/proc/%d" % pid).st_uid == os.getuid()
@@ -241,11 +264,9 @@ class Panel(tui.ListPanel):
 
     def __init__(self, prof):
         super().__init__()
-        import kinds
         self.prof = prof
         self.base = ((prof or {}).get("deck") or {}).get("session", "deck")
-        # the deck's own session and every kind of screen's (deck-phone...)
-        self.session = [self.base] + kinds.all_sessions(prof)
+        self.session = sessions(prof)
         self.addrs = set()
 
     def kind(self, r):
@@ -313,7 +334,7 @@ class Panel(tui.ListPanel):
             kick(r["pid"])
         if a == "share":
             close_session("%s-%s" % (self.base, kd))
-        self.session = [self.base] + kinds.all_sessions(deckconf.load()[0])
+        self.session = sessions(deckconf.load()[0])
         m = "%s gets a deck of its own" % kd if a == "own" else "%s shares this deck again" % kd
         m += ("; %d screen%s reconnecting" % (len(gone), "" if len(gone) == 1 else "s")
               if gone else "") + " · backup: deck.toml.bak"
@@ -327,6 +348,7 @@ def main():
         p = Panel(prof)
         rows = p.fetch()
         return emit({"session": p.base, "problem": p.problem or None,
+                     "attached": attached(p.session),
                      "screens": [dict(r, said=r["said"] or None, relay=bool(p.link(r))) for r in rows]},
                     1 if p.problem else 0)
     if "--list" in sys.argv[1:] or not (sys.stdin.isatty() and sys.stdout.isatty()):

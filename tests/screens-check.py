@@ -14,6 +14,8 @@ Verifies:
 - said() reads the kind off a real `phosphor attach --screen KIND` argv
 - change() / moving(): o on a kind's own deck shares it, on a screen that
   says a kind with no block gives it one, on one that says none does nothing
+- attached() counts zellij's clients of every deck session (a local
+  terminal is no `who` login), and is None when no session answers
 - retype() adds and takes out [screens.KIND] in a temp profile, with a
   backup, without running a real gen
 """
@@ -169,6 +171,25 @@ check("a block that's already there isn't written twice", not ok
       and open(prof).read().count("[screens.phone]") == 1)
 ok, m = screens.retype("own", "eink", gen=lambda: False)
 check("a failed gen is reported, not hidden", not ok and "gen" in m)
+
+# attached(): zellij's client list, header aside, summed over the sessions;
+# a fake zellij, never the real one (it would ask the live deck)
+asked = []
+def fake_run(argv, timeout=None):
+    asked.append(argv[2])
+    rows = {"deck": "CLIENT_ID ZELLIJ_PANE_ID RUNNING_COMMAND\n1 terminal_1 bash\n2 terminal_4 htop\n",
+            "deck-phone": "CLIENT_ID ZELLIJ_PANE_ID RUNNING_COMMAND\n3 terminal_2 bash\n"}
+    if argv[2] in rows:
+        return subprocess.CompletedProcess(argv, 0, rows[argv[2]], "")
+    return subprocess.CompletedProcess(argv, 1, "", "Session not found")
+zj, run = screens.proc.zellij, screens.proc.run
+screens.proc.zellij, screens.proc.run = (lambda: "/fake/zellij"), fake_run
+check("attached: every client of every deck session", screens.attached(["deck", "deck-phone", "deck-tv"]) == 3
+      and asked == ["deck", "deck-phone", "deck-tv"])
+check("attached: None when no session answers (the deck is down)", screens.attached(["deck-tv"]) is None)
+screens.proc.zellij = lambda: None
+check("attached: None with no zellij", screens.attached(["deck"]) is None)
+screens.proc.zellij, screens.proc.run = zj, run
 
 if fails:
     print("FAILED:\n  " + "\n  ".join(fails))

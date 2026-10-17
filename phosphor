@@ -69,8 +69,10 @@ def main():
         print("phosphor: " + w, file=sys.stderr)
 
     import deckconf
+    # not under --json either: a script reads that answer, nothing else (2>&1 included)
     if deckconf.example() and cmd not in ("init", "docs", "doctor", "completion", "version", "privacy",
-                                          "run", "mention-hook", "update", "demo"):
+                                          "run", "mention-hook", "update", "demo") \
+            and "--json" not in opts:
         print("  (no profile yet: this uses the example's made-up machines; phosphor init writes yours)",
               file=sys.stderr)
 

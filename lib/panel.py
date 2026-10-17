@@ -9,7 +9,7 @@ come back here: no new tabs, no floating panes.
 import os, shutil, subprocess, sys, termios, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
-import card, deckconf, migrate, proc, version
+import card, deckconf, migrate, version
 
 PHOSPHOR = os.path.join(REPO, "phosphor")
 STEPS = os.path.join(deckconf.data_dir(), "steps")
@@ -57,7 +57,8 @@ OPENS = {"v": ["screens"], "p": ["phone"], "w": ["web"], "E": ["solaros"], "m": 
 # a key that opens one plain command (no picker or question of the panel's
 # own first) opens it as its card does: card.tap, the same as on a dashboard
 TAPS = {"e", "v", "M", "m", "i", "o", "y", "z", "c", "b", "a", "?", "d", "l", "h", "P"}
-WAITS = {"d", "l", "h", "P"}  # those that end on their own output wait for q, Esc or Enter
+# those that end on their own output wait for q, Esc or Enter (card.waits)
+WAITS = {k for k in TAPS if card.waits(OPENS[k][0])}
 GAP = 2
 
 def command(k):
@@ -118,9 +119,9 @@ def state(prof):
         dlog.event_throttled("PANEL", "state-failed")
     version.check_later()
     if os.environ.get("ZELLIJ"):
-        # the header line aside, one line per screen looking at the deck
-        s["screens"] = max(0, len(out(proc.zellij() or "zellij", "action", "list-clients").strip().splitlines()) - 1)
-        if s["screens"] >= 2:
+        import screens         # the same count as the screens card's
+        s["screens"] = screens.attached(screens.sessions(prof))
+        if (s["screens"] or 0) >= 2:
             mark("screens")
     return s
 

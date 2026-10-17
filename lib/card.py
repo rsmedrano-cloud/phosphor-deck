@@ -31,6 +31,12 @@ def spec(name):
     return (cli.entries().get(name) or {}).get("card")
 
 
+def waits(name):
+    """Whether a tap on the card ends on the command's own output, to be
+    read before going back: everything but a screen of its own (tui)."""
+    return not (spec(name) or {}).get("tui")
+
+
 def summary(v):
     """A state as a few characters: on/off, a count, a share, a word."""
     if isinstance(v, bool):

@@ -13,6 +13,7 @@ finds. So every public entry of share/commands.json declares its `card`
   takes (lib/cli.py's check, and its fixed words);
 - a card whose command changes things on a bare run asks first (confirm);
 - a sensor's or toggle's state comes from the command's own --json;
+- `tui`, when there, is true: a screen of its own, no wait after it;
 - the DECK tab's keys (lib/panel.py's OPENS) name real commands, one entry
   per key.
 
@@ -30,10 +31,10 @@ sys.path.insert(0, os.path.join(ROOT, "lib"))
 import cli
 bad = []
 
-KINDS = {"sensor":   ({"state"}, {"from"}),
+KINDS = {"sensor":   ({"state"}, {"from", "tui"}),
          "toggle":   ({"state", "on", "off"}, {"from", "ask", "confirm"}),
-         "button":   (set(), {"args", "ask", "confirm"}),
-         "shortcut": (set(), {"args", "ask", "confirm"}),
+         "button":   (set(), {"args", "ask", "confirm", "tui"}),
+         "shortcut": (set(), {"args", "ask", "confirm", "tui"}),
          "plumbing": ({"why"}, set())}
 LISTS = ("from", "on", "off", "args", "ask")
 
@@ -69,6 +70,8 @@ for name, e in entries.items():
             bad.append("%s: card `%s` should be a non-empty string" % (where, f))
     if "confirm" in c and c["confirm"] is not True:
         bad.append("%s: card `confirm` is true or left out" % where)
+    if "tui" in c and c["tui"] is not True:
+        bad.append("%s: card `tui` is true or left out" % where)
     if kind == "shortcut" and not (c.get("args") or c.get("ask")):
         bad.append("%s: a shortcut goes somewhere: give it args or ask (else it's a button)" % where)
     # a tap that changes things asks first; typing what it asks for is asking.
