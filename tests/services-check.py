@@ -66,7 +66,19 @@ cut_l = S.lines(long_rows, 24)[0]
 need("a cut line fits its width", ui.vlen(cut_l) <= 24)
 need("a cut line keeps the unit's name", "a-very" in cut_l and cut_l.endswith(ui.RST))
 
+# the demo installs no unit: made-up states, never systemctl's "not found"
+S.query = lambda *a, **k: (_ for _ in ()).throw(AssertionError("demo asked systemctl"))
+dprof = dict(prof, deck={"session": "phosphor-demo", "demo": True})
+djs = S.as_json(S.fetch(S.all_units(dprof), S.demo(dprof)))["units"]
+need("demo: nothing 'not found'", djs and all(u["state"] != "not found" for u in djs))
+need("demo: the deck's own units, and a few made-up ones beside them",
+     any(u["unit"] == "phosphor-demo.service" for u in djs) and any(u["unit"] == "caddy.service" for u in djs))
+need("demo: a timer waits, a service runs",
+     {u["unit"]: u["state"] for u in djs}.get("restic-backup.timer") == "waiting"
+     and {u["unit"]: u["state"] for u in djs}.get("caddy.service") == "running")
+need("not a demo: no made-up units", not any(n == "caddy.service" for _, n in S.all_units(prof)))
+
 if fails:
     print("FAILED:\n  - " + "\n  - ".join(fails))
     sys.exit(1)
-print("ok (%d checks)" % (15,))
+print("ok (%d checks)" % (19,))

@@ -45,7 +45,7 @@ The keys they know are the ones in the tables below (tabs.d files too).
 | graphs | "braille" | "blocks" draws the graphs with block characters, for fonts without Braille |
 | face | "" | adjutant face (see `phosphor face`) |
 | splash | true | a second of warm-up on the way in (any key skips it; never on paper, or when the same screen reconnects within a minute) |
-| demo | false | fleet fakes its readings instead of polling ssh (what `phosphor demo` sets) |
+| demo | false | fleet fakes its readings instead of polling ssh, services shows made-up units (what `phosphor demo` sets) |
 | tour | false | a guide in a floating pane on every tab (what `phosphor demo --tour` sets; demo only) |
 
 A notification never opens a floating pane: the tab `phosphor notify`

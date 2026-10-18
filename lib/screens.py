@@ -360,8 +360,10 @@ def main():
     if "--json" in sys.argv[1:]:
         p = Panel(prof)
         rows = p.fetch()
+        n = attached(p.session)
         return emit({"session": p.base, "problem": p.problem or None,
-                     "attached": attached(p.session),
+                     "attached": n, "line": p.problem or (none(n) if not rows else
+                                                          "%d attached, %d over ssh" % (max(n, len(rows)), len(rows))),
                      "screens": [dict(r, said=r["said"] or None, relay=bool(p.link(r))) for r in rows]},
                     1 if p.problem else 0)
     if "--list" in sys.argv[1:] or not (sys.stdin.isatty() and sys.stdout.isatty()):

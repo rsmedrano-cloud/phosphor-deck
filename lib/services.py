@@ -34,6 +34,25 @@ import deckconf, gen, tui
 INTERVAL = 5
 PROPS = "LoadState,ActiveState,SubState,MemoryCurrent"
 
+# `phosphor demo` installs no unit: made-up states instead of systemctl's
+# "not found", and a few made-up units of a homelab's own beside the deck's
+DEMO_EXTRA = [("system", "caddy.service"), ("user", "syncthing.service"),
+              ("system", "restic-backup.timer")]
+DEMO_MEM = {"caddy.service": 38, "syncthing.service": 61}
+
+
+def demo(prof):
+    return bool(((prof or {}).get("deck") or {}).get("demo"))
+
+
+def demo_info(name):
+    """What systemctl show would say of a made-up unit: up, like a quiet day."""
+    if name.endswith(".timer"):
+        return {"LoadState": "loaded", "ActiveState": "active", "SubState": "waiting"}
+    mb = DEMO_MEM.get(name, 24)
+    return {"LoadState": "loaded", "ActiveState": "active", "SubState": "running",
+            "MemoryCurrent": str(mb * 1024 * 1024)}
+
 
 def phosphor_units(prof):
     """Every unit `phosphor gen` writes for this profile -- one source of
@@ -108,16 +127,19 @@ def label(name):
     return base if kind in ("", "service") else "%s (%s)" % (base, kind)
 
 
-def fetch(units):
+def fetch(units, fake=False):
     if not units:
         return []
+    if fake:
+        return [(scope, name, demo_info(name)) for scope, name in units]
     with ThreadPoolExecutor(max_workers=max(2, len(units))) as ex:
         futs = [ex.submit(query, scope, name) for scope, name in units]
         return [(scope, name, f.result()) for (scope, name), f in zip(units, futs)]
 
 
 def all_units(prof):
-    return [("user", n) for n in phosphor_units(prof)] + extra_units(prof)
+    return [("user", n) for n in phosphor_units(prof)] + extra_units(prof) \
+        + (DEMO_EXTRA if demo(prof) else [])
 
 
 def as_json(results):
@@ -159,7 +181,7 @@ def lines(results, w, sel=None):
 
 def frame(prof, cols, rows):
     w = max(20, cols)
-    res = fetch(all_units(prof))
+    res = fetch(all_units(prof), demo(prof))
     out = topbar("SERVICES", "systemd units", "%d units" % len(res), w)
     out += lines(res, w)
     return out[:max(1, rows)]
@@ -220,7 +242,7 @@ class Panel(tui.ListPanel):
         self.prof, self.units, self.INTERVAL = prof, all_units(prof), settings(prof)
 
     def fetch(self):
-        return fetch(self.units)
+        return fetch(self.units, demo(self.prof))
 
     def header(self, w):
         return topbar("SERVICES", "systemd units", "%d units" % len(self.rows), w)
@@ -233,6 +255,8 @@ class Panel(tui.ListPanel):
 
     def act(self, k, row):
         scope, name, info = row
+        if demo(self.prof):
+            return self.say("the demo's units are made up: nothing to read or restart")
         if k == "l":
             return self.page(logs(scope, name))
         if own(self.prof, name):
@@ -254,7 +278,7 @@ def main():
     prof, _ = deckconf.load()
     interval = settings(prof)
     if "--json" in sys.argv:
-        return emit(as_json(fetch(all_units(prof))))
+        return emit(as_json(fetch(all_units(prof), demo(prof))))
     if "--once" in sys.argv:
         cols = shutil.get_terminal_size((80, 24)).columns
         print("\n".join(frame(prof, cols, 10000)))

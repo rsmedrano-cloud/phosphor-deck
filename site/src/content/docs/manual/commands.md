@@ -275,7 +275,8 @@ sidebar:
   in rows and columns from how many there are and its size; the wheel or the arrows scroll the
   ones that don't fit. A key or a tap zooms the pane and runs that card the way its card says (a
   toggle flips, what publishes or restarts asks first); leaving it brings the boxes back and
-  gives the tab back: straight away from a screen of the card's own (q or Esc in it), after q,
+  gives the tab back: straight away from a screen of the card's own (q or Esc in it, the fleet's
+  too; Esc there doesn't just give the tab back), after q,
   Esc or Enter from a command that ends on its output, so it can be read first. On a screen with no color, or a pane narrower than a box, the cards are one
   line each instead, their reasons under them; piped (`phosphor dash ci web | cat`) that list
   prints once, plain.
@@ -444,7 +445,8 @@ on stderr.
 
 A switch answers what really runs, not only what the profile says, and most answers carry a `why`:
 null when all is as it says, else one line on what wants a look (half on, failing, past a
-threshold). A card with a `why` shows a `!` after its key. The ones that ask a service elsewhere
+threshold). A card with a `why` shows a `!` after its key; a `line`, where an answer has one,
+says its state in words, under the value in a card's box. The ones that ask a service elsewhere
 (`ci`, `usage`) answer from a short cache, at the pace their own panel asks, so a dashboard
 reading them every few seconds never gets them rate-limited.
 
@@ -461,14 +463,16 @@ reading them every few seconds never gets them rate-limited.
   exit 1 otherwise) and `containers`: `name`, `state`, `tag`, `status`, `image`, `exit`.
 - `phosphor screens --json` — `session`, `attached` (how many screens zellij has on the deck's
   sessions, a terminal on the brain itself too: the number the DECK tab and the screens card show;
-  null with the deck down) and `screens`, the ssh logins among them: `tty`, `from`, `login`,
+  null with the deck down), `line` (that count in words) and `screens`, the ssh logins among
+  them: `tty`, `from`, `login`,
   `idle`, `pid`, `session`, `said` (the kind it came in as), `relay`.
 - `phosphor mem --json` — `session`, `running`, `tabs` (each with its `panes`, in bytes),
   `zellij` and `machine` (`total`, `available`).
 - `phosphor security [--local] --json` — `sections`, each a `title` and its `findings`: `level`
   (ok, warn, bad, skip), `label`, `value`, `fix`. Exits 2 or 1 like the audit itself.
 - `phosphor tunnel --json` — `tunnels`: `host`, `state` (up, down, off) and its `forwards`.
-- `phosphor version --json` — `version`, `commit`, `branch`, `channel`, `installed`, `news` and
+- `phosphor version --json` — `version`, `commit`, `branch`, `channel`, `installed`, `news`,
+  `status` (the version when up to date, else how far behind: what its card shows), `line` and
   the last `check` (`--check` asks first).
 - `phosphor workspace list --json` — `root` and `workspaces`: `name`, `path`, `git` (`dirty`,
   `ahead`, `behind`).

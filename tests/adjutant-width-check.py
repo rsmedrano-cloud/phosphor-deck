@@ -99,6 +99,19 @@ lines = [ANSI.sub("", ln).rstrip("\r") for ln in frame.split("\n")]
 if not lines[0].startswith("\u256d") or len(lines[0]) != 27:
     fails.append("27x18: the box no longer fills the pane")
 
+# a message or the fleet's state wider than the pane wraps between words,
+# never cut mid-word ("vault dis")
+sys.path.insert(0, os.path.join(ROOT, "lib"))
+import adjutant
+if adjutant.wrap("vault disk 95%", 11) != ["vault disk", "95%"]:
+    fails.append("wrap: 'vault disk 95%%' at 11 columns is %r" % adjutant.wrap("vault disk 95%", 11))
+if adjutant.idle_lines("vault disk 95%", 11) != ["vault disk", "95%"]:
+    fails.append("idle: a narrow pane cuts the fleet's state")
+if adjutant.idle_lines("nominal", 40) != ["\u00b7 listening \u00b7 nominal \u00b7"]:
+    fails.append("idle: a wide pane lost '· listening ·'")
+if len(adjutant.wrap("one two three four five six", 4)) > 3:
+    fails.append("wrap: more than three lines")
+
 if fails:
     print("\n".join(fails))
     sys.exit(1)

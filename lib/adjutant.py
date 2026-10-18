@@ -153,6 +153,25 @@ def fleet_health():
                 lvl, why = 1, "%s disk %d%%" % (name, pct)
     return lvl, why
 
+def wrap(msg, room, most=3):
+    """A message as lines of at most room columns, broken between words:
+    "vault disk 95%" in a narrow pane is "vault disk" over "95%", never
+    "vault dis". At most `most` lines, the last one cut if it has to be."""
+    import textwrap
+    lines = textwrap.wrap(msg, max(1, room)) or [""]
+    if len(lines) > most:
+        lines = lines[:most - 1] + [" ".join(lines[most - 1:])[:max(1, room)]]
+    return lines
+
+def idle_lines(why, room):
+    """The line under the face with nothing to say: "· listening ·", and
+    the fleet's state when there's one; in a narrow pane the state wins,
+    wrapped like a message."""
+    for txt in ("· listening · %s ·" % why, "· %s ·" % why) if why else ():
+        if len(txt) <= room:
+            return [txt]
+    return wrap(why, room) if why else ["· listening ·"[:max(1, room)]]
+
 def corrupt(line, amount):
     """Swap characters at random: the static."""
     if amount <= 0: return line
@@ -216,12 +235,12 @@ def main():
             new, pos = read_events(pos)
             if new:
                 target, m = new[-1]
-                msg, lvl, burst = m[:max(1, w-4)], 1, 1.0
+                msg, lvl, burst = m, 1, 1.0
                 from_fleet, msg_t = False, time.time()
             else:
                 al = fleet_alert()
                 if al and al[1] != seen:
-                    seen = al[1]; lvl, msg, burst = al[0], al[1][:max(1, w-4)], 1.0
+                    seen = al[1]; lvl, msg, burst = al[0], al[1], 1.0
                     target, from_fleet, msg_t = "SYS", True, time.time()
                 elif not al:
                     # resolved: a fleet alert withdraws itself
@@ -239,18 +258,22 @@ def main():
             disp_lvl = max(lvl, h_lvl if not msg else 0)
             col  = (PH, AMB, RED)[min(disp_lvl, 2)]
             idle = burst <= 0 and not msg
+            # the pane may have shrunk since: the message wraps to it, and
+            # each line past the first takes a row from the face
+            shown = wrap(msg, w - 2) if msg else idle_lines(h_why, w - 2)
+            extra = max(0, len(shown) - 1)
 
             now = time.time() - t0
             if bmp:
                 # the picture takes the whole pane: borders and the message line stay
-                lines = bmp.draw(w - 2, max(2, box_h - 3),
+                lines = bmp.draw(w - 2, max(2, box_h - 3 - extra),
                                  "closed" if (now % 5.3) < 0.16 and burst <= 0 else "open",
                                  min(disp_lvl, 2), now, burst,
                                  sweep=(now * 0.22) % 1.6 if idle else None)
                 out = [RULE + "╭" + "─" * (w - 2) + "╮" + RST]
                 out += [RULE + "│" + RST + ln + RULE + "│" + RST for ln in lines]
             else:
-                face_room = max(0, rows - 4)       # minus borders, gap and message
+                face_room = max(0, rows - 4 - extra)   # minus borders, gap and message
                 if anim:
                     tick += 1
                     cur = anim[(tick // speed) % len(anim)]
@@ -266,35 +289,21 @@ def main():
                     c = BLOOM if (i == drift and idle) else col     # a scanline sweeping by
                     out.append(RULE + "│" + RST + " " * (pad_l + 1) + c + line + RST
                                + " " * max(0, w - 2 - pad_l - 1 - len(line)) + RULE + "│" + RST)
-                if rows > len(face) + 3:
+                if rows > len(face) + 3 + extra:
                     out.append(RULE + "│" + RST + " " * (w - 2) + RULE + "│" + RST)
 
             if msg:
-                shown = msg[:max(1, w - 2)]          # the pane may have shrunk since
-                txt = corrupt(shown, burst * 0.8)
-                pad_m = max(0, (w - 2 - len(shown)) // 2)
-                out.append(RULE + "│" + RST + " " * pad_m + col + txt + RST
-                           + " " * max(0, w - 2 - pad_m - len(shown)) + RULE + "│" + RST)
+                for ln in shown:
+                    txt = corrupt(ln, burst * 0.8)
+                    pad_m = max(0, (w - 2 - len(ln)) // 2)
+                    out.append(RULE + "│" + RST + " " * pad_m + col + txt + RST
+                               + " " * max(0, w - 2 - pad_m - len(ln)) + RULE + "│" + RST)
             else:
-                if h_why:
-                    idle_col = (DIM, AMB, RED)[min(h_lvl, 2)]
-                    full = "· listening · %s ·" % h_why
-                    short = "· %s ·" % h_why
-                    room = max(1, w - 2)
-                    if len(full) <= room:
-                        idle_txt = full
-                    elif len(short) <= room:
-                        idle_txt = short
-                    elif len("· listening ·") <= room:
-                        idle_txt = "· listening ·"
-                    else:
-                        idle_txt = short[:room]
-                else:
-                    idle_col = DIM
-                    idle_txt = "· listening ·"[:max(1, w - 2)]
-                pad_m = max(0, (w - 2 - len(idle_txt)) // 2)
-                out.append(RULE + "│" + RST + " " * pad_m + idle_col + idle_txt + RST
-                           + " " * max(0, w - 2 - pad_m - len(idle_txt)) + RULE + "│" + RST)
+                idle_col = (DIM, AMB, RED)[min(h_lvl, 2)] if h_why else DIM
+                for ln in shown:
+                    pad_m = max(0, (w - 2 - len(ln)) // 2)
+                    out.append(RULE + "│" + RST + " " * pad_m + idle_col + ln + RST
+                               + " " * max(0, w - 2 - pad_m - len(ln)) + RULE + "│" + RST)
             out.append(RULE + "╰" + "─" * (w - 2) + "╯" + RST)
 
             # Never more lines than rows: the terminal would scroll and the

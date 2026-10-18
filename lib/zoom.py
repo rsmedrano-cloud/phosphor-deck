@@ -66,9 +66,22 @@ def toggle():
         zj("toggle-fullscreen")
 
 
+def tapped():
+    """True in a screen a card's tap opened: PHOSPHOR_CARD is "PID NAME" of
+    the card that ran it (card.tap). Anything that screen starts in turn
+    inherits the variable, but its parent isn't the card (crash_name in
+    phosphor does the same with PHOSPHOR_RUN)."""
+    pid, _, _ = os.environ.get("PHOSPHOR_CARD", "").partition(" ")
+    return bool(pid) and pid == str(os.getppid())
+
+
 def back():
     """Esc: give the tab back when zoomed. False when it wasn't (Esc then
-    does what it did before)."""
+    does what it did before), and in a screen a card's tap opened
+    (PHOSPHOR_CARD): the card zoomed it, and gives it back once Esc ends
+    that screen."""
+    if tapped():
+        return False
     if zoomed():
         toggle()
         return True

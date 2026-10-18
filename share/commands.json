@@ -16,7 +16,7 @@
     "module": "the lib/ module that runs it, when it isn't named like the command; null when the dispatcher runs it itself (optional).",
     "own_help": "true when the command answers --help itself, more precisely than the generic one (optional).",
     "hidden": "true for an internal command: not in phosphor help, the menu or completion (optional).",
-    "card": "how it shows in the deck besides typing it, for every public command (tests/doors-check.py). kind is sensor (shows live state; a tap opens it bare), toggle (on/off with its state), button (one tap runs it), shortcut (straight into a sub-screen of a panel) or plumbing (no card: why says where its door is, or why it's terminal only). state: the field, dotted for a nested one, of the JSON that its from arguments print (default --json), for a sensor or toggle. on / off: a toggle's arguments. args: what a tap passes (default none, the bare run). ask: one label per value a tap asks for first, appended in order. confirm: true asks y/n before the tap acts (anything that publishes, restarts or reaches the fleet). tui: true when a tap opens a screen of the command's own, left with q or Esc: back on the dashboard at once (without it, a tap that ends on its own output waits for q, Esc or Enter, so it can be read)."
+    "card": "how it shows in the deck besides typing it, for every public command (tests/doors-check.py). kind is sensor (shows live state; a tap opens it bare), toggle (on/off with its state), button (one tap runs it), shortcut (straight into a sub-screen of a panel) or plumbing (no card: why says where its door is, or why it's terminal only). state: the field, dotted for a nested one, of the JSON that its from arguments print (default --json), for a sensor or toggle. on / off: a toggle's arguments. args: what a tap passes (default none, the bare run). ask: one label per value a tap asks for first, appended in order. confirm: true asks y/n before the tap acts (anything that publishes, restarts or reaches the fleet). tui: true when a tap opens a screen of the command's own, left with q or Esc: back on the dashboard at once (without it, a tap that ends on its own output waits for q, Esc or Enter, so it can be read). A sensor's JSON may also carry, at its top level, why (something wants a look: ! on the card) and line (its state in one line of words, under the value in a box)."
   },
   "_categories": ["Getting started", "Session", "Workspaces", "Notes", "In the deck", "Before you push a fork", "Shell", "Help"],
   "doctor": {"category": "Getting started",
@@ -122,7 +122,7 @@
     "mutates": false,
     "needs_deck": false,
     "note": "reads a small local cache; --check also does a `git fetch` (network only, no local mutation).",
-    "card": {"kind": "sensor", "state": "check.behind"}},
+    "card": {"kind": "sensor", "state": "status"}},
   "restart": {"category": "Session",
     "usage": "phosphor restart [--dry-run]",
     "summary": "bring the session down cleanly and back up",

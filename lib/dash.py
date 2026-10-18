@@ -312,8 +312,9 @@ def grid(n, w, h):
 
 def tile(key, name, live, tw, th):
     """One card as a box tw x th: key and name on the border (and ! when it
-    wants a look), its value big, the why, its first entries or what the
-    command does, and the command at the foot."""
+    wants a look), its value big, the why (else the command's line, its
+    state in words), its first entries or what the command does, and the
+    command at the foot."""
     v, warn = live.get(name)
     why, iw, ih = live.why(name), tw - 2, th - 2
     top = []
@@ -321,6 +322,8 @@ def tile(key, name, live, tw, th):
         top.append(" " + BOLD + (AMB if warn else BLOOM) + (v or "–") + RST)
         if why:
             top.append(" " + AMB + "! " + RST + FG + why + RST)
+        elif live.line(name):
+            top += [" " + DIM + l + RST for l in textwrap.wrap(live.line(name), max(8, iw - 1))[:2]]
         room = ih - 1 - len(top)
         more = [" " + l for l in card.detail(live.raw(name), iw - 1, room)]
     else:

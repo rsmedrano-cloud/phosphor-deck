@@ -6,6 +6,18 @@ before it updates.
 
 ## Unreleased
 
+## 2.3.3 — Fixes from the whats-new recording
+
+- Fixes from the whats-new recording. Tapping the fleet card in a tab of cards and pressing Esc
+  goes back to the boxes (the fleet only gave the tab back and stayed open); every screen a card
+  opens now ends on its first Esc, instead of the first one only giving the tab back. The
+  adjutant wraps a message wider than its pane between words ("vault disk" over "95%") instead
+  of cutting it ("vault dis"). In `phosphor demo` the services panel and card show made-up units
+  instead of the deck's own as "not found". The version card shows the version you run (or "3
+  behind") instead of a bare 0, and a card's box says its state in words under the value
+  (`line` in the `--json` of version and screens) instead of staying empty. A card just placed
+  shows "…" until its first answer, and a row of them fills in at once.
+
 ## 2.3.2 — Fixes for the whats-new recording
 
 - The fleet card shows its `!` when a machine wants a look (a disk past its red line, a failed

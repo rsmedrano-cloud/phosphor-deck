@@ -511,6 +511,16 @@ ACTIONS = [("s", "ssh"), ("l", "logs"), ("t", "triage"), ("c", "containers"),
 # ...and one that stays in this pane: the card's last 24 hours (lib/history.py)
 HISTORY = ("h", "history")
 
+def on_esc(sel):
+    """What Esc does: (pick, whether to end). It drops the pick; with none,
+    it gives the tab back, and ends FLEET when a card's tap opened it
+    (PHOSPHOR_CARD), back to the cards. The SYS panel itself never ends."""
+    if sel is not None:
+        return None, False
+    if zoom.back():
+        return None, False
+    return None, zoom.tapped()
+
 def action_tab(key, name, target):
     """(tab name, pane spec) for `key` over the card of `name` (its ssh
     target, None for this machine), or None for a key that isn't one."""
@@ -830,10 +840,10 @@ def main():
                 continue
             if k in ("\x1b[A", "\x1b[B", "\x1b[C", "\x1b[D", "\t"):
                 sel = move(sel, k, per_row, n)
-            elif k == "\x1b":
-                if sel is None:
-                    zoom.back()                      # nothing picked: Esc gives the tab back
-                sel = None
+            elif k == "\x1b" or (k == "q" and zoom.tapped()):
+                sel, end = on_esc(None if k == "q" else sel)
+                if end:
+                    break
             elif k == HISTORY[0]:
                 if sel is None:
                     msg, msg_until = "pick a machine first: arrows or a tap", time.time() + 5

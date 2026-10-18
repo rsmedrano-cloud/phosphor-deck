@@ -47,7 +47,7 @@ real_run = subprocess.run
 calls = []
 def fake_run(argv, **kw):
     calls.append(argv[2:])
-    out = {"version": {"check": {"behind": 3}}, "services": {"units": [{}, {}]},
+    out = {"version": {"status": "3 behind", "line": "3 commits behind: phosphor update", "check": {"behind": 3}}, "services": {"units": [{}, {}]},
            "screens": {"attached": 1, "screens": []}, "ci": {"pipelines": [{}], "why": "failing: app"}, "web": {"on": True, "why": None}}.get(argv[2], {})
     return types.SimpleNamespace(stdout=json.dumps(out), returncode=0)
 subprocess.run = fake_run
@@ -56,7 +56,14 @@ try:
     check("fetch: asks the command for --json", calls[-1] == ["services", "--json"])
     check("fetch: screens counts every screen zellij has, not only ssh logins",
           card.fetch("screens") == (1, "1", None))
+    check("fetch: version shows how far behind, not a bare count", card.fetch("version") == ("3 behind", "3 behind", None))
+    check("fetch: said brings the command's line along",
+          card.fetch("version", said=True)[3] == "3 commits behind: phosphor update"
+          and card.fetch("services", said=True)[3] is None)
+    real_spec = card.spec
+    card.spec = lambda n: {"kind": "sensor", "state": "check.behind"} if n == "version" else real_spec(n)
     check("fetch: a dotted state", card.fetch("version") == (3, "3", None))
+    card.spec = real_spec
     check("fetch: from arguments as the card says", card.fetch("workspace") == (None, None, None)
           and calls[-1] == ["workspace", "list", "--json"])
     check("fetch: the command's why comes along", card.fetch("ci") == ([{}], "1", "failing: app"))
@@ -74,9 +81,14 @@ try:
     answer = [True]
     init.yes = lambda q, default=True: asked.append(q) or answer[0]
     builtins.input = lambda prompt="": said.append(prompt) or "nimbus"
+    envs = []
+    subprocess.run = lambda argv, **kw: ran.append(argv[2:]) or envs.append(kw.get("env") or {}) \
+        or types.SimpleNamespace(returncode=0)
     try:
         card.tap("doctor")
         check("tap: a button runs bare, no question", ran[-1] == ["doctor"] and not asked)
+        check("tap: the screen it opens knows a card opened it (PHOSPHOR_CARD, PID NAME)",
+              envs[-1].get("PHOSPHOR_CARD") == "%d doctor" % os.getpid())
         card.tap("screens")
         check("tap: a sensor opens its command", ran[-1] == ["screens"])
         ran.clear(); asked.clear()
@@ -110,11 +122,14 @@ live = card.Live([], every=60)
 check("Live with nothing to watch starts no thread", live.get("screens") == (None, False))
 live.got["ci"] = ([{}], "1", "failing: app")
 check("Live: a why is a card that wants a look", live.get("ci") == ("1", True) and live.why("ci") == "failing: app")
+live.names = ["ci", "web"]
+check("Live: before its first answer a card says it's reading, not '-'",
+      live.get("web") == (card.READING, False))
 
 # the second round comes soon (a screen attaches just after the first), then every `every`
 real_fetch, real_sleep, naps = card.fetch, card.time.sleep, []
 try:
-    card.fetch = lambda n: (None, None, None)
+    card.fetch = lambda n, said=False: (None, None, None, None)
     w = card.Live([], every=60)
     w.names = ["screens"]
     def nap(s):
@@ -126,6 +141,16 @@ try:
 finally:
     card.fetch, card.time.sleep = real_fetch, real_sleep
 check("Live: a second look %ds after the first, then every 60" % card.SOON, naps == [card.SOON, 60, 60])
+
+# zoom.tapped(): only the screen the card ran itself, not what that starts
+import zoom
+os.environ["PHOSPHOR_CARD"] = "%d fleet" % os.getppid()
+check("tapped: the card's own child", zoom.tapped())
+check("tapped: a zoom there is the card's to give back, Esc ends instead", zoom.back() is False)
+os.environ["PHOSPHOR_CARD"] = "%d fleet" % (os.getppid() + 100000)
+check("tapped: inherited further down (a restart from a card), it isn't", not zoom.tapped())
+os.environ.pop("PHOSPHOR_CARD")
+check("tapped: no card, no", not zoom.tapped())
 
 if fails:
     print("card-check FAILED:\n  " + "\n  ".join(fails)); sys.exit(1)

@@ -48,7 +48,7 @@ check("no profile: without --json it still says so", "no profile yet" in r.stder
 
 FAKE = {"ci": ([{"name": "app"}], "1", "failing: app"), "web": (True, "on", None),
         "usage": ([{}, {}], "2", None)}
-card.fetch = lambda n: FAKE.get(n, (None, None, None))
+card.fetch = lambda n, said=False: FAKE.get(n, (None, None, None)) + ((None,) if said else ())
 v = dash.values(["ci", "web"])
 check("values: state, summary and why per card",
       v == [{"name": "ci", "kind": "sensor", "state": [{"name": "app"}], "value": "1", "why": "failing: app"},
@@ -114,6 +114,8 @@ class FakeLive:
     def get(self, n): return (FAKE.get(n, (None, None, None))[1], bool(FAKE.get(n, (0, 0, None))[2]))
     def why(self, n): return FAKE.get(n, (None, None, None))[2]
     def raw(self, n): return FAKE.get(n, (None, None, None))[0]
+    def line(self, n): return LINES.get(n)
+LINES = {"version": "nightly · f4abbb5 · up to date", "ci": "one failing"}
 for w in (30, 48, 80, 140):
     lines, hit = dash.draw(["usage", "ci", "web"], FakeLive(), w, 20)
     check("draw %d: fits" % w, all(vlen(l) <= w for l in lines))
@@ -147,6 +149,11 @@ check("tiles: key and name on the border", "╭─ 1 ci " in box and "╭─ 3 f
 check("tiles: ci wants a look: ! on its border, its why inside", "─ ! ─╮" in txt[2] and "! failing: app" in box)
 check("tiles: the first entries, how each is", "nimbus  timeout" in box and "db-box  up" in box)
 check("tiles: a button says what it does", "preflight" in box)
+check("tiles: a why wins over the command's line", "one failing" not in box)
+FAKE["version"] = ("2.3.3", "2.3.3", None)
+one = "\n".join(plain(l) for l in dash.draw_tiles(["version", "web"], FakeLive(), 100, 20)[0])
+check("tiles: one value says its line under it, not an empty box",
+      "2.3.3" in one and "nightly · f4abbb5 · up to date" in one)
 check("tiles: the command at each foot", all("phosphor " + n in box for n in ("ci", "web", "fleet", "doctor")))
 at = lambda x, y: next((t for top, bot, l, r, t in hit if top <= y <= bot and l <= x <= r), None)
 check("tiles: a tap anywhere on a box is that card", at(2, 3) == 0 and at(5, 7) == 0 and at(30, 5) == 1)
@@ -248,7 +255,7 @@ sys.stdout = sys.__stdout__
 # then 1 takes it away, q leaves; nothing raises, the exit is clean
 import pty, select, time
 WRAP = ("import sys; sys.path.insert(0, %r); import card; "
-        "card.fetch = lambda n: (True, 'on', None); import dash; sys.argv = ['dash', 'ci']; "
+        "card.fetch = lambda n, said=False: (True, 'on', None) + ((None,) if said else ()); import dash; sys.argv = ['dash', 'ci']; "
         "sys.exit(dash.main())" % os.path.join(ROOT, "lib"))
 pid, fd = pty.fork()
 if pid == 0:

@@ -146,6 +146,18 @@ def print_notes(sections):
                 print("  " + FG + l + RST)
         print()
 
+def card_state(cur, res):
+    """(status, line) for its card: the version when up to date, how far
+    behind when not (a short value), and a line saying it in words."""
+    n = res.get("behind") or 0
+    if not n:
+        return cur["version"], " · ".join(x for x in (cur.get("channel"), cur.get("commit"),
+                                                     "up to date" if res.get("checked") else None) if x)
+    return ("%d behind" % n if n < 10 else "+%d" % n,
+            "%d commit%s behind%s: phosphor update" % (n, "" if n == 1 else "s",
+                                                   " (%s)" % res["latest"] if res.get("latest") else ""))
+
+
 def main():
     quiet = "--quiet" in sys.argv[1:]
     if "--new" in sys.argv[1:]:                # what a newer version brings, if any
@@ -162,7 +174,8 @@ def main():
     cur = current()
     res = check() if "--check" in sys.argv[1:] else cached()
     if "--json" in sys.argv[1:]:
-        return emit(dict(cur, installed=REPO, news=news() or None,
+        status, line = card_state(cur, res)
+        return emit(dict(cur, installed=REPO, news=news() or None, status=status, line=line,
                          check={"checked": int(res["checked"]) if res.get("checked") else None,
                                 "behind": res.get("behind"), "latest": res.get("latest")}))
     if quiet:

@@ -11,6 +11,7 @@ the widget the DECK tab is drawn with, and any dashboard after it:
     card.line("v", "screens", v, "phosphor screens", note, w, warn)
     card.tap("web", live.raw("web"))         # asks first when the card says so
     card.detail(live.raw("ci"), w, 3)        # its first entries, for a card drawn as a box
+    live.line("screens")                     # its state in words, under the value in a box
 
 A card always shows the command it stands for, so the deck teaches the
 terminal; on a screen with no color, a ! after the key is what wants a look.
@@ -88,14 +89,17 @@ def detail(v, w, n):
     return [vcut(l, w) for l in out]
 
 
-def fetch(name):
+def fetch(name, said=False):
     """(raw state, its summary, why) from the command's own --json: why is
     its top-level `why`, set when something wants a look. (None, None, None)
-    when it has none or doesn't answer."""
+    when it has none or doesn't answer. said: a fourth, its top-level
+    `line`, the state in the command's own words ("1 attached here on the
+    brain, none over ssh"), for a box with room under the value."""
     c = spec(name) or {}
     argv = c.get("from", ["--json"])
+    none = (None, None, None, None) if said else (None, None, None)
     if "state" not in c or "--json" not in (cli.entries().get(name) or {}).get("options", []):
-        return None, None, None
+        return none
     try:
         r = subprocess.run([sys.executable, PHOSPHOR, name] + argv, stdin=subprocess.DEVNULL,
                            capture_output=True, text=True, timeout=10)
@@ -103,12 +107,14 @@ def fetch(name):
         for k in c["state"].split("."):
             v = v[k]
     except Exception:          # no answer is no value, never a broken card
-        return None, None, None
-    why = top.get("why") if isinstance(top, dict) else None
-    return v, summary(v), why if isinstance(why, str) and why else None
+        return none
+    top = top if isinstance(top, dict) else {}
+    why, words = (x if isinstance(x, str) and x else None for x in (top.get("why"), top.get("line")))
+    return (v, summary(v), why, words) if said else (v, summary(v), why)
 
 
 SOON = 3                        # seconds to the second round
+READING = "…"                   # a card's value before its first answer
 
 
 class Live:
@@ -116,7 +122,8 @@ class Live:
     `every` seconds: drawing never waits on a command."""
 
     def __init__(self, names, every=15):
-        self.every, self.got, self.names, self.running, self.stopped = every, {}, [], False, False
+        self.every, self.got, self.said, self.names = every, {}, {}, []
+        self.running = self.stopped = False
         self.set(names)
 
     def set(self, names):
@@ -131,21 +138,32 @@ class Live:
         """No more fetching: a screen that's closing (the gallery)."""
         self.stopped = True
 
+    def _one(self, n):
+        if not self.stopped:
+            v, short, why, self.said[n] = fetch(n, said=True)
+            self.got[n] = (v, short, why)
+
     def _loop(self):
+        from concurrent.futures import ThreadPoolExecutor
         first = True
         while not self.stopped:
-            for n in list(self.names):
-                if self.stopped:
-                    return
-                self.got[n] = fetch(n)
+            # side by side: a new row of cards fills in at once, not one by one
+            names = list(self.names)
+            with ThreadPoolExecutor(max_workers=max(1, min(8, len(names)))) as ex:
+                list(ex.map(self._one, names))
+            if self.stopped:
+                return
             # a deck that was just laid out: the screen that started it
             # attaches a moment after the first round, so look again soon
             time.sleep(SOON if first else self.every)
             first = False
 
     def get(self, name):
-        """(summary, warn) for line(): warn when the command's why says so."""
-        _, v, why = self.got.get(name) or (None, None, None)
+        """(summary, warn) for line(): warn when the command's why says so;
+        READING until its first answer comes."""
+        if name not in self.got:
+            return (READING if name in self.names else None), False
+        _, v, why = self.got[name]
         return v, bool(why)
 
     def raw(self, name):
@@ -154,6 +172,10 @@ class Live:
     def why(self, name):
         """What wants a look, in the command's words, or None."""
         return (self.got.get(name) or (None, None, None))[2]
+
+    def line(self, name):
+        """Its state in the command's words (its --json's line), or None."""
+        return self.said.get(name)
 
 
 def line(key, label, value, cmd, note, w, warn=False):
@@ -211,4 +233,7 @@ def tap(name, raw=None):
         args.append(a)
     if c.get("confirm") and not yes(q, False):
         return None
-    return subprocess.run([sys.executable, PHOSPHOR, name] + args)
+    # PHOSPHOR_CARD ("PID NAME", zoom.tapped()): the screen it opens leaves
+    # on Esc, back to the card; a zoom it finds is the card's to give back
+    return subprocess.run([sys.executable, PHOSPHOR, name] + args,
+                          env=dict(os.environ, PHOSPHOR_CARD="%d %s" % (os.getpid(), name)))
