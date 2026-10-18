@@ -181,6 +181,8 @@ Everything else is in doc/manual/, one page per topic (`phosphor help TOPIC`
 shows it in a terminal). Read the page a task touches; don't load them all.
 Every page's sections, so a grep finds the right one:
 
+- **tour** (`doc/manual/tour.md`): what you get: every part of the deck in one read, and every command
+  Sections: The parts; Installing it; Getting in; The DECK tab; The profile; Commands; Getting started; Session; Workspaces; Notes; In the deck; Before you push a fork; Shell; Help; Footprint.
 - **install** (`doc/manual/install.md`): from nothing to inside the deck, and how to remove it
   Sections: What the wizard asks; A run, start to finish; Updating; If a download fails; Remove it.
 - **patterns** (`doc/manual/patterns.md`): which shape to pick, growing a deck, moving it to a new brain
@@ -190,7 +192,7 @@ Every page's sections, so a grep finds the right one:
 - **commands** (`doc/manual/commands.md`): every `phosphor` command
   Sections: Getting started; Session; Workspaces; Notes; In the deck; For scripts: --json; For assistants: phosphor mcp; Before you push a fork; Shell; Help.
 - **keys** (`doc/manual/keys.md`): keys inside the deck, and what happens when a program ends
-  Sections: Editing a tab; Your own keys; When a program ends; Tapping.
+  Sections: Editing a tab; Your own keys; Esc and q; When a program ends; Tapping.
   Its key table comes from share/keys.json (`_deck`); `phosphor help keys` shows it filled in.
 - **phones** (`doc/manual/phones.md`): screens: phones, other computers, anything with ssh
   Sections: A phone or tablet (Android + Termux); Another computer (Linux, macOS, WSL); Anything that only has ssh; ssh, not mosh; A deck for each kind of screen; A touch screen with no keyboard; Managing screens from the deck; A screen through a relay; Notifications when you're not attached; A glance instead of the whole deck; A gadget that can't ssh; One pane instead of the whole deck; A SolarOS panel.

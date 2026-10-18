@@ -62,7 +62,7 @@ on = {k for k, _, ok in notes.actions(notes.entries(p)[1]) if ok}
 check("todo offers done", "x" in on and "e" in on and "w" in on)
 check("same keys with or without a note", [a[0] for a in notes.actions(None)]
       == [a[0] for a in notes.actions(notes.entries(p)[1])])
-check("nothing picked: only what needs no note", {k for k, _, ok in notes.actions(None) if ok} == set("atiuf/"))
+check("nothing picked: only what needs no note", {k for k, _, ok in notes.actions(None) if ok} == set("atiuf/?"))
 lines, spots = notes.footer(notes.actions(None), 20)
 check("footer wraps to the width", all(notes.vlen(l) <= 20 for l in lines) and len(lines) > 1)
 

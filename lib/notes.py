@@ -26,6 +26,7 @@ done or talked over with an assistant. Archived notes go to notes-archive.md
 import fcntl, os, re, shlex, shutil, subprocess, sys, tempfile, textwrap, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
+import zoom
 
 def notes_conf():
     import deckconf
@@ -717,12 +718,13 @@ def actions(e):
     """Every key, always in the same place: [(key, label, usable now)]. The
     ones that need a picked note (or a todo) are dimmed until they apply."""
     if ARCHIVE_VIEW:
-        return [("r", "restore", bool(e)), ("D", "delete for good", bool(e)), ("q", "quit", True)]
+        return [("r", "restore", bool(e)), ("D", "delete for good", bool(e)), ("q", "quit", True),
+                ("?", "keys", True)]
     return [("e", "edit", bool(e)), ("d", "archive", bool(e)),
             ("x", "done", bool(e) and e["kind"] == "todo"), ("c", "chat", bool(e)),
             ("w", "workspace", bool(e)), ("m", "move", bool(e)),
             ("a", "write", True), ("t", "todo", True), ("i", "idea", True), ("u", "undo", True),
-            ("f", "from: " + (ONLY_TAB or "every tab"), True), ("/", "search", True)]
+            ("f", "from: " + (ONLY_TAB or "every tab"), True), ("/", "search", True), ("?", "keys", True)]
 
 def footer(acts, w):
     """Footer lines and where each key sits: [(line, first col, last col, key)]."""
@@ -876,7 +878,16 @@ def main():
             elif k == " ": st["off"] += body
             elif k == "g": st["off"], st["sel"] = 0, (0 if notes else None)
             elif k == "G": st["off"] = maxoff
-            elif k == "\x1b": st["sel"] = None
+            elif k == "?":
+                import tui
+                tui.keys_help(BOOK, [(a, l) for a, l, _ in actions(e) if a not in ("q", "?")]
+                              + [("j k", "pick a note (a tap too)"), ("Space", "a page down"),
+                                 ("g G", "the top, the bottom"), ("Enter", "a folder opens or closes")])
+            elif k == "\x1b":                     # a step back: the pick, the search, then out
+                if sel is not None: st["sel"] = None
+                elif st["q"]: st["q"] = ""
+                elif zoom.esc(): break
+                else: say("q closes this pane")
             elif folder and k in ("\r", "\n"):
                 closed ^= {folder["folder"]}; st["mt"] = None
             elif ARCHIVE_VIEW:

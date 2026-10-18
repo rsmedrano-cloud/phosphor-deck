@@ -189,24 +189,30 @@ def local_hosts(text):
 def main():
     argv = [a for a in sys.argv[1:]]
     if any(a in ("-h", "--help") for a in argv):
-        print("usage: phosphor backup [FILE]   (default ~/phosphor-backup-DATE.tar.gz)"); return 0
+        print("usage: phosphor backup [FILE] [--dry-run]   (default ~/phosphor-backup-DATE.tar.gz)"); return 0
+    dry = any(a in ("--dry-run", "-n") for a in argv)
+    argv = [a for a in argv if a not in ("--dry-run", "-n")]
     dest = os.path.abspath(os.path.expanduser(argv[0])) if argv else default_file()
     print()
-    print(BLOOM + "  phosphor backup" + RST)
+    print(BLOOM + "  phosphor backup" + RST + (DIM + "   dry run: nothing is written" + RST if dry else ""))
     if os.path.exists(dest):
         print(row(BAD, "backup", "%s is already there" % tilde(dest), note="name another file")); return 1
     files, left = collect()
     if not files:
         print(row(WARN, "backup", "nothing to back up: no profile yet", note="phosphor init")); return 1
-    try:
-        make(dest, files)
-    except OSError as e:
-        print(row(BAD, "backup", "can't write it: %s" % str(e)[:50])); return 1
+    if not dry:
+        try:
+            make(dest, files)
+        except OSError as e:
+            print(row(BAD, "backup", "can't write it: %s" % str(e)[:50])); return 1
     for n, p in files:
         print("  " + PH + "+" + RST + " " + n + DIM + "   " + tilde(p) + RST)
     for what, why in left:
         print("  " + MUTE + "-" + RST + " " + what + DIM + "   " + why + RST)
     print()
+    if dry:
+        print(row(OK, "would write", tilde(dest), note="phosphor backup without --dry-run does"))
+        return 0
     print(row(OK, "written", tilde(dest), note="0600; no ssh keys in it"))
     print("  " + DIM + "on the new brain: phosphor restore " + os.path.basename(dest) + RST)
     return 0

@@ -104,17 +104,21 @@ need("vcut keeps the colors and cuts by what shows",
      and ui.vcut(ui.RED + "abcdef", 4).startswith(ui.RED + "abcd"))
 need("vcut leaves a short line alone", ui.vcut("abc", 9) == "abc")
 
-# Esc: drops the pick; with none, FLEET ends only when a card's tap opened it
+# Esc: drops the pick; with none, FLEET ends when opened over something, never as SYS's pane
 import zoom
-_back, _tapped = zoom.back, zoom.tapped
+_back, _tapped, _own = zoom.back, zoom.tapped, zoom.own_pane
 zoom.back = lambda: False
 zoom.tapped = lambda: False
+zoom.own_pane = lambda: True
 need("Esc with a pick drops it", fleet.on_esc(2) == (None, False))
 need("Esc with none: the SYS panel stays", fleet.on_esc(None) == (None, False))
+zoom.own_pane = lambda: False
+need("Esc with none, typed in a shell: back to it", fleet.on_esc(None) == (None, True))
+zoom.own_pane = lambda: True
 zoom.tapped = lambda: True
 need("Esc with none, opened from a card: back to the cards", fleet.on_esc(None) == (None, True))
 need("Esc with a pick, opened from a card: only drops it", fleet.on_esc(0) == (None, False))
-zoom.back, zoom.tapped = _back, _tapped
+zoom.back, zoom.tapped, zoom.own_pane = _back, _tapped, _own
 
 # the demo's machines aren't real: no tab, no ssh
 fleet.DEMO = True

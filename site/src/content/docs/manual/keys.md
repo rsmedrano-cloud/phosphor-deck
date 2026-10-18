@@ -1,7 +1,7 @@
 ---
 title: Keys
 sidebar:
-  order: 6
+  order: 7
 ---
 
 
@@ -23,7 +23,9 @@ except these.
 | Alt-z | zoom — the focused pane takes the whole tab |
 | ⤢ (a title) | the same with a tap; Esc gives the tab back |
 | Alt-x · Ctrl-q | leave the deck — the session keeps running |
-| exit · q | a tab asks before closing: Enter opens it again, x closes it |
+| Esc | a step back; closes what you opened, never a pane of the tab |
+| q | closes what you look at: a page, a picker, a panel |
+| exit | a tab asks before closing: Enter opens it again, x closes it |
 | Ctrl-z | harmless: a pane it stops wakes up by itself in a few seconds |
 | Alt-f | disabled (floating panes wedge zellij) |
 | Ctrl-p n / x | new pane / close it |
@@ -81,6 +83,27 @@ its `keybinds { }`.
 The phone kit's EDIT, ZOOM and EXIT keys send whatever `[keys]` says (run the
 kit again after changing them).
 
+## Esc and q
+
+Every screen of the deck's own (the DECK tab, FLEET, the panels, NOTES, the
+menus) takes these two the same way:
+
+- **Esc** goes back one step: it drops a pick, a filter or a search, leaves
+  a page for its list, gives the tab back to a zoomed pane. With nothing
+  left to go back from, it closes a screen you opened from somewhere (a
+  card, a key of the DECK tab, the `+` menu, a shell) and you're back
+  there. A pane of your tab stays where it is: Esc never closes it.
+- **q** closes what you're looking at: a page goes back to its list, a
+  picker to the step before it, a panel ends. A pane of your tab then
+  asks, like any program that ends (below): Enter opens it again.
+- **?** lists the keys of the screen you're on, the ones its bar doesn't
+  show too; q goes back to it.
+- While you type (a filter, a search, a note), q is a letter and Esc
+  cancels the typing.
+
+The few screens that pass every key on are the exception: a mirror of
+another pane, a shell, a tool like yazi or btop, which keep their own.
+
 ## When a program ends
 
 Every program runs through `phosphor run`. When it ends (`exit`, `q`, a
@@ -109,4 +132,7 @@ lines under its title instead, and a tap anywhere on it zooms: the whole
 panel, with its keys, is one tap away.
 
 The DECK tab has every phosphor action (a key or a tap each), and `?` there
-lists the keys of every installed tool.
+lists the keys of every installed tool. Its second line, when nothing more
+urgent wants it, is a "did you know?": one thing the deck does and where it
+is, the ones you've never used first, a new one every ten minutes; a tap on
+it does it when it names a key of the DECK tab.

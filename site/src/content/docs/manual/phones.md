@@ -1,7 +1,7 @@
 ---
 title: Screens
 sidebar:
-  order: 7
+  order: 8
 ---
 
 
@@ -21,6 +21,12 @@ The brain answers with a script made for your deck: the phone's ssh key (your
 password one last time), a `deck` command, a Termux:Widget icon, and extra keys
 (KEYBOARD, EDIT, ZOOM, EXIT). Run it again any time; it only adds what's
 missing, and a phone with the kit's older keys gets EDIT too.
+
+It also makes Termux a place to share files to: in any app (Files, the
+gallery, a browser's download), Share, pick Termux, then **Edit**, and the
+file goes over the same ssh into the brain's `~/received`, under a name of
+plain characters, never over one already there. (Termux keeps its own copy
+in `~/downloads`. A `~/bin/termux-file-editor` of your own is left alone.)
 
 ## Another computer (Linux, macOS, WSL)
 

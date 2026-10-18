@@ -56,6 +56,11 @@ check("backup takes what can't be made again", names == sorted(
 check("...and nothing else", not left)
 
 arch = os.path.join(old, "b.tar.gz")
+with contextlib.redirect_stdout(io.StringIO()) as said:
+    sys.argv = ["phosphor-backup", arch, "--dry-run"]
+    check("--dry-run exits 0", backup.main() == 0)
+check("--dry-run writes nothing, not even a file called --dry-run",
+      not os.path.exists(arch) and not os.path.exists("--dry-run") and "would write" in said.getvalue())
 with contextlib.redirect_stdout(io.StringIO()):
     sys.argv = ["phosphor-backup", arch]
     check("backup exits 0", backup.main() == 0)

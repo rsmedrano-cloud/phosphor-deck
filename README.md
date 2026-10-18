@@ -24,21 +24,21 @@ tools you actually use. Everything is text, every tool a static binary.
      desktop     tablet       phone         Pi        e-ink
 ```
 
-Every screenshot below is `phosphor demo`: a throwaway session over
+Every screenshot here is `phosphor demo`: a throwaway session over
 made-up machines and a made-up notebook, so a screenshot never carries a
 real IP, hostname or note.
 
-![The SYS tab: the fleet panel and the adjutant, warning that a disk is filling up](doc/img/readme/sys-p31.png)
+![The SYS tab: a row of cards on top, the fleet panel below, and the adjutant warning that a disk is filling up](doc/img/readme/sys-p31.png)
 
-The same tab bar, on a phone-width screen: the fleet panel stacks into
-one column instead of a row, narrowing its cards to whatever room the
-adjutant leaves.
+The same tab bar on a phone-width screen: the fleet stacks into one
+column, narrowing its cards to whatever room the adjutant leaves.
 
 ![The SYS tab narrowed to a phone: cards stack in one narrow column beside the adjutant, tabs overflow into a menu](doc/img/readme/phone-p31.png)
 
-And on an e-ink screen: the `paper` theme, black on white, no glow.
+And the DECK tab: every action a key or a tap away, as cards that follow
+the screen's width.
 
-![The SYS tab in the paper theme, for e-ink](doc/img/readme/sys-paper.png)
+![The DECK tab: a did-you-know line, the next steps and every action, as cards](doc/img/readme/deck-tab.png)
 
 ## Quick start
 
@@ -67,245 +67,30 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
 
 ## What you get
 
-- **One session, many viewers.** A persistent `zellij` session with a
-  watchdog: if it dies, it's back within a minute.
-- **Tabs, not apps.** Laid out once from your profile. Switch with Alt-1..9
-  or by tapping the bar; tap a pane to focus it.
-- **A menu behind the "+".** Tap it for a new tab: a shell here or on any
-  machine, an installed assistant, files, or any command. **layout** opens
-  several at once: pick a shape, then what goes in each pane (four
-  assistants side by side in a few taps, or a program beside some cards). Mark "keep" and
-  the tab is written into your profile, so it survives restarts. `/` in it
-  searches everything at once: open tabs, workspaces, installed tools, every
-  command. On a touch screen with no keyboard, every menu and prompt
-  takes a tap.
-- **Fleet panel.** One card per machine: CPU, RAM, load, GPU, disks,
-  containers, failed services, a pending reboot, pending security updates,
-  the CPU's temperature, a laptop's battery and disks failing SMART,
-  collected over SSH.
-  Nothing gets installed on the other side. A host going down (or a service
-  failing on one that's still up) pushes and speaks up on its own, the same
-  as any other notification. Missed it? `h` over a machine's card draws its
-  last 24 hours (CPU, RAM, temperature, disk, when it was down), no
-  Prometheus needed. See something worth a closer look? `phosphor
-  tail HOST` streams that machine's `journalctl` (or `docker`/`podman logs`)
-  right there, no need to remember the ssh alias or the exact command. Want a
-  second opinion instead? `phosphor triage HOST` collects a deeper snapshot
-  (load, failed units, memory, disk, recent kernel messages) and hands it to
-  whichever AI assistant is installed to diagnose -- as data, with no tools to act with, and any
-  dangerous command in its answer flagged before you copy it.
-- **Prometheus gauges.** If you already run Prometheus, `phosphor prom` draws
-  your PromQL queries as bars, arcs and sparklines, colored by thresholds.
-- **CI/CD status.** `phosphor ci` draws status cards for GitLab and GitHub
-  pipelines: colored by state, with the failing job, the commit that broke it, and the last
-  five runs underneath, so an idle repo still tells you what happened.
-- **Services, at a glance.** `phosphor services` lists the brain's own systemd
-  units -- Phosphor's own plus any of your homelab's you add -- colored by
-  state, in the SYS tab. Pick one to read its logs, restart, start or stop it
-  (it asks first).
-- **JSON for scripts and assistants.** Every read-only listing (`fleet`,
-  `services`, `containers`, `screens`, `mem`, `security`, `tunnel`, `version`,
-  `workspace list`, `panels`, `glance`, `ci`, `prom`, `usage`, `trace`) and every
-  switch's `status` (`web`, `push`, `tts`, `solaros`) takes `--json` and prints the
-  same data as one JSON object: no colored text to scrape, and a `why` when
-  something wants a look. The panels with named rows open straight on one with
-  `--select NAME` (`phosphor screens --select pts/3`). `phosphor mcp` hands the same to any
-  assistant that speaks MCP (`claude mcp add phosphor -- phosphor mcp`):
-  glance, fleet, notes, workspaces and the deck's log, read-only, over stdio.
-- **Panels of your own.** A Python file in `~/.config/phosphor/panels.d`
-  with a class on phosphor's `ListPanel` ("my restic backups" in about 20
-  lines) is a panel like the deck's: keys, taps, a y/n before an action, a
-  pager. `phosphor panels NAME` opens it; the store and the + menu list it.
-- **Dashboards of your own.** `cards` in the + menu opens the gallery:
-  every command as a card, each with its live value (pipelines, plan usage,
-  browser access, who's attached...), and beside the list the one under the
-  cursor as it'll look in its pane. Space picks some, Enter makes them a
-  tab; `+` there
-  adds more, `-` takes one away. Each card is a box with its value big and
-  its first entries, the boxes fill the tab, and a tap zooms one open. In the profile it's one
-  pane, `{ dash = ["usage", "ci", "web", "screens"] }`; in a terminal,
-  `phosphor dash usage ci web screens`. A new deck's SYS starts with a row
-  of them, holding only what's set up. The first few times, each picker
-  on the way says on its last row what Enter and Esc do there.
-- **Zoom with a tap.** A panel's title ends in ⤢: a tap zooms its pane
-  (Alt-z), Esc gives the tab back. A panel squeezed into a few rows shows a
-  one-to-three-line summary instead, and a tap on it shows the whole panel.
-- **Containers, from the fleet.** `c` over a machine's card in FLEET (or
-  `phosphor containers HOST`) lists its docker or podman containers, a failed
-  one in red: read its logs, restart it, start or stop it (it asks first),
-  without opening a shell on it.
-- **Review from the deck.** `phosphor review` lists open merge/pull requests
-  (GitLab or GitHub, detected from the remote): CI status, conflicts, the diff,
-  and a key to check the branch out into its own worktree and try it, without
-  touching your working copy.
-- **A log that keeps what used to vanish.** A crash's traceback, a hang, a
-  non-zero exit: `phosphor logs` reads them back (`l` on an "ended" pane
-  does too), and `phosphor trace TOOL` turns on a verbose one for a while.
-- **One file tree.** The disks of all your machines under `~/fleet`, mounted
-  with `rclone`. Moving something between machines is an `mv`.
-- **Read-only mentions.** Anything can pipe a notification into `phosphor
-  mention-hook` (a bot, a script, a chat client's hook; `--setup` wires
-  matterhorn for you): the chat tab reads "COMMS ●2" until you look, the SYS
-  adjutant shows who and what, and tapping takes you there. It also reaches
-  you off the deck, pushed to your phone or spoken, same as any other
-  notification. Nothing is ever sent back, not even a canned reply. With
-  `prepare` in the profile, "prepare notes" on a notification has any command
-  that reads a prompt on stdin (`claude -p`, for one) write briefing notes
-  into WORK NOTES, only when you press it.
-- **The fleet tells you, not just shows you.** A host going down or coming
-  back pushes to your phone and speaks up (with `[tts] fleet_alerts`) the
-  same way `phosphor notify` does -- at most once a minute per host, so a
-  flapping link doesn't flood you.
-- **One idea of "too full".** A disk, CPU, RAM or temperature turns amber
-  and red at the same line on every panel (FLEET, its history, glance,
-  digest, the adjutant), and `[alerts]` in the profile moves those lines,
-  for every host or for one.
-- **In a browser too, if you want.** `phosphor web on` publishes the deck with
-  zellij's web client and `tailscale serve`: HTTPS, only your tailnet's devices,
-  plus a login token. Off by default; never on the internet.
-- **Your ssh tunnels, always up.** Hosts in `~/.ssh/config` with `LocalForward`
-  lines: `phosphor tunnel on HOST` keeps them up with systemd and reconnects.
-- **One clipboard for every screen.** Select text in the deck and it lands on
-  the clipboard of every device looking at it, phone and PC at once.
-  `phosphor clip file` sends a file; pasting the other way works as usual.
-  In yazi, `c` then `t` does the same to the hovered file, no shell tab needed.
-  For a real file (any size, saved as itself, not pasted text), `phosphor
-  send file` opens a one-time link and QR, gone once it's downloaded --
-  `phosphor receive` is the other way: send it from your phone, it lands in
-  `~/received`, so an AI assistant running on the brain can read it directly.
-- **A shared notebook.** `phosphor note` from anywhere (you, a script, an AI
-  assistant) and it shows up in the NOTES tab, where `a` (or a tap) writes one
-  without leaving the tab. Alt-j jots one from whatever tab you're in (SYS
-  shows a full disk: a todo), and NOTES says where it came from; `f` shows one
-  tab's notes, `/` searches all of them. Notes written from a workspace are
-  filed under it as a project, and NOTES folds each project into a folder (`[notes] require_project` makes a project a must). Tap a note to edit it, archive it, mark a todo
-  done, or open an assistant that starts from it. Private by default; `[notes] folder` in the
-  profile (`phosphor init` or `setup`) moves it into a vault you already sync -- Obsidian,
-  Syncthing, git. `phosphor digest` turns the last day (commits, a host that went down,
-  notes, todos done and open) into one summary note at the top of it.
-- **A tab per idea.** `phosphor workspace new` (or `w` on a note) makes a
-  project folder with git and a tab with one or two AI assistants, each
-  knowing its part and handing off through the workspace's own notebook.
-- **A quick question, no tab.** `phosphor ask "..."` shells out to whichever
-  assistant CLI is already installed (claude, gemini, codex, opencode, aider, agy)
-  in headless mode and prints the answer inline -- for "what was that command
-  again", not a whole workspace or a chat tab. `git diff | phosphor ask "what
-  changed here"` sends the pipe as context, question and all; `-c` adds your
-  notebook's latest decisions and summaries.
-- **Every command, browsable.** `phosphor commands` (or `e` in the DECK tab) is a
-  categorized index of everything phosphor can do -- pick a category, then a
-  command, or `/` to search them all by name or word; a read-only one runs right
-  there, anything else shows its usage and copies the invocation for you instead
-  of guessing at missing arguments.
-- **Commands that ask instead of quitting.** Run bare on a terminal (or from
-  `phosphor commands`, or the DECK tab), `ask`, `broadcast`, `send`, `clip`,
-  `receive`, `triage`, `face`, `push`, `tts` and `trace` open a small screen for
-  what they need -- a question, hosts to tick, a file to pick, on or off -- all
-  by tap on a phone. With their arguments, or piped, nothing changes.
-- **Tabs that stay put.** Tabs are locked; Alt-r unlocks the one you're in,
-  lets you resize, split or swap what runs in a pane (a program, or cards),
-  and then asks: save it into your profile, or put it back.
-- **Tabs you can share.** Drop a `[[tabs]]` file into `~/.config/phosphor/tabs.d/`
-  and it shows up in the deck, `phosphor gen` away, without touching your own
-  profile -- its content is read-only from Alt-r and `keep`, which point at the file
-  instead. `phosphor tabs` can still move it (`K`/`J`) wherever you want it, without
-  moving its content out of that file.
-- **Recipes.** `phosphor recipe` adds a starter bundle this way: `homelab` (prom and ci
-  dashboards), `dev` (a two-assistant tab), `bubble` (mail, RSS, Mastodon, Matrix in one tab),
-  `workbench` (four AI CLIs side by side). Adding one says which of its programs aren't installed
-  and how to get them, and offers to install the ones `phosphor store` carries. `phosphor init` also asks which shape fits how you'll
-  use it (homelab, a leaner `revived` for one machine, or `dev`) and builds that from the start.
-  `phosphor recipe --remove NAME` takes one back out.
-- **Phosphor colors.** P31 green, P3 amber, P4 white, or paper for e-ink.
-  One setting recolors the whole deck -- zellij, the web client, and the
-  tools it launches (yazi, btop, gping, ctop).
-- **Declarative.** One file describes your world; `phosphor gen` builds the
-  layouts, the systemd units and the mounts. `phosphor setup` edits it for you.
-- **No root.** Static binaries in `~/.local/bin`. If something needs `sudo`,
-  it tells you and carries on without it.
+- **One session, many screens.** A persistent zellij session with a
+  watchdog, on a machine that stays on; a desktop, a tablet, a phone, an
+  e-ink reader are windows into it ([screens](doc/manual/phones.md)).
+- **Tabs, not apps.** Laid out once from your profile; the `+` in the tab
+  bar opens a shell here or on any machine, an assistant, files, any
+  command, or several panes at once ([keys](doc/manual/keys.md)).
+- **Your machines, watched.** One card per machine (CPU, RAM, disks,
+  containers, failed units, updates, temperature) over plain ssh, nothing
+  installed on them; their files under `~/fleet`, nothing copied.
+- **Cards of your own.** Every command as a card with its live value:
+  pipelines, plan usage, who's attached; place them in any pane
+  ([profile](doc/manual/profile.md)).
+- **A notebook and workspaces.** Alt-j writes a note from any tab; a
+  workspace is a tab per idea with its folder and its assistants
+  ([workspaces](doc/manual/workspaces.md)).
+- **Files between screens.** One clipboard for every screen; a real file as
+  a one-time link and QR, or uploaded the same way
+  ([clipboard](doc/manual/clipboard.md)).
+- **Made to remember.** The DECK tab has every action a key away, `?` on
+  any screen lists its keys, Esc and q mean the same everywhere.
+- **For scripts and assistants.** `--json` on every listing, `phosphor
+  mcp`, and [AGENTS.md](AGENTS.md) for an AI assistant working on the deck.
 
-## Install
-
-On the machine that will be the brain:
-
-```sh
-sh install.sh        # from a copy of the repo
-```
-
-It fetches the tools into `~/.local/bin` (static binaries, no root) and asks
-"set it up now?": a short wizard, the deck starts, and you land inside it.
-Pressing Enter on everything is a fine first run.
-
-Leave with Alt-x or Ctrl-q: the session keeps running. **`deck`** brings you
-back — the same word on the brain and on every other machine. When a tab's
-program ends (`exit`, `q`) the tab says so in color and asks: Enter opens it
-again, `x` closes the tab. A mistyped exit costs one key. If `phosphor` isn't
-found, `~/.local/bin` isn't in your PATH yet: the installer prints the line to
-add.
-
-A newer version: `phosphor update` in a git clone (or a download, on a
-machine without git), or `phosphor update FOLDER` with a copy. It installs what's new and restarts the deck. The steps by hand
-and how to remove it: `phosphor help install`.
-
-`init` reads your tailscale peers and `~/.ssh/config`, leaves phones and
-tablets out (they're viewers, never mounted) and the machine it's running on
-out too (whatever name it shows up under there), probes the rest over SSH and
-offers their real disks. A handful of questions.
-
-## Getting in
-
-From another computer, `phosphor gen` on a non-brain machine writes the same
-`deck` command (plain ssh; `connect = "mosh"` in the profile if you prefer mosh). From anywhere else, it's one line:
-
-```sh
-ssh -t you@brain ~/.local/bin/deck
-```
-
-**Another computer.** One line, and it has the `deck` command too:
-
-```sh
-ssh you@brain '~/.local/bin/phosphor screen' | sh
-```
-
-**Phone or tablet (Android + Termux).** Two lines in Termux:
-
-```sh
-pkg install -y openssh
-ssh you@brain '~/.local/bin/phosphor phone' | sh
-```
-
-The brain answers with a small script made for your deck: it creates the
-phone's key (your password, one last time), a `deck` command, a home-screen
-icon through Termux:Widget, and extra keys for touch: `KEYBOARD` brings the
-keyboard back (taps go to the deck), `EDIT` edits the tab you're in, `ZOOM`
-gives one pane the whole screen, `EXIT` leaves. `phosphor phone` on the brain (or `p` in the DECK tab) prints these lines for
-you, with the phone's one as a QR code to scan with the camera — no typing.
-
-**A deck for each kind of screen.** A phone and a desktop looking at the
-same tabs squeeze each other (zellij fits a tab to the smallest screen). A
-`[screens.phone]` block in the profile (which tabs, the one you land on,
-its theme and graphs) gives phones a deck of their own, beside the main
-one: same notebook, fleet and files, laid out for that screen. The phone
-kit already says it's a phone; `phosphor screen --as eink` does the same
-for an e-ink reader or a Pi on a shelf. `phosphor setup` asks, when you
-connect one, whether it shares this deck or gets its own -- and says first
-that its own deck runs its panes a second time, assistants included.
-
-**tailscale, headscale, or neither.** Headscale is a self-hosted control
-server for the same tailscale client, so the deck works the same with both;
-`init` detects which one you use (`mesh` in the profile) and `phosphor phone`
-tells the phone which server to log into. Plain ssh on a LAN works too:
-`mesh = "none"`.
-
-**ssh or mosh?** mosh survives the phone sleeping and switching networks, but
-it doesn't carry the mouse, so touch stops working. Plain ssh carries touch;
-if the connection drops, you tap the icon again and land exactly where you
-were, because the session never left the brain.
-
-**On the way in**, a second of warm-up, like an old monitor powering on: the
-name glows and settles into your color, with which deck and version you're
-entering. Any key skips it; a screen reconnecting within a minute, the
-`paper` theme and `splash = false` in `[deck]` never show it.
+The whole tour, part by part: **[What you get](doc/manual/tour.md)**.
 
 ## Keys
 
@@ -322,6 +107,8 @@ Alt-n          new tab in the folder of the pane you're in
 Alt-r          edit this tab: unlock, change, save or put it back
 Alt-j          a note or todo from here: NOTES shows which tab it came from
 Alt-g          take zellij's controls, and give them back
+Esc · q · ?    on the deck's own screens: Esc a step back (never closes a
+               pane of the tab), q closes what you look at, ? its keys
 ```
 
 They were picked so they don't collide with `matterhorn`, which uses a lot of
@@ -329,207 +116,19 @@ Ctrl and Alt keys, and every one can be changed: `phosphor shortcuts` (or `c`
 in the DECK tab). Your keys live in the profile, so updates never reset them.
 `?` in the DECK tab lists the keys of every installed tool.
 
-## The DECK tab
-
-The deck's own tab, and the one place every phosphor command lives, even
-when all your other tabs are ssh sessions somewhere else. It's laid out as
-cards that follow the screen's width -- one column on a phone (it scrolls:
-arrows or two fingers), two or more on a tablet or a computer. Each action is
-a card of one line: its key, what it is, its live value where it has one
-(screens in, browser access on or off, tunnels up, services, memory free,
-dirty workspaces), the command that does the same in a terminal
-(`v screens 2 phosphor screens`), and a line about it once there's room; a `!`
-after the key marks one that wants a look, so it reads on an e-ink screen
-too. Above them, the watchdog and the next steps while you're still setting
-it up. One key or tap per action, grouped: screens, machines (setup, triage a
-flagged host, tail a host's logs, services, tunnels), work (every command,
-workspaces, merge requests to review, install tools, a shell on the brain),
-tabs & keys (keep a tab, tabs, recipes, the color, shortcuts, and `?`, the
-keys of every installed tool with the deck's own as you set them) and
-upkeep (notices, doctor, memory per tab and pane, logs, update, restart, the manual). Every action
-comes back the same way: q, Esc or Enter.
-
-A profile of an older shape (say, from before the panel took the whole DECK tab):
-the deck card offers **P** ("profile migrate, N steps"), which runs `phosphor migrate`: each
-change as a diff first, a backup kept, `f` applies it. `phosphor doctor`, `gen` and `update`
-say so too.
-
-![The DECK tab: the deck's state, next steps and every action, as cards](doc/img/readme/deck-tab.png)
-
-**Machines and color** (`m` there, or `phosphor setup`):
-
-- **add a machine** — finds it on tailscale, copies your key if needed, asks
-  what it is and which disk to mount
-- **remove a machine**
-- **change the color** — with a preview of each phosphor
-- **editor and shell** — what files open with and what shell panes run
-- **apply** — regenerates and restarts the deck
-
-It edits your profile as text, so your comments and custom tabs survive, and
-leaves a `deck.toml.bak` behind. A write either lands whole or not at all.
-
-## The profile
-
-The single source of truth, in `~/.config/phosphor/deck.toml`. A hand edit
-shows after `phosphor gen && phosphor restart`; until then the DECK tab says
-"profile changed: f applies it" (and `phosphor doctor` warns). A shortened
-example (the full one is `profiles/example.toml`):
-
-```toml
-[deck]
-session = "deck"
-theme   = "p31"
-
-[[hosts]]
-name   = "homelab"
-role   = "brain"          # holds the session
-local  = true
-mounts = ["/", "~", "/mnt/media"]
-
-[[hosts]]
-name  = "workbox"
-role  = "work"            # your projects live here
-ssh   = "workbox"
-mount = "/"
-
-[[tabs]]
-name  = "WORK"
-panes = [ { ssh = "@work", reconnect = true } ]
-```
-
-Change it, run `phosphor gen`, and the deck rebuilds itself. A misspelled key
-(`thme`, `[tts] enable`) isn't silently ignored: gen and `phosphor doctor` name
-it and guess what you meant.
-
 ## The manual
 
-Everything below, in depth, lives in [doc/manual](doc/manual/README.md) --
-also **[online](https://rsmedrano-cloud.github.io/phosphor-deck/)**, one
-page per topic. `phosphor help TOPIC` shows it inside the deck, and
-[AGENTS.md](AGENTS.md), built from the same pages, is what AI assistants
-should read: the rules, the concepts and an index pointing into the manual. [`share/commands.json`](share/commands.json) is every
-command's one definition in JSON -- usage, flags, which commands mutate live
-state, which need the deck running, how each one shows in the deck as a
-card; `phosphor help`, `--help`, completion
-and the check that refuses an unknown flag are built from it -- for a CI job, a cron, or a policy tool that wants to know
-without parsing prose. What you can build on -- the profile, the commands
-and their flags, `--json`, `phosphor mcp`, tabs.d, apps.toml, panels.d --
-and how anything there goes away (a warning for a whole stable minor first,
-listed in [`share/deprecations.json`](share/deprecations.json)) is
-[doc/manual/api.md](doc/manual/api.md). Contributing: [CONTRIBUTING.md](CONTRIBUTING.md).
-
-## Commands
-
-The same categories as [the manual](doc/manual/commands.md), which goes into
-more depth on every one of these.
-
-### Getting started
-
-| | |
-|---|---|
-| `phosphor doctor` | preflight: locales, FUSE, systemd, PATH, fleet reach, unknown profile keys |
-| `phosphor security` | how exposed the deck is: file permissions, the fleet's sshd, tunnels, web, sockets |
-| `deck` | get in, from any machine (on the brain: `phosphor attach`) |
-| `phosphor init` | profile wizard |
-| `phosphor setup` | add/remove machines, color, editor and shell, phone, browser access, tunnels, notebook |
-| `phosphor panel` | the DECK tab: state, next steps, every action one key away |
-| `phosphor commands` | every phosphor command, browsable by category (also: `e` in DECK) |
-| `phosphor phone` | put a phone or tablet one tap away from the deck |
-| `phosphor screen` | the same kit for a computer without Termux (`--as KIND`: its own deck) |
-| `phosphor gen` | generate layouts, units and mounts |
-| `phosphor up` | start the deck (and at every boot) |
-| `phosphor update` | a newer version: pull or copy, install, restart; `--channel nightly` or `stable` |
-| `phosphor version` | this version, whether there's a newer one, and what it brings ([CHANGELOG](CHANGELOG.md)) |
-
-### Session
-
-| | |
-|---|---|
-| `phosphor restart` | bring the session down cleanly and back up (never the new one before the old one is gone); every screen goes back in by itself |
-| `phosphor down` | stop it (and the watchdog timer) |
-
-### Workspaces
-
-| | |
-|---|---|
-| `phosphor workspace` | a tab per idea: folder, git, its assistants; bare, every workspace's git state, open, diff, a new one or remove one |
-| `phosphor ask Q` | a one-shot question to whichever assistant CLI is installed, no tab; `-c` adds your latest decisions and summaries |
-| `phosphor read X` | a web page as plain text (an address), or a web search to pick one from (words); `--ask Q` hands the page to an assistant with no tools |
-
-### Notes
-
-| | |
-|---|---|
-| `phosphor note` / `notes` | write to / read the shared notebook |
-| `phosphor digest` | the last day (commits, fleet trouble, notes, todos) as one summary note, written by an assistant; `--print` only shows what it collected |
-
-### In the deck
-
-| | |
-|---|---|
-| `phosphor fleet` | fleet panel: pick a card, then `s` ssh, `l` logs, `t` triage, `c` containers, `u` upgrade, `b` reboot, each in its own tab; `h` its last 24 hours |
-| `phosphor usage` | how much of your Claude Code and Antigravity plans you've used (5-hour window, week) and when each refills |
-| `phosphor glance` | fleet, unread mentions, open todos -- for a small screen, no zellij needed; up, down and Enter mark a todo done or the mentions read; `--serve` hands it as JSON to a gadget that can't ssh (ESP32, Pi Zero), `--lan` on the LAN, with an app for a SolarOS panel |
-| `phosphor solaros on` | a SolarOS e-ink panel as a face of the deck: serves it, copies the two lines to type there once (the app updates itself and adds `phosphor` to the SolarOS shell); `pair` lets its key in (your Enter), forced to the panel's own deck: its tabs, Ctrl-arrows between them, each at the panel's size |
-| `phosphor mirror --tab AI` | one pane for a screen too slow for zellij (e-ink): only the lines that changed, no color, and what you type goes back into that pane; `--view` only watches |
-| `phosphor adjutant` | the SYS panel that speaks up: `phosphor notify MESSAGE` makes it announce something |
-| `phosphor notify --push` | the same notice on your phone (ntfy), for a brain nobody sits near: `[push]` in the profile; with `[tts]` on, what the brain said rides along as audio |
-| `phosphor push [--qr\|on\|off\|status]` | `[push]`'s status, on or off, or a QR to subscribe on the phone without typing the server/topic in |
-| `phosphor tts` | speak notifications aloud with selectable voices (GLaDOS, Adjutant, HAL, Synth, System) |
-| `phosphor ci` | GitLab/GitHub pipeline status cards (see `[ci]` in the profile) |
-| `phosphor services` | systemd units and their state: Phosphor's own, plus any you add (see `[services]` in the profile); pick one for its logs, restart, start/stop |
-| `phosphor upkeep (upgrade \| reboot) HOST` | upgrade or reboot a fleet machine where you see it: says what it runs, waits for you, sudo asks in the same terminal (`u`/`b` over a card in FLEET) |
-| `phosphor containers [HOST]` | a host's docker/podman containers; pick one for its logs, restart, start/stop (`c` over a card in FLEET) |
-| `phosphor review` | open merge/pull requests: CI, conflicts, diff, try the branch in its own worktree |
-| `phosphor mem` | how much memory each tab and pane of the deck takes, heaviest first, every kind of screen's deck included |
-| `phosphor panels [NAME]` | your own panels: a Python file in `~/.config/phosphor/panels.d` on the same kit as every panel (keys, taps, y/n, pager); also in the store and the + menu |
-| `phosphor dash [CARD...]` | a dashboard of your own: the cards you pick, each with its live value and its command; `+` opens the gallery of every card, `-` takes one away; also `cards` in the + menu (`phosphor cards`) |
-| `phosphor screens` | who's attached (phone, tablet, another computer), and which come through a tailscale relay; `x` kicks one loose, `o` gives its kind a deck of its own or shares this one (both ask y/n first) |
-| `phosphor keys` | key guide, updates itself when you install a tool |
-| `phosphor store` | install TUIs from their releases, no sudo; open what you have, and your own apps |
-| `phosphor new` | the + menu (also Alt-n): a shell, a machine, an assistant (in the folder you pick), your apps, a tab of cards, a layout; `/` searches everything |
-| `phosphor keep` | write a tab you arranged by hand into your profile |
-| `phosphor tabs` | the tabs your profile brings back: forget one, reorder, reopen |
-| `phosphor migrate` | bring an older profile up to date: a diff of each change first, a backup kept |
-| `phosphor backup [FILE]` | the brain's own backup: profile, tabs.d, notebook, glance token, faces in one 0600 file; never ssh keys |
-| `phosphor restore FILE` | put a backup back (this brain or a new one): new/replace/same first, a `.bak` of what it replaces, then `gen --dry-run` |
-| `phosphor recipe [NAME]` | starter tab bundles: homelab, dev, bubble, workbench, and the programs they run; `--remove NAME` undoes one |
-| `phosphor shortcuts` | the deck's keys, yours to change; updates never reset them |
-| `phosphor theme` | the deck's color (p31, p3, p4, ega, paper), previewed before it's saved |
-| `phosphor edit` | what Alt-r runs: unlock a tab, change it, save it or put it back |
-| `phosphor mentions` | read-only feed of chat notifications; `--setup` hooks matterhorn |
-| `phosphor clip` | a file or a pipe onto your device's clipboard; `--save` the other way |
-| `phosphor send` | one real file, as a one-time link and QR; any size, gone once it's downloaded |
-| `phosphor receive` | the other way: a one-time upload link, into `~/received` |
-| `phosphor web` | on / off / status / token: the deck in a browser, tailnet only |
-| `phosphor path` | turns `~/fleet/x/y` into `host:/y` |
-| `phosphor tail HOST [SVC]` | stream a fleet host's journalctl/docker/podman logs, reconnecting on its own |
-| `phosphor triage [HOST]` | a diagnostic snapshot of a host, piped straight to phosphor ask; no HOST: picks from what's flagged (or any host) |
-| `phosphor broadcast -- CMD` | one command on every fleet host at once, output grouped by host; asks first. `--rolling`: one host at a time, stopping at the first failure |
-| `phosphor tunnel` | keep your ssh config's LocalForward tunnels up |
-| `phosphor face` | turn an image into the adjutant's face (`--bitmap`: drawn at the pane's size, up to 28 columns, in color) |
-| `phosphor logs` | the deck's own log: crashes with traceback, hangs, exits, restarts; `-f` follows |
-| `phosphor trace` | verbose logging for one tool, for about 30 minutes, then it turns itself off (`off TOOL` sooner) |
-| `phosphor stats` | which phosphor commands get run here and how often, counted on this machine only (`--json`, `--clear`) |
-
-### Before you push a fork
-
-| | |
-|---|---|
-| `phosphor demo` | a throwaway session over made-up machines, for a screenshot or a recording; `--tour` adds a guide |
-| `phosphor privacy` | before you push a fork: finds your own data in it |
-
-### Shell
-
-| | |
-|---|---|
-| `phosphor completion` | tab completion for bash or zsh (the installer adds it) |
-
-### Help
-
-| | |
-|---|---|
-| `phosphor help` | the manual, by topic; `phosphor CMD --help` explains one command without running it; `phosphor docs` rebuilds AGENTS.md |
+Everything, in depth, lives in [doc/manual](doc/manual/README.md) -- also
+**[online](https://rsmedrano-cloud.github.io/phosphor-deck/)**, one page per
+topic. `phosphor help TOPIC` shows it inside the deck; `phosphor help`
+lists every command, and [the commands page](doc/manual/commands.md) says
+what each one does. [AGENTS.md](AGENTS.md), built from the same pages, is
+what AI assistants should read. [`share/commands.json`](share/commands.json)
+is every command's one definition in JSON (usage, flags, which ones change
+live state), for a script that wants to know without parsing prose. What
+you can build on, and how anything there goes away:
+[doc/manual/api.md](doc/manual/api.md). Contributing:
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Your data
 
@@ -585,32 +184,12 @@ need `tomli`), and `ssh` if you declare remote hosts. `fuse3` for the mounts.
 If you run it on something that isn't listed above, say how it went — that's
 the most useful thing the project can hear right now.
 
-### Footprint
-
-At rest, one local machine, no chat app (`tests/bench.py`, a throwaway session,
-never the live deck): measured on an AMD Ryzen 5 3550H (8 cores, 13 GiB RAM).
-
-| shape | RSS | CPU |
-|---|---|---|
-| revived (no CLOUD tab) | ~275 MB | ~6% of one core |
-| homelab (adds yazi, btop, ctop) | ~395 MB | ~10% of one core |
-
-A real fleet's polling cost isn't in this number yet — that needs a real fleet,
-not a throwaway session.
-
-Phone battery (Android's own battery usage screen, Termux, ssh not mosh, a
-Pixel 9 Pro XL): **>1% over 3 hours** of mixed use -- some of it actively
-looking at the deck, some of it just sitting connected in the background.
-Android only reports ">1%" past that threshold, not an exact figure; a longer,
-untouched-background run would give a tighter number.
-
 ## Status
 
-1.4, and public since 0.3.0. Day-to-day development happens on a private
+2.x, and public since 0.3.0. Day-to-day development happens on a private
 GitLab (issues, merge requests, CI) -- [GitHub](https://github.com/rsmedrano-cloud/phosphor-deck)
 is where releases land, starting from a single snapshot instead of that
-private history. That's a choice about what's public, not a sign this
-showed up overnight: see CHANGELOG.md for the pace of actual releases, and
+private history. See CHANGELOG.md for the pace of actual releases, and
 CONTRIBUTING.md for how a change gets from an idea to a tag. Bug reports
 and feature requests are welcome there.
 

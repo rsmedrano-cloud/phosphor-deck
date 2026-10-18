@@ -16,7 +16,9 @@
 ["Alt-z", "zoom — the focused pane takes the whole tab"],
 ["⤢ (a title)", "the same with a tap; Esc gives the tab back"],
 ["Alt-x · Ctrl-q", "leave the deck — the session keeps running"],
-["exit · q", "a tab asks before closing: Enter opens it again, x closes it"],
+["Esc", "a step back; closes what you opened, never a pane of the tab"],
+["q", "closes what you look at: a page, a picker, a panel"],
+["exit", "a tab asks before closing: Enter opens it again, x closes it"],
 ["Ctrl-z", "harmless: a pane it stops wakes up by itself in a few seconds"],
 ["Alt-f", "disabled (floating panes wedge zellij)"],
 ["", "In locked mode only these are live. Everything else,"],
@@ -52,6 +54,8 @@
 ["a / r", "create / rename"],
 ["/ / n", "search / next"],
 [": ", "run a shell command"],
+["c s", "send the file: a one-time link and QR for any screen"],
+["c t", "its text onto every screen's clipboard"],
 ["g g / G", "first / last"],
 ["q", "quit"]
 ]

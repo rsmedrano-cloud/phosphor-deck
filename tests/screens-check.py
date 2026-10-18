@@ -191,6 +191,18 @@ screens.proc.zellij = lambda: None
 check("attached: None with no zellij", screens.attached(["deck"]) is None)
 screens.proc.zellij, screens.proc.run = zj, run
 
+# --json with ssh screens but no answer from zellij (not running): a line, no TypeError
+import contextlib, io
+_att, _fetch = screens.attached, screens.Panel.fetch
+screens.attached = lambda s: None
+screens.Panel.fetch = lambda self: [{"tty": "pts/1", "from": "x", "login": "t", "idle": "now",
+                                     "pid": 1, "session": "deck", "said": ""}]
+sys.argv = ["phosphor-screens", "--json"]
+with contextlib.redirect_stdout(io.StringIO()) as out:
+    screens.main()
+check("--json, zellij not answering: still a line", '"1 attached, 1 over ssh"' in out.getvalue())
+screens.attached, screens.Panel.fetch = _att, _fetch
+
 if fails:
     print("FAILED:\n  " + "\n  ".join(fails))
     sys.exit(1)

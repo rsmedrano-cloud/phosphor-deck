@@ -143,6 +143,20 @@ fleet.update_host("db-box", {"ok": True, "SMART": "0|2"})
 fleet.update_host("db-box", {"ok": True})
 check("no alert going back to 0, or when SMART goes quiet", len(said) == 1)
 
+# a GPU's memory and temperature on a narrow card: moved left to fit, or the
+# memory alone, never "12.0 GiB 5" (half a temperature, seen on a phone)
+import re
+plain = lambda t: re.sub(r"\x1b\[[0-9;?]*[a-zA-Z]", "", t)
+gpu = {"name": "NVIDIA GeForce RTX 4070", "util": "26", "used": "4200", "total": "12288", "temp": "57"}
+for w in range(18, 34):
+    _, body = fleet.card("forge", w, dict(fleet.demo_collect("forge"), gpu=[gpu]))
+    det = [plain(l) for l in body if "GiB" in plain(l) and "/12.0" in plain(l)]
+    check("GPU detail at width %d: whole, inside the card" % w,
+          det and len(det[0]) <= w - 4 and (det[0].endswith("57°C") or det[0].endswith("GiB")))
+_, body = fleet.card("forge", 26, dict(fleet.demo_collect("forge"), gpu=[dict(gpu, used="N/A")]))
+check("a GPU whose memory reads N/A: the card still draws, no memory line",
+      not any("GiB" in plain(l) and "/" in plain(l) and "N/A" in plain(l) for l in body))
+
 if fails:
     print("\n".join("FAIL: " + f for f in fails))
     sys.exit(1)

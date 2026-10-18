@@ -482,12 +482,16 @@ def card(name, w, d):
             try: gu = int(g["util"] or 0)
             except ValueError: gu = 0
             body.append(MUTE + "GPU " + RST + bar(gu, bw, "gpu", name) + " " + pctc(gu, "gpu", name))
-            det = ""
-            if g["used"] and g["total"]:
-                det = "%.1f/%.1f GiB" % (int(g["used"])/1024.0, int(g["total"])/1024.0)
-            if g["temp"]: det += ("  " + g["temp"] + "°C")
+            try:                                 # "N/A" from a driver: no memory line
+                mem = "%.1f/%.1f GiB" % (int(g["used"])/1024.0, int(g["total"])/1024.0) \
+                    if g["used"] and g["total"] else ""
+            except (ValueError, TypeError):
+                mem = ""
+            det = "  ".join(x for x in (mem, g["temp"] + "°C" if g["temp"] else "") if x)
+            if len(det) > inner:                 # a narrow card: the memory, never half a temperature
+                det = mem
             body.append("     " + DIM + short[:inner-7] + RST)
-            if det: body.append("     " + DIM + det + RST)
+            if det: body.append(" " * max(0, min(5, inner - len(det))) + DIM + det + RST)
         body.append("")
         for t, p, s in d.get("mnt", []):
             lbl = t if len(t) <= inner-11 else "…" + t[-(inner-12):]
@@ -513,13 +517,11 @@ HISTORY = ("h", "history")
 
 def on_esc(sel):
     """What Esc does: (pick, whether to end). It drops the pick; with none,
-    it gives the tab back, and ends FLEET when a card's tap opened it
-    (PHOSPHOR_CARD), back to the cards. The SYS panel itself never ends."""
+    zoom.esc: it gives the tab back, and ends FLEET when it was opened over
+    something (a card's tap, a shell). The SYS panel stays: q closes it."""
     if sel is not None:
         return None, False
-    if zoom.back():
-        return None, False
-    return None, zoom.tapped()
+    return None, zoom.esc()
 
 def action_tab(key, name, target):
     """(tab name, pane spec) for `key` over the card of `name` (its ssh
@@ -621,7 +623,7 @@ def footer(n, sel, msg):
     base = " phosphor fleet · " + time.strftime("%H:%M:%S") + "  ·  " + str(n) + " hosts  ·  every " \
         + str(INTERVAL) + "s"
     if sel is None:
-        text = base + "  ·  tap a machine"
+        text = base + "  ·  tap a machine  ·  ? keys"
         return DIM + text + RST + ("  " + AMB + msg + RST if msg else ""), {}
     # picked: just what the keys do, short enough for a phone's width
     out, taps, x = " " + FG + HOSTS[sel][0] + RST, {}, 1 + len(HOSTS[sel][0])
@@ -840,8 +842,15 @@ def main():
                 continue
             if k in ("\x1b[A", "\x1b[B", "\x1b[C", "\x1b[D", "\t"):
                 sel = move(sel, k, per_row, n)
-            elif k == "\x1b" or (k == "q" and zoom.tapped()):
-                sel, end = on_esc(None if k == "q" else sel)
+            elif k == "q":                           # keys.md, "Esc and q"
+                break
+            elif k == "?":
+                import tui
+                tui.keys_help("FLEET", [("← → ↑ ↓ Tab", "pick a machine (a tap too)")]
+                              + [(a, w + " on it, in a tab of its own") for a, w in ACTIONS]
+                              + [(HISTORY[0], "its last 24 hours, here")])
+            elif k == "\x1b":
+                sel, end = on_esc(sel)
                 if end:
                     break
             elif k == HISTORY[0]:

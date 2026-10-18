@@ -278,7 +278,7 @@ def draw(names, live, w, rows, msg=None, removing=False):
     lines += [""] * max(0, rows - 2 - len(lines))
     lines.append(vcut(" " + (OK if msg.startswith("kept") else WARN) + " " + msg + RST, w) if msg else "")
     lines.append(vcut(DIM + (" which one? its key or a tap · Esc: none" if removing else
-                             " a key or a tap opens it · + add a card · - take one away · q leave") + RST, w))
+                             " a key or a tap opens it · + add a card · - take one away · q leave · ? keys") + RST, w))
     hit[rows] = "+" if not removing else None
     return lines[:rows], hit
 
@@ -357,7 +357,7 @@ def draw_tiles(names, live, w, rows, msg=None, removing=False, first=0):
     lines.append(vcut(" " + (OK if msg.startswith("kept") else WARN) + " " + msg + RST, w) if msg else "")
     more = " · ↑↓ more" if total > fit else ""
     lines.append(vcut(DIM + (" which one? its key or a tap · Esc: none" if removing else
-                             " a key or a tap opens it · + add · - take one away · q leave" + more) + RST, w))
+                             " a key or a tap opens it · + add · - take one away · q leave · ? keys" + more) + RST, w))
     if not removing:
         hit.append((rows, rows, 1, w, "+"))
     return lines[:rows], hit, first
@@ -461,7 +461,12 @@ def main():
                 continue
             if k is None or k in ("WUP", "WDN"):
                 continue
-            if k == "\x1b" and not removing and zoom.back():
+            if k == "\x1b" and not removing:
+                if zoom.back():
+                    continue
+                if zoom.esc():
+                    return 0
+                msg = "q closes this pane"
                 continue
             i = k if isinstance(k, int) else KEYS.index(k) if k in KEYS[:len(names)] else None
             msg = None
@@ -472,6 +477,10 @@ def main():
                     live.set(names); msg = save(tab, old, names)
             elif k == "-" and names:
                 removing = True
+            elif k == "?":
+                import tui
+                tui.keys_help("CARDS", [("1-9 a-z", "a card's key opens it (a tap too)"),
+                                        ("+", "the gallery: add cards"), ("-", "then a card's key: take it away")])
             elif k == "+":
                 grew = short and not zoom.zoomed()
                 if grew:
@@ -482,7 +491,7 @@ def main():
                 if new is not None:
                     old, names = names, new
                     live.set(names); msg = save(tab, old, names)
-            elif k in ("q", "\x1b", "\x03"):
+            elif k in ("q", "\x03"):
                 return 0
             elif i is not None:
                 run_card(names[i], live)

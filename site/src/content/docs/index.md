@@ -34,6 +34,7 @@ yazi, btop, gping, ctop and rclone into `~/.local/bin` and asks
 | topic | what it covers |
 |---|---|
 | [concepts](manual/concepts/) | the deck, the brain, the fleet, faces |
+| [tour](manual/tour/) | what you get: every part of the deck in one read, and every command |
 | [install](manual/install/) | from nothing to inside the deck, and how to remove it |
 | [patterns](manual/patterns/) | which shape to pick, growing a deck, moving it to a new brain |
 | [profile](manual/profile/) | every setting in ~/.config/phosphor/deck.toml, and your own apps |

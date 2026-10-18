@@ -74,7 +74,7 @@ try:
           ran and ran[-1][-2:] == ["tail", "nimbus"])
 
     # j: backs out of the picker -- nothing runs
-    edit.pick = lambda title, items: None
+    edit.pick = lambda title, items, **kw: None
     ran.clear()
     run_act("j")
     check("j: backing out of the picker runs nothing", not ran)
@@ -129,7 +129,7 @@ try:
     tunnels.interactive = lambda: None
     panel.back = lambda *a, **kw: backs.append(1)
     panel.getkey = lambda timeout=None: "q"
-    edit.pick = lambda title, items: None
+    edit.pick = lambda title, items, **kw: None
     newtab.review_folder = lambda prof, rows: None     # git runs through the mocked subprocess.run
     waits = {"p", "k", "g", "d", "l", "u", "r", "h", "w", "E"}
     try:

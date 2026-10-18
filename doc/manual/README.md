@@ -9,6 +9,7 @@ never a copy.
 | topic | what it covers |
 |---|---|
 | concepts | the deck, the brain, the fleet, faces |
+| tour | what you get: every part of the deck in one read, and every command |
 | install | from nothing to inside the deck, and how to remove it |
 | patterns | which shape to pick, growing a deck, moving it to a new brain |
 | profile | every setting in ~/.config/phosphor/deck.toml, and your own apps |

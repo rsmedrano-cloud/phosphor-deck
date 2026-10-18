@@ -1,7 +1,7 @@
 ---
 title: Privacy
 sidebar:
-  order: 13
+  order: 14
 ---
 
 

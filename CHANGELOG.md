@@ -6,6 +6,46 @@ before it updates.
 
 ## Unreleased
 
+## 2.4.0 — One deck, easy to remember
+
+- One rule for Esc and q on every screen of the deck's own (keys.md, "Esc and q"). Esc goes
+  back one step: it drops a pick, a filter or a search, gives a zoomed pane its tab back, and
+  with nothing left closes a screen you opened from somewhere (a card, a DECK key, the + menu,
+  a shell); it never closes a pane of your tab, which says "q closes this pane" instead. q
+  closes what you're looking at. What changed: NOTES leaves on Esc (it only dropped the pick),
+  FLEET closes on q (it ignored it), the DECK tab takes q and Esc, the tour hides on Esc, and
+  the panels of a tab (SERVICES, TABS, MENTIONS...) no longer close on a stray Esc.
+- `?` on every screen of the deck's own lists its keys (the panels, FLEET, NOTES, the cards,
+  MENTIONS, memory), the ones its bar doesn't show too, and the Esc and q rule.
+- Did you know? The DECK tab's second line, when nothing more urgent wants it, says one thing
+  the deck does and where it is (a DECK key, Alt-j, or the command), built from each command's
+  summary: the ones you've never run here first (`phosphor stats`), a new one every ten minutes.
+  A tap on it does it when it names a DECK key.
+- A short README: what the deck is, how to try it, three pictures (retaken from `phosphor
+  demo`: SYS with its row of cards, a phone, the DECK tab) and where to read more. The long
+  tour moved, whole, into the manual as its own page, "What you get" (`phosphor help tour`,
+  and on the site). The paper-theme picture is gone: it showed the adjutant, which an e-ink
+  screen no longer gets. tests/images-check.py keeps the docs' pictures honest: each one there,
+  described, shown somewhere, and listed in doc/img/shots.json with the code it shows.
+- Sending and receiving files, easier to find. The DECK tab has a "files & notes" group: `S`
+  send a file, `R` receive one, `N` a note (what Alt-j does), `B` a backup. The send card (and
+  `S`) walks your folders to pick the file instead of asking you to type its path; so does the
+  restore card. The key guide (`?`) lists yazi's `c s` (send the hovered file) and `c t` (its
+  text to every clipboard). On Android, the phone kit makes Termux a share target: Share,
+  Termux, Edit, and the file lands in the brain's `~/received`.
+- Fixes from the 2.3.3 audit: `phosphor backup --dry-run` lists what it would write instead
+  of writing a file called `--dry-run`; `phosphor screens --json` no longer fails when zellij
+  doesn't answer but ssh screens are there; a GPU whose memory reads "N/A" no longer breaks its
+  fleet card; the did-you-know line knows every key of the DECK tab (screen is `p`, traces `n`);
+  the docs name `phosphor phone`'s and `screen`'s `--as`, `--qr`, `--script` and `privacy --hook`.
+- On a narrow fleet card a GPU's memory and temperature move left to fit instead of being cut
+  ("4.1/12.0 GiB 5"); narrower still, the memory alone. An adjutant message longer than its
+  three lines ends in "…" after a whole word ("long…"), not in half of one ("long messa").
+- Every command with a card has a door in the deck besides typing it and the gallery (a DECK
+  key, the + menu, a pane, a key), or its `no_door` in share/commands.json says why not;
+  tests/doors-check.py holds it. The DECK tab packs its groups closer, so a tablet still sees
+  them all without scrolling.
+
 ## 2.3.3 — Fixes from the whats-new recording
 
 - Fixes from the whats-new recording. Tapping the fleet card in a tab of cards and pressing Esc

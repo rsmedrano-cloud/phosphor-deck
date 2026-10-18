@@ -65,7 +65,9 @@ print(d + "/layouts/deck.kdl"); print(d + "/config.kdl")
         fcntl.ioctl(self.fd, termios.TIOCSWINSZ, struct.pack("HHHH", self.rows, self.cols, 0, 0))
         self.out = b""
         if not self.wait(lambda: self.session in self.run("list-sessions", "-n", "-s"), 20):
-            raise RuntimeError("zellij didn't start:\n" + self.text()[-2000:])
+            text = self.text()[-2000:]
+            self.__exit__()                   # no zellij server or scratch folder left behind
+            raise RuntimeError("zellij didn't start:\n" + text)
         return self
 
     def __exit__(self, *a):

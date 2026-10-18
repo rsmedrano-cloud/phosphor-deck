@@ -21,7 +21,7 @@ touches a pane or a process.
 import json, os, re, shutil, subprocess, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import FG, DIM, MUTE, PH, AMB, RED, RULE, RST, BLOOM, getkey, pad, vcut, cut, topbar, HEAD, emit
-import deckconf, proc, reap
+import deckconf, proc, reap, zoom
 
 EVERY = 5
 MARK = re.compile(r"\s*●\d+$")          # tabmark's unread count on a tab's name
@@ -213,13 +213,16 @@ def main():
             maxoff = max(0, len(lines) - HEAD - body)
             off = min(off, maxoff)
             shown = lines[:HEAD] + lines[HEAD + off:HEAD + off + body]
-            shown.append(DIM + " " + ("j/k scroll · " if maxoff else "") + "q back" + RST)
+            shown.append(DIM + " " + ("j/k scroll · " if maxoff else "") + "q back · ? keys" + RST)
             sys.stdout.write("\x1b[H" + "\x1b[K\n".join(shown) + "\x1b[K\x1b[J")
             sys.stdout.flush()
             k = getkey(max(0.1, EVERY - (time.time() - last)))
-            if k in ("q", "Q", "\x1b", "\x03", "\x04"):
+            if k in ("q", "Q", "\x03", "\x04") or (k == "\x1b" and zoom.esc()):
                 break
-            if k in ("j", "\x1b[B"):
+            if k == "?":
+                import tui
+                tui.keys_help("MEMORY", [("j k", "scroll"), ("", "every few seconds it reads again")])
+            elif k in ("j", "\x1b[B"):
                 off = min(maxoff, off + 1)
             elif k in ("k", "\x1b[A"):
                 off = max(0, off - 1)

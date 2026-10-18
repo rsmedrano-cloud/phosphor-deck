@@ -151,6 +151,12 @@ os.environ["PHOSPHOR_CARD"] = "%d fleet" % (os.getppid() + 100000)
 check("tapped: inherited further down (a restart from a card), it isn't", not zoom.tapped())
 os.environ.pop("PHOSPHOR_CARD")
 check("tapped: no card, no", not zoom.tapped())
+import builtins
+_input, builtins.input = builtins.input, lambda *a: " typed "
+try:
+    check("an empty label asks for a typed value, no IndexError", card.asked("foo", "") == "typed")
+finally:
+    builtins.input = _input
 
 if fails:
     print("card-check FAILED:\n  " + "\n  ".join(fails)); sys.exit(1)

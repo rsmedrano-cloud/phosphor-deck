@@ -94,6 +94,29 @@ else
   say "extra keys added: KEYBOARD, EDIT, ZOOM, EXIT"
 fi
 
+# 5. Share -> Termux -> Edit: a file from any app lands in the brain's ~/received
+# (Termux saves it in ~/downloads, then runs this with its path)
+E=~/bin/termux-file-editor
+if [ ! -e "$E" ] || grep -q 'phosphor: share to the brain' "$E"; then
+  mkdir -p ~/bin
+  { echo '#!/data/data/com.termux/files/usr/bin/sh'
+    echo '# phosphor: share to the brain. Termux runs this with the shared file (Edit).'
+    echo "T='$T'"
+    cat <<'EOF'
+n=$(printf %s "$(basename "$1")" | tr -c 'A-Za-z0-9._-' '_')
+echo "sending $n to the brain's ~/received ..."
+if ! ssh -o ConnectTimeout=10 "$T" "mkdir -p ~/received && p=~/received/$n && { [ ! -e \$p ] || p=~/received/\$(date +%s)-$n; } && cat > \$p && echo \"  there: \$p\"" < "$1"; then
+  echo "couldn't reach the brain: the file is still in $1"
+fi
+printf 'Enter closes this '; read -r _
+EOF
+  } > "$E"
+  chmod +x "$E"
+  say "Share -> Termux -> Edit sends a file to the brain's ~/received"
+else
+  say "your own ~/bin/termux-file-editor: left alone"
+fi
+
 say "done. Type: deck"
 echo "  For the icon: install Termux:Widget from the same place you got"
 echo "  Termux (F-Droid or GitHub), let Termux 'display over other apps',"

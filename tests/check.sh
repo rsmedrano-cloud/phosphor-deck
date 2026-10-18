@@ -53,7 +53,7 @@ check "notes: a vault folder, migrated"    python3 tests/notes-vault-check.py
 check "tabs.d: shared tabs, read-only"     python3 tests/tabs-d-check.py
 check "recipes, and wizard shapes"         python3 tests/recipe-check.py
 check "wizard: never offers itself back as a fleet candidate" python3 tests/wizard-dedup-check.py
-check "fleet: keys over a card"            python3 tests/fleet-keys-check.py
+check "fleet: keys over a card (--live in CI)" python3 tests/fleet-keys-check.py
 check "fleet: the last 24 hours, h over a card" python3 tests/fleet-history-check.py
 check "text from outside is text: no escapes reach a screen" python3 tests/sanitize-check.py
 check "your apps, the store opens them"    python3 tests/apps-check.py
@@ -96,6 +96,9 @@ check "card: the widget, its value, line and tap" python3 tests/card-check.py
 check "dash: a dashboard of your own, its gallery, kept in its tab" python3 tests/dash-check.py
 check "build: the pickers' first-time hint (--live in CI: the whole path)" python3 tests/build-check.py
 check "zoom: a tap on a title, a summary in a short pane" python3 tests/zoom-check.py
+check "Esc steps back, q closes, ? lists the keys, on every screen" python3 tests/exit-keys-check.py
+check "did you know: the DECK tab's tip line" python3 tests/tips-check.py
+check "the docs' pictures: there, described, none left over" python3 tests/images-check.py
 check "state: every card with a state finds it in the real --json" python3 tests/state-json-check.py
 check "a hand-edited profile says so (DECK tab f, doctor)" python3 tests/profile-changed-check.py
 check "prometheus gauges, fake server"     python3 tests/prom-check.py

@@ -56,15 +56,20 @@ fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", 14, 12, 0, 0))
 time.sleep(0.4)
 with open(os.path.join(cache, "events"), "a") as f:
     f.write("SYS\t%s\n" % ("a long message " * 6))
-buf, end = b"", time.time() + 2.4      # the static fades in under two seconds
-while time.time() < end:
+# the static fades in under two seconds; a busy runner gets a deadline, not a fixed wait
+buf, end = b"", time.time() + 6
+while time.time() < end and b"a long" not in buf:
+    if select.select([fd], [], [], 0.1)[0]:
+        try: buf += os.read(fd, 65536)
+        except OSError: break
+for _ in range(5):                      # the frame it's in, whole
     if select.select([fd], [], [], 0.1)[0]:
         try: buf += os.read(fd, 65536)
         except OSError: break
 os.kill(pid, 15)
 os.waitpid(pid, 0)
-frame = buf.decode("utf-8", "replace").split("\x1b[H")[-2]
-lines = [ANSI.sub("", ln).rstrip("\r") for ln in frame.split("\n")]
+lines = [ANSI.sub("", ln).rstrip("\r") for f in buf.decode("utf-8", "replace").split("\x1b[H")[1:]
+         for ln in f.split("\n")]
 if not any("a long" in ln for ln in lines):
     fails.append("12 cols with a message: the message never showed")
 if any(len(ln) > 12 for ln in lines):
@@ -109,6 +114,8 @@ if adjutant.idle_lines("vault disk 95%", 11) != ["vault disk", "95%"]:
     fails.append("idle: a narrow pane cuts the fleet's state")
 if adjutant.idle_lines("nominal", 40) != ["\u00b7 listening \u00b7 nominal \u00b7"]:
     fails.append("idle: a wide pane lost '· listening ·'")
+if adjutant.wrap("a long message " * 6, 10)[-1] != "long…":
+    fails.append("wrap: more than fits ends in a whole word and …, not %r" % adjutant.wrap("a long message " * 6, 10)[-1])
 if len(adjutant.wrap("one two three four five six", 4)) > 3:
     fails.append("wrap: more than three lines")
 

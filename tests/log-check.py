@@ -125,15 +125,18 @@ finally:
     privacy.subprocess.run = real_run
 
 # -- phosphor run, in a real pty: a crash and a hang both get recorded --
-def probe(name, code, seconds, hang_seconds="0.6", resize=False):
+def probe(name, code, seconds, hang_seconds="0.6", resize=False, until=None):
+    """Run code under phosphor run in a pty for seconds, or until until()
+    is true (a busy runner takes longer: a deadline, not a fixed wait)."""
     env = dict(os.environ, PHOSPHOR_HANG_SECONDS=hang_seconds)
     pid, fd = pty.fork()
     if pid == 0:
         os.execve(sys.executable, [sys.executable, os.path.join(ROOT, "phosphor"), "run",
                                    "--name", name, "--", sys.executable, "-c", code], env)
     out, end, resized = b"", time.time() + seconds, False
-    while time.time() < end:
-        if resize and not resized and time.time() > end - seconds + 0.5:
+    start = time.time()
+    while time.time() < end and not (until and resized and until()):
+        if resize and not resized and time.time() > start + 0.5:
             fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", 10, 40, 0, 0)); resized = True
         if select.select([fd], [], [], 0.1)[0]:
             try: out += os.read(fd, 4096)
@@ -151,8 +154,9 @@ check("a non-zero exit lands in deck.log",
 
 open(dlog.LOG, "w").close()
 FROZEN = "import signal,time; signal.pthread_sigmask(signal.SIG_BLOCK,{signal.SIGWINCH}); time.sleep(60)"
-probe("REALHANG", FROZEN, 6, resize=True)
-check("a hang lands in deck.log", any("REALHANG" in l and "hung" in l for l in dlog.tail(dlog.LOG, 20)))
+hung = lambda: any("REALHANG" in l and "hung" in l for l in dlog.tail(dlog.LOG, 20))
+probe("REALHANG", FROZEN, 20, resize=True, until=hung)
+check("a hang lands in deck.log", hung())
 
 
 # a phosphor tool that crashes under phosphor run: the pane shows the

@@ -27,7 +27,9 @@ among the rows: a group's title, never picked. A fix to keys or taps here
 reaches every panel at once.
 
 The title line ends in zoom's mark: a tap there zooms the pane (Alt-z), Esc
-gives the tab back. A pane too short for the panel (zoom.short) shows
+gives the tab back. Esc and q are the deck's rule (zoom.esc): Esc goes
+back a step and ends the panel only when it was opened over something
+(OPENED for a panel that's always a picker), q ends it from anywhere. A pane too short for the panel (zoom.short) shows
 summary() under the title instead, and a tap anywhere on it zooms.
 
 A panel whose rows have names (row_name(row): a tty, a unit, a host) opens
@@ -45,7 +47,7 @@ INV = "\x1b[7m"                                     # the picked row, for a pane
 
 ON = "\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h"     # alt screen, no cursor, SGR mouse
 OFF = "\x1b[?1006l\x1b[?1000l\x1b[?1049l\x1b[?25h"
-QUIT = ("q", "Q", "\x03", "\x1b")
+QUIT = ("q", "Q", "\x03")
 
 
 def selected(argv=None):
@@ -84,10 +86,27 @@ def off():
     sys.stdout.write(OFF); sys.stdout.flush()
 
 
+def keys_help(title, keys):
+    """? on any screen of the deck's own: its keys, then the two every one
+    of them shares (keys.md, "Esc and q"), in the pager; back to the alt
+    screen and the mouse after it."""
+    w = max([len(k) for k, _ in keys] + [5]) + 3
+    lines = ["", " " + title + " · its keys", ""]
+    lines += ["  %-*s%s" % (w, k, l) for k, l in keys]
+    lines += ["  %-*s%s" % (w, "?", "this list"),
+              "  %-*s%s" % (w, "Esc", "a step back; closes what you opened, never a pane of the tab"),
+              "  %-*s%s" % (w, "q", "closes what you look at"),
+              "", " every command, by category: e in the DECK tab · the manual: phosphor help keys", ""]
+    import form
+    form.pager("\n".join(lines))
+    on()
+
+
 class ListPanel:
     KEYS = []            # [(key, label)]: the key bar, tappable; q quits on its own
     INTERVAL = 5         # seconds between fetches
     TITLE, SUB = "", ""  # the default header(): a topbar with the row count
+    OPENED = False       # True: always opened over something (a picker); Esc ends it
 
     def __init__(self):
         self.rows, self.sel, self.last = [], 0, 0.0
@@ -139,6 +158,14 @@ class ListPanel:
         import form
         form.pager(text)
         on()
+
+    def help(self):
+        """? : every key of the panel, the bar's and the ones it doesn't show."""
+        keys = [("j k ↑ ↓", "pick a row (the wheel and a tap too)"), ("g G", "the first row, the last")]
+        keys += [("Enter" if k == "enter" else k, l) for k, l in self.KEYS if k not in ("q",)]
+        if self.rows and self.row_name(self.rows[0]) is not None:
+            keys.append(("--select NAME", "on its command line: open on that row"))
+        keys_help((self.TITLE or type(self).__name__).upper(), keys)
 
     def refresh(self):
         self.last = 0.0
@@ -213,8 +240,9 @@ class ListPanel:
         spans, x = [], 2
         for k, l in self.KEYS:
             spans.append((x, x + len(k) + 1 + len(l), k)); x += len(k) + 1 + len(l) + 2
+        spans.append((x + 2, x + 2, "?"))
         out.append(" " + "  ".join(AMB + k + RST + FG + " " + l + RST for k, l in self.KEYS)
-                   + DIM + "  · j/k pick" + RST)
+                   + DIM + "  · " + RST + AMB + "?" + RST + DIM + " keys" + RST)
         if self.ask:
             out += [" " + DIM + l + RST for l in self.ask[2].splitlines()]
             out.append(" " + AMB + self.ask[0] + RST + FG + "  y yes · any other key: no" + RST)
@@ -255,14 +283,20 @@ class ListPanel:
             else:
                 self.say("left alone", DIM)
             return True
-        if k == "\x1b" and zoom.back():
-            return True
+        if k == "\x1b":
+            if zoom.back():
+                return True
+            if zoom.esc(self.OPENED):
+                return False
+            self.say("q closes this pane", DIM); return True
         if k in QUIT:
             return False
         if k in ("j", "\x1b[B"): self.move(1); return True
         if k in ("k", "\x1b[A"): self.move(-1); return True
         if k == "g": self.move(-len(self.rows)); return True
         if k == "G": self.move(len(self.rows)); return True
+        if k == "?":
+            self.help(); return True
         if k in ("\r", "\n"):
             k = "enter"
         if self.rows and not self.problem and k in [kk for kk, _ in self.KEYS]:

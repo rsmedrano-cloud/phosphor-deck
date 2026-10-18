@@ -1,0 +1,10 @@
+{
+  "_what": "Every screenshot under doc/img and the code that draws what it shows (tests/images-check.py). When that code changes after the picture was taken, the check says the picture may show something that changed or went: take it again (phosphor demo, on a machine that isn't the live deck).",
+  "readme/sys-p31.png": {"shows": ["lib/fleet.py", "lib/adjutant.py"]},
+  "readme/phone-p31.png": {"shows": ["lib/fleet.py", "lib/adjutant.py"]},
+  "readme/deck-tab.png": {"shows": ["lib/panel.py"]},
+  "mentions/comms-unread.png": {"shows": ["lib/tabmark.py"]},
+  "mentions/mentions-feed.png": {"shows": ["lib/mentions.py"]},
+  "profile/prometheus-panel.png": {"shows": ["lib/prom.py"]},
+  "workspaces/workspace-folder.png": {"shows": ["lib/workspace.py"]}
+}

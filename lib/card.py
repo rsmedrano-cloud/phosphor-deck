@@ -207,6 +207,23 @@ def shorten(note, n):
     return note[:n - 1].rsplit(" ", 1)[0].rstrip(";:,·-– ") + "…"
 
 
+def asked(name, label):
+    """One thing a card asks for before it runs: a file is picked, walking
+    folders (form.file, ~ and ~/fleet a key away), anything else typed.
+    "" for back."""
+    if label.split()[-1:] == ["file"]:
+        import form
+        try:
+            got = form.file("phosphor %s -- which %s?" % (name, label))
+        finally:
+            form.leave()
+        return got or ""
+    try:
+        return input("  %s: " % label).strip()
+    except (EOFError, KeyboardInterrupt):
+        return ""
+
+
 def tap(name, raw=None):
     """What a tap on the card does: a toggle flips (raw is its state; with
     none known it opens bare), anything else runs its args; ask comes first,
@@ -224,10 +241,7 @@ def tap(name, raw=None):
         args = list(c.get("args", []))
         q = "run " + " ".join(["phosphor", name] + args) + "?"
     for label in c.get("ask", []):
-        try:
-            a = input("  %s: " % label).strip()
-        except (EOFError, KeyboardInterrupt):
-            a = ""
+        a = asked(name, label)
         if not a:
             return None
         args.append(a)

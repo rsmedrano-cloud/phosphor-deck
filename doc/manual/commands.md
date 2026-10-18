@@ -18,7 +18,8 @@
   (also: `m` in the DECK tab).
 - `phosphor panel` — the DECK tab: the deck's state, the next steps while you set up, and every
   action one key or tap away (add a screen, machines, theme, web, tunnels, tools, keep a tab, triage
-  a host, tail logs, services, workspaces, review, notices & traces, tabs, shortcuts, a shell here, doctor,
+  a host, tail logs, services, workspaces, review, send or receive a file, a note, a backup,
+  notices & traces, tabs, shortcuts, a shell here, doctor,
   memory, logs, update, restart, manual, and `?` for the keys of every installed tool). Laid out as cards that
   follow the pane's width: one column on a phone (arrows or two fingers scroll it), more on a
   wider screen. Each action is one line: key, label, its live value where it has one (the
@@ -50,9 +51,9 @@
   file that landed in yazi), `triage` (with nothing flagged, any host of the profile), `push`,
   `tts` and `trace` (their status, and on or off one key away), `read` (an address or words to
   search for). A line of text takes a paste whole.
-- `phosphor phone` — how to add a screen (phone, another computer, anything with ssh), with the
-  phone's line as a QR; piped (`ssh … phosphor phone | sh`) it is the Termux kit. `--qr` prints only the code.
-- `phosphor screen [--as KIND]` — the same kit for a computer without Termux: a key and a `deck` in ~/.local/bin.
+- `phosphor phone [--as KIND] [--qr] [--script]` — how to add a screen (phone, another computer, anything with ssh), with the
+  phone's line as a QR; piped (`ssh … phosphor phone | sh`) it is the Termux kit. `--qr` prints only the code, `--script` only the kit, `--as KIND` names the kind of screen its deck command is for.
+- `phosphor screen [--as KIND] [--qr] [--script]` — the same kit for a computer without Termux: a key and a `deck` in ~/.local/bin.
   `--as eink` (or any kind with a `[screens.KIND]` block) makes that `deck` come into the kind's own
   deck; the phone kit says `phone` by itself (see phones).
 - `phosphor gen [--dry-run]` — profile → layouts, zellij theme, units, mounts, links, and the color
@@ -324,7 +325,7 @@
   (`f` in the DECK tab). `--dry-run` only shows. A profile written by a newer phosphor is left
   alone. `phosphor doctor`, `gen` and `update` say when there's something to migrate; `P` in
   the DECK tab runs it.
-- `phosphor backup [FILE]` — the brain's own backup, one file (default
+- `phosphor backup [FILE] [--dry-run]` — the brain's own backup, one file (default
   `~/phosphor-backup-DATE.tar.gz`, 0600): your profile, `apps.toml`, `tabs.d`, the notebook
   (unless `[notes] folder` keeps it in a vault you already sync), the glance token, your adjutant
   faces and the folders "where?" remembers. Never ssh keys, nothing phosphor makes again by
@@ -536,7 +537,8 @@ Its tools only read what's already on the brain, and none of them sends, restart
   itself when the step is done. The demo's profile is a copy under `demo-state`: saving a tab
   there never touches the repo or your own profile, and `gen`, `up`, `restart` and `down` refuse
   to run on it (they'd write the demo over this machine's real deck).
-- `phosphor privacy [--install]` — finds your own data (IPs, users, servers) in what git would publish.
+- `phosphor privacy [--hook | --install]` — finds your own data (IPs, users, servers) in what git would publish.
+  `--install` makes it git's pre-commit hook; `--hook` is what that hook runs (quiet when it's clean).
 
 ## Shell
 - `phosphor completion bash|zsh` — tab completion (the installer adds it to your rc file).

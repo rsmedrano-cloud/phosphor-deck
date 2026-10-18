@@ -1,7 +1,7 @@
 ---
 title: Install
 sidebar:
-  order: 2
+  order: 3
 ---
 
 

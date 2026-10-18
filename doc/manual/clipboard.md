@@ -58,7 +58,8 @@ you'd otherwise reach for by hand. Scan the QR from your phone's camera
 The link is also printed as a clickable hyperlink (OSC 8: a tap or click opens it,
 if your terminal supports it) and copied to the clipboard of every screen looking
 at the deck, so on a phone it's paste into the browser, no scanning or retyping.
-From yazi, `c` `s` does the same to the hovered file.
+From yazi, `c` `s` does the same to the hovered file; `S` in the DECK tab,
+or the send card, walks your folders (and `~/fleet`) to pick one.
 
 ## The other way: getting a file in
 
@@ -76,6 +77,9 @@ into an assistant's pane used to stand in for: run `phosphor receive` from
 the same pane, send the file from wherever it actually is, and it's a real
 path on disk an assistant can `Read` directly, no detour through another
 device's mount or another copy step.
+
+From the DECK tab it's `R`. On an Android phone with the kit there's a
+shorter way still: Share, Termux, Edit (phones manual).
 
     phosphor receive                       # into ~/received, 180s to use it
     phosphor receive --dir ~/inbox --timeout 60

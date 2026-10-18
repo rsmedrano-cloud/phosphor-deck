@@ -166,6 +166,30 @@ if "--live" in sys.argv:
         subprocess.run([zj, "kill-session", "probe-eink"], capture_output=True, env=ENV)
         subprocess.run([zj, "delete-session", "probe-eink", "--force"], capture_output=True, env=ENV)
 
+# Share -> Termux -> Edit: the kit's ~/bin/termux-file-editor sends the
+# shared file to the brain's ~/received, a name of safe characters, never
+# over one already there. ssh here is a stand-in running the remote line
+# in a throwaway "brain" HOME.
+kit = phone.script(prof)
+i = kit.index("cat <<'EOF'\n") + len("cat <<'EOF'\n")
+editor = os.path.join(HOME, "termux-file-editor")
+open(editor, "w").write("T='probe@brain'\n" + kit[i:kit.index("\nEOF\n", i)] + "\n")
+fake = os.path.join(HOME, "fakebin"); os.makedirs(fake, exist_ok=True)
+brain_home = os.path.join(HOME, "brain")
+open(os.path.join(fake, "ssh"), "w").write('#!/bin/sh\nfor a; do last=$a; done\nHOME=%s exec sh -c "$last"\n' % brain_home)
+os.chmod(os.path.join(fake, "ssh"), 0o755)
+shared = os.path.join(HOME, "my photo;rm.jpg")
+open(shared, "w").write("pixels")
+for _ in range(2):
+    subprocess.run(["sh", editor, shared], input="\n", text=True, capture_output=True,
+                   env=dict(ENV, PATH=fake + ":" + os.environ["PATH"]))
+got = sorted(os.listdir(os.path.join(brain_home, "received"))) if os.path.isdir(os.path.join(brain_home, "received")) else []
+check("share to Termux: the file lands in the brain's ~/received, safe name",
+      "my_photo_rm.jpg" in got and open(os.path.join(brain_home, "received", "my_photo_rm.jpg")).read() == "pixels")
+check("share to Termux: a second one never overwrites the first", len(got) == 2)
+check("the kit leaves your own termux-file-editor alone", "phosphor: share to the brain" in kit
+      and 'grep -q \'phosphor: share to the brain\'' in kit)
+
 shutil.rmtree(HOME, ignore_errors=True)
 print("ok" if not fails else "%d failed" % fails)
 sys.exit(1 if fails else 0)

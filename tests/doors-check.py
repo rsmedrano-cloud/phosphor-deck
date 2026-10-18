@@ -21,9 +21,12 @@ finds. So every public entry of share/commands.json declares its `card`
   menu) holds every card that isn't plumbing, so no card is left without
   a door.
 
-It then lists, without failing, the commands whose only door is that
-gallery (no DECK key, no + menu or fleet entry, no pane in a shipped shape
-or the layout).
+- every command with a card has a door in the deck besides typing it and
+  the gallery: a DECK key, a + menu or fleet entry, a pane in a shipped
+  shape or the layout, a card of SYS's row, a key of the deck (Alt-j...);
+  or its `no_door` says why it needs none. A `no_door` on a command that
+  has a door is stale, and fails too. Three ways to every function: the
+  command, the card, the deck.
 """
 import json, os, re, sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -116,6 +119,9 @@ for rel, pats in (("lib/newtab.py", (PANE, ARGV)), ("lib/fleet.py", (PANE,)), ("
     text = open(os.path.join(ROOT, rel)).read()
     for pat in pats:
         doors |= set(pat.findall(text))
+import init, shortcuts   # SYS's row and the deck's keys
+doors |= set(init.sys_cards(web=True, tun=("t",), ci=True)) | {"usage"}   # SYS's row, all it may hold
+doors |= set(re.findall(r'RUN % \("([a-z-]+)', open(shortcuts.__file__).read()))   # Alt-j's note...
 import dash
 gallery = set(dash.gallery_names())
 gone = {d["name"] for d in cli.deprecations("command")}
@@ -126,14 +132,27 @@ for c in doors:
     if c not in entries and c != "panel":
         bad.append("a deck door opens `phosphor %s`, which isn't a command" % c)
 
+for n, c in cards.items():
+    why = entries[n].get("no_door")
+    if why is not None and not (isinstance(why, str) and why.strip()):
+        bad.append("share/commands.json: `%s`'s no_door should say why, in words" % n)
+    elif c["kind"] == "plumbing":
+        if why is not None:
+            bad.append("share/commands.json: `%s` is plumbing: its card's why says it, not no_door" % n)
+    elif n in doors and why:
+        bad.append("share/commands.json: `%s` has a door in the deck now: drop its no_door" % n)
+    elif n not in doors and not why and n not in gone:
+        bad.append("`%s` is only typed or in the gallery: give it a door in the deck (a DECK key, "
+                   "the + menu, a pane...) or say why not in its no_door" % n)
+
 if bad:
     print("doors-check FAILED:")
     for b in bad:
         print("  - " + b)
     sys.exit(1)
-only_card = sorted(n for n, c in cards.items() if c["kind"] != "plumbing" and n not in doors)
+only_card = sorted(n for n, c in cards.items() if c["kind"] != "plumbing" and n not in doors)   # each says why
 by_kind = {}
 for c in cards.values():
     by_kind[c["kind"]] = by_kind.get(c["kind"], 0) + 1
 print("doors-check ok (%d cards: %s)" % (len(cards), ", ".join("%d %s" % (v, k) for k, v in sorted(by_kind.items()))))
-print("  only in the gallery: " + (" ".join(only_card) or "none"))
+print("  no door in the deck, on purpose (no_door): " + (" ".join(only_card) or "none"))

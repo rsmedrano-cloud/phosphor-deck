@@ -18,6 +18,7 @@ def check(what, ok):
 
 plain = lambda s: re.sub(r"\x1b\[[0-9;?]*[a-zA-Z]", "", s)
 panel.marked = lambda step: False
+panel.tips.pick = lambda keys, **kw: None      # the did-you-know line: tests/tips-check.py
 st = {"session": "deck", "version": "1.2.4", "channel": "stable", "news": "", "screens": 2,
       "timer": True, "web": False, "tunnels": [True], "profile_changed": False,
       "dirty_workspaces": 0, "migrate": 0}

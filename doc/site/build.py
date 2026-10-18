@@ -38,7 +38,7 @@ SITE = os.path.join(REPO, "site")
 IMG_LINK = re.compile(r"\(\.\./img/")
 
 TOPIC_TITLES = {
-    "concepts": "Concepts", "install": "Install", "patterns": "Patterns",
+    "concepts": "Concepts", "tour": "What you get", "install": "Install", "patterns": "Patterns",
     "profile": "The profile", "commands": "Commands", "keys": "Keys",
     "phones": "Screens", "workspaces": "Workspaces", "mentions": "Mentions",
     "web": "The deck in a browser", "tunnels": "Tunnels", "clipboard": "Clipboard",

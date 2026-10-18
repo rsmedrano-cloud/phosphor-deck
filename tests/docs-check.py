@@ -6,7 +6,8 @@
                                              came with CHANGELOG.md (CI)
 
 - every command in share/commands.json is in the manual's commands
-  page and in the README;
+  page and in the tour (doc/manual/tour.md); the README, kept short,
+  links both and the site;
 - every manual page is in the manual's index;
 - a push that changes lib/, phosphor, share/ or install.sh also changes
   CHANGELOG.md, unless a commit in it says [no-changelog] (a refactor users
@@ -23,12 +24,16 @@ sys.path.insert(0, os.path.join(ROOT, "lib"))
 import cli
 commands = sorted(cli.entries())
 manual = open(os.path.join(ROOT, "doc/manual/commands.md")).read()
-readme = open(os.path.join(ROOT, "README.md")).read()
+tour = open(os.path.join(ROOT, "doc/manual/tour.md")).read()
 for c in commands:
     if "phosphor " + c not in manual:
         bad.append("doc/manual/commands.md doesn't mention `phosphor %s`" % c)
-    if "phosphor " + c not in readme and "/ `%s`" % c not in readme:     # "`phosphor up` / `down`"
-        bad.append("README.md doesn't mention `phosphor %s`" % c)
+    if "phosphor " + c not in tour and "/ `%s`" % c not in tour:     # "`phosphor up` / `down`"
+        bad.append("doc/manual/tour.md (the tour) doesn't mention `phosphor %s`" % c)
+readme = open(os.path.join(ROOT, "README.md")).read()
+for link in ("doc/manual/tour.md", "doc/manual/commands.md", "rsmedrano-cloud.github.io/phosphor-deck"):
+    if link not in readme:
+        bad.append("README.md should link %s: the rest of the story is there" % link)
 
 index = open(os.path.join(ROOT, "doc/manual/README.md")).read()
 for f in sorted(os.listdir(os.path.join(ROOT, "doc/manual"))):

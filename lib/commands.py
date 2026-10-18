@@ -4,7 +4,7 @@
 
 Pick a category, then a command -- or `/` to search every command's name
 and note at once -- the same categories doc/manual/commands.md
-and README already use, so nothing new to learn if you've read either. A
+and the tour (doc/manual/tour.md) already use, nothing new to learn. A
 read-only command (share/commands.json says `mutates: false`) runs right
 there when you pick it; anything else shows its usage and copies the
 invocation to every screen's clipboard instead of guessing at missing

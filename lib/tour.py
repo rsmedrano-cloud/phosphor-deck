@@ -130,7 +130,7 @@ def draw(st, waiting):
     if s.get("check"):
         out.append("  " + (AMB + "waiting for you..." if waiting else DIM + "Enter: try it (I'll step aside)") + RST)
     keys = ["Enter: next"] if not s.get("check") and i < len(STEPS) - 1 else []
-    keys += ["h: hide", "b: back"] if i else ["h: hide"]
+    keys += ["Esc: hide", "b: back"] if i else ["Esc: hide"]
     keys.append("q: end the tour")
     out.append("  " + DIM + " · ".join(keys) + RST)
     sys.stdout.write("\n".join(out)); sys.stdout.flush()
@@ -165,7 +165,7 @@ def main():
                 advance(i)
             else:
                 zj("hide-floating-panes")
-        elif k in ("h", "H"):
+        elif k in ("h", "H", "\x1b"):        # Esc: back to the deck, the tour waits
             zj("hide-floating-panes")
         elif k in ("b", "B") and i:
             advance(i, i - 1)

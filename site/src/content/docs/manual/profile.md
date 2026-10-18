@@ -1,7 +1,7 @@
 ---
 title: The profile
 sidebar:
-  order: 4
+  order: 5
 ---
 
 

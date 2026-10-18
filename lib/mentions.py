@@ -24,7 +24,7 @@ WORK NOTES (phosphor notes --book work). Only when you press it.
 import json, os, select, shutil, subprocess, sys, termios, textwrap, time, tty
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
-import deckconf, proc
+import deckconf, proc, zoom
 from sanitize import clean, clean_tree
 
 HOME   = os.path.expanduser("~")
@@ -317,7 +317,7 @@ def view():
             bar, spans, x = "", [], 1
             for key, label in buttons:
                 spans.append((x, x + len(label) - 1, key)); bar += AMB + label + RST + " "; x += len(label) + 1
-            foot = DIM + " j/k pick · Enter chat" + (" · p prepare" if can_prep else "") + " · w work notes · q quit" + RST
+            foot = DIM + " j/k pick · Enter chat" + (" · p prepare" if can_prep else "") + " · w work notes · q quit · ? keys" + RST
             out = topbar("MENTIONS", "read-only", "%d new" % n if n else "all seen", w) + lines[off:off + body]
             out = out[:rows - 2] + [bar, foot]
             sys.stdout.write("\x1b[H" + "\x1b[K\n".join(out[:rows]) + "\x1b[K\x1b[J"); sys.stdout.flush()
@@ -331,7 +331,13 @@ def view():
                 elif 3 <= ty < 3 + body:
                     li = off + ty - 3
                     if 0 <= li < len(owner) and owner[li] is not None: sel = owner[li]
-            elif k in ("q", "\x03", "\x1b"): break
+            elif k in ("q", "\x03"): break
+            elif k == "\x1b":
+                if zoom.esc(): break
+            elif k == "?":
+                import tui
+                tui.keys_help("MENTIONS", [("j k", "pick a message (a tap too)"), ("Enter", "go to the chat"),
+                                           ("p", "an assistant prepares notes on it"), ("w", "the work notes")])
             elif k in ("j", "\x1b[B"): sel += 1
             elif k in ("k", "\x1b[A"): sel -= 1
             elif k == "WDN": off += 3

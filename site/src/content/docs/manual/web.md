@@ -1,7 +1,7 @@
 ---
 title: The deck in a browser
 sidebar:
-  order: 10
+  order: 11
 ---
 
 

@@ -9,7 +9,7 @@ come back here: no new tabs, no floating panes.
 import os, shutil, subprocess, sys, termios, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
-import card, deckconf, migrate, version
+import card, deckconf, migrate, tips, version, zoom
 
 PHOSPHOR = os.path.join(REPO, "phosphor")
 STEPS = os.path.join(deckconf.data_dir(), "steps")
@@ -37,6 +37,10 @@ GROUPS = [("screens",  [("v", "screens",          "who's attached; kick one loos
                         ("o", "theme",            "the deck's color, previewed before it's kept"),
                         ("c", "shortcuts",        "the deck's keys, yours to change"),
                         ("?", "key guide",        "the keys of every installed tool")]),
+          ("files & notes", [("S", "send a file", "pick one: a one-time link and QR for any screen"),
+                        ("R", "receive a file", "a one-time upload link, into ~/received"),
+                        ("N", "a note",           "a note or todo, as Alt-j does in any tab"),
+                        ("B", "backup",           "profile, notebook, tabs.d: one file to keep")]),
           ("upkeep",   [("n", "notices & traces", "phone notices, spoken ones, verbose logs: on or off"),
                         ("d", "doctor",           "check this machine"),
                         ("M", "memory",           "what each tab and pane holds, heaviest first"),
@@ -48,7 +52,7 @@ ACTIONS = [a for _, acts in GROUPS for a in acts]
 # the phosphor commands each key opens (act() below), as data: tests/doors-check.py
 # counts them as those commands' doors in the deck; s is a plain shell, f and P
 # show up only when the profile wants them
-OPENS = {"v": ["screens"], "p": ["phone"], "w": ["web"], "E": ["solaros"], "m": ["setup"],
+OPENS = {"v": ["screens"], "p": ["phone", "screen"], "S": ["send"], "R": ["receive"], "N": ["note"], "B": ["backup"], "w": ["web"], "E": ["solaros"], "m": ["setup"],
          "g": ["triage"], "j": ["tail"], "y": ["services"], "t": ["tunnel"], "e": ["commands"],
          "z": ["workspace"], "x": ["review"], "i": ["store"], "s": [], "k": ["keep"], "b": ["tabs"],
          "a": ["recipe"], "o": ["theme"], "c": ["shortcuts"], "?": ["keys"],
@@ -56,7 +60,7 @@ OPENS = {"v": ["screens"], "p": ["phone"], "w": ["web"], "E": ["solaros"], "m": 
          "u": ["update", "version"], "r": ["restart"], "h": ["help"], "P": ["migrate"], "f": ["gen", "restart"]}
 # a key that opens one plain command (no picker or question of the panel's
 # own first) opens it as its card does: card.tap, the same as on a dashboard
-TAPS = {"e", "v", "M", "m", "i", "o", "y", "z", "c", "b", "a", "?", "d", "l", "h", "P"}
+TAPS = {"e", "v", "M", "m", "i", "o", "y", "z", "c", "b", "a", "?", "d", "l", "h", "P", "S", "R", "B"}
 # those that end on their own output wait for q, Esc or Enter (card.waits)
 WAITS = {k for k in TAPS if card.waits(OPENS[k][0])}
 GAP = 2
@@ -194,15 +198,25 @@ def layout(cs, w, avail):
     as many columns as still keep the notes, not one long stretched one."""
     most = max(1, min(len(cs), (w + GAP) // (CARD_W + GAP)))
     least = max(1, min(most, (w + GAP) // (WIDE + GAP)))
+    height = lambda col: sum(len(x[1]) + 2 for x in col)
     for n in range(least, most + 1):
         cw = (w - GAP * (n - 1)) // n
-        cols = [[] for _ in range(n)]
-        for c in cs:                      # each card into the shortest column
-            h = [sum(len(x[1]) + 2 for x in col) for col in cols]
-            cols[h.index(min(h))].append(c)
-        tall = max(sum(len(x[1]) + 2 for x in col) - 1 for col in cols if col)
-        if tall <= avail or n == most:
-            return cols, cw
+        best = None
+        # each card into the shortest column: in their order, else the
+        # tallest first (they pack closer), each column still in order
+        for order in (list(cs), sorted(cs, key=lambda c: -len(c[1]))):
+            cols = [[] for _ in range(n)]
+            for c in order:
+                h = [height(col) for col in cols]
+                cols[h.index(min(h))].append(c)
+            cols = [sorted(col, key=cs.index) for col in cols]
+            tall = max(height(col) - 1 for col in cols if col)
+            if best is None or tall < best[0]:
+                best = (tall, cols)
+            if tall <= avail:
+                break
+        if best[0] <= avail or n == most:
+            return best[1], cw
 
 def draw(prof, st, w, rows, off=0, with_steps=True, live=None):
     """The lines, the tap targets ({row: [(x0, x1, key)]}, 1-based like the
@@ -223,7 +237,18 @@ def draw(prof, st, w, rows, off=0, with_steps=True, live=None):
         L.append(" " + AMB + st["news"] + ": u" + RST)
         hit[len(L)] = [(1, w, "u")]
     else:
-        L.append(" " + DIM + "a key or a tap" + RST)
+        keys = {}
+        for k, cmds in OPENS.items():           # a command two keys open: the first one's
+            for c in cmds:
+                if k not in "fP": keys.setdefault(c, k)
+        tip = tips.pick(keys)
+        if tip and w >= 40:                   # did you know: one thing you may have forgotten
+            L.append(vcut(" " + DIM + "did you know? " + RST + MUTE + tip[1] + RST, w))
+            key = keys.get(tip[0])
+            if key:
+                hit[len(L)] = [(1, w, key)]   # a tap on it does it
+        else:
+            L.append(" " + DIM + "a key or a tap" + RST)
     avail = max(3, rows - 3)
     cols, cw = layout(cards(prof, st, with_steps, live), w, avail)
     notes = cw >= LINE_W + 2 + CMD_W + 16     # a note cut at a word still says something
@@ -276,6 +301,8 @@ def act(k, st):
                 pause()
         elif k == "p":
             P("phone"); pause()
+        elif k == "N":
+            P("note", "--here")
         elif k == "w":
             P("web", "status")
             print()
@@ -428,6 +455,10 @@ def main():
             step = {"\x1b[B": 1, "\x1b[A": -1, "\x1b[6~": rows - 4, "\x1b[5~": 4 - rows}.get(k)
             if step:
                 off = max(0, min(maxoff, off + step))
+            elif k == "q":                  # keys.md, "Esc and q": run offers Enter to open it again
+                break
+            elif k == "\x1b":
+                zoom.back()
             elif k in keys or (k == "f" and (st.get("profile_changed") or st.get("restart_pending"))) or (k == "P" and st.get("migrate")):
                 act(k, st); last = 0
     except KeyboardInterrupt:

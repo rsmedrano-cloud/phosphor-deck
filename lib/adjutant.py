@@ -156,11 +156,14 @@ def fleet_health():
 def wrap(msg, room, most=3):
     """A message as lines of at most room columns, broken between words:
     "vault disk 95%" in a narrow pane is "vault disk" over "95%", never
-    "vault dis". At most `most` lines, the last one cut if it has to be."""
+    "vault dis". At most `most` lines; when there's more, the last one ends
+    in "…" after a whole word (a single word too long for it is cut)."""
     import textwrap
-    lines = textwrap.wrap(msg, max(1, room)) or [""]
+    room = max(1, room)
+    lines = textwrap.wrap(msg, room) or [""]
     if len(lines) > most:
-        lines = lines[:most - 1] + [" ".join(lines[most - 1:])[:max(1, room)]]
+        rest = textwrap.wrap(" ".join(lines[most - 1:]), max(1, room - 1))[0]
+        lines = lines[:most - 1] + [rest[:room - 1] + "…" if room > 1 else rest[:1]]
     return lines
 
 def idle_lines(why, room):
