@@ -16,7 +16,7 @@ the widget the DECK tab is drawn with, and any dashboard after it:
 A card always shows the command it stands for, so the deck teaches the
 terminal; on a screen with no color, a ! after the key is what wants a look.
 """
-import json, os, re, subprocess, sys, threading, time
+import json, os, re, signal, subprocess, sys, threading, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import REPO, AMB, BLOOM, DIM, FG, RST, vcut
 import cli
@@ -209,8 +209,8 @@ def shorten(note, n):
 
 def asked(name, label):
     """One thing a card asks for before it runs: a file is picked, walking
-    folders (form.file, ~ and ~/fleet a key away), anything else typed.
-    "" for back."""
+    folders (form.file, ~ and ~/fleet a key away), anything else typed on
+    a line Esc leaves (form.line; input() without a terminal). "" for back."""
     if label.split()[-1:] == ["file"]:
         import form
         try:
@@ -218,6 +218,12 @@ def asked(name, label):
         finally:
             form.leave()
         return got or ""
+    if sys.stdin.isatty() and sys.stdout.isatty():
+        import form                            # Esc or a tap on "< back" go back (keys.md)
+        try:
+            return (form.line("phosphor %s" % name, label + ", then Enter") or "").strip()
+        finally:
+            form.leave()
     try:
         return input("  %s: " % label).strip()
     except (EOFError, KeyboardInterrupt):
@@ -249,5 +255,12 @@ def tap(name, raw=None):
         return None
     # PHOSPHOR_CARD ("PID NAME", zoom.tapped()): the screen it opens leaves
     # on Esc, back to the card; a zoom it finds is the card's to give back
-    return subprocess.run([sys.executable, PHOSPHOR, name] + args,
-                          env=dict(os.environ, PHOSPHOR_CARD="%d %s" % (os.getpid(), name)))
+    # Ctrl-C reaches the whole pane: it's for the screen the card opened,
+    # never for the cards (or the DECK tab) behind it. A handler, not
+    # SIG_IGN, so the screen itself still gets the default one.
+    old = signal.signal(signal.SIGINT, lambda *a: None)
+    try:
+        return subprocess.run([sys.executable, PHOSPHOR, name] + args,
+                              env=dict(os.environ, PHOSPHOR_CARD="%d %s" % (os.getpid(), name)))
+    finally:
+        signal.signal(signal.SIGINT, old)

@@ -99,7 +99,10 @@ menus) takes these two the same way:
 - **?** lists the keys of the screen you're on, the ones its bar doesn't
   show too; q goes back to it.
 - While you type (a filter, a search, a note), q is a letter and Esc
-  cancels the typing.
+  cancels the typing. At a y/n, Esc and q are no; in a menu with a
+  "back" or "quit", they pick it.
+- **Ctrl-C** stops the program in front of you. In a screen a card
+  opened, that's the screen: you're back on the cards, which stay.
 
 The few screens that pass every key on are the exception: a mirror of
 another pane, a shell, a tool like yazi or btop, which keep their own.

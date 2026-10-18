@@ -188,7 +188,8 @@ def main():
             out, interval = screen(cols, rows)
             sys.stdout.write("\x1b[H" + "\x1b[K\n".join(out) + "\x1b[K\x1b[J")
             sys.stdout.flush()
-            ui.idle(interval)
+            if ui.idle(interval):
+                break
     except KeyboardInterrupt:
         pass
     finally:

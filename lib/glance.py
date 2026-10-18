@@ -29,7 +29,7 @@ import hashlib, hmac, json, os, secrets, shutil, sys, termios, textwrap, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import DIM, MUTE, FG, PH, AMB, RED, RULE, BLOOM, RST, rule, paint
 import deckconf
-import dlog
+import dlog, zoom
 from sanitize import clean_tree
 import ui
 import health
@@ -318,8 +318,8 @@ def press(v, k, items):
         elif k in BACK + ("q", "Q"):
             v["page"] = None
         return None
-    if k in ("q", "Q"):
-        return "quit"
+    if k in ("q", "Q") or (k == "\x1b" and v["sel"] is None and zoom.tapped()):
+        return "quit"                    # Esc: opened by a card, back to it (keys.md)
     if not items:
         v["sel"] = None
     elif k in UP:

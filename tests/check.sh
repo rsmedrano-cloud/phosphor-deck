@@ -98,6 +98,7 @@ check "build: the pickers' first-time hint (--live in CI: the whole path)" pytho
 check "zoom: a tap on a title, a summary in a short pane" python3 tests/zoom-check.py
 check "Esc steps back, q closes, ? lists the keys, on every screen" python3 tests/exit-keys-check.py
 check "did you know: the DECK tab's tip line" python3 tests/tips-check.py
+check "every card's tap comes back: by itself or on Esc" python3 tests/card-exits-check.py
 check "the docs' pictures: there, described, none left over" python3 tests/images-check.py
 check "state: every card with a state finds it in the real --json" python3 tests/state-json-check.py
 check "a hand-edited profile says so (DECK tab f, doctor)" python3 tests/profile-changed-check.py

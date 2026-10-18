@@ -21,7 +21,9 @@ def _key():
     return getkey() or ""
 
 def pick(q, options, default=0):
-    """Arrows, j/k, a number or Enter. Without a terminal (a pipe, a
+    """Arrows, j/k, a number or Enter; Esc or q choose the option that's
+    "back" or "quit" when there is one (keys.md, "Esc and q"), and do
+    nothing in a question with no way out. Without a terminal (a pipe, a
     test) it falls back to typing the number."""
     print("  " + BLOOM + "? " + RST + q)
     if not sys.stdin.isatty():
@@ -53,14 +55,40 @@ def pick(q, options, default=0):
         elif isinstance(k, str) and k.isdigit() and 0 < int(k) <= n: sel = int(k) - 1; draw(False); return sel
         elif k in ("\r", "\n"): return sel
         elif k in ("\x03", "\x04"): print(); raise SystemExit(1)
+        elif k in ("\x1b", "q", "Q") and way_out(options) is not None:
+            sel = way_out(options); draw(False); return sel
         else: continue
         draw(False)
 
+def way_out(options):
+    """The index of a menu's "back" or "quit", None when it has neither."""
+    return next((i for i, o in enumerate(options) if o.split()[:1] in (["back"], ["quit"])), None)
+
 def yes(q, default=True):
+    """y (or s, sí) or n, one key; Enter is the default; Esc and q are no
+    (keys.md, "Esc and q"). Without a terminal, a typed line."""
     d = "Y/n" if default else "y/N"
-    v = ask(q + DIM + " (" + d + ")" + RST, "").lower()
-    if not v: return default
-    return v.startswith("y") or v.startswith("s")   # "s" also: sí
+    if not (sys.stdin.isatty() and sys.stdout.isatty()):
+        v = ask(q + DIM + " (" + d + ")" + RST, "").lower()
+        if not v: return default
+        return v.startswith("y") or v.startswith("s")   # "s" also: sí
+    sys.stdout.write("  " + BLOOM + "? " + RST + q + DIM + " (" + d + ")" + RST + " "); sys.stdout.flush()
+    while True:
+        k = _key()
+        if isinstance(k, tuple): continue
+        if k in ("\x03", "\x04"): print(); raise SystemExit(1)
+        if k in ("\r", "\n"): v = default
+        elif k.lower() in ("y", "s"): v = True
+        elif k.lower() in ("n", "q") or k == "\x1b": v = False
+        else: continue
+        if k not in ("\r", "\n"):
+            # "y" then Enter out of habit: that Enter is this answer's,
+            # never the next question's default
+            try:
+                getkey(timeout=0.4)
+            except Exception:
+                pass
+        print("yes" if v else "no"); return v
 
 def local_identity(ts_ip=None, ts_name=None):
     """Every string this machine might turn up under elsewhere: its

@@ -215,17 +215,30 @@ def quiet():
 
 def idle(seconds):
     """Sleep, throwing away whatever reaches the pane meanwhile, so it
-    never piles up in the terminal's buffer (see quiet)."""
+    never piles up in the terminal's buffer (see quiet). True when what
+    came is the way out (keys.md, "Esc and q"): q, or an Esc that ends
+    this screen (zoom.esc: one a card opened, or typed in a shell; in a
+    pane of the tab Esc only gives a zoomed tab back). A panel that only
+    draws stops there."""
     end = time.time() + seconds
     try:
         fd = sys.stdin.fileno()
     except (OSError, ValueError):
         fd = None
     if fd is None or not os.isatty(fd):
-        time.sleep(seconds); return
+        time.sleep(seconds); return False
     while (left := end - time.time()) > 0:
-        if select.select([fd], [], [], left)[0] and not os.read(fd, 4096):
-            time.sleep(max(0, end - time.time())); return    # end of input
+        if select.select([fd], [], [], left)[0]:
+            data = os.read(fd, 4096)
+            if not data:
+                time.sleep(max(0, end - time.time())); return False    # end of input
+            if data in (b"q", b"Q"):
+                return True
+            if data == b"\x1b":                    # a bare Esc; arrows and the mouse come whole
+                import zoom
+                if zoom.esc():
+                    return True
+    return False
 
 BACK_KEYS = ("q", "Q", "\x1b", "\r", "\n", "\x03", "\x04")   # q, Esc, Enter, Ctrl-C, Ctrl-D
 

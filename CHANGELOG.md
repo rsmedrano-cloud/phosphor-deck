@@ -6,6 +6,18 @@ before it updates.
 
 ## Unreleased
 
+## 2.4.1 — Every card comes back
+
+- Every card comes back. In a tab of cards, several screens a tap opened kept you there: CI,
+  Prometheus and the AI plans took no key at all, glance only q, the setup menu only Ctrl-C,
+  and Ctrl-C closed the cards too, so the tab had to be opened again. Now those panels close on
+  q, and on Esc when a card or a shell opened them (a pane of a tab still only on q); glance
+  and the setup menu take Esc (the menu picks its "quit" or "back"); a y/n answers no to Esc
+  or q and takes one key (an Enter typed after it out of habit is swallowed, never the next
+  question's answer); what a card asks for before it runs (a host, a question) is a line Esc
+  backs out of; and Ctrl-C ends only the screen a card opened, back on the cards.
+  tests/card-exits-check.py taps every card that's safe to run and fails on one that traps.
+
 ## 2.4.0 — One deck, easy to remember
 
 - One rule for Esc and q on every screen of the deck's own (keys.md, "Esc and q"). Esc goes

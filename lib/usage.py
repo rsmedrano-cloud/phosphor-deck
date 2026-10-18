@@ -225,7 +225,8 @@ def main():
             out = frame(got, cols, rows)
             sys.stdout.write("\x1b[H" + "\x1b[K\n".join(out) + "\x1b[K\x1b[J")
             sys.stdout.flush()
-            ui.idle(15)
+            if ui.idle(15):
+                break
     except KeyboardInterrupt:
         pass
     finally:

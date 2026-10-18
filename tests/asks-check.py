@@ -108,7 +108,7 @@ need("ask: the question reaches the assistant, the answer shows", rc == 0 and "A
 t = Term("broadcast")
 t.keys(" ", "\r", "echo hi-from-broadcast", "\r")
 need("broadcast: still asks before running", t.wait_for("run it on 1 host"), plain(t.out))
-t.keys("y\r")
+t.keys("y")
 rc = t.done()
 out = plain(t.out)
 need("broadcast: the ticked host ran the typed command", rc == 0 and "hi-from-broadcast" in out
