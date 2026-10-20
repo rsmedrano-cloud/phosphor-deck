@@ -18,6 +18,13 @@ author, date) and asks if that's the one, then:
 - asks what shape the tab is (see the table), then adds it to your
   profile and opens it.
 
+A whole project instead of one note: put the cursor on its folder in NOTES
+(`phosphor`, say, with its hundreds of notes) and press `w`. If a workspace
+of that name exists, it opens; otherwise you tick any other projects that
+go with it (one whose name starts the same, like `phosphor-deck`, comes
+ticked), and `BRIEF.md` is their latest decisions, summaries and todos, a
+line each, newest first (`--project`, below).
+
 The same thing, without a note: the tab bar's `+` → **workspace**, or
 `phosphor workspace new NAME` from a shell.
 
@@ -112,8 +119,10 @@ hand, same as any other git repo.
 ## Commands
 
 - `phosphor workspace new [NAME] [--shape one|two|shell] [--parts "a b"] [--assistant claude|gemini|codex|opencode|aider|agy]`
-  `[--brief FILE | --note TEXT | --note-file FILE] [--folder-only]` — `--note` takes the note whose title contains TEXT,
-  `--note-file` a note's exact text from a file (the NOTES tab uses it);
+  `[--brief FILE | --note TEXT | --note-file FILE | --project NAME[,NAME]] [--folder-only]` — `--note` takes the note whose title contains TEXT,
+  `--note-file` a note's exact text from a file (the NOTES tab uses it), `--project` the latest
+  notes of one or more notebook projects (`w` on a project's folder in NOTES; the name defaults
+  to the first project's);
   `--folder-only` writes the folder and leaves the profile and tabs alone (an assistant can use it).
 - `phosphor workspace open NAME` — go to its tab, or open it (inside the deck).
 - `phosphor workspace list [--json]` — the workspaces in your projects folder (`--json`: with

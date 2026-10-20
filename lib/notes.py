@@ -596,7 +596,7 @@ def this_tab():
     except ValueError:
         return ""
     mine = next((p for p in ps if not p.get("is_plugin") and str(p.get("id")) == me), None)
-    return (mine or {}).get("tab_name", "").replace(" ✎", "").strip()
+    return (mine or {}).get("tab_name", "").split(" ✎")[0].strip()   # "SYS ✎ Alt-r" while edited
 
 def here(kind=None):
     """What the note key runs over the pane you're in: pick a kind (a key or
@@ -714,15 +714,45 @@ def to_workspace(e):
     sys.stdout.write("\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h\x1b[2J"); sys.stdout.flush()
     return msg
 
-def actions(e):
+def project_workspace(project):
+    """w on a project's folder: its workspace, opened when there is one,
+    else made from its latest notes (workspace new --project), with any
+    other projects ticked in (one whose name starts like it comes ticked:
+    phosphor and phosphor-deck)."""
+    import form
+    sys.stdout.write("\x1b[?1006l\x1b[?1000l\x1b[2J\x1b[H"); sys.stdout.flush()
+    P = [sys.executable, os.path.join(REPO, "phosphor"), "workspace"]
+    env = dict(os.environ, PHOSPHOR_NOTES=PATH)
+    try:
+        if project in WORKSPACES:
+            subprocess.call(P + ["open", project], env=env)
+            return "workspace " + project
+        others = [p for p in projects_in(PATH) if p and p != project]
+        alike = [p for p in others if p.startswith(project) or project.startswith(p)]
+        also = form.ticks("a workspace from %s: other projects in it too?" % project,
+                          [(p, "") for p in others], picked=alike) if others else []
+        form.leave()
+        if also is None:
+            return "no workspace"
+        r = subprocess.call(P + ["new", "--project", ",".join([project] + also)], env=env)
+        if r != 0:
+            back()
+        return "workspace opened" if r == 0 else "no workspace"
+    except KeyboardInterrupt:
+        return "no workspace"
+    finally:
+        sys.stdout.write("\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h\x1b[2J"); sys.stdout.flush()
+
+def actions(e, folder=None):
     """Every key, always in the same place: [(key, label, usable now)]. The
-    ones that need a picked note (or a todo) are dimmed until they apply."""
+    ones that need a picked note (or a todo) are dimmed until they apply;
+    w works on a project's folder too (a workspace from its notes)."""
     if ARCHIVE_VIEW:
         return [("r", "restore", bool(e)), ("D", "delete for good", bool(e)), ("q", "quit", True),
                 ("?", "keys", True)]
     return [("e", "edit", bool(e)), ("d", "archive", bool(e)),
             ("x", "done", bool(e) and e["kind"] == "todo"), ("c", "chat", bool(e)),
-            ("w", "workspace", bool(e)), ("m", "move", bool(e)),
+            ("w", "workspace", bool(e) or bool(folder and folder.get("folder"))), ("m", "move", bool(e)),
             ("a", "write", True), ("t", "todo", True), ("i", "idea", True), ("u", "undo", True),
             ("f", "from: " + (ONLY_TAB or "every tab"), True), ("/", "search", True), ("?", "keys", True)]
 
@@ -825,7 +855,7 @@ def main():
             sel = st["sel"]
             folder = notes[sel] if sel is not None and "folder" in notes[sel] else None
             e = notes[sel] if sel is not None and not folder else None
-            foot, spots = footer(actions(e), w)
+            foot, spots = footer(actions(e, folder), w)
             body = max(3, rows - 2 - len(foot))
             maxoff = max(0, len(lines) - body)
             off = st["off"] = max(0, min(st["off"], maxoff))
@@ -917,6 +947,7 @@ def main():
                 say("done · u brings it back" if archive(PATH, e["raw"], done=True) else "not found")
             elif e and k == "c": say(chat(e))
             elif e and k == "w": say(to_workspace(e))
+            elif folder and folder["folder"] and k == "w": say(project_workspace(folder["folder"]))
             elif e and k == "m": say(move(e, rows))
     except KeyboardInterrupt:
         pass

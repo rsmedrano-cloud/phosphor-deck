@@ -14,6 +14,10 @@ def check(what, ok):
     if not ok:
         fails.append(what)
 
+# no assistant installed as far as these checks know: commands by their bare names
+import tempfile, newtab
+newtab.BIN, os.environ["PATH"] = tempfile.mkdtemp(), tempfile.mkdtemp()
+
 # command(): the right headless flag per assistant, question last
 check("claude -p", ask.command("claude", "hi") == ["claude", "-p", "hi"])
 check("gemini -p", ask.command("gemini", "hi") == ["gemini", "-p", "hi"])
@@ -111,7 +115,7 @@ try:
     rc, out = run(["--assistant"])
     check("--assistant with no name: exits 1", rc == 1)
 
-    ask.newtab.have = lambda b: b == "claude"
+    ask.newtab.have = lambda b: b if b == "claude" else None   # its path: the bare name, here
     rc, out = run(["--assistant", "gemini", "hi"])
     check("--assistant names one not installed: exits 1", rc == 1 and "gemini" in out)
 
@@ -163,6 +167,32 @@ try:
 finally:
     ask.newtab.have = real_have
     ask.subprocess.run = real_run
+
+# a pane of the deck runs with systemd's PATH, without ~/.local/bin: the
+# assistant ask found there runs by its full path (it failed with
+# "couldn't run claude" from the ask and digest cards)
+bin_ = tempfile.mkdtemp()
+fake = os.path.join(bin_, "claude")
+open(fake, "w").write("#!/bin/sh\n"); os.chmod(fake, 0o755)
+_bin, _path = newtab.BIN, os.environ.get("PATH", "")
+newtab.BIN, os.environ["PATH"] = bin_, "/usr/bin:/bin"
+try:
+    check("the assistant runs by its full path", ask.command("claude", "hi")[0] == fake
+          and ask.command("claude", "hi", readonly=True)[0] == fake)
+finally:
+    newtab.BIN, os.environ["PATH"] = _bin, _path
+
+# MENTIONS draws a notification whose notes are being prepared (it crashed: STATE_TXT)
+import mentions
+cache = tempfile.mkdtemp()
+mentions.FEED, mentions.PREP = os.path.join(cache, "feed.jsonl"), os.path.join(cache, "prep")
+open(mentions.FEED, "w").write('{"t": 1.0, "from": "nova", "message": "hi", "mention": true}\n')
+mentions.set_state(1.0, "running")
+try:
+    lines, _ = mentions.render(80, 0)
+    check("mentions: a note being prepared says so", any("preparing notes" in l for l in lines))
+except NameError as e:
+    check("mentions: draws a note being prepared (%s)" % e, False)
 
 if fails:
     print("ask-check FAILED:\n  " + "\n  ".join(fails)); sys.exit(1)

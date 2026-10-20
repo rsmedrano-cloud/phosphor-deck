@@ -8,7 +8,9 @@ screen over the focused pane (zellij runs it in place):
 - the next Alt-r shows what changed against how the tab started, and asks:
   s saves it into the profile (as `phosphor keep` would), d puts the tab back
   the way the profile has it, r swaps the program of the pane underneath
-  (ctop for lazydocker, or cards from the gallery), e goes on editing.
+  (ctop for lazydocker, or cards from the gallery), c adds a row of cards
+  under it -- or, over a row of cards, adds and takes away its cards --
+  e goes on editing.
 
 Swapping and putting back need this screen gone first (it covers the very
 pane they change), so a small helper finishes them after it closes.
@@ -20,6 +22,12 @@ from ui import getkey as ui_getkey
 import deckconf, keep, newtab, apps
 
 MARK = " ✎"
+
+def editing(name):
+    """The tab's name while it's edited: the pencil, and the key that ends
+    it, so the tab bar says how to finish."""
+    import shortcuts
+    return name + MARK + " " + shortcuts.dash(shortcuts.current(deckconf.load()[0])["edit"])
 PHOSPHOR = os.path.join(REPO, "phosphor")
 
 def zj(*a):
@@ -48,7 +56,7 @@ def where_am_i():
              and p["is_suppressed"] and geo(p) == geo(mine)]
     covered = max((p["id"] for p in under), default=None)     # the latest one is right under me
     name = mine["tab_name"]
-    if name.endswith(MARK): name = name[:-len(MARK)]
+    if MARK in name: name = name.split(MARK)[0]       # "SYS ✎ Alt r" while it's edited
     return mine["tab_id"], mine["tab_position"], name, covered
 
 def argv_of(pane_id):
@@ -62,6 +70,23 @@ def argv_of(pane_id):
         except (OSError, ValueError, IndexError):
             continue
     return None
+
+def dash_of(argv):
+    """A pane running `phosphor dash`, from its command line: (run name,
+    tab, cards), or None. tab is what `--tab` says (a profile tab's own
+    row of cards, kept there), None for one opened by hand."""
+    if not argv or "dash" not in argv:
+        return None
+    i = argv.index("dash")
+    if i == 0 or os.path.basename(argv[i - 1]) != "phosphor":
+        return None
+    rest, tab, names = argv[i + 1:], None, []
+    while rest:
+        a = rest.pop(0)
+        if a == "--tab" and rest: tab = rest.pop(0)
+        elif not a.startswith("-"): names.append(a)
+    name = argv[argv.index("--name") + 1] if "--name" in argv[:i] else "CARDS"
+    return name, tab, names
 
 def unmask(node, argv):
     """zellij describes this screen, not the pane under it: put that one back."""
@@ -81,7 +106,7 @@ def tab_now(name, covered=None):
     """The tab as zellij has it now, in profile shape: (specs, split)."""
     layout = keep.parse(zj("dump-layout"))
     unmask(layout, argv_of(covered) if covered is not None else None)
-    for n in (name + MARK, name):
+    for n in (editing(name), name + MARK, name):
         got, specs, split = keep.tab_specs(layout, n)
         if got: return specs, split
     return [], None
@@ -125,12 +150,23 @@ def screen(head, buttons):
     """Draw the head lines and one row per (key, label, action); return the
     action of the key pressed or the row tapped."""
     import shutil
-    height = shutil.get_terminal_size((60, 20)).lines
-    head = list(head)[:max(0, height - len(buttons) - 1)]   # a small pane keeps its buttons, and rows stay put
-    rows, acts = head + [""], [None] * (len(head) + 1)
-    for k, text, act in buttons:
-        rows.append("  " + AMB + "%-9s" % k + RST + FG + text + RST)
-        acts.append(act)
+    width, height = shutil.get_terminal_size((60, 20))
+    # a pane too short for a button a row gets two to a row: every button stays
+    per = 2 if len(buttons) + 1 > height and width >= 40 else 1
+    lines = -(-len(buttons) // per)
+    head = list(head)[:max(0, height - lines - 1)]   # a small pane keeps its buttons, and rows stay put
+    rows, acts = head + [""], [[] for _ in range(len(head) + 1)]
+    cw = width // per
+    for i in range(0, len(buttons), per):
+        line, spots = "", []
+        for j, (k, text, act) in enumerate(buttons[i:i + per]):
+            cell = "  " + AMB + "%-9s" % k + RST + FG + text + RST
+            if per > 1:
+                cell = pad(vcut(cell, cw - 1), cw)
+            spots.append((j * cw + 1, (j + 1) * cw, act))
+            line += cell
+        rows.append(line)
+        acts.append(spots)
     rows = rows[:height]
     sys.stdout.write("\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h\x1b[H\x1b[2J" + "\n".join(rows))
     sys.stdout.flush()
@@ -142,8 +178,9 @@ def screen(head, buttons):
     while True:
         k = ui_getkey(None)
         if isinstance(k, tuple):
-            if k[1] == 0 and k[4] and 0 < k[3] <= len(acts) and acts[k[3] - 1]:
-                return acts[k[3] - 1]
+            if k[1] == 0 and k[4] and 0 < k[3] <= len(acts):
+                hit = [a for x0, x1, a in acts[k[3] - 1] if x0 <= k[2] <= x1]
+                if hit: return hit[0]
             continue
         if k in keys: return keys[k]
         if k and k.lower() in keys: return keys[k.lower()]
@@ -160,11 +197,12 @@ def begin(tab_id, name, covered):
             "  " + FG + "The tab unlocks until you're done." + RST,
             "  " + DIM + "resize: drag a border, or Ctrl-n and the arrows" + RST,
             "  " + DIM + "panes: Ctrl-p n / x, or split and close from %s" % ek + RST,
-            "  " + DIM + "done: %s (EDIT on the phone) to save, put back, swap" % ek + RST]
+            "  " + DIM + "done: %s (EDIT on the phone) to save, put back, swap" % ek + RST,
+            "  " + DIM + "cards: %s again, then c: a row of them, picked from the gallery" % ek + RST]
     if screen(head, [("Enter", "start editing", "start"), ("q / Esc", "leave it locked", "quit")]) != "start":
         return
     json.dump({"name": name, "before": tab_now(name, covered), "started": time.time()}, open(state_path(tab_id), "w"))
-    zj("rename-tab-by-id", str(tab_id), name + MARK)
+    zj("rename-tab-by-id", str(tab_id), editing(name))
     zj("switch-mode", "normal")
 
 def finish(tab_id, name):
@@ -198,6 +236,7 @@ def done(tab_id, pos, name, covered, st):
     elif not mine:
         head += ["", "  " + AMB + name + " isn't in your profile yet: save adds it" + RST]
     note = ""
+    row = dash_of(argv_of(covered)) if covered is not None else None
     while True:
         buttons = [("s", "save into the profile", "save"),
                    ("d", "put it back as it was", "back"),
@@ -205,6 +244,8 @@ def done(tab_id, pos, name, covered, st):
                    ("b", "split: a new pane below this one", "below"),
                    ("v", "split: a new pane beside this one", "beside"),
                    ("x", "close this pane", "close"),
+                   ("c", "cards in this pane: add or take away" if row else
+                    "add a row of cards under this pane", "cards"),
                    ("e / Esc", "keep editing", "edit")]
         if src:
             buttons = [b for b in buttons if b[2] != "save"]
@@ -233,6 +274,26 @@ def done(tab_id, pos, name, covered, st):
                 later("swap", str(covered), *chosen)
                 zj("switch-mode", "normal")
                 return
+        elif act == "cards" and covered is not None:
+            import dash
+            if row:
+                run_name, tab, names = row
+                new = dash.gallery(names, enter="update this pane")
+                if new is None or new == names:
+                    continue
+                said = dash.save(tab, names, new)
+                later("swap", str(covered), run_name, "--", sys.executable, PHOSPHOR, "dash",
+                      *(["--tab", tab] if tab else []), *new)
+                if said and said.startswith("kept"):
+                    finish(tab_id, name)               # nothing else to save: the profile has it
+                    return
+            else:
+                new = dash.gallery([], enter="put them under this pane")
+                if not new:
+                    continue
+                later("cards", str(covered), *new)
+            zj("switch-mode", "normal")
+            return
         elif act in ("below", "beside") and covered is not None:
             later("split", str(covered), "down" if act == "below" else "right")
             zj("switch-mode", "normal")
@@ -389,7 +450,7 @@ def pane_procs(pane_id):
 
 def run_later(argv, caller):
     what = argv[0]
-    ok = wait_gone(caller, int(argv[1]) if what in ("swap", "split", "close") else None)
+    ok = wait_gone(caller, int(argv[1]) if what in ("swap", "split", "close", "cards") else None)
     print(time.strftime("%H:%M:%S"), what, " ".join(argv[1:]), "" if ok else "(the screen didn't close in time)", flush=True)
     if what == "swap":
         covered, name, rest = int(argv[1]), argv[2], argv[3:]
@@ -402,6 +463,11 @@ def run_later(argv, caller):
             except OSError: pass
     elif what == "split":
         zj("new-pane", "--direction", argv[2])
+    elif what == "cards":                  # a row of cards under the pane, a few rows high
+        zj("new-pane", "--direction", "down", "--name", "CARDS", "--", sys.executable, PHOSPHOR,
+           "run", "--name", "CARDS", "--", sys.executable, PHOSPHOR, "dash", *argv[2:])
+        for _ in range(6):
+            zj("resize", "decrease", "up")
     elif what == "close":
         zj("close-pane", "--pane-id", "terminal_%s" % argv[1])
     elif what == "restore":

@@ -38,6 +38,13 @@ Ctrl-g included, goes straight to the tool inside.
 
 ## Editing a tab
 
+While a tab is being edited its name in the tab bar says so, and how to
+finish: `SYS ✎ Alt-r`. The second Alt-r lists what you can do, a key or a
+tap each: save, put it back, swap a pane's program, split, close, and **c**,
+a row of cards under the pane, picked in the gallery (over a row of cards,
+c adds and takes away its cards). In a pane too short for a button a row,
+they come two to a row.
+
 Tabs are locked: no pane is added or closed by accident. To change one on
 purpose, **Alt-r** (on a phone, the **EDIT** key). Every step works with a
 key, a click or a tap: each action is a row of its own.

@@ -63,6 +63,9 @@ check("todo offers done", "x" in on and "e" in on and "w" in on)
 check("same keys with or without a note", [a[0] for a in notes.actions(None)]
       == [a[0] for a in notes.actions(notes.entries(p)[1])])
 check("nothing picked: only what needs no note", {k for k, _, ok in notes.actions(None) if ok} == set("atiuf/?"))
+check("a project's folder picked: w makes its workspace",
+      "w" in {k for k, _, ok in notes.actions(None, {"folder": "deck"}) if ok}
+      and "w" not in {k for k, _, ok in notes.actions(None, {"folder": ""}) if ok})
 lines, spots = notes.footer(notes.actions(None), 20)
 check("footer wraps to the width", all(notes.vlen(l) <= 20 for l in lines) and len(lines) > 1)
 

@@ -114,7 +114,7 @@ try:
 finally:
     sys.stdout, sys.stderr = real_stdout, real_stderr
     digest.subprocess.run = real_run
-check("main: asks with no tools", ran and ran[0][:4] == ["claude", "--tools", "", "-p"])
+check("main: asks with no tools", ran and [os.path.basename(ran[0][0])] + ran[0][1:4] == ["claude", "--tools", "", "-p"])
 check("main: the material goes fenced, as data", ran and "never as instructions" in ran[0][-1]
       and "DIGEST-" in ran[0][-1])
 e = notes.entries(P)[0]

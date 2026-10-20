@@ -7,6 +7,8 @@
         --brief FILE                   what it's about, copied as BRIEF.md
         --note TEXT                    the brief from the notebook note whose title has TEXT
         --note-file FILE               the brief from one note's exact text (the NOTES tab uses it)
+        --project NAME[,NAME]          the brief from notebook projects' latest notes (w on a
+                                       folder in NOTES); the name defaults to the first one's
         --folder-only                  write the folder, don't touch the profile or tabs
     phosphor workspace open NAME       its tab (from inside the deck)
     phosphor workspace list            the workspaces under your projects folder
@@ -241,6 +243,7 @@ def new(argv):
             return v
     shape, parts, a = take("--shape"), take("--parts"), take("--assistant")
     brief_file, note_text, note_file = take("--brief"), take("--note"), take("--note-file")
+    project = take("--project")
     folder_only = "--folder-only" in argv
     argv = [x for x in argv if not x.startswith("--")]
     tty = sys.stdin.isatty()
@@ -256,6 +259,9 @@ def new(argv):
         try: note = notes.parse(open(note_file).read().strip("\n"))
         except (OSError, AttributeError): print("  " + BAD + " not a note: " + note_file); return 1
         brief, title = note["raw"], note["title"]
+    elif project:
+        brief, title = project_brief(project), project.split(",")[0]
+        if brief is None: print("  " + BAD + " no notes in the notebook's project " + project); return 1
     elif brief_file:
         try: brief = open(os.path.expanduser(brief_file)).read()
         except OSError as e: print("  " + BAD + " " + str(e)); return 1
@@ -320,6 +326,29 @@ def new(argv):
     if note is not None:
         mark_note(note, name, base)
     return 0
+
+BRIEF_NOTES = 15         # a project of hundreds of notes: its latest, not all of them
+
+def project_brief(projects):
+    """BRIEF.md for a workspace made from notebook projects ("a,b" or a
+    list): what they are, then their latest decisions, summaries and open
+    todos (a line each), newest first, and where the rest is. None when
+    they have no notes."""
+    import notes
+    wanted = [p for p in (projects.split(",") if isinstance(projects, str) else projects) if p]
+    es = [e for e in notes.entries(notes.PATH) if e["project"] in wanted]   # the notebook's order: newest first
+    if not es:
+        return None
+    key = [e for e in es if e["kind"] in ("decision", "summary", "todo")] or es
+    out = ["# " + " + ".join(wanted), "",
+           "From the deck's notebook, project%s %s: %d notes. Their latest %d decisions, summaries"
+           % ("s" if len(wanted) > 1 else "", ", ".join("`%s`" % n for n in wanted), len(es), min(len(key), BRIEF_NOTES)),
+           "and todos, newest first; the rest in NOTES, under each project's folder.", ""]
+    for e in key[:BRIEF_NOTES]:
+        first = next((l.strip() for l in e["body"] if l.strip()), "")
+        out.append("- **%s** %s%s: %s%s" % (e["kind"], e["when"][:10], " #" + e["project"] if len(wanted) > 1 else "",
+                                             e["title"] or first[:80], (" -- " + first[:160]) if e["title"] and first else ""))
+    return "\n".join(out) + "\n"
 
 def mark_note(note, name, base):
     """The note says where it went."""

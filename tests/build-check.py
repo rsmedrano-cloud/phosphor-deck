@@ -114,7 +114,7 @@ def existing(z, prof, shown):
     z.keys(ALT_E, 1)
     if not need("edit: Alt-r asks to start", z.wait(lambda: shown("EDIT SYS"), 10)): return
     z.keys(b"\r", 1)
-    need("edit: the tab unlocks", z.wait(lambda: tab() == "SYS ✎", 5))
+    need("edit: the tab unlocks", z.wait(lambda: tab().startswith("SYS ✎"), 5))
     z.keys(ALT_E, 1)
     if not need("edit: Alt-r again offers r", z.wait(lambda: shown("what changed"), 10)): return
     z.keys(b"r", 1)

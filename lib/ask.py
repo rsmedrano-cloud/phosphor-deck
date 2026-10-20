@@ -22,7 +22,7 @@ provider along with the question.
 Run with nothing at all on a terminal it asks instead: a box for the
 question, whether the notebook goes along, and the answer in a pager.
 """
-import os, subprocess, sys
+import os, shutil, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import BAD, DIM, RST
 import newtab
@@ -66,7 +66,12 @@ def pick(name=None):
 
 
 def command(assistant, question, readonly=False):
-    return (READONLY if readonly else ONESHOT)[assistant] + [question]
+    """The argv, its program by full path: a pane of the deck runs with
+    the PATH systemd gave zellij, which may not have ~/.local/bin, where
+    pick() found it."""
+    argv = (READONLY if readonly else ONESHOT)[assistant] + [question]
+    found = shutil.which(argv[0]) or newtab.have(argv[0])     # PATH first, as a shell would
+    return [found if isinstance(found, str) else argv[0]] + argv[1:]
 
 
 NOTE_KINDS = ("decision", "summary")

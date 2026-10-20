@@ -63,7 +63,7 @@ you'd otherwise reach for by hand. Scan the QR from your phone's camera
 The link is also printed as a clickable hyperlink (OSC 8: a tap or click opens it,
 if your terminal supports it) and copied to the clipboard of every screen looking
 at the deck, so on a phone it's paste into the browser, no scanning or retyping.
-From yazi, `c` `s` does the same to the hovered file; `S` in the DECK tab,
+From yazi, `c` `s` does the same to the hovered file; `s` in the DECK tab,
 or the send card, walks your folders (and `~/fleet`) to pick one.
 
 ## The other way: getting a file in

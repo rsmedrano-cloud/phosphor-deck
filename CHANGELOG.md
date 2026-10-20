@@ -6,6 +6,26 @@ before it updates.
 
 ## Unreleased
 
+## 2.4.2 — Cards from the pencil
+
+- Cards where you want them, from the pencil. The second Alt-r (the tab being edited) has **c**:
+  a row of cards under the pane you're on, picked in the gallery (send and receive in SYS, say),
+  or, over a row of cards, the cards in it to add or take away; with s it's in your profile. A
+  tab being edited says how to finish in the tab bar (`SYS ✎ Alt-r`), and a pane too short for
+  the edit screen's buttons shows them two to a row instead of cutting the last ones off. A row
+  of cards says `+ adds a card` on its title, where a row a few lines high had no room to.
+- `w` on a project's folder in NOTES makes a workspace from that project: its latest decisions,
+  summaries and todos as BRIEF.md (not all of its hundreds of notes), with other projects ticked
+  in if you want (`phosphor-deck` comes ticked beside `phosphor`); one that exists opens.
+  `phosphor workspace new --project NAME[,NAME]` does the same from a shell.
+- In the DECK tab, `s` sends a file (it was `S`, right beside `s`, a shell: one missed Shift
+  opened a shell). The shell is `!` now; `S` still sends.
+- Long text in the pager (read, help, a command's output) says its keys at the bottom: q closes,
+  space next page, b back a page, / searches.
+- Fixed: the ask, digest, read and triage cards said "couldn't run claude" in the deck: its panes
+  run with the PATH systemd gives zellij, without ~/.local/bin, where the assistant was found and
+  then not run from. MENTIONS crashed on a notification whose notes were being prepared.
+
 ## 2.4.1 — Every card comes back
 
 - Every card comes back. In a tab of cards, several screens a tap opened kept you there: CI,

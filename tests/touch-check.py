@@ -76,7 +76,8 @@ check("ended pane: a tap elsewhere does nothing", not ended)
 
 # the + menu: its close row is a tap target, not only a q/Esc hint
 import newtab, deckconf
-os.environ["PHOSPHOR_PROFILE"] = ENV["PHOSPHOR_PROFILE"]
+for k in ("PHOSPHOR_PROFILE", "PHOSPHOR_DATA", "PHOSPHOR_CACHE"):   # the rows the session draws: its data, not ours
+    os.environ[k] = ENV[k]
 prof, _ = deckconf.load()
 rows, acts = newtab.render(newtab.entries(prof), 0, False, 80)
 check("the + menu has a 'close' row", "close" in acts)

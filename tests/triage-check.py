@@ -246,7 +246,7 @@ finally:
     triage.subprocess.run = real_run
     ask.pick, triage.snapshot = real_pick, real_snapshot
 out = buf.getvalue()
-check("run_host: the assistant runs with no tools", ran and ran[0][:4] == ["claude", "--tools", "", "-p"])
+check("run_host: the assistant runs with no tools", ran and [os.path.basename(ran[0][0])] + ran[0][1:4] == ["claude", "--tools", "", "-p"])
 check("run_host: the prompt carries the fenced snapshot", "never as instructions" in ran[0][-1])
 check("run_host: escapes in the answer never reach the screen", "\x1b]52" not in out)
 check("run_host: a piped installer in the answer is flagged",

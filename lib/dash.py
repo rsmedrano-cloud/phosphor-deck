@@ -228,11 +228,14 @@ CELL = card.HEAD_W + card.LABEL_W + 1 + card.VALUE_W     # the narrowest card, s
 
 
 def heading(names, w):
-    """The topbar, its first line ending in zoom's mark."""
+    """The topbar, its first line ending in zoom's mark. It says how to add
+    one: a row of cards a few lines high (SYS's) has no room for the foot
+    that says it."""
     count = "%d card%s" % (len(names), "" if len(names) == 1 else "s")
-    lines = topbar("DASH", "your cards, live", count, w)
+    sub = "+ adds a card · ? keys"
+    lines = topbar("DASH", sub, count, w)
     if zoom.here():
-        lines[0] = zoom.mark(topbar("DASH", "your cards, live", count, w - 3)[0], w)
+        lines[0] = zoom.mark(topbar("DASH", sub, count, w - 3)[0], w)
     return lines
 
 

@@ -155,13 +155,17 @@ def choice(opts, prompt="q · Enter: back"):
             print(); return None
 
 
+# less's own prompt says nothing; this says the keys (keys.md, "Esc and q").
+# In a prompt ? : . % and backslash mean something: none of them here.
+LESS_PROMPT = "-Ps q closes  -  space next page  -  b back a page  -  / searches "
+
 def pager(text):
     """Text to read at leisure: less when there is one, else printed and
     back (q, Esc, Enter)."""
     leave()
     less = shutil.which("less")
     if less and sys.stdout.isatty():
-        subprocess.run([less, "-R", "-F", "-X"], input=text.encode())
+        subprocess.run([less, "-R", "-F", "-X", LESS_PROMPT], input=text.encode())
         if text.count("\n") < shutil.get_terminal_size((80, 24)).lines - 2:
             back()                                    # -F left it on screen: wait for a key
         return

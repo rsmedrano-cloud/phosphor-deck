@@ -30,14 +30,14 @@ GROUPS = [("screens",  [("v", "screens",          "who's attached; kick one loos
                         ("z", "workspaces",       "every workspace, its git state; open, diff, new"),
                         ("x", "review",           "merge/pull requests of a repo, CI and diff"),
                         ("i", "install tools",    "TUIs from their releases, no sudo"),
-                        ("s", "a shell here",     "on the brain; exit comes back")]),
+                        ("!", "a shell here",     "on the brain; exit comes back")]),
           ("tabs & keys", [("k", "keep a tab",    "the way you arranged it, into your profile"),
                         ("b", "tabs",             "the ones that come back: forget, reorder"),
                         ("a", "recipes",          "starter tab bundles: homelab, dev, bubble, workbench"),
                         ("o", "theme",            "the deck's color, previewed before it's kept"),
                         ("c", "shortcuts",        "the deck's keys, yours to change"),
                         ("?", "key guide",        "the keys of every installed tool")]),
-          ("files & notes", [("S", "send a file", "pick one: a one-time link and QR for any screen"),
+          ("files & notes", [("s", "send a file", "pick one: a one-time link and QR for any screen"),
                         ("R", "receive a file", "a one-time upload link, into ~/received"),
                         ("N", "a note",           "a note or todo, as Alt-j does in any tab"),
                         ("B", "backup",           "profile, notebook, tabs.d: one file to keep")]),
@@ -52,15 +52,15 @@ ACTIONS = [a for _, acts in GROUPS for a in acts]
 # the phosphor commands each key opens (act() below), as data: tests/doors-check.py
 # counts them as those commands' doors in the deck; s is a plain shell, f and P
 # show up only when the profile wants them
-OPENS = {"v": ["screens"], "p": ["phone", "screen"], "S": ["send"], "R": ["receive"], "N": ["note"], "B": ["backup"], "w": ["web"], "E": ["solaros"], "m": ["setup"],
+OPENS = {"v": ["screens"], "p": ["phone", "screen"], "s": ["send"], "R": ["receive"], "N": ["note"], "B": ["backup"], "w": ["web"], "E": ["solaros"], "m": ["setup"],
          "g": ["triage"], "j": ["tail"], "y": ["services"], "t": ["tunnel"], "e": ["commands"],
-         "z": ["workspace"], "x": ["review"], "i": ["store"], "s": [], "k": ["keep"], "b": ["tabs"],
+         "z": ["workspace"], "x": ["review"], "i": ["store"], "!": [], "k": ["keep"], "b": ["tabs"],
          "a": ["recipe"], "o": ["theme"], "c": ["shortcuts"], "?": ["keys"],
          "n": ["push", "tts", "trace"], "d": ["doctor"], "M": ["mem"], "l": ["logs"],
          "u": ["update", "version"], "r": ["restart"], "h": ["help"], "P": ["migrate"], "f": ["gen", "restart"]}
 # a key that opens one plain command (no picker or question of the panel's
 # own first) opens it as its card does: card.tap, the same as on a dashboard
-TAPS = {"e", "v", "M", "m", "i", "o", "y", "z", "c", "b", "a", "?", "d", "l", "h", "P", "S", "R", "B"}
+TAPS = {"e", "v", "M", "m", "i", "o", "y", "z", "c", "b", "a", "?", "d", "l", "h", "P", "s", "R", "B"}
 # those that end on their own output wait for q, Esc or Enter (card.waits)
 WAITS = {k for k in TAPS if card.waits(OPENS[k][0])}
 GAP = 2
@@ -376,7 +376,7 @@ def act(k, st):
                 folder = newtab.review_folder(deckconf.load()[0] or {}, shutil.get_terminal_size((60, 20)).lines)
                 if folder:
                     subprocess.run([sys.executable, PHOSPHOR, "review"], cwd=folder)
-        elif k == "s":
+        elif k == "!":
             print(DIM + "  a shell on this machine. exit (or Ctrl-d) comes back to the panel." + RST)
             subprocess.run([deckconf.shell(deckconf.load()[0]), "-l"])
         elif k == "u":
@@ -433,6 +433,7 @@ def main():
     if not sys.stdin.isatty():
         print("phosphor panel is the DECK tab: it needs a terminal"); return 1
     keys = {a[0] for a in ACTIONS}
+    ALIAS = {"S": "s"}                  # send was S until 2.4.1, beside s, the shell: either sends now
     mono_stdout()                       # an e-ink screen: the ! and the words carry it
     live = card.Live(live_names())
     sys.stdout.write("\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h")
@@ -452,6 +453,7 @@ def main():
                     off = max(0, min(maxoff, off + (3 if k[1] == 65 else -3)))
                     continue
                 k = at(hit, k[2], k[3]) if k[0] == "MOUSE" and k[1] == 0 and k[4] else None
+            k = ALIAS.get(k, k)
             step = {"\x1b[B": 1, "\x1b[A": -1, "\x1b[6~": rows - 4, "\x1b[5~": 4 - rows}.get(k)
             if step:
                 off = max(0, min(maxoff, off + step))

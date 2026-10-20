@@ -33,7 +33,7 @@ for w in (20, 30, 40, 48, 60, 90, 140):
 s = plain(card.line("t", "tunnels", "1/2 up", "phosphor tunnel", "", 60, warn=True))
 check("a card that wants a look has ! after its key (no color needed)", s.startswith("  t! "))
 check("the value sits right after the label", re.search(r"tunnels +1/2 up  phosphor tunnel", s))
-check("no command: just key, label, value", plain(card.line("s", "a shell here", None, "", "x", 60)).rstrip() == "  s  a shell here")
+check("no command: just key, label, value", plain(card.line("!", "a shell here", None, "", "x", 60)).rstrip() == "  !  a shell here")
 
 # a note that doesn't fit: its first clauses, else cut at a word
 check("shorten: whole when it fits", card.shorten("who's attached", 20) == "who's attached")

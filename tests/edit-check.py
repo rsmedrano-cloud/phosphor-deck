@@ -53,6 +53,12 @@ def pure():
         open(os.path.join(bin_, b), "w").write("#!/bin/sh\n"); os.chmod(os.path.join(bin_, b), 0o755)
     sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "lib"))
     import edit
+    # c over a pane: a row of cards is read back from its command line
+    need("dash_of: a profile tab's row", edit.dash_of(
+        ["/usr/bin/python3", "/x/phosphor", "run", "--name", "CARDS", "--", "/usr/bin/python3", "/x/phosphor",
+         "dash", "--tab", "SYS", "version", "screens"]) == ("CARDS", "SYS", ["version", "screens"]))
+    need("dash_of: one opened by hand", edit.dash_of(["phosphor", "dash", "ci"]) == ("CARDS", None, ["ci"]))
+    need("dash_of: anything else isn't one", edit.dash_of(["sleep", "601"]) is None and edit.dash_of(None) is None)
     need("a profile tab can be put back", edit.origin("SYS") == (True, None))
     need("a tabs.d tab can be put back too (gen wrote its layout)",
          edit.origin("BUBBLE")[1] and edit.origin("BUBBLE")[1].endswith("bubble.toml"))
@@ -138,7 +144,7 @@ def main():
         z.keys(ALT_E, 1)
         if not need("Alt-r shows the edit screen", z.wait(lambda: "EDIT SYS" in z.text(), 10)): return
         z.keys(b"\r", 1)
-        if not need("the tab is marked while editing", z.wait(lambda: tab() == "SYS ✎", 5)): return
+        if not need("the tab is marked while editing", z.wait(lambda: tab().startswith("SYS ✎"), 5)): return
         start = sizes()
         z.keys(CTRL_N, 0.3); z.keys(b"j", 0.3); z.keys(b"j", 0.3); z.keys(ESC, 0.5)
         if not need("resizing works while editing", z.wait(lambda: sizes() != start, 5)): return
@@ -154,7 +160,7 @@ def main():
         saved = sizes()
         before = len(sleeps(z))
         z.keys(ALT_E, 1); z.wait(lambda: "EDIT SYS" in z.text(), 5); z.keys(b"\r", 1)
-        z.wait(lambda: tab() == "SYS ✎", 5)
+        z.wait(lambda: tab().startswith("SYS ✎"), 5)
         z.keys(CTRL_N, 0.3); z.keys(b"k", 0.3); z.keys(b"k", 0.3); z.keys(b"k", 0.3); z.keys(ESC, 0.5)
         z.wait(lambda: sizes() != saved, 5)
         z.out = b""
@@ -170,7 +176,7 @@ def main():
         idx = items.index("mytool")
         z.out = b""
         z.keys(ALT_E, 1); z.wait(lambda: "EDIT SYS" in z.text(), 5); z.keys(b"\r", 1)
-        z.wait(lambda: tab() == "SYS ✎", 5)
+        z.wait(lambda: tab().startswith("SYS ✎"), 5)
         z.out = b""
         z.keys(ALT_E, 1); z.wait(lambda: "what changed" in z.text(), 10)
         z.keys(b"r", 1); z.wait(lambda: "what goes in this pane" in z.text(), 5)
@@ -183,6 +189,21 @@ def main():
         need("the swap shows as a change", z.wait(lambda: "sleep 601 → sleep 903" in z.text(), 10))
         z.keys(b"s", 1)
         need("s saves the swapped program", z.wait(lambda: '"903"' in open(prof).read() and '"601"' not in open(prof).read(), 10))
+
+        # 3b. c: a row of cards under the pane, picked in the gallery, then saved
+        z.out = b""
+        z.keys(ALT_E, 1); z.wait(lambda: "EDIT SYS" in z.text(), 5); z.keys(b"\r", 1)
+        z.wait(lambda: tab().startswith("SYS ✎"), 5)
+        z.out = b""
+        z.keys(ALT_E, 1); z.wait(lambda: "what changed" in z.text(), 10)
+        need("c offers a row of cards", "add a row of cards" in z.text())
+        z.keys(b"c", 1); z.wait(lambda: "put them under this pane" in z.text(), 10)
+        z.keys(b" ", 0.5); z.keys(b"\r", 1)
+        need("c puts a row of cards under the pane", z.wait(lambda: "dash" in z.action("dump-layout"), 15))
+        z.out = b""
+        z.keys(ALT_E, 1); z.wait(lambda: "what changed" in z.text(), 10)
+        z.keys(b"s", 1)
+        need("s keeps the row of cards in the profile", z.wait(lambda: "dash = [" in open(prof).read(), 10))
 
         # 4. taps only
         touch(z, prof)
@@ -215,7 +236,7 @@ def touch(z, prof):
                          if not p["is_plugin"] and not p["is_suppressed"]])
     z.keys(ALT_E, 1)
     if not need("touch: start editing is a row to tap", tap(z, "start editing")): return
-    if not need("touch: the tab unlocks", z.wait(lambda: tab() == "SYS ✎", 5)): return
+    if not need("touch: the tab unlocks", z.wait(lambda: tab().startswith("SYS ✎"), 5)): return
     z.action("move-focus", "up")
     geo = sorted((p["pane_y"], p["pane_rows"]) for p in json.loads(z.action("list-panes", "-a", "-j"))
                  if not p["is_plugin"] and not p["is_suppressed"])

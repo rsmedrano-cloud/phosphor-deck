@@ -259,6 +259,8 @@ def go(sess):
         zj(sess, "focus-pane-id", tab[3])
     mark_seen()
 
+STATE_TXT = {"running": "preparing notes...", "ready": "notes ready: WORK NOTES"}
+
 def render(w, sel):
     """Lines and, for each, the entry index it belongs to (newest first)."""
     s, lines, owner = seen(), [], []

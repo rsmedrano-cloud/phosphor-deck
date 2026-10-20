@@ -30,7 +30,7 @@ for cmd, t in all_:
     e = entries[cmd]
     check("%s: a public command with a card" % cmd, not e.get("hidden") and e["card"]["kind"] != "plumbing")
     check("%s: says where it is" % cmd, t.endswith((" in the DECK tab", " in any tab", "phosphor " + cmd)))
-check("send's tip names S", dict(all_)["send"].endswith("S in the DECK tab"))
+check("send's tip names s", dict(all_)["send"].endswith("s in the DECK tab"))
 check("a command a key opens second has that key too (screen: p)", dict(all_)["screen"].endswith("p in the DECK tab"))
 check("note's tip names Alt-j", dict(all_)["note"].endswith("Alt-j in any tab"))
 check("plumbing has no tip", "run" not in dict(all_))
@@ -52,10 +52,10 @@ st = {"session": "deck", "version": "1.2.4", "channel": "stable", "news": "", "s
       "timer": True, "web": False, "tunnels": [True], "profile_changed": False,
       "dirty_workspaces": 0, "migrate": 0}
 real = tips.pick
-tips.pick = lambda keys, **kw: ("send", "one real file · S in the DECK tab")
+tips.pick = lambda keys, **kw: ("send", "one real file · s in the DECK tab")
 lines, hit, _ = panel.draw({}, st, 100, 40)
 check("DECK: the tip on the second line", plain(lines[1]).startswith(" did you know? one real file"))
-check("DECK: a tap on it is its key", hit.get(2) == [(1, 100, "S")])
+check("DECK: a tap on it is its key", hit.get(2) == [(1, 100, "s")])
 tips.pick = lambda keys, **kw: ("ask", "a question · phosphor ask")
 lines, hit, _ = panel.draw({}, st, 100, 40)
 check("DECK: a tip with no key isn't a tap target", 2 not in hit)

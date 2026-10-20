@@ -87,6 +87,18 @@ r = run("new", "--note", "índice", "--shape", "one", "--assistant", "claude", "
 made = os.path.join(d, "un-indice-de-charlas")
 check("from a note: named after it", r.returncode == 0 and os.path.isfile(os.path.join(made, "BRIEF.md")))
 check("from a note: the brief is the note", "Un índice de charlas" in open(os.path.join(made, "BRIEF.md")).read())
+# from notebook projects (w on a project's folder in NOTES): their latest notes, not all of them
+for i in range(20):
+    notes.append(env["PHOSPHOR_NOTES"], "decision", "nova", "deck call %d" % i, "why %d" % i, project="deck")
+notes.append(env["PHOSPHOR_NOTES"], "todo", "nova", "the deck's site", "", project="deck-site")
+r = run("new", "--project", "deck,deck-site", "--shape", "one", "--assistant", "claude", "--folder-only")
+brief = open(os.path.join(d, "deck", "BRIEF.md")).read() if r.returncode == 0 else ""
+check("from projects: named after the first", r.returncode == 0 and brief.startswith("# deck + deck-site"))
+check("from projects: their latest notes, newest first, a line each",
+      "deck call 19" in brief and "the deck's site" in brief and "deck call 0" not in brief
+      and brief.count("\n- ") == 15)
+r = run("new", "--project", "nothing-here", "--folder-only")
+check("a project with no notes stops", r.returncode == 1 and "no notes" in r.stdout)
 r = run("new", "--note", "nothing like it", "--folder-only")
 check("an unknown note stops", r.returncode == 1 and "no note" in r.stdout)
 r = run("new", "shop", "--shape", "one", "--assistant", "claude")

@@ -241,7 +241,8 @@ def help(topic):
         return 0 if not topic else 1
     text = render(page(names[0]), shutil.get_terminal_size((80, 24)).columns)
     if sys.stdout.isatty() and shutil.which("less"):
-        subprocess.run(["less", "-R", "-F", "-X"], input=text, text=True)
+        import form
+        subprocess.run(["less", "-R", "-F", "-X", form.LESS_PROMPT], input=text, text=True)
     else:
         sys.stdout.write(text)
     return 0
