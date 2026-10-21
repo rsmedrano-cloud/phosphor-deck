@@ -15,6 +15,11 @@ sidebar:
   of x when its last program ends.
 - **"isn't installed"**: run the installer again (`sh ~/.phosphor/install.sh`);
   it fetches only what's missing.
+- **A program runs in your terminal but not in a pane** ("command not found",
+  "couldn't run claude"): the panes run with the deck's own PATH, written by
+  `phosphor gen` from the shell you ran it in (`~/.local/bin` first, never
+  shorter than before). `phosphor doctor` names what a pane lacks; run
+  `phosphor gen` from a login shell that has it, then `phosphor restart`.
 - **The warm-up screen when you get in**: any key skips it; `splash = false`
   in `[deck]` turns it off for good.
 - **"the deck is starting..."**: `deck` found the session not up yet (right

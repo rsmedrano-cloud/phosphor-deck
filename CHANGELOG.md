@@ -6,6 +6,15 @@ before it updates.
 
 ## Unreleased
 
+## 2.4.3 — The deck's panes see your PATH
+
+- The deck's panes see your PATH. They used to run with systemd's bare one, so a program in
+  `~/.local/bin`, `~/.cargo/bin` or nvm's node worked in your terminal and not in a pane.
+  `phosphor gen` now writes the PATH it runs with into the deck's unit, `~/.local/bin` first,
+  added to what was there (a gen from cron or a bare ssh never takes anything away), and says
+  what the panes gain. `phosphor doctor` says what a pane lacks that your login shell has. A
+  running deck takes it with `phosphor gen && phosphor restart`.
+
 ## 2.4.2 — Cards from the pencil
 
 - Cards where you want them, from the pencil. The second Alt-r (the tab being edited) has **c**:

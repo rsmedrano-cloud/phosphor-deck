@@ -241,6 +241,9 @@ Environment=TERM=xterm-256color
 # Panes inherit these: yazi and friends open files with the editor, and a
 # pane zellij opens (Ctrl-p n, a split) runs the shell.
 Environment="EDITOR=%(editor)s" "VISUAL=%(editor)s" "SHELL=%(shell)s"
+# Without it every pane has systemd's PATH: no ~/.local/bin, no cargo, no
+# claude. gen merges the PATH it runs in with this one (deck_path).
+Environment="PATH=%(path)s"
 # The logic lives in a generated script: ExecStart reinterprets $ and
 # backslashes, and a long sh -c in there is fragile.
 ExecStart=/bin/sh %%h/.local/share/phosphor/%(session)s-up.sh
@@ -290,13 +293,44 @@ Persistent=false
 WantedBy=timers.target
 """
 
+# systemd's own PATH for user units: what the panes had before gen wrote one
+SYSTEMD_PATH = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+UNIT_PATH = re.compile(r'^Environment="PATH=([^"\n]*)"', re.M)
+
+def unit_path(text):
+    """The PATH a deck unit's text sets, or None (a unit from before 2.5)."""
+    m = UNIT_PATH.search(text or "")
+    return m.group(1) if m else None
+
+def deck_path(old=None, env=None):
+    """The PATH the deck's panes run with: ~/.local/bin, the PATH gen runs
+    in, what the unit already had (a gen from cron or a bare ssh never
+    shrinks it), systemd's own. Relative, missing and repeated entries go,
+    an activated virtualenv's bin too, and anything the unit line can't
+    hold."""
+    env = os.environ if env is None else env
+    venv = env.get("VIRTUAL_ENV")
+    skip = {os.path.join(venv, "bin")} if venv else set()
+    out = []
+    for d in [BIN] + env.get("PATH", "").split(":") + (old or "").split(":") + SYSTEMD_PATH.split(":"):
+        d = d.rstrip("/") or d
+        if (d in out or d in skip or not os.path.isabs(d) or not (d == BIN or os.path.isdir(d))
+                or any(c in d for c in '"\\%\n')):
+            continue
+        out.append(d)
+    return ":".join(out)
+
+def deck_unit_file(ctx):
+    return os.path.join(UDIR, "%s.service" % ctx.deck.get("session", "deck"))
+
 def editor(ctx):
     return deckconf.editor(ctx.prof)
 
 def units(ctx):
     sess = ctx.deck.get("session", "deck")
     out = {"%s.service" % sess: DECK_UNIT % {"zellij": resolve("zellij"), "session": sess,
-                                            "editor": editor(ctx), "shell": deckconf.shell(ctx.prof)},
+                                            "editor": editor(ctx), "shell": deckconf.shell(ctx.prof),
+                                            "path": deck_path(unit_path(_read(deck_unit_file(ctx))))},
            "%s.timer" % sess: DECK_TIMER}
     import tunnels
     for t in deckconf.tunnels(ctx.prof):
@@ -627,6 +661,12 @@ def local_links(ctx, dry, changed):
         os.symlink(dest, link)
         print(row(OK, name, "-> " + dest))
 
+def _read(path):
+    try:
+        return open(path).read()
+    except OSError:
+        return None
+
 def write(path, content, dry, changed):
     old = open(path).read() if os.path.exists(path) else None
     if old == content:
@@ -748,8 +788,15 @@ def run(prof, src, dry=False):
     local_links(ctx, dry, changed)
 
     print("\n" + rule("systemd units"))
+    was = unit_path(_read(deck_unit_file(ctx)))
     for name, body in units(ctx).items():
         write(os.path.join(UDIR, name), body, dry, changed)
+    now = deck_path(was).split(":")
+    new = [d for d in now if d not in (was if was is not None else SYSTEMD_PATH).split(":")]
+    if new:
+        short = lambda d: "~" + d[len(HOME):] if d.startswith(HOME + "/") else d
+        print(row(OK, "panes' PATH", ("would add " if dry else "adds ") + ", ".join(map(short, new)),
+                  note="a running deck sees it after phosphor restart"))
     if not ctx.remotes():
         print(row(DIM + "·" + RST, "no remote hosts", "nothing to mount"))
 

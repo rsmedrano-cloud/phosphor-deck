@@ -121,6 +121,7 @@ check "yazi: c t clips the file"           python3 tests/yazi-keymap-check.py
 check "send: one file, one link, gone"     python3 tests/send-check.py
 check "receive: the other way, one upload, gone" python3 tests/receive-check.py
 check "services: units match what gen writes" python3 tests/services-check.py
+check "the deck's panes get your PATH"  python3 tests/deck-path-check.py
 check "containers: listing parses, host names stay out of a shell" python3 tests/containers-check.py
 check "ListPanel: keys and taps with no terminal" python3 tests/tui-check.py
 check "security: who reaches a file, secrets, sshd" python3 tests/security-check.py

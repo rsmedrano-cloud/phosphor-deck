@@ -17,6 +17,36 @@ def have(b):
     if os.path.isfile(p) and os.access(p, os.X_OK): return p
     return shutil.which(b)
 
+def login_path():
+    """The PATH a login shell ends up with, or None. -l, not -i: an
+    interactive rc may attach to the deck or print; the markers skip
+    whatever a profile prints anyway."""
+    import pwd, re, subprocess
+    shell = pwd.getpwuid(os.getuid()).pw_shell or "/bin/sh"
+    try:
+        r = subprocess.run([shell, "-lc", 'printf "\\n@PHOSPHOR_PATH@%s@\\n" "$PATH"'],
+                           stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=5)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    m = re.search(r"@PHOSPHOR_PATH@([^@\n]*)@", r.stdout or "")
+    return m.group(1) if m else None
+
+def panes_path(unit, login):
+    """(status, value, note) for the deck unit's PATH against the login
+    shell's: what a pane can't find that your terminal can."""
+    import gen
+    have_ = gen.unit_path(unit)
+    if have_ is None:
+        return WARN, "systemd's own: no ~/.local/bin", "phosphor gen && phosphor restart"
+    inside = have_.split(":")
+    miss = [d for d in [LOCALBIN] + (login or "").split(":")
+            if os.path.isabs(d) and os.path.isdir(d) and d.rstrip("/") not in inside]
+    miss = list(dict.fromkeys(d.rstrip("/") for d in miss))
+    if miss:
+        short = ["~" + d[len(HOME):] if d.startswith(HOME + "/") else d for d in miss]
+        return WARN, "lacks " + ", ".join(short), "phosphor gen from a login shell, then phosphor restart"
+    return OK, "has your login shell's" if login is not None else "set", ""
+
 def zellij_versions():
     """(installed, tested): the zellij on PATH and share/versions.json's. A
     different one usually works, but the deck leans on that version's
@@ -58,6 +88,14 @@ def run(profile=None):
     else:
         print(row(WARN, "~/.local/bin in PATH", "no"))
         issues.append("add ~/.local/bin to your shell's PATH")
+    # the panes run with the deck unit's PATH, not your shell's
+    import gen
+    unit = gen._read(os.path.join(gen.UDIR, "%s.service" % ((profile or {}).get("deck") or {}).get("session", "deck")))
+    if unit is not None:
+        st, val, note = panes_path(unit, login_path())
+        print(row(st, "the deck's panes", val, note=note))
+        if st != OK:
+            issues.append("the deck's panes miss part of your PATH: " + note)
 
     print("\n" + rule("user systemd", w))
     rc, out = sh("systemctl --user is-system-running 2>&1")
