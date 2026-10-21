@@ -130,6 +130,10 @@ def main():
             print(pathmod.translate(a))
         return 0
 
+    if cmd == "screen" and "--probe" in sys.argv[2:]:
+        import probe
+        return probe.main()
+
     if cmd == "screen":               # the same kit, for a computer without Termux
         cmd = "phone"
         sys.argv.insert(2, "--screen")

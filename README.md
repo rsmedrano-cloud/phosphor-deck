@@ -71,6 +71,7 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
   watchdog, on a machine that stays on; a desktop, a tablet, a phone, an
   e-ink reader are windows into it ([screens](doc/manual/phones.md)).
   Coming back, one screen says what happened while you were away.
+  A screen nobody has tried starts with `phosphor screen --probe`.
 - **Tabs, not apps.** Laid out once from your profile; the `+` in the tab
   bar opens a shell here or on any machine, an assistant, files, any
   command, or several panes at once ([keys](doc/manual/keys.md)).

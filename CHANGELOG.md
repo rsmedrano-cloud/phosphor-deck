@@ -6,6 +6,14 @@ before it updates.
 
 ## Unreleased
 
+## 2.4.8 — Trying a new screen
+
+- `phosphor screen --probe`: one numbered page of what a screen can draw (lines, blocks,
+  Braille, the deck's marks, bold and reverse, 16/256/24-bit color, the deck in its theme and in
+  paper), run over ssh from the screen itself. The screens manual has a new "Trying a screen
+  nobody has tried": a checklist from the probe up to a deck of its own, and what to report at
+  each step, for an e-ink reader or a Pi Zero before any code is written for it.
+
 ## 2.4.7 — While you were away
 
 - While you were away: coming into the deck, one screen says what happened since you last

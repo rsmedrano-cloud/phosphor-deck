@@ -381,3 +381,41 @@ on the menu. Without it, the session starts on the menu.
     phosphor solaros            the service, the address, the paired panels
     phosphor solaros off        stop serving (paired keys stay)
     phosphor solaros forget     take every paired panel's key out
+
+## Trying a screen nobody has tried
+
+An e-ink reader, a Pi Zero's console, a microcontroller: before anything is
+written for a new kind of screen, someone holds one and reports what it
+does. Go down this list in order and stop where it stops working; each step
+needs less of the screen than the next.
+
+1. **What it can draw.** From the device:
+   `ssh -t you@brain '~/.local/bin/phosphor screen --probe'`. One page,
+   numbered: lines, blocks, Braille, the deck's marks, bold and reverse,
+   16, 256 and 24-bit color, and a few lines of the deck in its theme and in
+   `paper`. Report the numbers that look wrong (a box, a `?`, nothing, the
+   wrong color), line 0 (TERM, the size, the locale) and a photo. The
+   24-bit rows come last on purpose: if everything after 8 turns bold or
+   reversed, the client misreads 24-bit color, and that's the answer.
+2. **A glance.** `ssh -t you@brain '~/.local/bin/phosphor glance'`, then
+   `--mono`. Report: does it fit, is it readable, how much ghosting builds
+   up before `r` is needed, and how long a repaint takes. Leave it an hour:
+   does the screen stay put between changes?
+3. **One pane.** `ssh -t you@brain '~/.local/bin/phosphor mirror --tab NOTES --view'`.
+   Report: does it keep up, how often the screen flashes, what typing
+   feels like without `--view`.
+4. **A deck of its own.** A `[screens.eink]` block (`theme = "paper"`,
+   `graphs` = `blocks` or `braille`, whichever drew in step 1), `phosphor
+   gen`, then `phosphor screen --as eink` on the device, or
+   `ssh -t you@brain '~/.local/bin/deck --screen eink'`. Report: does
+   zellij drop it ("client too slow"), what keeps redrawing (the pulse, the
+   adjutant), and the full refreshes a minute.
+
+Then what it is: the device and its terminal (kterm on a jailbroken Kindle,
+its browser on `phosphor web`, the Pi's plain console, kmscon, fbterm), its
+size in characters and the font. A device with no terminal at all (an
+ESP32) skips the list: `phosphor glance --serve` above is its way in;
+report what it can show of that JSON.
+
+Each report becomes an issue; code for that kind of screen is written from
+it, not before.

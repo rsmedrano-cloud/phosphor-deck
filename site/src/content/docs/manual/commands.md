@@ -58,9 +58,11 @@ sidebar:
   search for). A line of text takes a paste whole.
 - `phosphor phone [--as KIND] [--qr] [--script]` — how to add a screen (phone, another computer, anything with ssh), with the
   phone's line as a QR; piped (`ssh … phosphor phone | sh`) it is the Termux kit. `--qr` prints only the code, `--script` only the kit, `--as KIND` names the kind of screen its deck command is for.
-- `phosphor screen [--as KIND] [--qr] [--script]` — the same kit for a computer without Termux: a key and a `deck` in ~/.local/bin.
+- `phosphor screen [--as KIND] [--qr] [--script] [--probe]` — the same kit for a computer without Termux: a key and a `deck` in ~/.local/bin.
   `--as eink` (or any kind with a `[screens.KIND]` block) makes that `deck` come into the kind's own
-  deck; the phone kit says `phone` by itself (see phones).
+  deck; the phone kit says `phone` by itself (see phones). `--probe` prints one numbered page of
+  what the screen running it can draw (lines, Braille, colors, the deck in its theme and in paper),
+  for trying a new kind of screen (phones, "Trying a screen nobody has tried").
 - `phosphor gen [--dry-run]` — profile → layouts, zellij theme, units, mounts, links, and the color
   of yazi, btop, gping and ctop (see `theme` in profile).
 - `phosphor up` — start the deck and enable it at boot (with the fleet mounts).

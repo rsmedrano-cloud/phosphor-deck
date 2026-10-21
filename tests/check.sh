@@ -120,6 +120,7 @@ check "notify: --no-event, --fleet-alert, PHOSPHOR_CACHE" python3 tests/notify-c
 check "fleet alerts: down/back, debounced, cooled down" python3 tests/fleet-alert-check.py
 check "snooze: quiet everywhere, expires, worse wakes it" python3 tests/snooze-check.py
 check "while you were away: since you left, nothing when nothing" python3 tests/away-check.py
+check "screen --probe: numbered, 24-bit last, nothing written" python3 tests/probe-check.py
 check "a mention pushes and speaks too"    python3 tests/mentions-push-check.py
 check "demo mode: fake fleet and notes"    python3 tests/demo-check.py
 check "every tool follows theme"           python3 tests/tool-colors-check.py

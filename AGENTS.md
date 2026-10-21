@@ -201,7 +201,7 @@ Every page's sections, so a grep finds the right one:
   Sections: Editing a tab; Your own keys; Esc and q; When a program ends; Tapping.
   Its key table comes from share/keys.json (`_deck`); `phosphor help keys` shows it filled in.
 - **phones** (`doc/manual/phones.md`): screens: phones, other computers, anything with ssh
-  Sections: A phone or tablet (Android + Termux); Another computer (Linux, macOS, WSL); Anything that only has ssh; ssh, not mosh; A deck for each kind of screen; A touch screen with no keyboard; Managing screens from the deck; A screen through a relay; Notifications when you're not attached; A glance instead of the whole deck; A gadget that can't ssh; One pane instead of the whole deck; A SolarOS panel.
+  Sections: A phone or tablet (Android + Termux); Another computer (Linux, macOS, WSL); Anything that only has ssh; ssh, not mosh; A deck for each kind of screen; A touch screen with no keyboard; Managing screens from the deck; A screen through a relay; Notifications when you're not attached; A glance instead of the whole deck; A gadget that can't ssh; One pane instead of the whole deck; A SolarOS panel; Trying a screen nobody has tried.
 - **workspaces** (`doc/manual/workspaces.md`): a tab per idea: its folder, its assistants, its notebook
   Sections: Opening one, start to finish; What's in the folder; Two notebooks, not one; Commands.
 - **mentions** (`doc/manual/mentions.md`): the read-only chat feed and "prepare notes"
