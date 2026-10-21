@@ -6,11 +6,15 @@
     python3 tests/ci.py --sha f0fd89f main  another commit
 
 One line per job; a failed job prints the end of its log and nothing else.
+A test tests/flaky.py ran twice to pass is named under its job, and
+counted (python3 tests/flaky.py shows the counts).
 Exit 0 only when every pipeline passed. Needs glab, logged in.
 """
 import json, subprocess, sys, time
 
 TAIL = 40
+# the jobs that run tests through tests/flaky.py
+FLAKY_JOBS = ("check", "zellij", "zellij-latest")
 # seconds: the install job alone can take minutes, and a minor release queues
 # TWO full pipelines (main and the tag) back to back on the one runner --
 # confirmed against a real 0.4.0 release: main and v0.4.0 started a second
@@ -39,6 +43,16 @@ def clean(log):
         if l.strip() and "section_" not in l:
             out.append(l)
     return out
+
+def flakes(lines, job):
+    """The tests a job's log says tests/flaky.py saved, counted once per job."""
+    import os, re
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import flaky
+    saved = sorted({m.group(1) for l in lines for m in [re.search(r"\bFLAKY (tests/\S+?):", l)] if m})
+    for t in saved:
+        flaky.count(t, "job %d" % job)
+    return saved
 
 def main():
     args = sys.argv[1:]
@@ -75,9 +89,15 @@ def main():
             warn = "  (allowed to fail: an early warning)" if j["status"] == "failed" and j.get("allow_failure") else ""
             print("   %-13s %-8s %s%s" % (j["name"], j["status"], dur, warn))
         for j in jobs:
+            if j["status"] not in ("failed", "success"):
+                continue
+            if j["status"] == "success" and j["name"] not in FLAKY_JOBS:
+                continue
+            lines = clean(str(api("projects/:id/jobs/%d/trace" % j["id"])))
+            saved = flakes(lines, j["id"])
+            if saved:
+                print("   %-13s flaky, passed on a second run: %s" % (j["name"], " ".join(saved)))
             if j["status"] == "failed":
-                log = api("projects/:id/jobs/%d/trace" % j["id"])
-                lines = clean(str(log))
                 print("--- %s (%s), last %d lines:" % (j["name"], ref, TAIL))
                 print("\n".join(lines[-TAIL:]))
         ok = ok and p["status"] == "success"

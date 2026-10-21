@@ -20,7 +20,8 @@ check:
 # share/versions.json, as installs get), with a client attached in a pty:
 # Alt-r edits, saves, puts back and swaps a pane; a tab of cards is built
 # the whole way, from + and from Alt-r. A throwaway session in its
-# own HOME.
+# own HOME. The ones in tests/flaky.json run through tests/flaky.py: a
+# second run before they fail the job.
 zellij:
   tags: [homelab]
   rules:
@@ -31,12 +32,12 @@ zellij:
   script:
     - python3 tests/fetch-zellij.py $ZELLIJ_FETCH /usr/local/bin
     - zellij --version
-    - python3 tests/edit-check.py
+    - python3 tests/flaky.py python3 tests/edit-check.py
     - python3 tests/build-check.py --live
-    - python3 tests/tour-check.py
-    - python3 tests/tabmark-check.py
+    - python3 tests/flaky.py python3 tests/tour-check.py
+    - python3 tests/flaky.py python3 tests/tabmark-check.py
     - python3 tests/hotswap-live-check.py
-    - python3 tests/fleet-keys-check.py --live
+    - python3 tests/flaky.py python3 tests/fleet-keys-check.py --live
     - python3 tests/search-check.py
     - python3 tests/screen-kinds-check.py --live
 

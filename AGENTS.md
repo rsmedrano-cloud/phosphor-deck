@@ -70,6 +70,10 @@ not in any one assistant's memory.
   taps, like tests/edit-check.py) and let the pipeline run it. Trying it on
   real screens is the tester's and the maintainer's part; what they find
   becomes a failing test first, then the fix.
+  A test that fails now and then goes into tests/flaky.json, with why: it
+  gets a second run before it fails a job, and each save is counted
+  (`python3 tests/flaky.py` shows the counts; the most saved is the next to
+  fix). Never rerun a job by hand to get past one.
 - **Spend the big model on judgment, not on reading.** What a script can
   do needs no model at all (`phosphor docs`, `tests/ci.py`, a grep). What
   is mechanical but needs reading -- the docs that still describe the old

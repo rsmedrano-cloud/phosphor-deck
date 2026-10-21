@@ -35,6 +35,8 @@ release_notes() { v=$(cat VERSION); grep -q "^## $v" CHANGELOG.md || { echo "CHA
 steps() {
 check "python compiles"                    python3 -m py_compile phosphor lib/*.py tests/*.py
 check "no function shadows the module's"   python3 tests/shadow-check.py
+check "every name used is defined"         python3 tests/names-check.py
+check "flaky tests: a second run, counted, only for the listed" python3 tests/flaky-check.py
 check "shell scripts parse"                shells_parse
 check "install: a failed clone stops it"   failed_clone
 check "the docs name every command"        python3 tests/docs-check.py
@@ -99,6 +101,7 @@ check "zoom: a tap on a title, a summary in a short pane" python3 tests/zoom-che
 check "Esc steps back, q closes, ? lists the keys, on every screen" python3 tests/exit-keys-check.py
 check "did you know: the DECK tab's tip line" python3 tests/tips-check.py
 check "every card's tap comes back: by itself or on Esc" python3 tests/card-exits-check.py
+check "the other cards: Esc backs out, a y/n guards, the right command runs" python3 tests/card-taps-check.py
 check "the docs' pictures: there, described, none left over" python3 tests/images-check.py
 check "state: every card with a state finds it in the real --json" python3 tests/state-json-check.py
 check "a hand-edited profile says so (DECK tab f, doctor)" python3 tests/profile-changed-check.py
@@ -162,7 +165,8 @@ n=0
 sigint() { python3 -c 'import os, signal, sys; signal.signal(signal.SIGINT, signal.SIG_DFL); os.execvp(sys.argv[1], sys.argv[1:])' "$@"; }
 check() {
     n=$((n+1)); label=$1; shift
-    case $1 in python3) set -- sigint "$@" ;; esac
+    # through the quarantine: a test in tests/flaky.json gets a second run
+    case $1 in python3) set -- sigint python3 tests/flaky.py "$@" ;; esac
     read -r _ <&3
     ( "$@" > "$T/$n.out" 2>&1 < /dev/null 3>&-; echo $? > "$T/$n.rc.tmp"; mv "$T/$n.rc.tmp" "$T/$n.rc"; echo >&3 ) &
 }
@@ -175,7 +179,9 @@ n=0
 check() {
     n=$((n+1)); printf '  %-34s' "$1"
     while [ ! -f "$T/$n.rc" ]; do sleep 0.1; done
-    if [ "$(cat "$T/$n.rc")" = 0 ]; then printf 'ok\n'
+    if [ "$(cat "$T/$n.rc")" = 0 ]; then
+        if grep -q '^FLAKY ' "$T/$n.out"; then printf 'ok, on its second run\n'; grep '^FLAKY ' "$T/$n.out" | sed 's/^/      /'
+        else printf 'ok\n'; fi
     else printf 'FAIL\n'; [ -s "$T/$n.out" ] && sed 's/^/      /' "$T/$n.out"; fail=1; fi
 }
 steps

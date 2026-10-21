@@ -6,6 +6,16 @@ before it updates.
 
 ## Unreleased
 
+## 2.4.4 — Tests that catch the class
+
+- For contributors: the tests catch the class, not just the case. `tests/names-check.py` fails on
+  a name used but never defined (it follows `from ui import *` into lib/), the bug that kept a
+  "preparing notes" state broken for five weeks. `tests/card-taps-check.py` taps the cards
+  card-exits-check leaves out (toggles, the ones that ask, the ones that change things) against a
+  stand-in phosphor: Esc backs out with nothing run, and answering runs exactly the right command.
+  Tests that fail now and then live in `tests/flaky.json`: a second run before they fail a job,
+  counted by `tests/ci.py`, listed by `python3 tests/flaky.py`.
+
 ## 2.4.3 — The deck's panes see your PATH
 
 - The deck's panes see your PATH. They used to run with systemd's bare one, so a program in

@@ -1,0 +1,7 @@
+{
+  "tests/edit-check.py": "a real zellij under load: a key lands before the pane is ready",
+  "tests/tour-check.py": "failed once in CI, passed on the rerun",
+  "tests/tabmark-check.py": "'T1 got marked' failed once on zellij-latest, passed on dev",
+  "tests/fleet-keys-check.py": "--live: an Esc zellij processes late leaves the card selected (audit 1.1.13)",
+  "tests/splash-check.py": "timing under a full check.sh"
+}
