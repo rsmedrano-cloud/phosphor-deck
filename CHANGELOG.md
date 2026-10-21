@@ -6,6 +6,17 @@ before it updates.
 
 ## Unreleased
 
+## 2.4.6 — Snooze an alert from any screen
+
+- Snooze an alert you already know about. `z` over a machine in FLEET, Enter on it in glance
+  (its page's `snooze 24h`), the SolarOS panel's fleet menu or `phosphor snooze HOST` quiet what's
+  wrong there for 24 hours: it leaves the fleet card's `!`, glance and its light, the adjutant,
+  `fleet --json` and the panel, and a fleet alert about it isn't pushed or spoken. It always
+  expires (`--for 4h`, `2d`, a week at most), and wakes early if it gets worse: a disk from amber
+  to red, one more failed service. `phosphor snooze laptop down --for 2d` quiets one ahead, for a
+  machine you'll leave off. FLEET's card says `z snoozed till 18:30`; bare `phosphor snooze`
+  lists them.
+
 ## 2.4.5 — New defaults reach the deck you have
 
 - New defaults reach the deck you already have. A change to what `phosphor init` writes never

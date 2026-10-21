@@ -188,7 +188,21 @@ sidebar:
   and a red `·` where it was down (arrows or Tab go to the next machine, Esc back to the cards). The
   deck's own fleet keeps it, from the readings it already has -- nothing new runs on the hosts: every
   5 minutes, each host's peaks of that window go into `~/.cache/phosphor/history.json`, a day's worth,
-  and only while the deck runs (a gap where it didn't).
+  and only while the deck runs (a gap where it didn't). `z` snoozes what's wrong on that machine
+  for 24 hours (`phosphor snooze`, below), and `z` again wakes it; its card says `z snoozed till 18:30`.
+- `phosphor snooze [HOST [KIND...]] [--for 4h] [--wake] [--json]` — quiet an alert you already know
+  about ("vault is at 95%, don't tell me for a day"). With a HOST it takes what's wrong there now
+  (with KINDs, those, even before they happen: `phosphor snooze laptop down --for 2d` for a laptop
+  you'll leave off); the kinds are `down`, `disk`, `services`, `reboot`, `smart`, `temp`, `battery`
+  and `security`. While a snooze holds, that problem is out of every screen that reads the fleet's
+  list -- the `!` on the fleet card, glance and its light, `fleet --json`'s `why`, the SolarOS panel,
+  `triage` -- out of the adjutant's line, and a fleet alert about it isn't pushed or spoken (its
+  event line stays, marked `(snoozed)`). It always expires: 24 hours unless `--for` says (`30m`,
+  `4h`, `2d`, a bare number is hours; 7 days at most). It ends early, for good, when the reading
+  gets worse than what you quieted: a disk from amber to red, a third service failing after two.
+  Bare, it lists what's snoozed and until when; `--wake` ends a host's snoozes now (no HOST: all of
+  them). FLEET's `z`, Enter on a host in glance and the SolarOS panel's fleet menu do the same for
+  24 hours. Kept in `~/.local/share/phosphor/snooze.json`; nothing on the host changes.
 - `phosphor upkeep (upgrade | reboot) HOST` — does something about what FLEET flags, where you see
   it: prints the command and the machine, waits (Enter for an upgrade, the host's name typed for a
   reboot), then runs it over `ssh -t` in that same terminal, so sudo asks you for its password and
@@ -230,8 +244,9 @@ sidebar:
   `ssh -t you@brain ~/.local/bin/phosphor glance` needs no zellij attach at all (see screens);
   checks every 5s and repaints only on a change, side by side from 96 columns, plain text on a
   terminal with no color (`--mono` forces it); `r` repaints, `q` or Ctrl-C leaves. Up and down
-  move a cursor over its items, Enter opens one whole, and its page offers `done` for a todo and
-  `all read` for the mentions (`back`, the default, changes nothing). `--json` prints the same answers once, as JSON, with a
+  move a cursor over its items, Enter opens one whole, and its page offers `done` for a todo,
+  `all read` for the mentions and `snooze 24h` for a host (`phosphor snooze`; `back`, the default,
+  changes nothing). A snoozed host is named under the fleet's line, `z vault snoozed`. `--json` prints the same answers once, as JSON, with a
   `status` to light up: red (a host down, or the readings stopped), amber (anything else to look
   at, an unread mention), green, or unknown with no fleet data. `--serve` answers that JSON over
   HTTP for a gadget that can't ssh (an ESP32 with e-paper, a Pi Zero with an OLED), on the
@@ -458,7 +473,9 @@ reading them every few seconds never gets them rate-limited.
   `hosts`, one per profile host (null before its first poll) with `ok`, `cpu`, `memory`, `load`,
   `uptime`, `disks`, `containers`, `gpus`, `failed_units`, `reboot`, `temp`, `battery`, `smart`
   and `updates`, or `ok: false` and its `error`; `why` is what glance would call out, per host
-  (`vault: disk 95%; relay: 1 service failed`).
+  (`vault: disk 95%; relay: 1 service failed`), leaving out what's snoozed; `snoozed` lists that:
+  `host`, `kind`, `detail`, `level`, `until` and `when` (`till 18:30`).
+- `phosphor snooze --json` — `snoozed`, the same list, and `line` (`1 snoozed`).
 - `phosphor glance --json` — the four questions with a `status` light (see above).
 - `phosphor services --json` — `units`: `unit`, `scope`, `state` (the panel's word), `load`,
   `active`, `sub`, `memory` in bytes.

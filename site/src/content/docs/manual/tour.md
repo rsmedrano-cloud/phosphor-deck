@@ -30,7 +30,8 @@ for the details; this is the tour.
   failing on one that's still up) pushes and speaks up on its own, the same
   as any other notification. Missed it? `h` over a machine's card draws its
   last 24 hours (CPU, RAM, temperature, disk, when it was down), no
-  Prometheus needed. See something worth a closer look? `phosphor
+  Prometheus needed. Already know? `z` snoozes it for a day, on every
+  screen at once (`phosphor snooze`); it wakes early if it gets worse. See something worth a closer look? `phosphor
   tail HOST` streams that machine's `journalctl` (or `docker`/`podman logs`)
   right there, no need to remember the ssh alias or the exact command. Want a
   second opinion instead? `phosphor triage HOST` collects a deeper snapshot
@@ -374,9 +375,10 @@ more depth on every one of these.
 
 | | |
 |---|---|
-| `phosphor fleet` | fleet panel: pick a card, then `s` ssh, `l` logs, `t` triage, `c` containers, `u` upgrade, `b` reboot, each in its own tab; `h` its last 24 hours |
+| `phosphor fleet` | fleet panel: pick a card, then `s` ssh, `l` logs, `t` triage, `c` containers, `u` upgrade, `b` reboot, each in its own tab; `h` its last 24 hours; `z` snooze it |
+| `phosphor snooze HOST` | quiet what's wrong on a machine for 24h (`--for 2d`, a KIND ahead: `laptop down`) on every screen and push at once; it wakes early if it gets worse; bare, what's snoozed |
 | `phosphor usage` | how much of your Claude Code and Antigravity plans you've used (5-hour window, week) and when each refills |
-| `phosphor glance` | fleet, unread mentions, open todos -- for a small screen, no zellij needed; up, down and Enter mark a todo done or the mentions read; `--serve` hands it as JSON to a gadget that can't ssh (ESP32, Pi Zero), `--lan` on the LAN, with an app for a SolarOS panel |
+| `phosphor glance` | fleet, unread mentions, open todos -- for a small screen, no zellij needed; up, down and Enter mark a todo done, the mentions read or a host snoozed; `--serve` hands it as JSON to a gadget that can't ssh (ESP32, Pi Zero), `--lan` on the LAN, with an app for a SolarOS panel |
 | `phosphor solaros on` | a SolarOS e-ink panel as a face of the deck: serves it, copies the two lines to type there once (the app updates itself and adds `phosphor` to the SolarOS shell); `pair` lets its key in (your Enter), forced to the panel's own deck: its tabs, Ctrl-arrows between them, each at the panel's size |
 | `phosphor mirror --tab AI` | one pane for a screen too slow for zellij (e-ink): only the lines that changed, no color, and what you type goes back into that pane; `--view` only watches |
 | `phosphor adjutant` | the SYS panel that speaks up: `phosphor notify MESSAGE` makes it announce something |

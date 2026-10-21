@@ -47,9 +47,20 @@ def main(argv=None):
         print("usage: phosphor notify [--tab TAB] [--voice VOICE] [--tts|--no-tts] [--push|--no-push] \"message\""); return 1
     d = deckconf.cache_dir()   # PHOSPHOR_CACHE-aware: phosphor demo isolates this
     os.makedirs(d, exist_ok=True)
+    # A fleet alert about something you snoozed (lib/snooze.py): its event
+    # line stays, for the record, and that's all: no push, voice or mark.
+    quiet = False
+    if fleet_alert:
+        try:
+            import snooze
+            quiet = snooze.quiets(txt)
+        except Exception:
+            quiet = False
     if not no_event:
         with open(os.path.join(d, "events"), "a") as f:
-            f.write("%s\t%s\n" % (tab, txt))
+            f.write("%s\t%s\n" % (tab, txt + (" (snoozed)" if quiet else "")))
+    if quiet:
+        return 0
     # Spoken and pushed both: render the voice once, so the phone gets
     # the clip the brain plays (tts.notify_hook removes it after).
     wav = ""

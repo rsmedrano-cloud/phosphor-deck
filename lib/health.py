@@ -37,16 +37,21 @@ def updates(d):
 def sensor_problems(d, host=None):
     """What glance calls out about a host's sensors, as short phrases:
     past their red line (lib/limits.py), not just colored on its card."""
+    return [p for _, _, p in sensor_findings(d, host)]
+
+def sensor_findings(d, host=None):
+    """sensor_problems() as (kind, how bad, phrase): what a snooze holds
+    (lib/snooze.py). How bad is a count, or the limit's level."""
     import limits
     temp, bat, smart = sensors(d)
     out = []
     if smart and smart[0]:
-        out.append("%d disk%s failing SMART" % (smart[0], "" if smart[0] == 1 else "s"))
+        out.append(("smart", smart[0], "%d disk%s failing SMART" % (smart[0], "" if smart[0] == 1 else "s")))
     if temp is not None and limits.red("temp", temp, host):
-        out.append("cpu %d°C" % temp)
+        out.append(("temp", 2, "cpu %d°C" % temp))
     if bat and bat[1] == "Discharging" and limits.red("battery", bat[0], host):
-        out.append("battery %d%%" % bat[0])
+        out.append(("battery", 2, "battery %d%%" % bat[0]))
     upd = updates(d)
     if upd and upd[1]:
-        out.append("%d security update%s" % (upd[1], "" if upd[1] == 1 else "s"))
+        out.append(("security", upd[1], "%d security update%s" % (upd[1], "" if upd[1] == 1 else "s")))
     return out

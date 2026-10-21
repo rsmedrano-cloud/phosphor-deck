@@ -196,8 +196,10 @@ on it; with a keyboard, `j`/`k` move too and Esc goes back. The first up or
 down puts a cursor (`▸`, reversed) on a host, a mention, a todo or a
 workspace; Enter opens it whole on a page of its own, its actions on the
 last line: `done` for a todo (it goes to the archive, like `x` in NOTES),
-`all read` for the mentions, and `back`, where the cursor starts, so a
-stray Enter changes nothing. Two minutes without a key and the summary is
+`all read` for the mentions, `snooze 24h` for a host you already know
+about (`phosphor snooze`: it leaves glance, the light and every other
+screen until tomorrow, or until it gets worse), and `back`, where the
+cursor starts, so a stray Enter changes nothing. Two minutes without a key and the summary is
 back on its own, so a panel left on a page still shows what's wrong. Only
 the lines that change are sent, so moving the cursor redraws one line, not
 the screen.
@@ -347,7 +349,8 @@ gets only the lines that changed, at most about three times a second,
 however often the screen behind them redraws. FLEET lists each machine
 with its pending updates and reboot, where `upgrade` and `reboot` run
 `phosphor upkeep` right there: it shows the command and waits for you,
-and sudo asks on the panel. A screen you leave keeps running (the last
+and sudo asks on the panel; `snooze 24h` quiets what's wrong on it for a
+day (`wake` undoes it). A screen you leave keeps running (the last
 four), so coming back to it is instant; one that ends says so, and Enter
 starts it again.
 

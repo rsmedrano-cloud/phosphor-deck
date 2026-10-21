@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
 import deckconf, proc
 from health import sensors, updates
-import limits, zoom
+import limits, snooze, zoom
 from sanitize import clean, clean_tree
 
 HOME     = os.path.expanduser("~")
@@ -393,7 +393,8 @@ def as_json(hosts, now=None):
     age = int((now or time.time()) - t) if t else None
     return {"t": int(t) or None, "age": age, "stale": age is None or age > 90,
             "hosts": {name: reading(state.get(name)) for name, _ in hosts},
-            "why": why(dict((name, state.get(name)) for name, _ in hosts))}
+            "why": why(dict((name, state.get(name)) for name, _ in hosts)),
+            "snoozed": snooze.active()}
 
 def why(state):
     """What wants a look, glance's own list: per host, "vault: disk 95%"."""
@@ -405,6 +406,11 @@ def why(state):
 
 def read_state():
     return read_cache()[1]
+
+def quieted(name):
+    """A card's line for what's snoozed on it (lib/snooze.py), or none."""
+    t = snooze.until(name)
+    return [DIM + "z snoozed till " + snooze.when(t) + RST] if t else []
 
 def card(name, w, d):
     """One machine, as lines exactly w visible columns wide. `d` is that
@@ -425,7 +431,7 @@ def card(name, w, d):
         err = d.get("err", "?")
         if d.get("ms"):
             err += "  (%.1fs)" % (d["ms"] / 1000.0)
-        body = [RED + "unreachable" + RST, DIM + err + RST]
+        body = [RED + "unreachable" + RST, DIM + err + RST] + quieted(name)
     else:
         bw = max(3, min(18, inner - 10))
         cpu = d.get("CPU", 0)
@@ -442,6 +448,7 @@ def card(name, w, d):
         # a plain string from a stale writer that doesn't know it's a
         # number yet. Never trust its type, same spirit as the GPU fields
         # a few lines up.
+        body += quieted(name)
         try: svcfail = int(d.get("SVCFAIL") or 0)
         except (TypeError, ValueError): svcfail = 0
         if svcfail:
@@ -512,8 +519,10 @@ def card(name, w, d):
 # containers (`phosphor containers`, which asks before touching one).
 ACTIONS = [("s", "ssh"), ("l", "logs"), ("t", "triage"), ("c", "containers"),
            ("u", "upgrade"), ("b", "reboot")]
-# ...and one that stays in this pane: the card's last 24 hours (lib/history.py)
+# ...and two that stay in this pane: the card's last 24 hours (lib/history.py),
+# and quieting what's wrong on it for a day, or waking it (lib/snooze.py)
 HISTORY = ("h", "history")
+SNOOZE = ("z", "snooze")
 
 def on_esc(sel):
     """What Esc does: (pick, whether to end). It drops the pick; with none,
@@ -627,7 +636,7 @@ def footer(n, sel, msg):
         return DIM + text + RST + ("  " + AMB + msg + RST if msg else ""), {}
     # picked: just what the keys do, short enough for a phone's width
     out, taps, x = " " + FG + HOSTS[sel][0] + RST, {}, 1 + len(HOSTS[sel][0])
-    for k, what in ACTIONS + [HISTORY, ("Esc", "")]:
+    for k, what in ACTIONS + [HISTORY, SNOOZE, ("Esc", "")]:
         piece = "  " + k + (" " + what if what else "")
         taps[(x + 3, x + len(piece))] = "\x1b" if k == "Esc" else k
         out += "  " + AMB + k + RST + (" " + FG + what + RST if what else "")
@@ -848,7 +857,8 @@ def main():
                 import tui
                 tui.keys_help("FLEET", [("← → ↑ ↓ Tab", "pick a machine (a tap too)")]
                               + [(a, w + " on it, in a tab of its own") for a, w in ACTIONS]
-                              + [(HISTORY[0], "its last 24 hours, here")])
+                              + [(HISTORY[0], "its last 24 hours, here"),
+                                 (SNOOZE[0], "quiet what's wrong on it for 24h, or wake it")])
             elif k == "\x1b":
                 sel, end = on_esc(sel)
                 if end:
@@ -858,6 +868,12 @@ def main():
                     msg, msg_until = "pick a machine first: arrows or a tap", time.time() + 5
                 else:
                     hist = sel
+            elif k == SNOOZE[0]:
+                if sel is None:
+                    msg = "pick a machine first: arrows or a tap"
+                else:
+                    msg = snooze.toggle(HOSTS[sel][0])
+                msg_until = time.time() + 5
             elif k in [a for a, _ in ACTIONS]:
                 if sel is None:
                     msg = "pick a machine first: arrows or a tap"

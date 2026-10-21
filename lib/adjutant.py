@@ -11,7 +11,7 @@ import json, os, random, re, shutil, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
 from sanitize import clean, clean_tree
-import limits
+import limits, snooze
 
 HOME   = os.path.expanduser("~")
 CACHE  = deckconf.cache_dir()
@@ -121,11 +121,14 @@ def fleet_alert():
     if d is None:
         return None
     if time.time() - d.get("t", 0) > 120: return None
+    quiet = snooze.load()
     for name, h in d.get("hosts", {}).items():
         if not h.get("ok"):
+            if snooze.holds(quiet, name, "down", 1): continue
             return (2, "%s unreachable" % name)
         for _, pct, _ in h.get("mnt", []):
-            if limits.red("disk", pct, name): return (2, "%s disk %d%%" % (name, pct))
+            if limits.red("disk", pct, name) and not snooze.holds(quiet, name, "disk", 2):
+                return (2, "%s disk %d%%" % (name, pct))
     return None
 
 def fleet_health():
@@ -142,11 +145,15 @@ def fleet_health():
     if time.time() - d.get("t", 0) > 120:
         return 1, "stale data"
     lvl, why = 0, "nominal"
+    quiet = snooze.load()           # lib/snooze.py: what you said you know about
     for name, h in hosts.items():
         if not h.get("ok"):
+            if snooze.holds(quiet, name, "down", 1): continue
             return 2, "%s unreachable" % name
         for _, pct, _ in h.get("mnt", []):
             l = limits.level("disk", pct, name)
+            if l and snooze.holds(quiet, name, "disk", l):
+                continue
             if l == 2:
                 return 2, "%s disk %d%%" % (name, pct)
             elif l == 1 and lvl < 1:

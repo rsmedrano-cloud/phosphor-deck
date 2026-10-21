@@ -35,7 +35,7 @@ import base64, getpass, hashlib, json, os, re, select, shlex, shutil, subprocess
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import DIM, MUTE, FG, PH, AMB, RED, RST, OK, BAD, WARN, row
 import deckconf
-import dlog
+import dlog, snooze
 import ui
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -507,6 +507,9 @@ def fleet_rows():
                                            " (%d security)" % u[1] if u[1] else ""))
         if h.get("REBOOT"):
             bits.append("reboot pending")
+        t = snooze.until(name)
+        if t:
+            bits.append("snoozed till " + snooze.when(t))
         out.append((name, ", ".join(bits) or ("ok" if h else "no data")))
     return out
 
@@ -521,8 +524,12 @@ def fleet():
         if i is None: return
         sel = i
         name = rows[i][0]
-        a = pick("fleet: %s" % name, ["upgrade", "reboot", "back"])
-        if a in (0, 1):
+        quiet = "wake" if snooze.until(name) else "snooze 24h"
+        a = pick("fleet: %s" % name, ["upgrade", "reboot", quiet, "back"])
+        if a == 2:                          # lib/snooze.py: what's wrong on it, quiet for a day
+            say(["", " " + snooze.toggle(name)])
+            ask("\n Enter goes back ")
+        elif a in (0, 1):
             say([""])
             upkeep.run(("upgrade", "reboot")[a], name)
             ask("\n Enter goes back ")

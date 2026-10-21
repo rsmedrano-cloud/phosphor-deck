@@ -36,6 +36,7 @@ import health
 import limits
 import mentions
 import notes
+import snooze
 import workspace
 
 HOME  = os.path.expanduser("~")
@@ -56,29 +57,44 @@ def fleet_scan():
     ok, bad = host_problems(hosts)
     return ok, len(hosts), stale, bad
 
+def findings(name, h):
+    """[(kind, how bad, detail, down)]: what's past its red line on one
+    host's poll, each with what a snooze holds (lib/snooze.py)."""
+    if not h.get("ok"):
+        return [("down", 1, h.get("err") or "unreachable", True)]
+    out = []
+    for _, pct, _ in h.get("mnt", []):
+        if limits.red("disk", pct, name):
+            out.append(("disk", 2, "disk %d%%" % pct, False))
+            break
+    try: svcfail = int(h.get("SVCFAIL") or 0)
+    except (TypeError, ValueError): svcfail = 0
+    if svcfail:
+        out.append(("services", svcfail, "%d service%s failed" % (svcfail, "" if svcfail == 1 else "s"), False))
+    if h.get("REBOOT"):
+        out.append(("reboot", 1, "reboot pending", False))
+    return out + [(k, n, p, False) for k, n, p in health.sensor_findings(h, name)]
+
 def host_problems(hosts):
     """(ok_count, [(name, detail, down)]) for fleet.json's hosts: what
-    fleet_scan() and `fleet --json`'s why both say."""
-    bad = []
+    fleet_scan() and `fleet --json`'s why both say. What you snoozed
+    (lib/snooze.py) isn't in it, until it expires or gets worse."""
+    quiet = snooze.load()
+    bad, woke = [], []
     ok = 0
     for name, h in hosts.items():
         if not h:
             continue
-        if not h.get("ok"):
-            bad.append((name, h.get("err") or "unreachable", True))
-            continue
-        ok += 1
-        for _, pct, _ in h.get("mnt", []):
-            if limits.red("disk", pct, name):
-                bad.append((name, "disk %d%%" % pct, False))
-                break
-        try: svcfail = int(h.get("SVCFAIL") or 0)
-        except (TypeError, ValueError): svcfail = 0
-        if svcfail:
-            bad.append((name, "%d service%s failed" % (svcfail, "" if svcfail == 1 else "s"), False))
-        if h.get("REBOOT"):
-            bad.append((name, "reboot pending", False))
-        bad += [(name, p, False) for p in health.sensor_problems(h, name)]
+        ok += bool(h.get("ok"))
+        for k, n, d, down in findings(name, h):
+            if snooze.holds(quiet, name, k, n):
+                continue
+            if snooze.worse(quiet, name, k, n):
+                woke.append((name, k))       # worse than you quieted: it ends, for good
+            bad.append((name, d, down))
+    if woke:
+        try: snooze.end(woke)
+        except OSError: pass
     return ok, bad
 
 def fleet_state():
@@ -119,7 +135,8 @@ def payload():
         "status": status,
         "t": int(time.time()),
         "fleet": {"ok": ok, "total": total or 0, "stale": stale,
-                  "problems": [{"host": n, "detail": d, "down": down} for n, d, down in bad]},
+                  "problems": [{"host": n, "detail": d, "down": down} for n, d, down in bad],
+                  "snoozed": sorted(snooze.load())},
         "worst": worst,
         "mentions": n_unread,
         "todos": len(open_todos()),
@@ -166,12 +183,15 @@ def sections(w, sel=None):
     if total is None:
         fleet.append(DIM + "  no fleet data (phosphor fleet isn't running here)" + RST)
     elif not problems:
-        fleet.append(PH + ("  ✓ all %d hosts ok" % total) + RST)
+        fleet.append(PH + (("  ✓ all %d hosts ok" % total) if ok == total else ("  ✓ %d/%d ok" % (ok, total))) + RST)
     else:
         fleet.append((PH if ok else RED) + ("  %d/%d ok" % (ok, total)) + RST)
         for name, detail in problems[:4]:
             every = [d for nm, d in problems if nm == name]
             fleet += item("✗ %s: %s" % (name, detail), w, RED, "host", name, every)
+    quiet = snooze.load() if total else {}
+    if quiet:                           # what you quieted, so it isn't forgotten
+        fleet.append(DIM + "  z %s snoozed" % ", ".join(sorted(quiet)) + RST)
 
     said = []
     if n:
@@ -247,7 +267,7 @@ def frame(w, rows, stamp=None, sel=None):
     return [head(w, status, stamp)] + lines
 
 # ── acting on one item ───────────────────────────────────────
-ACTIONS = {"todo": ["done", "back"], "mention": ["all read", "back"]}
+ACTIONS = {"todo": ["done", "back"], "mention": ["all read", "back"], "host": ["snooze 24h", "back"]}
 
 def actions(kind):
     """What Enter can do on an item's page; back is last, and where the
@@ -286,6 +306,9 @@ def do(item, action):
     if action == "all read":
         mentions.mark_seen()
         return "mentions all read"
+    if action == "snooze 24h":          # lib/snooze.py: out of this list until tomorrow
+        snooze.snooze(title)
+        return "host snoozed"
     return None
 
 UP   = ("\x1b[A", "\x1bOA", "k", "\x1b[D", "\x1bOD")
