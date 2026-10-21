@@ -6,6 +6,17 @@ before it updates.
 
 ## Unreleased
 
+## 2.4.7 — While you were away
+
+- While you were away: coming into the deck, one screen says what happened since you last
+  left it: fleet alerts that came and went, what's wrong on a machine now that wasn't, pipelines
+  that finished a run, chat and other notifications, notes someone else took, a newer phosphor.
+  Nothing is asked of the network or an assistant, so it never slows getting in; with nothing to
+  say it doesn't show at all. Any key goes in; `away = false` in `[deck]` turns it off.
+- Each line of the events file (`~/.cache/phosphor/events`) now ends with the time it was
+  written. A SYS adjutant still running the code from before shows that number at the end of
+  its line until the deck restarts.
+
 ## 2.4.6 — Snooze an alert from any screen
 
 - Snooze an alert you already know about. `z` over a machine in FLEET, Enter on it in glance

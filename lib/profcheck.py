@@ -19,7 +19,7 @@ DECK = {"session": None, "command": None, "theme": "themes", "mount_root": None,
         "projects": None, "mesh": ("auto", "tailscale", "headscale", "none"),
         "bar": ("tabs", "compact", "full"), "editor": None, "shell": None,
         "connect": ("ssh", "mosh"), "web": BOOL, "web_port": None,
-        "graphs": ("braille", "blocks"), "face": None, "splash": BOOL,
+        "graphs": ("braille", "blocks"), "face": None, "splash": BOOL, "away": BOOL,
         "demo": BOOL, "tour": BOOL,
         "version": None,                 # migrate.py checks it
         "declined": None}                # the offers said no to (migrate.py)

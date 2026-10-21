@@ -22,6 +22,10 @@ sidebar:
   `phosphor gen` from a login shell that has it, then `phosphor restart`.
 - **The warm-up screen when you get in**: any key skips it; `splash = false`
   in `[deck]` turns it off for good.
+- **"While you were away" when you get in**: what happened since you last
+  left; any key goes in. `away = false` in `[deck]` turns it off. It
+  remembers when you left in `~/.local/share/phosphor/seen.json`: delete it
+  and the next time in shows nothing (and starts counting again).
 - **"the deck is starting..."**: `deck` found the session not up yet (right
   after boot or `phosphor up`) and waits for it, up to a minute and a half.
 - **The deck is gone**: the watchdog brings it back within a minute; `phosphor

@@ -11,7 +11,7 @@ import json, os, random, re, shutil, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
 from sanitize import clean, clean_tree
-import limits, snooze
+import events, limits, snooze
 
 HOME   = os.path.expanduser("~")
 CACHE  = deckconf.cache_dir()
@@ -85,7 +85,7 @@ def read_events(pos):
                 out = []
                 for l in f.read().splitlines():
                     if not l.strip(): continue
-                    tab, _, m = l.partition("\t")
+                    tab, m, _ = events.parse(l)
                     tab, m = clean(tab), clean(m)   # anyone can append here: text, never escapes
                     out.append((tab.strip(), (m or tab).strip()))
                 pos = f.tell()

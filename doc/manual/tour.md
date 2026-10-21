@@ -246,6 +246,18 @@ name glows and settles into your color, with which deck and version you're
 entering. Any key skips it; a screen reconnecting within a minute, the
 `paper` theme and `splash = false` in `[deck]` never show it.
 
+**While you were away**: then, if anything happened since you last left the
+deck, one screen says what: fleet alerts that came and went, what's wrong on
+a machine now that wasn't (and what was and isn't anymore), pipelines that
+finished a run, chat notifications, other notifications, notes someone else
+took, a newer phosphor. All of it from what the deck already keeps, nothing
+asked of the network or an assistant, so it never slows getting in (unlike
+`phosphor digest`, which an assistant writes, on demand). Any key or a tap
+goes in; the key isn't typed into the deck. With nothing to say it doesn't
+show at all; `away = false` in `[deck]` turns it off. What you snoozed stays
+out of it. "Last left" is any screen's: leaving from the desktop and coming
+in on the phone shows what came in between.
+
 ## The DECK tab
 
 The deck's own tab, and the one place every phosphor command lives, even

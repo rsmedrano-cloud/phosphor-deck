@@ -244,6 +244,8 @@ def attach(argv):
         import panel, splash
         panel.mark("returned")
         splash.show(prof)
+        import away
+        away.show(prof)
     elif sys.stdin.isatty():
         import welcome
         for l in welcome.lines(prof): print(l)
@@ -280,10 +282,21 @@ def attach(argv):
             print("  couldn't make the %s session: phosphor gen, then deck again" % kind)
             return
         poll_until(lambda: session_live(zj, target), 15)
+    # Leaving is the last time you saw it (lib/away.py): on a detach, and
+    # on a dropped link too, which comes as a hangup.
+    import away, signal
+    def hangup(*_):
+        away.saw()
+        signal.signal(signal.SIGHUP, signal.SIG_DFL)
+        os.kill(os.getpid(), signal.SIGHUP)
+    if os.path.exists(mark):
+        signal.signal(signal.SIGHUP, hangup)
     while True:
         screen_up()
         rc = _sp.call([zj, "attach", target])
         if not restarting():
+            if os.path.exists(mark):
+                away.saw()
             return rc
         # kicked out by `phosphor restart`: wait for the new deck, go back in
         print("\n  the deck is restarting: you'll be back in by yourself...")

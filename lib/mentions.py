@@ -76,9 +76,8 @@ def hook():
         if os.path.getsize(FEED) > KEEP * 1200:          # trim now and then
             lines = open(FEED).read().splitlines()[-KEEP:]
             open(FEED, "w").write("\n".join(lines) + "\n")
-        os.makedirs(os.path.dirname(EVENTS), exist_ok=True)
-        with open(EVENTS, "a") as f:                     # the SYS adjutant
-            f.write("COMMS\t@%s: %s\n" % (e["from"], e["message"][:80]))
+        import events                                    # the SYS adjutant
+        events.append("COMMS", "@%s: %s" % (e["from"], e["message"][:80]))
         push_it(e)
     except Exception:
         import dlog
@@ -239,8 +238,8 @@ def prepare(t):
         title = "@%s: %s" % (e.get("from", "?"), e.get("message", "")[:70])
         notes.append(os.path.join(notes.notes_dir(), "work.md"), "summary", c.get("by", "assistant"), title, out)
         set_state(t, "ready")
-        with open(EVENTS, "a") as f:
-            f.write("\twork notes ready: @%s\n" % e.get("from", "?"))
+        import events
+        events.append("", "work notes ready: @%s" % e.get("from", "?"))
         return 0
     set_state(t, "failed: " + ((err or out).splitlines() or ["no output"])[-1][:60])
     return 1

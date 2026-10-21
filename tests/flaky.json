@@ -3,5 +3,7 @@
   "tests/tour-check.py": "failed once in CI, passed on the rerun",
   "tests/tabmark-check.py": "'T1 got marked' failed once on zellij-latest, passed on dev",
   "tests/fleet-keys-check.py": "--live: an Esc zellij processes late leaves the card selected (audit 1.1.13)",
-  "tests/splash-check.py": "timing under a full check.sh"
+  "tests/splash-check.py": "timing under a full check.sh",
+  "tests/card-exits-check.py": "migrate's Esc at its y/n, under a full check.sh (twice on 2026-10-21); passes alone",
+  "tests/adjutant-width-check.py": "12 cols with a message: a frame drawn before the pty's resize lands, under a full check.sh; passes alone"
 }
