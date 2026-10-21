@@ -25,6 +25,7 @@ The keys they know are the ones in the tables below (tabs.d files too).
 | key | default | what |
 |---|---|---|
 | version | 1 | which shape the profile is: `phosphor init` writes the current one, `phosphor migrate` brings an older one up to date; leave it to them |
+| declined | [] | the new defaults you said no to in `phosphor migrate` (`"sys-cards"`): never offered again; take one out to be asked again |
 | session | "deck" | the session's name; it shows in the tab bar |
 | command | "deck" | the one-word command that gets you in (`~/.local/bin/<it>`) |
 | theme | "p31" | p31 green, p3 amber, p4 white, ega (the 16 colors of an old PC), paper (e-ink); `phosphor theme` previews them |

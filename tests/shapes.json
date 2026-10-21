@@ -1,0 +1,196 @@
+{
+ "shapes": {
+  "homelab": {
+   "tables": [
+    "deck",
+    "hosts",
+    "tabs",
+    "tunnels"
+   ],
+   "deck": [
+    "mesh",
+    "mount_root",
+    "session",
+    "theme",
+    "version",
+    "web"
+   ],
+   "tabs": [
+    [
+     "COMMS",
+     [
+      "weechat"
+     ]
+    ],
+    [
+     "WORK",
+     [
+      "ssh @work"
+     ]
+    ],
+    [
+     "SYS",
+     [
+      "dash: version screens web tunnel",
+      [
+       "phosphor fleet",
+       "phosphor adjutant"
+      ],
+      "gping @hosts",
+      "phosphor services"
+     ]
+    ],
+    [
+     "CLOUD",
+     [
+      "yazi @mount_root",
+      [
+       "btop -p 1",
+       "ctop -s cpu"
+      ]
+     ]
+    ],
+    [
+     "DECK",
+     [
+      "phosphor panel"
+     ]
+    ],
+    [
+     "NOTES",
+     [
+      "phosphor notes"
+     ]
+    ]
+   ]
+  },
+  "revived": {
+   "tables": [
+    "deck",
+    "hosts",
+    "tabs",
+    "tunnels"
+   ],
+   "deck": [
+    "mesh",
+    "mount_root",
+    "session",
+    "theme",
+    "version",
+    "web"
+   ],
+   "tabs": [
+    [
+     "COMMS",
+     [
+      "weechat"
+     ]
+    ],
+    [
+     "WORK",
+     [
+      "ssh @work"
+     ]
+    ],
+    [
+     "SYS",
+     [
+      "dash: version screens web tunnel",
+      [
+       "phosphor fleet",
+       "phosphor adjutant"
+      ],
+      "phosphor services"
+     ]
+    ],
+    [
+     "DECK",
+     [
+      "phosphor panel"
+     ]
+    ],
+    [
+     "NOTES",
+     [
+      "phosphor notes"
+     ]
+    ]
+   ]
+  },
+  "dev": {
+   "tables": [
+    "deck",
+    "hosts",
+    "tabs",
+    "tunnels"
+   ],
+   "deck": [
+    "mesh",
+    "mount_root",
+    "session",
+    "theme",
+    "version",
+    "web"
+   ],
+   "tabs": [
+    [
+     "COMMS",
+     [
+      "weechat"
+     ]
+    ],
+    [
+     "DEV",
+     [
+      "claude",
+      "codex"
+     ]
+    ],
+    [
+     "WORK",
+     [
+      "ssh @work"
+     ]
+    ],
+    [
+     "SYS",
+     [
+      "dash: version screens web tunnel",
+      [
+       "phosphor fleet",
+       "phosphor adjutant"
+      ],
+      "gping @hosts",
+      "phosphor services"
+     ]
+    ],
+    [
+     "CLOUD",
+     [
+      "yazi @mount_root",
+      [
+       "btop -p 1",
+       "ctop -s cpu"
+      ]
+     ]
+    ],
+    [
+     "DECK",
+     [
+      "phosphor panel"
+     ]
+    ],
+    [
+     "NOTES",
+     [
+      "phosphor notes"
+     ]
+    ]
+   ]
+  }
+ },
+ "offers": [
+  "sys-cards"
+ ],
+ "version": 3
+}

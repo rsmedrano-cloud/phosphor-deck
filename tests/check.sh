@@ -64,6 +64,7 @@ check "your keys, and what gen may touch"  python3 tests/keys-check.py
 check "a profile write's undo depth: .bak, .bak.2, .bak.3" python3 tests/backup-check.py
 check "the profile is written whole, checked, and never over a newer write" python3 tests/profile-write-check.py
 check "an older profile migrates"          python3 tests/migrate-check.py
+check "a new default in a shape has its offer" python3 tests/shapes-check.py
 check "a backup holds its own files, and restore takes only those" python3 tests/brain-backup-check.py
 check "one way to run zellij, sh and ssh"  python3 tests/proc-check.py
 check "a misspelled profile key is said"   python3 tests/profile-schema-check.py

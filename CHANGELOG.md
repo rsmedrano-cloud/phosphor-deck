@@ -6,6 +6,16 @@ before it updates.
 
 ## Unreleased
 
+## 2.4.5 — New defaults reach the deck you have
+
+- New defaults reach the deck you already have. A change to what `phosphor init` writes never
+  touched an existing profile; now each one is an offer in `phosphor migrate` (P in the DECK tab,
+  "1 new"), shown as a diff: add it, say no (it goes into `[deck] declined` and is never offered
+  again), or leave it for next time. The first: a row of cards on top of SYS. `phosphor update`,
+  `doctor` and `gen` name the ones waiting.
+- For contributors: `tests/shapes-check.py` keeps each shape's structure in `tests/shapes.json`; a
+  new tab, pane or card fails it until existing profiles get it as an offer (or a step).
+
 ## 2.4.4 — Tests that catch the class
 
 - For contributors: the tests catch the class, not just the case. `tests/names-check.py` fails on

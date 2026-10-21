@@ -4,7 +4,10 @@ in one pane, [deck] tts into [tts] enabled, [deck] notifier and
 notify_seconds dropped) and version = CURRENT, through
 write_profile with a .bak; an up-to-date or newer profile is left alone; a
 profile init writes is already current; doctor, gen, update and the DECK
-tab only speak up when there's something to change.
+tab only speak up when there's something to change. An offer (a new
+default, sys-cards first) is asked on its own: taken it lands, declined it
+goes into [deck] declined and is never offered again, "later" leaves it;
+each shape without it gets it back exactly as init writes it.
 
     python3 tests/migrate-check.py
 """
@@ -87,16 +90,17 @@ for name in ("example", "demo"):
 d = tempfile.mkdtemp()
 p = os.path.join(d, "deck.toml")
 os.environ["PHOSPHOR_PROFILE"] = p
-def run(*argv, answer=True):
-    real_yes, real_argv = init.yes, sys.argv
+def run(*argv, answer=True, offer=2):
+    real_yes, real_pick, real_argv = init.yes, init.pick, sys.argv
     init.yes = lambda *a, **kw: answer
+    init.pick = lambda *a, **kw: offer
     sys.argv = ["phosphor-migrate"] + list(argv)
     buf = io.StringIO()
     try:
         with contextlib.redirect_stdout(buf):
             rc = migrate.main()
     finally:
-        init.yes, sys.argv = real_yes, real_argv
+        init.yes, init.pick, sys.argv = real_yes, real_pick, real_argv
     return rc, buf.getvalue()
 
 open(p, "w").write(OLD)
@@ -111,7 +115,50 @@ check("yes writes it", rc == 0 and open(p).read() == migrate.plan(OLD)[1])
 check("...with the old one as the backup", open(p + ".bak").read() == OLD)
 check("...and nothing is pending after", migrate.pending() == [])
 rc, out = run()
-check("a second run says up to date", rc == 0 and "up to date" in out)
+check("a second run has no step, only the offer again", rc == 0 and "+version" not in out and "new: sys-cards" in out)
+
+# the offers: sys-cards on a profile whose fleet tab has no row of cards
+cur = open(p).read()
+check("offered() sees sys-cards", len(migrate.offered()) == 1)
+rc, out = run("--dry-run", offer=0)
+check("--dry-run shows the offer, writes nothing", rc == 0 and "new: sys-cards" in out and open(p).read() == cur)
+rc, out = run(offer=2)
+check("later: nothing written", rc == 0 and open(p).read() == cur)
+rc, out = run(offer=1)
+check("no: [deck] declined", migrate.declined(deckconf.tomllib.loads(open(p).read())) == ["sys-cards"])
+check("...and the tabs untouched", deckconf.tomllib.loads(open(p).read())["tabs"] == deckconf.tomllib.loads(cur)["tabs"])
+rc, out = run()
+check("...and never offered again", rc == 0 and "up to date" in out and migrate.offered() == [])
+open(p, "w").write(cur)
+rc, out = run(offer=0)
+sys_tab = next(t for t in deckconf.tomllib.loads(open(p).read())["tabs"] if t["name"] == "SYS")
+check("yes: the cards on top of SYS, in rows", sys_tab.get("split") == "rows" and "dash" in sys_tab["panes"][0]
+      and sys_tab["panes"][1] == {"cmd": "phosphor fleet"})
+rc, out = run()
+check("...and then up to date", "up to date" in out)
+open(p, "w").write(OLD)
+rc, out = run(offer=0)
+check("an older profile: the steps and the offer in one write",
+      migrate.plan(open(p).read())[0] == [] and migrate.offered() == [] and open(p + ".bak").read() == OLD)
+
+# every shape init writes has no offer pending, and without the row of
+# cards gets it back exactly as init writes it
+hosts = [{"name": "db-box", "role": "brain", "local": True}, {"name": "nimbus", "role": "work", "ssh": "nimbus"}]
+for shape in init.SHAPES:
+    for web, tun in ((False, ()), (True, ("relay",))):
+        txt = init.render(hosts, "p31", None, web=web, tun=tun, shape=shape)
+        bare = "\n".join(l for l in txt.split("\n") if "dash = " not in l)
+        got = migrate.sys_cards(bare)
+        check("%s: no offer pending" % shape, migrate.offers(txt) == [])
+        check("%s without its cards: sys-cards offered" % shape, [i for i, _, _ in migrate.offers(bare)] == ["sys-cards"])
+        check("%s (web=%s): the offer gives back init's SYS" % (shape, web),
+              deckconf.tomllib.loads(got)["tabs"] == deckconf.tomllib.loads(txt)["tabs"])
+# a SYS split in columns keeps them, under the cards
+cols = '[[tabs]]\nname = "SYS"\nsplit = "cols"\npanes = [ { cmd = "phosphor fleet" }, { cmd = "btop" } ]\n'
+t = deckconf.tomllib.loads(migrate.sys_cards(cols))["tabs"][0]
+check("a SYS in columns: rows, the columns kept under the cards",
+      t["split"] == "rows" and t["panes"][1] == {"split": "cols", "panes": [{"cmd": "phosphor fleet"}, {"cmd": "btop"}]})
+check("no fleet tab: nothing offered", migrate.offers('[[tabs]]\nname = "X"\npanes = [ { cmd = "btop" } ]\n') == [])
 
 open(p, "w").write(newer)
 rc, out = run()
@@ -128,6 +175,8 @@ def offered(text):
     return buf.getvalue()
 check("update points at migrate for an older shape", "phosphor migrate" in offered(OLD))
 check("...not for one with nothing to change", offered('[deck]\nsession = "deck"\n') == "")
+check("update names an offer", "row of cards" in offered('[deck]\nversion = %d\n\n' % migrate.CURRENT
+                                                         + '[[tabs]]\nname = "SYS"\npanes = [ { cmd = "phosphor fleet" } ]\n'))
 
 # the DECK tab: P only while there's something to migrate
 import panel
@@ -139,6 +188,8 @@ keys_of = lambda hit: [k for s in hit.values() for _, _, k in s]
 lines, hit, _ = panel.draw({}, dict(st, migrate=2), 100, 30)
 check("the deck card offers P", deckconf.re.search(r"P! profile migrate +2 steps  phosphor migrate", "\n".join(map(plain, lines))) and "P" in keys_of(hit))
 check("without it, no P", "P" not in keys_of(panel.draw({}, st, 100, 30)[1]))
+lines, hit, _ = panel.draw({}, dict(st, offers=1), 100, 30)
+check("an offer alone: P, not a warning", deckconf.re.search(r"P  profile migrate +1 new", "\n".join(map(plain, lines))) and "P" in keys_of(hit))
 
 if fails:
     print("migrate-check FAILED:\n  " + "\n  ".join(fails)); sys.exit(1)

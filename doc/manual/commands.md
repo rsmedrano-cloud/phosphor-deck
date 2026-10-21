@@ -322,9 +322,11 @@
   becomes a step here: each pending one is shown as a diff (the DECK tab in one pane, `[deck] tts`
   into `[tts] enabled`), then one "write it?" writes them all, with `version` in `[deck]`, and
   keeps the old profile as `deck.toml.bak`; it shows after `phosphor gen && phosphor restart`
-  (`f` in the DECK tab). `--dry-run` only shows. A profile written by a newer phosphor is left
-  alone. `phosphor doctor`, `gen` and `update` say when there's something to migrate; `P` in
-  the DECK tab runs it.
+  (`f` in the DECK tab). Then each new default your profile lacks (a row of cards on top of
+  SYS) is offered on its own, as a diff: add it, no (it goes into `[deck] declined` and is never
+  offered again), or back to be asked next time. `--dry-run` only shows. A profile written by a
+  newer phosphor is left alone. `phosphor doctor`, `gen` and `update` say when there's something
+  to migrate or to offer; `P` in the DECK tab runs it.
 - `phosphor backup [FILE] [--dry-run]` — the brain's own backup, one file (default
   `~/phosphor-backup-DATE.tar.gz`, 0600): your profile, `apps.toml`, `tabs.d`, the notebook
   (unless `[notes] folder` keeps it in a vault you already sync), the glance token, your adjutant

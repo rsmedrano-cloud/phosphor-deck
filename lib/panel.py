@@ -112,7 +112,7 @@ def state(prof):
          "profile_changed": deckconf.profile_changed(),
          "restart_pending": deckconf.restart_pending(sess),
          "version": version.current()["version"], "channel": version.current()["channel"],
-         "news": version.news(), "migrate": len(migrate.pending())}
+         "news": version.news(), "migrate": len(migrate.pending()), "offers": len(migrate.offered())}
     try:
         import dlog, push, solaros, tts
         s["solaros"] = bool(solaros.serve_mode(prof))
@@ -173,8 +173,10 @@ def cards(prof, st, with_steps=True, live=None):
     deck = []
     if st["timer"] is not None:
         deck.append(("", "watchdog", "", not st["timer"], "on" if st["timer"] else "OFF"))
-    if st.get("migrate"):
-        deck.append(("P", "profile migrate", "", True, "%d step%s" % (st["migrate"], "" if st["migrate"] == 1 else "s")))
+    if st.get("migrate") or st.get("offers"):
+        n, o = st.get("migrate") or 0, st.get("offers") or 0
+        what = ["%d step%s" % (n, "" if n == 1 else "s")] * bool(n) + ["%d new" % o] * bool(o)
+        deck.append(("P", "profile migrate", "", bool(n), ", ".join(what)))
     cs = [("deck", deck)] if deck else []
     todo = steps(prof)
     if with_steps and not all(done for _, done in todo):
@@ -461,7 +463,7 @@ def main():
                 break
             elif k == "\x1b":
                 zoom.back()
-            elif k in keys or (k == "f" and (st.get("profile_changed") or st.get("restart_pending"))) or (k == "P" and st.get("migrate")):
+            elif k in keys or (k == "f" and (st.get("profile_changed") or st.get("restart_pending"))) or (k == "P" and (st.get("migrate") or st.get("offers"))):
                 act(k, st); last = 0
     except KeyboardInterrupt:
         pass

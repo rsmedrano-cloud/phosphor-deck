@@ -196,17 +196,23 @@ def main():
 
 def offer_migrate():
     """gen never rewrites a profile, so a shape this update changed reaches
-    an older profile only through phosphor migrate: say so once per update.
-    Only a hint, the profile isn't touched."""
+    an older profile only through phosphor migrate, and a new default the
+    profile lacks only as its offer: say so once per update. Only a hint,
+    the profile isn't touched."""
     try:
         import migrate
-        todo = migrate.pending()
+        todo, offs = migrate.pending(), migrate.offered()
     except Exception:
         return
     if todo:
         print()
         print(row(WARN, "profile", "%d change%s to bring it up to date" % (len(todo), "" if len(todo) == 1 else "s"),
                   note="phosphor migrate (P in the DECK tab) shows them first"))
+    if offs:
+        if not todo:
+            print()
+        for what in offs:
+            print(row(OK, "new", what, note="phosphor migrate (P): take it or decline"))
 
 
 def refresh(full):

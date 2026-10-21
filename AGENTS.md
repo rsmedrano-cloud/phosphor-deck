@@ -57,7 +57,9 @@ not in any one assistant's memory.
   and read-only commands are fine.
 - **Say what they'll see, and answer what they asked.** A change to the
   shipped defaults (`lib/init.py`'s shapes, `profiles/*.toml`) never reaches
-  a profile that already exists, and the deck keeps running the code it
+  a profile that already exists by itself: a new element in a shape gets an
+  offer in `lib/migrate.py` (`tests/shapes-check.py` fails until it has one),
+  and a change of format a step. The deck keeps running the code it
   started with until it restarts. When the maintainer asked for something on
   their own deck, say so plainly and offer the matching edit to their profile
   (a `deck.toml.bak` first) -- in the reply itself, not buried in a summary.

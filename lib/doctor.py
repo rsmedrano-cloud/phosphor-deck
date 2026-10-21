@@ -188,6 +188,10 @@ def run(profile=None):
         elif newer:
             print(row(WARN, "profile", "version %d: a newer phosphor wrote it" % newer, note="phosphor update"))
             issues.append("the profile is newer than this phosphor: phosphor update")
+        offs = migrate.offered()
+        if offs:
+            print(row(OK, "profile", "%d new default%s to take or decline" % (len(offs), "" if len(offs) == 1 else "s"),
+                      note="phosphor migrate shows them"))
     import mesh
     kind, control = mesh.current(profile)
     if kind == "none":

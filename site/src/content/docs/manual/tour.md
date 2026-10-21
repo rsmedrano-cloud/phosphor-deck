@@ -274,8 +274,9 @@ door like these too, or says why not (`no_door` in share/commands.json).
 
 A profile of an older shape (say, from before the panel took the whole DECK tab):
 the deck card offers **P** ("profile migrate, N steps"), which runs `phosphor migrate`: each
-change as a diff first, a backup kept, `f` applies it. `phosphor doctor`, `gen` and `update`
-say so too.
+change as a diff first, a backup kept, `f` applies it. A new default your profile doesn't have
+yet (a row of cards on top of SYS) comes the same way, as an offer ("1 new"): take it, or say no
+once and it's never offered again. `phosphor doctor`, `gen` and `update` say so too.
 
 ![The DECK tab: the deck's state, next steps and every action, as cards](../../../assets/img/readme/deck-tab.png)
 
@@ -396,7 +397,7 @@ more depth on every one of these.
 | `phosphor new` | the + menu (also Alt-n): a shell, a machine, an assistant (in the folder you pick), your apps, a tab of cards, a layout; `/` searches everything |
 | `phosphor keep` | write a tab you arranged by hand into your profile |
 | `phosphor tabs` | the tabs your profile brings back: forget one, reorder, reopen |
-| `phosphor migrate` | bring an older profile up to date: a diff of each change first, a backup kept |
+| `phosphor migrate` | bring an older profile up to date, and offer it new defaults: a diff of each first, a backup kept |
 | `phosphor backup [FILE]` | the brain's own backup: profile, tabs.d, notebook, glance token, faces in one 0600 file; never ssh keys |
 | `phosphor restore FILE` | put a backup back (this brain or a new one): new/replace/same first, a `.bak` of what it replaces, then `gen --dry-run` |
 | `phosphor recipe [NAME]` | starter tab bundles: homelab, dev, bubble, workbench, and the programs they run; `--remove NAME` undoes one |

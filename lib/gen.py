@@ -702,6 +702,11 @@ def run(prof, src, dry=False):
         print("\n" + rule("profile"))
         print(row(WARN, "an older shape", "%d change%s to bring it up to date" % (len(todo), "" if len(todo) == 1 else "s"),
                   note="phosphor migrate"))
+    offs = migrate.offered()
+    if offs:
+        if not todo:
+            print("\n" + rule("profile"))
+        print(row(OK, "new defaults", "%d to take or decline" % len(offs), note="phosphor migrate"))
 
     if not ctx.is_brain():
         b = ctx.brain()

@@ -151,6 +151,12 @@ and only asks when it's actually attached to a terminal).
                                  # (a download without git: download it again)
     phosphor update FOLDER       # you copied a newer version into FOLDER
 
+Your profile is never rewritten by an update. When the new version changes
+the profile's format, or ships a default yours doesn't have (a row of cards
+on top of SYS), the update says so at the end and `phosphor migrate` (P in
+the DECK tab) shows each one as a diff first; a default you say no to is
+never offered again.
+
 An install that came from a folder remembers it: the next time, a plain
 `phosphor update` goes back there (and pulls it first if it's a git clone),
 and `phosphor version` checks that clone for news. `FOLDER` being the

@@ -21,7 +21,8 @@ DECK = {"session": None, "command": None, "theme": "themes", "mount_root": None,
         "connect": ("ssh", "mosh"), "web": BOOL, "web_port": None,
         "graphs": ("braille", "blocks"), "face": None, "splash": BOOL,
         "demo": BOOL, "tour": BOOL,
-        "version": None}                 # migrate.py checks it
+        "version": None,                 # migrate.py checks it
+        "declined": None}                # the offers said no to (migrate.py)
 HOST = {"name": None, "role": ("brain", "work", "desktop", "storage", "node", "viewer"),
         "local": BOOL, "ssh": None, "user": None, "ip": None, "mount": None,
         "mounts": None, "fleet": BOOL}

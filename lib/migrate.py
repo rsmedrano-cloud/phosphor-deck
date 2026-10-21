@@ -7,6 +7,11 @@ means 1), and migrate shows each pending step as a diff, then writes them
 all at once through deckconf.write_profile (one .bak). doctor, gen, update
 and the DECK tab say when one is pending.
 
+A new default that isn't a change of format (a row of cards in SYS) is an
+offer instead: a preference the user may have left out on purpose, so each
+is asked on its own, and a "no" goes into [deck] declined, where it travels
+with the profile (backup, a new brain) and is never asked again.
+
 A step is (version it brings the profile to, what it does, fn): fn takes
 the profile's text and returns it changed, or unchanged when it doesn't
 apply. A profile written by `phosphor init` already has the current
@@ -74,6 +79,57 @@ STEPS = [(2, "the DECK tab in one pane: the panel takes the whole tab, its keys 
          (2, "[deck] tts moves to [tts] enabled, where it's documented", tts_table),
          (3, "[deck] notifier and notify_seconds go: a notice marks its tab and goes to [push]", no_notifier)]
 
+# ── the offers ────────────────────────────────────────────────
+def _panes(panes):
+    """Every pane of a tab, those inside a split too."""
+    for p in panes or []:
+        if isinstance(p, dict):
+            yield p
+            yield from _panes(p.get("panes"))
+
+def sys_cards(text):
+    """2.1.6: SYS starts with a row of cards, only what this deck has. Goes
+    on top of the tab with the fleet; unchanged when a tab already has a
+    row of cards, or no tab has the fleet."""
+    import init, keep
+    prof = _parse(text)
+    tabs = [t for t in prof.get("tabs", []) if deckconf.is_real_tab(t)]
+    if any("dash" in p for t in tabs for p in _panes(t.get("panes"))):
+        return text
+    t = next((t for t in tabs if any((p.get("cmd") or "").strip() == "phosphor fleet"
+                                     for p in _panes(t.get("panes")))), None)
+    if t is None:
+        return text
+    tun = [x.get("host") for x in prof.get("tunnels", []) if isinstance(x, dict)]
+    row = {"dash": init.sys_cards(((prof.get("deck") or {}).get("web")) is True, tun, "ci" in prof), "size": 5}
+    panes = t.get("panes") or []
+    if t.get("split") == "rows":
+        panes = [row] + panes
+    elif len(panes) == 1:
+        panes = [row, panes[0]]
+    else:
+        panes = [row, dict({"split": t["split"]} if t.get("split") else {}, panes=panes)]
+    return keep.put(text, t["name"], keep.block(t["name"], panes, "rows"))
+
+# (id, what it adds, fn): fn takes the profile's text and returns it with
+# the default added, or unchanged when the profile has it or has no place
+# for it. An id never changes: [deck] declined keeps it.
+OFFERS = [("sys-cards", "a row of cards on top of SYS: version, screens, and what else this deck has set up", sys_cards)]
+
+def declined(prof):
+    """The offers the profile said no to: [deck] declined."""
+    d = ((prof or {}).get("deck") or {}).get("declined", [])
+    return [x for x in d if isinstance(x, str)] if isinstance(d, list) else []
+
+def offers(text):
+    """[(id, what, fn)] for each offer this profile lacks and hasn't
+    declined. A profile newer than this phosphor gets none."""
+    prof = _parse(text)
+    if version(prof) > CURRENT:
+        return []
+    no = declined(prof)
+    return [(i, what, fn) for i, what, fn in OFFERS if i not in no and fn(text) != text]
+
 # ── planning ──────────────────────────────────────────────────
 def plan(text):
     """(steps, new text, version): steps is [(what, before, after)] for each
@@ -99,6 +155,16 @@ def pending():
         return []
     try:
         return [what for what, _, _ in plan(open(deckconf.path()).read())[0]]
+    except Exception:
+        return []
+
+def offered():
+    """What migrate would offer the profile, as a list of what each adds;
+    [] when nothing (or no profile, or one that doesn't parse)."""
+    if deckconf.example() or deckconf.tomllib is None:
+        return []
+    try:
+        return [what for _, what, _ in offers(plan(open(deckconf.path()).read())[1])]
     except Exception:
         return []
 
@@ -140,27 +206,51 @@ def main():
         print(row(WARN, "profile", "version %d: a newer phosphor wrote it" % ver,
                   note="this one knows up to %d: phosphor update" % CURRENT))
         return 1
-    if ver == CURRENT:
+    offs = offers(new)
+    if ver == CURRENT and not offs:
         print(row(OK, "profile", "up to date, nothing to migrate")); return 0
-    for what, a, b in steps:
-        print("\n" + rule(what))
-        for l in diff(a, b):
+    from init import pick, yes
+    if ver < CURRENT:
+        for what, a, b in steps:
+            print("\n" + rule(what))
+            for l in diff(a, b):
+                print(l)
+        print("\n" + rule("version"))
+        if not steps:
+            print("  " + DIM + "nothing to change in this profile; only its version is written" + RST)
+        print("  " + PH + "+version = %d" % CURRENT + RST + DIM + "   in [deck]" + RST)
+        print()
+        if not dry and not yes("write it into your profile? (a backup is kept)", True):
+            return 0
+    taken, no = [], []
+    for i, what, fn in offs:
+        print("\n" + rule("new: " + i))
+        print("  " + DIM + what + RST)
+        after = fn(new)
+        for l in diff(new, after):
             print(l)
-    print("\n" + rule("version"))
-    if not steps:
-        print("  " + DIM + "nothing to change in this profile; only its version is written" + RST)
-    print("  " + PH + "+version = %d" % CURRENT + RST + DIM + "   in [deck]" + RST)
-    print()
+        print()
+        if dry:
+            continue
+        n = pick("add it to your profile?", ["add it", "no, and don't offer it again", "back (ask me next time)"])
+        if n == 0:
+            new = after; taken.append(i)
+        elif n == 1:
+            no.append(i)
     if dry:
         return 0
-    from init import yes
-    if not yes("write it into your profile? (a backup is kept)", True):
+    if no:
+        new = deckconf.with_key(new, "deck", "declined",
+                                "[%s]" % ", ".join('"%s"' % x for x in declined(_parse(new)) + no))
+    if new == text:
         return 0
     err = deckconf.write_profile(new, lambda prof: version(prof) == CURRENT, expect=text, p=p)
     if err:
         print(row(BAD, "not written", err)); return 1
     print(row(OK, "written", p.replace(os.path.expanduser("~"), "~", 1), note="backup: deck.toml.bak"))
-    if steps:
+    if no:
+        print("  " + DIM + "not offered again: %s ([deck] declined)" % ", ".join(no) + RST)
+    if steps or taken:
         print("  " + DIM + "it shows after phosphor gen && phosphor restart (f in the DECK tab)" + RST)
     return 0
 
