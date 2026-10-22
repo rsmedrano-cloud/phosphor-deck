@@ -32,6 +32,7 @@ import deckconf
 import dlog, zoom
 from sanitize import clean_tree
 import ui
+import checks
 import health
 import limits
 import mentions
@@ -71,6 +72,9 @@ def findings(name, h):
     except (TypeError, ValueError): svcfail = 0
     if svcfail:
         out.append(("services", svcfail, "%d service%s failed" % (svcfail, "" if svcfail == 1 else "s"), False))
+    bad = checks.failing(name)
+    if bad:
+        out.append(("checks", len(bad), "%s not answering" % ", ".join(n for n, _ in bad), False))
     if h.get("REBOOT"):
         out.append(("reboot", 1, "reboot pending", False))
     return out + [(k, n, p, False) for k, n, p in health.sensor_findings(h, name)]

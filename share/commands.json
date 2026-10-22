@@ -224,7 +224,7 @@
     "summary": "quiet an alert you already know about, for a while (24h; worse wakes it)",
     "takes_value": ["--for"],
     "options": ["--for", "--wake", "--json"],
-    "words": ["down", "disk", "services", "reboot", "smart", "temp", "battery", "security"],
+    "words": ["down", "disk", "services", "checks", "reboot", "smart", "temp", "battery", "security"],
     "mutates": false,
     "needs_deck": false,
     "note": "bare (and --json) it only lists what's snoozed. With a HOST it writes ~/.local/share/phosphor/snooze.json: what's wrong on that host now (or the KINDs named) leaves the fleet's why, glance, the adjutant and the fleet alerts' push and voice, until it expires (24h, --for up to 7d) or gets worse; --wake ends them. Nothing on the host changes.",

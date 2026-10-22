@@ -6,6 +6,15 @@ before it updates.
 
 ## Unreleased
 
+## 2.5.1 — Does it answer?
+
+- Service checks: `[[hosts.checks]]` under a host in your profile, a URL or a TCP port, and the
+  deck tries it from the brain every 30 seconds. One that stops answering (twice in a row, or an
+  HTTP 5xx) shows on that machine's FLEET card (`✗ jellyfin: refused`), in glance and its light,
+  in `fleet --json` and the adjutant's line, and is pushed and spoken when it stops or comes back.
+  `phosphor snooze HOST checks` quiets it. It answers or it doesn't: no response times, no
+  certificates. `phosphor doctor` warns about a check that's neither a URL nor a port.
+
 ## 2.5.0 — The deck you have, up to date
 
 - Writing a tab into your profile (the migrate offer that rebuilds the fleet tab, and Alt-r's

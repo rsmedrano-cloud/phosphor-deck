@@ -25,7 +25,8 @@ DECK = {"session": None, "command": None, "theme": "themes", "mount_root": None,
         "declined": None}                # the offers said no to (migrate.py)
 HOST = {"name": None, "role": ("brain", "work", "desktop", "storage", "node", "viewer"),
         "local": BOOL, "ssh": None, "user": None, "ip": None, "mount": None,
-        "mounts": None, "fleet": BOOL}
+        "mounts": None, "fleet": BOOL, "checks": None}
+CHECK = {"name": None, "url": None, "port": None, "host": None}
 TAB = {"name": None, "split": ("rows", "cols"), "panes": None}
 PANE = {"cmd": None, "args": None, "ssh": None, "reconnect": BOOL, "size": None,
         "cwd": None, "needs_size": BOOL, "alt": BOOL, "split": ("rows", "cols"),
@@ -90,6 +91,24 @@ def _array(where, items, known, out, name_key="name"):
     for i, t in enumerate(items):
         label = t.get(name_key) if isinstance(t, dict) else None
         _table("[[%s]] %s" % (where, label or "#%d" % (i + 1)), t, known, out)
+
+
+def _checks(where, checks, out):
+    """[[hosts.checks]]: each a url (http or https) or a port (lib/checks.py)."""
+    if not isinstance(checks, list):
+        out.append((where, "checks should be [[hosts.checks]] blocks")); return
+    for c in checks:
+        _table(where, c, CHECK, out)
+        if not isinstance(c, dict):
+            continue
+        what = c.get("name") or c.get("url") or c.get("port")
+        url, port = c.get("url"), c.get("port")
+        if (url is None) == (port is None):
+            out.append((where, "check %s: a url or a port, one of them" % _val(what)))
+        elif url is not None and not (isinstance(url, str) and url.startswith(("http://", "https://"))):
+            out.append((where, "check %s: url starts with http:// or https://" % _val(what)))
+        elif port is not None and (isinstance(port, bool) or not isinstance(port, int) or not 0 < port < 65536):
+            out.append((where, "check %s: port is a number, 1 to 65535" % _val(what)))
 
 
 def _panes(where, panes, out):
@@ -161,6 +180,9 @@ def problems(prof):
             out.append(("[%s]" % sec, "unknown table%s" % (": [%s]?" % g if g else "")))
         elif sec == "hosts":
             _array("hosts", val, HOST, out)
+            for h in val if isinstance(val, list) else ():
+                if isinstance(h, dict) and "checks" in h:
+                    _checks("[[hosts]] %s" % h.get("name", "?"), h["checks"], out)
         elif sec == "tabs":
             tabs("tabs", val, out)
         elif sec == "tunnels":

@@ -190,8 +190,8 @@
 - `phosphor snooze [HOST [KIND...]] [--for 4h] [--wake] [--json]` — quiet an alert you already know
   about ("vault is at 95%, don't tell me for a day"). With a HOST it takes what's wrong there now
   (with KINDs, those, even before they happen: `phosphor snooze laptop down --for 2d` for a laptop
-  you'll leave off); the kinds are `down`, `disk`, `services`, `reboot`, `smart`, `temp`, `battery`
-  and `security`. While a snooze holds, that problem is out of every screen that reads the fleet's
+  you'll leave off); the kinds are `down`, `disk`, `services`, `checks`, `reboot`, `smart`, `temp`,
+  `battery` and `security`. While a snooze holds, that problem is out of every screen that reads the fleet's
   list -- the `!` on the fleet card, glance and its light, `fleet --json`'s `why`, the SolarOS panel,
   `triage` -- out of the adjutant's line, and a fleet alert about it isn't pushed or spoken (its
   event line stays, marked `(snoozed)`). It always expires: 24 hours unless `--for` says (`30m`,
@@ -470,7 +470,8 @@ reading them every few seconds never gets them rate-limited.
   nothing): `t`, `age` and `stale` (no reading for 90s: the deck's fleet isn't running), and
   `hosts`, one per profile host (null before its first poll) with `ok`, `cpu`, `memory`, `load`,
   `uptime`, `disks`, `containers`, `gpus`, `failed_units`, `reboot`, `temp`, `battery`, `smart`
-  and `updates`, or `ok: false` and its `error`; `why` is what glance would call out, per host
+  `updates` and `checks` (each `name`, `ok` and `error`, `[]` with none), or `ok: false` and its
+  `error`; `why` is what glance would call out, per host
   (`vault: disk 95%; relay: 1 service failed`), leaving out what's snoozed; `snoozed` lists that:
   `host`, `kind`, `detail`, `level`, `until` and `when` (`till 18:30`).
 - `phosphor snooze --json` — `snoozed`, the same list, and `line` (`1 snoozed`).

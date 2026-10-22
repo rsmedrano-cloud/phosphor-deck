@@ -141,6 +141,7 @@ check "phosphor review: MRs/PRs, safely"   python3 tests/review-check.py
 check "phosphor screens: who's attached, kick one" python3 tests/screens-check.py
 check "phosphor mem: memory per tab and pane" python3 tests/mem-check.py
 check "animations slow down for a screen through a relay" python3 tests/relay-check.py
+check "fleet: service checks, a URL or a port" python3 tests/checks-check.py
 check "fleet: CPU temperature, battery, SMART" python3 tests/fleet-sensors-check.py
 check "fleet: pending updates, counted in the background" python3 tests/fleet-updates-check.py
 check "fleet: a slow poll tags itself and logs" python3 tests/fleet-timing-check.py

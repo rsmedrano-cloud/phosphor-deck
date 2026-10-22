@@ -75,10 +75,43 @@ One block per machine.
 | mount | remote folder shown in `~/fleet/<name>` (rclone sftp through your own ssh: ssh config, keys, known_hosts) |
 | mounts | the brain's own folders shown in `~/fleet/<brain>/` (`/` → root, `~` → home, `/mnt/X` → X) |
 | fleet | false keeps it in the deck but off the fleet panel |
+| checks | `[[hosts.checks]]` blocks: its services, does each one answer (below) |
 
 Viewers are never polled or mounted. `@work`, `@desktop`… in a tab mean "the
 first host with that role"; `@hosts` means all of them; `@mount_root` is
 `~/fleet`.
+
+### [[hosts.checks]]
+
+Does a service still answer? Each block, right after its host's `[[hosts]]`,
+is a URL or a TCP port, tried from the brain every 30 seconds:
+
+| key | what |
+|---|---|
+| name | what the deck calls it (else the URL's host:port, or `port N`) |
+| url | `http://` or `https://`: any answer counts but a 5xx; a certificate isn't checked |
+| port | a TCP port that has to accept a connection |
+| host | where the port is, when it isn't the host itself (its `ip`, else what ssh connects to) |
+
+    [[hosts]]
+    name = "db-box"
+    ssh  = "db-box"
+
+    [[hosts.checks]]
+    name = "jellyfin"
+    url  = "http://db-box:8096/health"
+
+    [[hosts.checks]]
+    name = "postgres"
+    port = 5432
+
+Missing twice in a row (a minute), it joins the host's list of what wants a
+look: a line on its FLEET card (`✗ jellyfin: refused`), glance and its
+light, `fleet --json` (`why`, and each host's `checks`), the adjutant, an
+alert pushed and spoken when it stops or comes back (not while the host
+itself is down), and "while you were away". `phosphor snooze HOST checks`
+quiets it. It answers or it doesn't: no response times, no certificate
+dates. Read again every round: a new check needs no restart.
 
 ## [[tabs]]
 

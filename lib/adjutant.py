@@ -11,7 +11,7 @@ import json, os, random, re, shutil, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
 from sanitize import clean, clean_tree
-import events, limits, snooze
+import checks, events, limits, snooze
 
 HOME   = os.path.expanduser("~")
 CACHE  = deckconf.cache_dir()
@@ -158,6 +158,9 @@ def fleet_health():
                 return 2, "%s disk %d%%" % (name, pct)
             elif l == 1 and lvl < 1:
                 lvl, why = 1, "%s disk %d%%" % (name, pct)
+        bad = checks.failing(name)           # lib/checks.py: a service that stopped answering
+        if bad and lvl < 1 and not snooze.holds(quiet, name, "checks", len(bad)):
+            lvl, why = 1, "%s %s not answering" % (name, bad[0][0])
     return lvl, why
 
 def wrap(msg, room, most=3):

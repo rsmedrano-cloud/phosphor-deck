@@ -170,7 +170,8 @@ brain itself, on another computer (`phosphor gen` writes it there), on a phone
 **The fleet** is your other machines. The deck watches them (CPU, RAM, disks,
 containers, failed systemd units, a pending reboot, pending (security)
 updates, CPU temperature, a battery, SMART, over ssh; nothing is
-installed on them) and shows their files as
+installed on them; and whether the services you name still answer, a URL
+or a port) and shows their files as
 folders under `~/fleet` on the brain: `~/fleet/<machine>/...`. Nothing is
 copied or moved; you see the files where they are (rclone sftp mounts, or
 links for the brain's own disks).
@@ -194,7 +195,7 @@ Every page's sections, so a grep finds the right one:
 - **patterns** (`doc/manual/patterns.md`): which shape to pick, growing a deck, moving it to a new brain
   Sections: Which shape; Growing it; Moving to a new brain; Sharing one tab; Backing out.
 - **profile** (`doc/manual/profile.md`): every setting in ~/.config/phosphor/deck.toml, and your own apps
-  Sections: [deck]; [[hosts]]; [[tabs]]; tabs.d: tabs you can share; [[tunnels]]; [keys]; [notes]; [mentions]; [prometheus]; [ci]; [tts]; [push]; Your own server, no cloud; [services]; [alerts]; [glance]; [screens]; apps.toml; panels.d.
+  Sections: [deck]; [[hosts]]; [[hosts.checks]]; [[tabs]]; tabs.d: tabs you can share; [[tunnels]]; [keys]; [notes]; [mentions]; [prometheus]; [ci]; [tts]; [push]; Your own server, no cloud; [services]; [alerts]; [glance]; [screens]; apps.toml; panels.d.
 - **commands** (`doc/manual/commands.md`): every `phosphor` command
   Sections: Getting started; Session; Workspaces; Notes; In the deck; For scripts: --json; For assistants: phosphor mcp; Before you push a fork; Shell; Help.
 - **keys** (`doc/manual/keys.md`): keys inside the deck, and what happens when a program ends

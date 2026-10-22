@@ -18,7 +18,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
 import deckconf, proc
 from health import sensors, updates
-import limits, snooze, zoom
+import checks, limits, snooze, zoom
 from sanitize import clean, clean_tree
 
 HOME     = os.path.expanduser("~")
@@ -385,6 +385,13 @@ def reading(d):
             "smart": {"failing": smart[0], "checked": smart[1]} if smart else None,
             "updates": {"pending": upd[0], "security": upd[1]} if upd else None}
 
+def with_checks(name, r):
+    """reading() plus the host's service checks (lib/checks.py), [] with none."""
+    if r is not None:
+        r["checks"] = [{"name": c.get("name"), "ok": c.get("ok"), "error": c.get("err")}
+                       for c in checks.results(name)]
+    return r
+
 def as_json(hosts, now=None):
     """--json: every profile host's latest poll, straight from fleet.json
     (null before its first); `stale` when nobody has written it for 90s
@@ -392,7 +399,7 @@ def as_json(hosts, now=None):
     t, state = read_cache()
     age = int((now or time.time()) - t) if t else None
     return {"t": int(t) or None, "age": age, "stale": age is None or age > 90,
-            "hosts": {name: reading(state.get(name)) for name, _ in hosts},
+            "hosts": {name: with_checks(name, reading(state.get(name))) for name, _ in hosts},
             "why": why(dict((name, state.get(name)) for name, _ in hosts)),
             "snoozed": snooze.active()}
 
@@ -453,6 +460,8 @@ def card(name, w, d):
         except (TypeError, ValueError): svcfail = 0
         if svcfail:
             body.append(RED + "● %d failed" % svcfail + RST)
+        for c, err in checks.failing(name):
+            body.append(RED + ("✗ %s: %s" % (c, err))[:inner] + RST)
         if d.get("REBOOT"):
             body.append(AMB + "⟳ reboot pending" + RST)
         upd = updates(d)
@@ -776,6 +785,9 @@ def main():
     # deck's fleet polls and sweeps the mounts, once, not once per screen.
     screen = bool(os.environ.get("PHOSPHOR_SCREEN"))
     rust_poller = None if screen else start_poller()
+    if not screen and not DEMO:
+        import checks
+        checks.start(_alert, lambda n: not (read_state().get(n) or {}).get("ok", True))
     # the day's history: recorded once too, by the deck's own fleet
     import history
     recorder = None if screen else history.Recorder()

@@ -20,9 +20,10 @@ for the details; this is the tour.
 - **Fleet panel.** One card per machine: CPU, RAM, load, GPU, disks,
   containers, failed services, a pending reboot, pending security updates,
   the CPU's temperature, a laptop's battery and disks failing SMART,
-  collected over SSH.
+  collected over SSH, and the services you name that stopped answering
+  (`[[hosts.checks]]`: a URL or a port, tried from the brain).
   Nothing gets installed on the other side. A host going down (or a service
-  failing on one that's still up) pushes and speaks up on its own, the same
+  failing or not answering on one that's still up) pushes and speaks up on its own, the same
   as any other notification. Missed it? `h` over a machine's card draws its
   last 24 hours (CPU, RAM, temperature, disk, when it was down), no
   Prometheus needed. Already know? `z` snoozes it for a day, on every

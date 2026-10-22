@@ -19,8 +19,8 @@ failing after two.
     phosphor snooze HOST --wake         its snoozes end now (no HOST: all of them)
     phosphor snooze --json              the list, for scripts and the deck's card
 
-KIND is one of down, disk, services, reboot, smart, temp, battery,
-security. FLEET's z over a machine, Enter on it in glance and the SolarOS
+KIND is one of down, disk, services, checks, reboot, smart, temp,
+battery, security. FLEET's z over a machine, Enter on it in glance and the SolarOS
 panel's fleet menu snooze what's wrong on it for 24h; z again in FLEET, or
 --wake, ends it.
 """
@@ -29,7 +29,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import deckconf
 from sanitize import clean_tree
 
-KINDS = ("down", "disk", "services", "reboot", "smart", "temp", "battery", "security")
+KINDS = ("down", "disk", "services", "checks", "reboot", "smart", "temp", "battery", "security")
 DAY = 24 * 3600
 MOST = 7 * DAY
 _cache = {"key": None, "data": {}}
@@ -128,6 +128,9 @@ def level(kind, host, h):
     if kind == "services":
         try: return int(h.get("SVCFAIL") or 0)
         except (TypeError, ValueError): return 0
+    if kind == "checks":
+        import checks
+        return len(checks.failing(host))
     if kind == "reboot":
         return 1 if h.get("REBOOT") else 0
     temp, bat, smart = health.sensors(h)
@@ -206,7 +209,13 @@ ALERTS = ((re.compile(r"^(.+) is unreachable$"), "down", lambda m: 1),
           (re.compile(r"^(.+) is back$"), "down", lambda m: 0),
           (re.compile(r"^(.+): (\d+) services? failed$"), "services", lambda m: int(m.group(2))),
           (re.compile(r"^(.+): services back to normal$"), "services", lambda m: 0),
-          (re.compile(r"^(.+): (\d+) disks? failing SMART$"), "smart", lambda m: int(m.group(2))))
+          (re.compile(r"^(.+): (\d+) disks? failing SMART$"), "smart", lambda m: int(m.group(2))),
+          (re.compile(r"^(.+?): .+ not answering$"), "checks", lambda m: max(1, _failing(m.group(1)))),
+          (re.compile(r"^(.+?): .+ answering again$"), "checks", lambda m: 0))
+
+def _failing(host):
+    import checks
+    return len(checks.failing(host))
 
 def quiets(text):
     """True when a fleet alert is about something snoozed: phosphor notify
