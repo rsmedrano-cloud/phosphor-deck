@@ -6,6 +6,17 @@ before it updates.
 
 ## Unreleased
 
+## 2.5.0 — The deck you have, up to date
+
+- Writing a tab into your profile (the migrate offer that rebuilds the fleet tab, and Alt-r's
+  save) keeps a command's backslashes as they were: `printf 'up\\n'` no longer turns into a real
+  line break, and `grep 'a\\d'` no longer makes a profile that doesn't parse. It also keeps the
+  comment just above the next tab, and replaces a tab named in single quotes (`name = 'SYS'`)
+  instead of adding a second one.
+- Two screens leaving the deck at the same moment no longer race over what "while you were
+  away" remembers.
+- `phosphor screen --probe` uses no 24-bit color before row 8, its title line included.
+
 ## 2.4.9 — stats reads what you type first
 
 - `phosphor stats` reads what you type first: commands are ordered by their `terminal` runs,

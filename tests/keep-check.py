@@ -7,8 +7,15 @@ A dumped layout (tests/fixtures/dump-layout.kdl) becomes the TOML `phosphor
 keep` writes: the tab bar dropped, `phosphor run` unwrapped into the command
 it watches, splits and sizes kept, and what gen expands (@work, @hosts,
 @mount_root) folded back so a kept tab doesn't freeze today's addresses.
+Then writing it in: a command's backslashes and quotes survive, a tab named
+in single quotes is replaced rather than added again, and the comment above
+the next tab stays.
 """
 import os, sys
+try:
+    import tomllib
+except ModuleNotFoundError:
+    import tomli as tomllib
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(HERE), "lib"))
 import keep
@@ -49,6 +56,22 @@ def main():
         else:
             bad += 1
             print("  FAIL  %s\n--- got:\n%s--- want:\n%s" % (name, got, want))
+
+    # what migrate and Alt-r write goes back through tomllib unchanged
+    odd = [{"cmd": "printf 'up\\n'; watch df"}, {"cmd": "grep 'a\\d' \"x\""}]
+    profile = ("[deck]\nsession = \"deck\"\n\n[[tabs]]\nname = 'SYS'\n# my log\npanes = [{ cmd = \"htop\" }]\n"
+               "\n# WORK: keep the editor here\n[[tabs]]\nname = \"WORK\"\npanes = [{ cmd = \"vim\" }]\n")
+    out = keep.put(profile, "SYS", keep.block("SYS", odd, "rows"))
+    try:
+        tabs = tomllib.loads(out)["tabs"]
+    except Exception as e:
+        tabs = []; print("  FAIL  the written profile doesn't parse: %s" % e)
+    for what, ok in [("backslashes and quotes kept", tabs and tabs[0]["panes"] == odd),
+                     ("a single-quoted name replaced, not added", [t["name"] for t in tabs] == ["SYS", "WORK"]),
+                     ("the next tab's comment kept", "# WORK: keep the editor here\n[[tabs]]"
+                      in keep.put(profile.replace("'SYS'", '"SYS"'), "SYS", keep.block("SYS", odd)))]:
+        print("  %s  %s" % ("ok  " if ok else "FAIL", what))
+        bad += not ok
     print("\n%s" % ("PASS: a live tab reads back into the profile" if not bad else "FAIL: %d" % bad))
     return 1 if bad else 0
 

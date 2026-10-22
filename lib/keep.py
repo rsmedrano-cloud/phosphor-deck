@@ -8,7 +8,7 @@ TOML: `phosphor keep` (or k in the DECK tab).
 Only the panes are kept, never the tab bar (gen writes that itself), and a
 pane started through `phosphor run` is read back as the command it watches.
 """
-import os, re, sys
+import json, os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
 import deckconf
@@ -207,15 +207,15 @@ def val(v):
     if isinstance(v, int): return str(v)          # a size in cells, not a string
     if isinstance(v, list): return "[" + ", ".join(val(x) for x in v) + "]"
     if isinstance(v, dict): return inline(v)
-    return '"%s"' % str(v).replace('"', '\\"')
+    return json.dumps(str(v), ensure_ascii=False)  # a TOML basic string: \\ and " escaped too
 
 def inline(spec):
     return "{ " + ", ".join("%s = %s" % (k, val(v)) for k, v in spec.items()) + " }"
 
 def block(name, specs, split=None):
-    out = ["[[tabs]]", 'name  = "%s"' % name]
+    out = ["[[tabs]]", "name  = %s" % val(name)]
     if split:
-        out.append('split = "%s"' % split)
+        out.append("split = %s" % val(split))
     out.append("panes = [")
     for s in specs:
         out.append("  %s," % inline(s))
@@ -224,7 +224,9 @@ def block(name, specs, split=None):
 
 # ── into the profile ──────────────────────────────────────────
 def put(text, name, blk):
-    """Replace that tab's block, or add it at the end of the tabs."""
+    """Replace that tab's block, or add it at the end of the tabs. The
+    comments and blank lines at the block's end stay: they're the next
+    block's heading, not this tab's."""
     lines = text.split("\n")
     out, i, done = [], 0, False
     while i < len(lines):
@@ -233,9 +235,12 @@ def put(text, name, blk):
             while j < len(lines) and deckconf.header(lines[j]) != "[[tabs]]" and not lines[j].lstrip().startswith("["):
                 j += 1
             body = "\n".join(lines[i:j])
-            if re.search(r'^name\s*=\s*"%s"' % re.escape(name), body, re.M):
+            if re.search(r'^name\s*=\s*(["\'])%s\1' % re.escape(name), body, re.M):
+                k = j
+                while k > i + 1 and (not lines[k - 1].strip() or lines[k - 1].lstrip().startswith("#")):
+                    k -= 1
                 out.append(blk.rstrip("\n"))
-                out.append("")
+                out.extend(lines[k:j] if k < j else [""])
                 i = j; done = True; continue
             out.extend(lines[i:j]); i = j; continue
         out.append(lines[i]); i += 1

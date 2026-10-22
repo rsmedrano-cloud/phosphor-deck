@@ -28,7 +28,7 @@ nums = [int(m.group(1)) for l in out for m in [re.match(r"\s*(\d+)  ", re.sub(r"
 need("rows 0 to 10, each once: %s" % nums, nums == list(range(11)))
 row = lambda n: next(i for i, l in enumerate(out) if re.match(r"\s*%d  " % n, l))
 need("no 24-bit color before row 8",
-     not any(re.search(r"\x1b\[[34]8;2;", l) for l in out[1:row(8)]))
+     not any(re.search(r"\x1b\[[34]8;2;", l) for l in out[:row(8)]))
 need("the deck's theme, then paper", "deck, p31" in out[row(9)] and "deck, paper" in out[row(10)])
 need("line 0 says TERM and the size", "TERM xterm-256color" in out[row(0)] and "50x" in out[row(0)])
 need("a 50-column screen gets lines that fit",

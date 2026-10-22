@@ -1,5 +1,5 @@
 #!/bin/sh
-# The fast checks: under a minute, no docker, no network. What CI runs on every
+# The fast checks: about two minutes, no docker, no network. What CI runs on every
 # push and merge request, and what a release refuses to skip.
 #
 #     sh tests/check.sh          one step per core, reported in order

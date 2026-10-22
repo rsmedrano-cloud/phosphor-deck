@@ -45,7 +45,8 @@ def rows(cols, theme):
 def main():
     cols, lines = shutil.get_terminal_size((80, 24))
     env = lambda k: os.environ.get(k) or "-"
-    print(BLOOM + "phosphor screen --probe" + RST + DIM + " · what this screen draws" + RST)
+    # plain bold and dim, not the theme's 24-bit colors: row 8 is the first to use them
+    print("\x1b[1mphosphor screen --probe" + RST + "\x1b[2m · what this screen draws" + RST)
     print(" 0  TERM %s  COLORTERM %s  LANG %s  %dx%d%s" % (
         env("TERM"), env("COLORTERM"), os.environ.get("LC_ALL") or env("LANG"), cols, lines,
         "  NO_COLOR" if os.environ.get("NO_COLOR") else ""))

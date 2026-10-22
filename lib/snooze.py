@@ -21,7 +21,8 @@ failing after two.
 
 KIND is one of down, disk, services, reboot, smart, temp, battery,
 security. FLEET's z over a machine, Enter on it in glance and the SolarOS
-panel's fleet menu snooze what's wrong on it for 24h, and wake it again.
+panel's fleet menu snooze what's wrong on it for 24h; z again in FLEET, or
+--wake, ends it.
 """
 import json, os, re, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))

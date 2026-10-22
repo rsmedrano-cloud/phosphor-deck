@@ -18,7 +18,7 @@ OTHER = [b"ZELLIJ_SESSION_NAME=probe"]
 CASES = [
     # pid, command line, environment, should it be stopped
     (100, "python3 %s/phosphor-deck/phosphor run --name FLEET -- %s/phosphor-deck/phosphor fleet" % (HOME, HOME), MINE, True),
-    (101, "python3 %s/phosphor-deck/phosphor run --name LUCIUS --reconnect -- ssh -t lucius" % HOME, MINE, True),
+    (101, "python3 %s/phosphor-deck/phosphor run --name DB-BOX --reconnect -- ssh -t db-box" % HOME, MINE, True),
     (102, "%s/.local/bin/zellij --server /run/user/1000/zellij/contract_version_1/deck" % HOME, [], True),
     (103, "zellij attach deck", [], True),
     (104, "python3 %s/phosphor-deck/phosphor attach" % HOME, [], False),          # a screen waiting to come back

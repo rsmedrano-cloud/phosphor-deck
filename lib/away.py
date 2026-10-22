@@ -92,9 +92,10 @@ def saw(now=None):
     p = path()
     try:
         os.makedirs(os.path.dirname(p), exist_ok=True)
-        with open(p + ".tmp", "w") as f:
+        tmp = "%s.tmp.%d" % (p, os.getpid())     # two screens leaving at once
+        with open(tmp, "w") as f:
             json.dump(new, f)
-        os.replace(p + ".tmp", p)
+        os.replace(tmp, p)
     except OSError:
         pass
 
