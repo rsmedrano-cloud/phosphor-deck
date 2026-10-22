@@ -1,6 +1,6 @@
 {
   "_schema": {
-    "mutates": "true when running the command bare (no arguments), with no further interactive confirmation, changes persistent state: the deck's zellij session, a systemd unit, the profile, or any file phosphor generates -- or otherwise leaves this machine different than before. false speaks only for that bare run (the menu and / run it on Enter): an argument, flag or interactive key that escalates past it is named in \"note\" -- read it before passing one unattended.",
+    "mutates": "true when running the command bare (no arguments), with no further interactive confirmation, changes persistent state: the deck's zellij session, a systemd unit, the profile, or any file phosphor generates -- or otherwise leaves this machine different than before. Writing only a new file of its own that replaces nothing (a backup archive, one events line) isn't mutating. false speaks only for that bare run (the menu and / run it on Enter): an argument, flag or interactive key that escalates past it is named in \"note\" -- read it before passing one unattended.",
     "needs_deck": "true when the command needs the phosphor session already running, or to be run from inside it, to do anything meaningful.",
     "note": "one line of nuance: which flag or interactive key changes the plain answer above, and how.",
     "category": "the group it's listed under, one of _categories (phosphor help, phosphor commands, the manual).",

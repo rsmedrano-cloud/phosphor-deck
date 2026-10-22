@@ -1,6 +1,7 @@
 """phosphor stats - which phosphor commands get run here, counted locally.
 
-    phosphor stats           most run first, then the ones never run since counting began
+    phosphor stats           typed most first, then what only panes and scripts
+                             run, then the ones never run since counting began
     phosphor stats --json    the same, for scripts
     phosphor stats --clear   start counting again from today
 
@@ -15,6 +16,8 @@ same signal as something typed:
     pane       a tab's pane, started by phosphor run
     script     no terminal: a timer, a hook, another program
 Hidden commands (phosphor run, mention-hook) are plumbing, not counted.
+The panel reads terminal first: a card refreshing every few seconds runs
+thousands of times, and that says nothing about what people use.
 """
 import json, os, sys, textwrap, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -91,7 +94,8 @@ def count(cmd):
 
 
 def summary():
-    """{since, commands: [{name, runs, terminal, pane, script, last}], never: [names]}"""
+    """{since, commands: [{name, runs, terminal, pane, script, last}], never: [names]}:
+    commands typed most first, then by all their runs."""
     d = load()
     rows = []
     for name, c in d["commands"].items():
@@ -99,7 +103,7 @@ def summary():
         r.update({w: c.get(w, 0) for w in WAYS})
         r["last"] = c.get("last", "")
         rows.append(r)
-    rows.sort(key=lambda r: (-r["runs"], r["name"]))
+    rows.sort(key=lambda r: (-r["terminal"], -r["runs"], r["name"]))
     seen = {r["name"] for r in rows}
     never = [n for n in cli.entries() if n not in seen]
     return {"since": d["since"], "commands": rows, "never": never}
@@ -120,11 +124,17 @@ def main():
     print("phosphor commands run here since %s (counted on this machine only)" % s["since"])
     if not s["commands"]:
         print(DIM + "  nothing counted yet" + RST)
-    else:
-        print(DIM + "  %-14s %6s %9s %6s %7s  %s" % ("command", "runs", "terminal", "pane", "script", "last") + RST)
-        for r in s["commands"]:
-            print("  %-14s %6d %9d %6d %7d  %s" % (r["name"], r["runs"], r["terminal"],
-                                                    r["pane"], r["script"], r["last"]))
+    typed = [r for r in s["commands"] if r["terminal"]]
+    rest = [r for r in s["commands"] if not r["terminal"]]
+    for rows, title in ((typed, None), (rest, "run only by panes and scripts (cards, timers, hooks):")):
+        if not rows:
+            continue
+        if title:
+            print("\n" + title)
+        print(DIM + "  %-14s %9s %6s %7s %6s  %s" % ("command", "terminal", "pane", "script", "runs", "last") + RST)
+        for r in rows:
+            print("  %-14s %9d %6d %7d %6d  %s" % (r["name"], r["terminal"], r["pane"],
+                                                    r["script"], r["runs"], r["last"]))
     if s["never"]:
         print("\nnever run since %s:" % s["since"])
         print(textwrap.fill(", ".join(s["never"]), 78, initial_indent="  ", subsequent_indent="  "))

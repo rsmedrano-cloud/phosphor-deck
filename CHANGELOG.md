@@ -6,6 +6,12 @@ before it updates.
 
 ## Unreleased
 
+## 2.4.9 — stats reads what you type first
+
+- `phosphor stats` reads what you type first: commands are ordered by their `terminal` runs,
+  and the ones only panes and scripts run (a card refreshing all day counts thousands) come
+  after, apart. `--json` keeps its fields, in the same order.
+
 ## 2.4.8 — Trying a new screen
 
 - `phosphor screen --probe`: one numbered page of what a screen can draw (lines, blocks,

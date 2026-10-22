@@ -46,8 +46,10 @@ Everything else, even when you can see it:
 ## How something goes away
 
 What goes is picked from `phosphor stats` (the commands run on this
-machine, counted on it alone), not from a guess. Nothing public disappears
-without a warning first:
+machine, counted on it alone), not from a guess: what people type (its
+`terminal` column), not what cards and timers run on their own, and from
+more decks than one or two, too small a sample to remove anything on.
+Nothing public disappears without a warning first:
 
 1. It's listed in `share/deprecations.json`, with the version that first
    warns (`since`), the one that drops it (`remove`) and what to use

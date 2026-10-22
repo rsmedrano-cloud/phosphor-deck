@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """phosphor stats: every phosphor CMD counts one run of CMD (name only,
-never its arguments), split by how it started; --help, unknown commands
+never its arguments), split by how it started, typed most first; --help, unknown commands
 and hidden plumbing count nothing; a broken stats.json never breaks a
 command; parallel runs don't lose counts.
 
@@ -68,11 +68,24 @@ r = run("stats", "--json")
 s = json.loads(r.stdout)
 need("--json has since/commands/never", set(s) == {"since", "commands", "never"})
 top = s["commands"][0]
-need("most run first: %r" % top, top["name"] == "version" and top["runs"] == top["terminal"] + top["pane"] + top["script"])
+need("most run (none typed here) first: %r" % top, top["name"] == "version" and top["runs"] == top["terminal"] + top["pane"] + top["script"])
 need("never lists a command not run", "doctor" in s["never"] and "version" not in s["never"])
 need("never leaves hidden ones out", "run" not in s["never"])
 r = run("stats")
 need("the panel prints a table: %r" % r.stdout[:200], r.returncode == 0 and "version" in r.stdout and "never run" in r.stdout)
+
+# typed first: a card refreshing all day doesn't outrank what people type
+json.dump({"since": "2026-01-01", "commands": {
+    "workspace": {"pane": 9000, "script": 50, "last": "2026-01-02"},
+    "fleet": {"terminal": 3, "pane": 10, "last": "2026-01-02"},
+    "doctor": {"terminal": 7, "last": "2026-01-02"}}}, open(FILE, "w"))
+s = json.loads(run("stats", "--json").stdout)
+need("typed most first, then by runs: %r" % [r["name"] for r in s["commands"]],
+     [r["name"] for r in s["commands"]][:3] == ["doctor", "fleet", "workspace"])
+out = run("stats").stdout
+need("the panel puts what only panes and scripts run apart, after: %r" % out[:400],
+     out.index("doctor") < out.index("fleet") < out.index("run only by panes") < out.index("workspace"))
+need("the terminal column comes first", out.index("terminal") < out.index("pane ") < out.index("runs"))
 
 # a broken file: the command still runs, counting starts again
 open(FILE, "w").write("{not json")

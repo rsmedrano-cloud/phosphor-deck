@@ -445,8 +445,9 @@
   Enter starts or stops one, `/` names another.
 - `phosphor stats [--json] [--clear]` — which phosphor commands get run here: each one's count,
   split by how it started (`terminal`: typed, or a key that opens it; `pane`: a tab's pane;
-  `script`: no terminal, like a timer or a hook) and the day it last ran, most run first, then
-  the commands never run since counting began. Every `phosphor CMD` adds one in
+  `script`: no terminal, like a timer or a hook) and the day it last ran. Typed most first,
+  then, apart, what only panes and scripts run (a card refreshing all day runs thousands of
+  times and says nothing about use), then the commands never run since counting began. Every `phosphor CMD` adds one in
   `~/.cache/phosphor/stats.json`: the name only, never its arguments, and it never leaves this
   machine. It's what decides the next removals (see api). `--clear` starts over from today.
 
@@ -515,7 +516,7 @@ reading them every few seconds never gets them rate-limited.
 - `phosphor usage --json` — `plans`, one per assistant signed in here: `name`, `error` and its
   `windows` (`label`, `used` in %, `resets_at`); `why` names a window past 90% or an error.
 - `phosphor stats --json` — `since` and `commands`: `name`, `runs`, `terminal`, `pane`,
-  `script`, `last`; and `never`, the commands not run since then.
+  `script`, `last`, typed (`terminal`) most first; and `never`, the commands not run since then.
 
 Straight to one row: the panels whose rows have names open already on one with `--select NAME`
 (the exact name, else the first that starts with it, any case), the way a card's shortcut or a
