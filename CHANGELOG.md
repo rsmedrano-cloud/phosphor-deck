@@ -6,6 +6,16 @@ before it updates.
 
 ## Unreleased
 
+## 2.5.2 — Named actions
+
+- Runbooks: `[[hosts.actions]]` under a host in your profile, a name and a command line
+  (`name = "restart jellyfin"`, `run = "cd /srv/jellyfin && docker compose restart"`). In FLEET,
+  a card that has some shows `a actions`: `a` lists them in a tab of their own, you pick one, it
+  shows the exact command and the machine, and only `y` runs it, over `ssh -t` where you see every
+  line and sudo asks for its password. Also `phosphor upkeep run HOST [ACTION]`. Never from a
+  script, `glance --serve` or the MCP server; `phosphor doctor` warns about an action without a
+  name or a run, or two with the same name.
+
 ## 2.5.1 — Does it answer?
 
 - Service checks: `[[hosts.checks]]` under a host in your profile, a URL or a TCP port, and the

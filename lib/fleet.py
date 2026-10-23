@@ -528,6 +528,27 @@ def card(name, w, d):
 # containers (`phosphor containers`, which asks before touching one).
 ACTIONS = [("s", "ssh"), ("l", "logs"), ("t", "triage"), ("c", "containers"),
            ("u", "upgrade"), ("b", "reboot")]
+# ...and the host's own runbooks ([[hosts.actions]], lib/upkeep.py), only
+# on a card that has some: a list to pick from, each asking y first
+RUNBOOK = ("a", "actions")
+_acts = {"mtime": None, "names": set()}
+
+def with_actions():
+    """The hosts that have [[hosts.actions]], read again when the profile
+    changes (a new action needs no restart)."""
+    try:
+        m = os.path.getmtime(deckconf.path())
+    except OSError:
+        m = None
+    if m != _acts["mtime"]:
+        import upkeep
+        prof = deckconf.load()[0] or {}
+        _acts["mtime"], _acts["names"] = m, {n for n, _ in HOSTS if upkeep.actions(n, prof)}
+    return _acts["names"]
+
+def keys_for(name):
+    """The keys over a picked card: ACTIONS, plus a when it has actions."""
+    return ACTIONS + ([RUNBOOK] if name in with_actions() else [])
 # ...and two that stay in this pane: the card's last 24 hours (lib/history.py),
 # and quieting what's wrong on it for a day, or waking it (lib/snooze.py)
 HISTORY = ("h", "history")
@@ -560,6 +581,8 @@ def action_tab(key, name, target):
     if key in ("u", "b"):               # lib/upkeep.py: says what it runs, waits for you
         what = "upgrade" if key == "u" else "reboot"
         return (what.upper() + "-" + name).upper()[:24], {"cmd": "phosphor upkeep", "args": [what, name]}
+    if key == RUNBOOK[0]:
+        return ("RUN-" + name).upper()[:24], {"cmd": "phosphor upkeep", "args": ["run", name]}
     return None
 
 def demo_alias(target):
@@ -645,7 +668,7 @@ def footer(n, sel, msg):
         return DIM + text + RST + ("  " + AMB + msg + RST if msg else ""), {}
     # picked: just what the keys do, short enough for a phone's width
     out, taps, x = " " + FG + HOSTS[sel][0] + RST, {}, 1 + len(HOSTS[sel][0])
-    for k, what in ACTIONS + [HISTORY, SNOOZE, ("Esc", "")]:
+    for k, what in keys_for(HOSTS[sel][0]) + [HISTORY, SNOOZE, ("Esc", "")]:
         piece = "  " + k + (" " + what if what else "")
         taps[(x + 3, x + len(piece))] = "\x1b" if k == "Esc" else k
         out += "  " + AMB + k + RST + (" " + FG + what + RST if what else "")
@@ -869,7 +892,8 @@ def main():
                 import tui
                 tui.keys_help("FLEET", [("← → ↑ ↓ Tab", "pick a machine (a tap too)")]
                               + [(a, w + " on it, in a tab of its own") for a, w in ACTIONS]
-                              + [(HISTORY[0], "its last 24 hours, here"),
+                              + [(RUNBOOK[0], "its own [[hosts.actions]]: pick one, y runs it"),
+                                 (HISTORY[0], "its last 24 hours, here"),
                                  (SNOOZE[0], "quiet what's wrong on it for 24h, or wake it")])
             elif k == "\x1b":
                 sel, end = on_esc(sel)
@@ -886,9 +910,11 @@ def main():
                 else:
                     msg = snooze.toggle(HOSTS[sel][0])
                 msg_until = time.time() + 5
-            elif k in [a for a, _ in ACTIONS]:
+            elif k in [a for a, _ in ACTIONS + [RUNBOOK]]:
                 if sel is None:
                     msg = "pick a machine first: arrows or a tap"
+                elif k == RUNBOOK[0] and HOSTS[sel][0] not in with_actions():
+                    msg = "%s has no actions: [[hosts.actions]] in the profile" % HOSTS[sel][0]
                 else:
                     msg = open_action(k, HOSTS[sel][0], HOSTS[sel][1])
                 msg_until = time.time() + 5

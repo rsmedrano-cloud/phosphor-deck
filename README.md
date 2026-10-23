@@ -79,6 +79,8 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
   containers, failed units, updates, temperature) over plain ssh, nothing
   installed on them, and whether your services still answer; their files under `~/fleet`, nothing copied. An
   alert you already know about snoozes for a day, everywhere at once.
+  The commands you keep typing on one get a name, and run from its card
+  once you say `y`.
 - **Cards of your own.** Every command as a card with its live value:
   pipelines, plan usage, who's attached; place them in any pane
   ([profile](doc/manual/profile.md)).

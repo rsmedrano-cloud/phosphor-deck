@@ -76,6 +76,7 @@ One block per machine.
 | mounts | the brain's own folders shown in `~/fleet/<brain>/` (`/` → root, `~` → home, `/mnt/X` → X) |
 | fleet | false keeps it in the deck but off the fleet panel |
 | checks | `[[hosts.checks]]` blocks: its services, does each one answer (below) |
+| actions | `[[hosts.actions]]` blocks: its runbooks, a name and a command line (below) |
 
 Viewers are never polled or mounted. `@work`, `@desktop`… in a tab mean "the
 first host with that role"; `@hosts` means all of them; `@mount_root` is
@@ -112,6 +113,35 @@ alert pushed and spoken when it stops or comes back (not while the host
 itself is down), and "while you were away". `phosphor snooze HOST checks`
 quiets it. It answers or it doesn't: no response times, no certificate
 dates. Read again every round: a new check needs no restart.
+
+### [[hosts.actions]]
+
+Runbooks: the few command lines you keep typing on a machine, under a name.
+Each block, right after its host's `[[hosts]]`:
+
+| key | what |
+|---|---|
+| name | what you pick it by ("restart jellyfin") |
+| run | one line for the host's `sh`, as you'd type it; `sudo` in it asks in the terminal |
+
+    [[hosts.actions]]
+    name = "restart jellyfin"
+    run  = "cd /srv/jellyfin && docker compose restart"
+
+    [[hosts.actions]]
+    name = "clear tmp"
+    run  = "sudo find /tmp -mindepth 1 -mtime +7 -delete"
+
+In FLEET, a card that has actions shows `a actions` once you pick it: `a`
+opens a tab with the list (`phosphor upkeep run HOST`), you pick one, it
+shows the exact command and the machine, and only `y` runs it, over
+`ssh -t` in that tab, where you see every line. Nothing else runs them:
+not a tap you didn't follow with a `y`, not `glance --serve`, not the MCP
+server, not a script (without a terminal it refuses). One container's
+restart doesn't need one: `c` over the card already lists its containers
+and `r` restarts one; an action is for what isn't a single container (a
+compose stack, a service, a script of yours). Read again when the profile
+changes: a new action needs no restart.
 
 ## [[tabs]]
 

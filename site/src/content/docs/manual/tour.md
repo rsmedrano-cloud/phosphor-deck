@@ -400,7 +400,7 @@ more depth on every one of these.
 | `phosphor tts` | speak notifications aloud with selectable voices (GLaDOS, Adjutant, HAL, Synth, System) |
 | `phosphor ci` | GitLab/GitHub pipeline status cards (see `[ci]` in the profile) |
 | `phosphor services` | systemd units and their state: Phosphor's own, plus any you add (see `[services]` in the profile); pick one for its logs, restart, start/stop |
-| `phosphor upkeep (upgrade \| reboot) HOST` | upgrade or reboot a fleet machine where you see it: says what it runs, waits for you, sudo asks in the same terminal (`u`/`b` over a card in FLEET) |
+| `phosphor upkeep (upgrade \| reboot \| run) HOST` | upgrade, reboot or run one of its `[[hosts.actions]]` on a fleet machine where you see it: says what it runs, waits for you, sudo asks in the same terminal (`u`/`b`/`a` over a card in FLEET) |
 | `phosphor containers [HOST]` | a host's docker/podman containers; pick one for its logs, restart, start/stop (`c` over a card in FLEET) |
 | `phosphor review` | open merge/pull requests: CI, conflicts, diff, try the branch in its own worktree |
 | `phosphor mem` | how much memory each tab and pane of the deck takes, heaviest first, every kind of screen's deck included |

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """FLEET's keys: pick a card (arrows, Tab, a tap), then s opens a shell on
-that machine, l its logs, t a triage -- each in a tab of its own.
+that machine, l its logs, t a triage, a its actions -- each in a tab of its own.
 
     python3 tests/fleet-keys-check.py           # the pieces, no zellij
     python3 tests/fleet-keys-check.py --live    # also in a throwaway zellij
@@ -35,6 +35,8 @@ need("u: phosphor upkeep upgrade, in a tab", fleet.action_tab("u", "db-box", "de
      == ("UPGRADE-DB-BOX", {"cmd": "phosphor upkeep", "args": ["upgrade", "db-box"]}))
 need("b: phosphor upkeep reboot, in a tab", fleet.action_tab("b", "db-box", None)
      == ("REBOOT-DB-BOX", {"cmd": "phosphor upkeep", "args": ["reboot", "db-box"]}))
+need("a: phosphor upkeep run, its list, in a tab", fleet.action_tab("a", "db-box", "deploy@db-box-alias")
+     == ("RUN-DB-BOX", {"cmd": "phosphor upkeep", "args": ["run", "db-box"]}))
 need("any other key opens nothing", fleet.action_tab("x", "db-box", None) is None)
 
 # upkeep: over ssh -t for a remote host, here for the brain; a name the
@@ -56,6 +58,60 @@ _stdin, sys.stdin = sys.stdin, open(os.devnull)
 need("upkeep: an unknown name runs nothing", upkeep.run("reboot", "nimbus", prof) == 2)
 need("upkeep: no terminal, nothing runs", upkeep.run("upgrade", "db-box", prof) == 2 and not ran)
 sys.stdin = _stdin
+
+# runbooks: [[hosts.actions]], a name and a run; only y runs one, and a
+# host without them (or a name it doesn't have) runs nothing
+prof["hosts"][1]["actions"] = [{"name": "restart jellyfin", "run": "docker restart jellyfin"},
+                               {"name": "no run"}, {"run": "no name"},
+                               {"name": "clear tmp", "run": "sudo rm -rf /tmp/x"}]
+need("upkeep: a host's actions, the broken ones left out",
+     upkeep.actions("db-box", prof) == [("restart jellyfin", "docker restart jellyfin"),
+                                        ("clear tmp", "sudo rm -rf /tmp/x")])
+need("upkeep: no actions on the brain", upkeep.actions("box", prof) == [])
+need("upkeep run: the action's own line over ssh -t",
+     upkeep.argv("run", "deploy@db-box-alias", "docker restart jellyfin")
+     == ["ssh", "-t", "deploy@db-box-alias", "sh -c 'docker restart jellyfin'"])
+_stdin, sys.stdin = sys.stdin, open(os.devnull)
+need("upkeep run: no terminal, nothing runs", upkeep.run("run", "db-box", prof, "clear tmp") == 2 and not ran)
+sys.stdin = _stdin
+class _Tty:
+    def isatty(self): return True
+answers = []
+upkeep.ask = lambda p: answers.pop(0) if answers else None
+_stdin, sys.stdin = sys.stdin, _Tty()
+answers[:] = ["n"]
+need("upkeep run: anything but y leaves it alone", upkeep.run("run", "db-box", prof, "clear tmp") == 1 and not ran)
+answers[:] = ["y"]
+need("upkeep run: y runs the one named",
+     upkeep.run("run", "db-box", prof, "clear tmp") == 0 and ran.pop() == upkeep.argv("run", "deploy@db-box-alias", "sudo rm -rf /tmp/x"))
+answers[:] = ["1", "y"]
+need("upkeep run: no ACTION, picked from the list by number",
+     upkeep.run("run", "db-box", prof) == 0 and ran.pop()[-1] == "sh -c 'docker restart jellyfin'")
+answers[:] = [""]
+need("upkeep run: Enter at the list leaves", upkeep.run("run", "db-box", prof) == 1 and not ran)
+answers[:] = ["y"]
+need("upkeep run: a name it doesn't have runs nothing", upkeep.run("run", "db-box", prof, "nope") == 1 and not ran)
+need("upkeep run: a host without actions runs nothing", upkeep.run("run", "box", prof) == 2 and not ran)
+sys.stdin = _stdin
+
+# FLEET's footer: a only on a card that has actions
+fleet.HOSTS = [("box", None), ("db-box", "deploy@db-box-alias")]
+fleet._acts.update(mtime=0, names={"db-box"})
+_gm, fleet.os.path.getmtime = fleet.os.path.getmtime, lambda p: 0
+def bare(t): return re.sub(r"\x1b\[[0-9;]*m", "", t)
+need("footer: a actions on a card that has some", "a actions" in bare(fleet.footer(2, 1, "")[0]))
+need("footer: no a on one without", "a actions" not in bare(fleet.footer(2, 0, "")[0]))
+fleet.os.path.getmtime = _gm
+
+# profcheck: what doctor says about a broken action
+import profcheck
+got = []
+profcheck._actions("[[hosts]] db-box", [{"name": "x", "run": "true"}, {"name": "x", "run": "true"},
+                                         {"name": "y"}, {"run": "z"}, {"name": "w", "run": "t", "sudo": True}], got)
+said = " | ".join(m for _, m in got)
+need("profcheck: a repeated name, a missing run or name, an unknown key",
+     "two actions with that name" in said and "run is the command line" in said
+     and "a name, to pick it by" in said and "sudo" in said)
 
 # the l spec becomes a pane that runs that argv through phosphor run
 kdl = gen.pane_kdl(fleet.action_tab("l", "db-box", "db-box-alias")[1], gen.Ctx({}), 0)
@@ -159,6 +215,10 @@ name = "db-box"
 role = "storage"
 ssh = "db-box.invalid"
 
+[[hosts.actions]]
+name = "restart jellyfin"
+run = "docker restart jellyfin"
+
 [[tabs]]
 name = "SYS"
 panes = [ { cmd = "phosphor fleet" } ]
@@ -182,6 +242,11 @@ panes = [ { cmd = "phosphor fleet" } ]
         back()
         z.keys("t", 1)
         need("t: a TRIAGE-DB-BOX tab", opened("TRIAGE-DB-BOX"))
+        back()
+        need("db-box has actions: a shows on its bottom line", any("a actions" in r for r in z.screen()))
+        z.keys("a", 1)
+        need("a: a RUN-DB-BOX tab, its list, waiting", opened("RUN-DB-BOX")
+             and z.wait(lambda: "restart jellyfin" in z.text() and "which one" in z.text(), 10))
         back()
         z.keys("\x1b", 1.5)
         z.keys("s", 0)

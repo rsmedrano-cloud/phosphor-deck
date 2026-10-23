@@ -25,8 +25,9 @@ DECK = {"session": None, "command": None, "theme": "themes", "mount_root": None,
         "declined": None}                # the offers said no to (migrate.py)
 HOST = {"name": None, "role": ("brain", "work", "desktop", "storage", "node", "viewer"),
         "local": BOOL, "ssh": None, "user": None, "ip": None, "mount": None,
-        "mounts": None, "fleet": BOOL, "checks": None}
+        "mounts": None, "fleet": BOOL, "checks": None, "actions": None}
 CHECK = {"name": None, "url": None, "port": None, "host": None}
+ACTION = {"name": None, "run": None}
 TAB = {"name": None, "split": ("rows", "cols"), "panes": None}
 PANE = {"cmd": None, "args": None, "ssh": None, "reconnect": BOOL, "size": None,
         "cwd": None, "needs_size": BOOL, "alt": BOOL, "split": ("rows", "cols"),
@@ -110,6 +111,24 @@ def _checks(where, checks, out):
         elif port is not None and (isinstance(port, bool) or not isinstance(port, int) or not 0 < port < 65536):
             out.append((where, "check %s: port is a number, 1 to 65535" % _val(what)))
 
+def _actions(where, actions, out):
+    """[[hosts.actions]]: each a name and a run, names not repeated (lib/upkeep.py)."""
+    if not isinstance(actions, list):
+        out.append((where, "actions should be [[hosts.actions]] blocks")); return
+    seen = set()
+    for a in actions:
+        _table(where, a, ACTION, out)
+        if not isinstance(a, dict):
+            continue
+        name, run = a.get("name"), a.get("run")
+        if not (isinstance(name, str) and name.strip()):
+            out.append((where, "action %s: a name, to pick it by" % _val(run))); continue
+        if not (isinstance(run, str) and run.strip()):
+            out.append((where, "action %s: run is the command line, as a string" % _val(name)))
+        if name in seen:
+            out.append((where, "action %s: two actions with that name" % _val(name)))
+        seen.add(name)
+
 
 def _panes(where, panes, out):
     if not isinstance(panes, list):
@@ -183,6 +202,8 @@ def problems(prof):
             for h in val if isinstance(val, list) else ():
                 if isinstance(h, dict) and "checks" in h:
                     _checks("[[hosts]] %s" % h.get("name", "?"), h["checks"], out)
+                if isinstance(h, dict) and "actions" in h:
+                    _actions("[[hosts]] %s" % h.get("name", "?"), h["actions"], out)
         elif sec == "tabs":
             tabs("tabs", val, out)
         elif sec == "tunnels":
