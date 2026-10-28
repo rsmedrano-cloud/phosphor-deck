@@ -68,10 +68,9 @@ def findings(name, h):
         if limits.red("disk", pct, name):
             out.append(("disk", 2, "disk %d%%" % pct, False))
             break
-    try: svcfail = int(h.get("SVCFAIL") or 0)
-    except (TypeError, ValueError): svcfail = 0
+    svcfail = health.failed(h)[0]
     if svcfail:
-        out.append(("services", svcfail, "%d service%s failed" % (svcfail, "" if svcfail == 1 else "s"), False))
+        out.append(("services", svcfail, health.failed_text(h), False))
     bad = checks.failing(name)
     if bad:
         out.append(("checks", len(bad), "%s not answering" % ", ".join(n for n, _ in bad), False))

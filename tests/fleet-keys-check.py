@@ -35,6 +35,8 @@ need("u: phosphor upkeep upgrade, in a tab", fleet.action_tab("u", "db-box", "de
      == ("UPGRADE-DB-BOX", {"cmd": "phosphor upkeep", "args": ["upgrade", "db-box"]}))
 need("b: phosphor upkeep reboot, in a tab", fleet.action_tab("b", "db-box", None)
      == ("REBOOT-DB-BOX", {"cmd": "phosphor upkeep", "args": ["reboot", "db-box"]}))
+need("f: phosphor upkeep units, in a tab", fleet.action_tab("f", "db-box", "deploy@db-box-alias")
+     == ("UNITS-DB-BOX", {"cmd": "phosphor upkeep", "args": ["units", "db-box"]}))
 need("a: phosphor upkeep run, its list, in a tab", fleet.action_tab("a", "db-box", "deploy@db-box-alias")
      == ("RUN-DB-BOX", {"cmd": "phosphor upkeep", "args": ["run", "db-box"]}))
 need("any other key opens nothing", fleet.action_tab("x", "db-box", None) is None)
@@ -92,6 +94,28 @@ need("upkeep run: Enter at the list leaves", upkeep.run("run", "db-box", prof) =
 answers[:] = ["y"]
 need("upkeep run: a name it doesn't have runs nothing", upkeep.run("run", "db-box", prof, "nope") == 1 and not ran)
 need("upkeep run: a host without actions runs nothing", upkeep.run("run", "box", prof) == 2 and not ran)
+
+# upkeep units (#81): every failed unit's status and journal, then one fixed
+# on a y, then the list again from the host, until none is left
+show = lambda units: upkeep.argv("run", "deploy@db-box-alias", upkeep.SHOW, units)
+need("upkeep units: the units go to the status script as its \"$@\"",
+     show(["getty@tty1.service"])[-1].endswith("' sh getty@tty1.service") and show(["a"])[:3] == ["ssh", "-t", "deploy@db-box-alias"])
+left = [["getty@tty1.service", "media-remount.service"], ["media-remount.service"], []]
+upkeep.failed_now = lambda t: left.pop(0) if left else []
+answers[:] = ["x 1", "y", "r", "y"]
+need("upkeep units: x N resets one, r the only one restarts it, then none is left",
+     upkeep.run("units", "db-box", prof) == 0
+     and ran == [show(["getty@tty1.service", "media-remount.service"]),
+                 upkeep.argv("run", "deploy@db-box-alias", "sudo systemctl reset-failed getty@tty1.service"),
+                 show(["media-remount.service"]),
+                 upkeep.argv("run", "deploy@db-box-alias", "sudo systemctl restart media-remount.service")])
+for said, why in ((["r 1", "n"], "anything but y"), ([""], "Enter"), (["r 5"], "a number it doesn't list"),
+                  (["restart"], "a word it doesn't know")):
+    ran.clear(); left[:] = [["a.service", "b.service"]]; answers[:] = said
+    need("upkeep units: %s fixes nothing" % why, upkeep.run("units", "db-box", prof) == 1 and ran == [show(["a.service", "b.service"])])
+ran.clear()
+upkeep.failed_now = lambda t: None
+need("upkeep units: a host that doesn't answer runs nothing", upkeep.run("units", "db-box", prof) == 2 and not ran)
 sys.stdin = _stdin
 
 # FLEET's footer: a only on a card that has actions
@@ -101,6 +125,10 @@ _gm, fleet.os.path.getmtime = fleet.os.path.getmtime, lambda p: 0
 def bare(t): return re.sub(r"\x1b\[[0-9;]*m", "", t)
 need("footer: a actions on a card that has some", "a actions" in bare(fleet.footer(2, 1, "")[0]))
 need("footer: no a on one without", "a actions" not in bare(fleet.footer(2, 0, "")[0]))
+_rs, fleet.read_state = fleet.read_state, lambda: {"db-box": {"ok": True, "SVCFAIL": 1}, "box": {"ok": True, "SVCFAIL": 0}}
+need("footer: f failed on a card whose units failed", "f failed" in bare(fleet.footer(2, 1, "")[0]))
+need("footer: no f on one without", "f failed" not in bare(fleet.footer(2, 0, "")[0]))
+fleet.read_state = _rs
 fleet.os.path.getmtime = _gm
 
 # profcheck: what doctor says about a broken action

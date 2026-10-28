@@ -347,8 +347,9 @@ pane of the deck and is mirrored (`phosphor mirror`), at the size the
 last screen on the deck gave it: a long line wraps. Either way the panel
 gets only the lines that changed, at most about three times a second,
 however often the screen behind them redraws. FLEET lists each machine
-with its pending updates and reboot, where `upgrade` and `reboot` run
-`phosphor upkeep` right there: it shows the command and waits for you,
+with its pending updates, failed units and reboot, where `upgrade`,
+`reboot` and `failed units` run `phosphor upkeep` right there: it shows
+the command and waits for you,
 and sudo asks on the panel; `snooze 24h` quiets what's wrong on it for a
 day (`wake` undoes it). A screen you leave keeps running (the last
 four), so coming back to it is instant; one that ends says so, and Enter

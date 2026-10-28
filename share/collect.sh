@@ -18,7 +18,10 @@ df -h --output=source,target,pcent,size -x tmpfs -x devtmpfs -x overlay -x squas
 # postgresql, tailscaled) or a security update leaving a reboot pending is
 # the more common self-hosting failure. Both are near-free to check.
 if command -v systemctl >/dev/null 2>&1; then
-  echo "SVCFAIL=$(systemctl --failed --quiet --no-legend 2>/dev/null | wc -l)"
+  # The count, and which ones (at most 8 names): FLEET's card says which.
+  f=$(systemctl --failed --plain --quiet --no-legend 2>/dev/null | awk 'NF{print $1}')
+  echo "SVCFAIL=$(printf '%s' "$f" | grep -c .)"
+  [ -n "$f" ] && echo "SVCFAILED=$(printf '%s\n' "$f" | head -n 8 | paste -sd, -)"
 fi
 [ -f /var/run/reboot-required ] && echo "REBOOT=1"
 

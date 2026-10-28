@@ -35,6 +35,8 @@ json.dump({"t": 9999999999, "hosts": {
     "nova": {"ok": True, "CPU": 10, "MEMU": 100, "MEMT": 1000, "mnt": []},
     "forge": {"ok": False, "err": "connection refused"},
     "atlas": {"ok": True, "CPU": 5, "MEMU": 50, "MEMT": 1000, "mnt": [], "SVCFAIL": 2, "REBOOT": "1"},
+    "vega": {"ok": True, "CPU": 5, "MEMU": 50, "MEMT": 1000, "mnt": [], "SVCFAIL": 1,
+             "SVCFAILED": "media-remount.service"},
 }}, open(os.path.join(home, ".cache/phosphor/fleet.json"), "w"))
 open(os.path.join(home, ".local/share/phosphor/mentions.jsonl"), "w").write(
     json.dumps({"t": 1.0, "from": "sam", "message": "one comment on the tts PR"}) + "\n")
@@ -46,6 +48,7 @@ need("bad host shows up", any("forge" in l and "connection refused" in l for l i
 need("ok host doesn't clutter the list", not any(l.strip().startswith("✗ nova") for l in lines))
 need("a failed service shows up even though the host itself is ok",
      any("atlas" in l and "2 services failed" in l for l in lines))
+need("...by its name when the host says which", any("vega" in l and "media-remount failed" in l for l in lines))
 need("a pending reboot shows up too", any("atlas" in l and "reboot pending" in l for l in lines))
 need("unread mention shows up", any("1 unread" in l for l in lines))
 need("mention sender/text shows up", any("sam" in l for l in lines))
@@ -78,7 +81,7 @@ p = glance.payload()
 need("a host down makes the light red", p["status"] == "red")
 need("worst is the host that's down, not a pending reboot",
      p["worst"] == {"host": "forge", "detail": "connection refused"})
-need("counts come along", p["mentions"] == 1 and p["todos"] == 1 and p["fleet"]["total"] == 3)
+need("counts come along", p["mentions"] == 1 and p["todos"] == 1 and p["fleet"]["total"] == 4)
 json.dump({"t": 9999999999, "hosts": {"nova": {"ok": True, "mnt": [], "REBOOT": "1"}}},
           open(os.path.join(home, ".cache/phosphor/fleet.json"), "w"))
 need("something to look at, nothing down: amber", glance.payload()["status"] == "amber")

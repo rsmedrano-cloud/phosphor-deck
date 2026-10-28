@@ -208,6 +208,9 @@ def when(t, now=None):
 ALERTS = ((re.compile(r"^(.+) is unreachable$"), "down", lambda m: 1),
           (re.compile(r"^(.+) is back$"), "down", lambda m: 0),
           (re.compile(r"^(.+): (\d+) services? failed$"), "services", lambda m: int(m.group(2))),
+          # ...or by their names (lib/health.py's failed_text): one a name, +N more
+          (re.compile(r"^(.+?): ([^ ,]+(?:, [^ ,]+)*)(?: \+(\d+))? failed$"), "services",
+           lambda m: len(m.group(2).split(", ")) + int(m.group(3) or 0)),
           (re.compile(r"^(.+): services back to normal$"), "services", lambda m: 0),
           (re.compile(r"^(.+): (\d+) disks? failing SMART$"), "smart", lambda m: int(m.group(2))),
           (re.compile(r"^(.+?): .+ not answering$"), "checks", lambda m: max(1, _failing(m.group(1)))),

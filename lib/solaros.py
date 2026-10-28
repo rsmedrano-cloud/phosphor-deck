@@ -505,6 +505,8 @@ def fleet_rows():
         if u and u[0]:
             bits.append("%d update%s%s" % (u[0], "" if u[0] == 1 else "s",
                                            " (%d security)" % u[1] if u[1] else ""))
+        if h.get("ok") and health.failed(h)[0]:
+            bits.append(health.failed_text(h))
         if h.get("REBOOT"):
             bits.append("reboot pending")
         t = snooze.until(name)
@@ -525,13 +527,15 @@ def fleet():
         sel = i
         name = rows[i][0]
         quiet = "wake" if snooze.until(name) else "snooze 24h"
-        a = pick("fleet: %s" % name, ["upgrade", "reboot", quiet, "back"])
-        if a == 2:                          # lib/snooze.py: what's wrong on it, quiet for a day
+        what = ["upgrade", "reboot"] + (["failed units"] if "failed" in rows[i][1] else []) + [quiet, "back"]
+        a = pick("fleet: %s" % name, what)
+        a = what[a] if a is not None else "back"
+        if a == quiet:                      # lib/snooze.py: what's wrong on it, quiet for a day
             say(["", " " + snooze.toggle(name)])
             ask("\n Enter goes back ")
-        elif a in (0, 1):
+        elif a != "back":
             say([""])
-            upkeep.run(("upgrade", "reboot")[a], name)
+            upkeep.run({"failed units": "units"}.get(a, a), name)
             ask("\n Enter goes back ")
 
 # ── the panel's deck: its tabs, over one ssh session ──────────

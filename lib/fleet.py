@@ -17,7 +17,7 @@ from concurrent.futures import ThreadPoolExecutor
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
 import deckconf, proc
-from health import sensors, updates
+from health import sensors, updates, failed, failed_text
 import checks, limits, snooze, zoom
 from sanitize import clean, clean_tree
 
@@ -193,11 +193,11 @@ def update_host(n, r):
     # not-the-first-poll guard, so an already-failed service when we start
     # watching doesn't alert either.
     if now_ok:
-        fails = r.get("SVCFAIL", 0)
+        fails = failed(r)[0]
         was_fails = PREV_SVCFAIL.get(n)
         if was_fails is not None and fails != was_fails:
             if fails and not was_fails:
-                _alert(n, False, "%s: %d service%s failed" % (n, fails, "" if fails == 1 else "s"))
+                _alert(n, False, "%s: %s" % (n, failed_text(r)))
             elif was_fails and not fails:
                 _alert(n, True, "%s: services back to normal" % n)
         PREV_SVCFAIL[n] = fails
@@ -380,7 +380,7 @@ def reading(d):
                           if ctr and len(ctr) == 3 else None,
             "gpus": [{"name": g.get("name") or None, "util": num(g.get("util")), "used_mb": num(g.get("used")),
                       "total_mb": num(g.get("total")), "temp": num(g.get("temp"))} for g in d.get("gpu") or []],
-            "failed_units": num(d.get("SVCFAIL")), "reboot": bool(d.get("REBOOT")), "temp": temp,
+            "failed_units": num(d.get("SVCFAIL")), "failed_names": failed(d)[1], "reboot": bool(d.get("REBOOT")), "temp": temp,
             "battery": {"pct": bat[0], "status": bat[1] or None} if bat else None,
             "smart": {"failing": smart[0], "checked": smart[1]} if smart else None,
             "updates": {"pending": upd[0], "security": upd[1]} if upd else None}
@@ -453,13 +453,11 @@ def card(name, w, d):
         # build than this code (a Rust binary needs a rebuild to pick up a
         # collect.sh change; Python doesn't) -- SVCFAIL may come through as
         # a plain string from a stale writer that doesn't know it's a
-        # number yet. Never trust its type, same spirit as the GPU fields
-        # a few lines up.
+        # number yet, and SVCFAILED may not come at all: health.failed()
+        # never trusts either, same spirit as the GPU fields a few lines up.
         body += quieted(name)
-        try: svcfail = int(d.get("SVCFAIL") or 0)
-        except (TypeError, ValueError): svcfail = 0
-        if svcfail:
-            body.append(RED + "● %d failed" % svcfail + RST)
+        if failed(d)[0]:
+            body.append(RED + "● " + failed_text(d, inner - 2) + RST)
         for c, err in checks.failing(name):
             body.append(RED + ("✗ %s: %s" % (c, err))[:inner] + RST)
         if d.get("REBOOT"):
@@ -546,9 +544,21 @@ def with_actions():
         _acts["mtime"], _acts["names"] = m, {n for n, _ in HOSTS if upkeep.actions(n, prof)}
     return _acts["names"]
 
+# ...and its failed units (lib/upkeep.py's units), only on a card that
+# has some: each one's status and journal, then a restart or reset-failed
+UNITS = ("f", "failed")
+
+def has_failed(name):
+    """True when the last poll of `name` counted failed units (whichever
+    poller wrote it, like the card)."""
+    r = read_state().get(name) or {}
+    return bool(r.get("ok")) and failed(r)[0] > 0
+
 def keys_for(name):
-    """The keys over a picked card: ACTIONS, plus a when it has actions."""
-    return ACTIONS + ([RUNBOOK] if name in with_actions() else [])
+    """The keys over a picked card: ACTIONS, plus a when it has actions
+    and f when units failed on it."""
+    return (ACTIONS + ([RUNBOOK] if name in with_actions() else [])
+            + ([UNITS] if has_failed(name) else []))
 # ...and two that stay in this pane: the card's last 24 hours (lib/history.py),
 # and quieting what's wrong on it for a day, or waking it (lib/snooze.py)
 HISTORY = ("h", "history")
@@ -583,6 +593,8 @@ def action_tab(key, name, target):
         return (what.upper() + "-" + name).upper()[:24], {"cmd": "phosphor upkeep", "args": [what, name]}
     if key == RUNBOOK[0]:
         return ("RUN-" + name).upper()[:24], {"cmd": "phosphor upkeep", "args": ["run", name]}
+    if key == UNITS[0]:
+        return ("UNITS-" + name).upper()[:24], {"cmd": "phosphor upkeep", "args": ["units", name]}
     return None
 
 def demo_alias(target):
@@ -893,6 +905,7 @@ def main():
                 tui.keys_help("FLEET", [("← → ↑ ↓ Tab", "pick a machine (a tap too)")]
                               + [(a, w + " on it, in a tab of its own") for a, w in ACTIONS]
                               + [(RUNBOOK[0], "its own [[hosts.actions]]: pick one, y runs it"),
+                                 (UNITS[0], "its failed units: status, journal, restart or reset-failed"),
                                  (HISTORY[0], "its last 24 hours, here"),
                                  (SNOOZE[0], "quiet what's wrong on it for 24h, or wake it")])
             elif k == "\x1b":
@@ -910,11 +923,13 @@ def main():
                 else:
                     msg = snooze.toggle(HOSTS[sel][0])
                 msg_until = time.time() + 5
-            elif k in [a for a, _ in ACTIONS + [RUNBOOK]]:
+            elif k in [a for a, _ in ACTIONS + [RUNBOOK, UNITS]]:
                 if sel is None:
                     msg = "pick a machine first: arrows or a tap"
                 elif k == RUNBOOK[0] and HOSTS[sel][0] not in with_actions():
                     msg = "%s has no actions: [[hosts.actions]] in the profile" % HOSTS[sel][0]
+                elif k == UNITS[0] and not has_failed(HOSTS[sel][0]):
+                    msg = "no failed units on %s" % HOSTS[sel][0]
                 else:
                     msg = open_action(k, HOSTS[sel][0], HOSTS[sel][1])
                 msg_until = time.time() + 5

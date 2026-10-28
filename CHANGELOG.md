@@ -6,6 +6,16 @@ before it updates.
 
 ## Unreleased
 
+## 2.5.3 — Which units failed
+
+- Failed units by name: a FLEET card says which units failed (`● media-remount failed`, or the
+  first ones and `+2` when they don't fit), and so do glance, the push and spoken alerts and
+  `fleet --json` (`failed_names`, next to the `failed_units` count). `f` over a card with failed
+  units opens `phosphor upkeep units HOST` in a tab: each one's `systemctl status` and last journal
+  lines (sudo asks for the journal when your user can't read it), then `r N` restarts one or `x N`
+  forgets that it failed, each shown first and run only on `y`. The SolarOS panel's fleet menu
+  offers it too. A host polled by an older deck still shows the count, as before.
+
 ## 2.5.2 — Named actions
 
 - Runbooks: `[[hosts.actions]]` under a host in your profile, a name and a command line

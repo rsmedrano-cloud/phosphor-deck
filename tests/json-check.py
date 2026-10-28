@@ -28,7 +28,7 @@ json.dump({"t": time.time(), "hosts": {
     "nebula": {"ok": True, "CPU": 12, "MEMU": 100, "MEMT": 1000, "LOAD": "0.5 0.4 0.3", "UP": "3d",
                "mnt": [["/", 41, "512G"]], "ctr": ["docker", 7, 1],
                "gpu": [{"name": "GPU", "util": "38", "used": "4200", "total": "12288", "temp": "57"}],
-               "SVCFAIL": 2, "REBOOT": "1", "TEMP": "48", "BAT": "83|Discharging", "SMART": "1|4",
+               "SVCFAIL": 2, "SVCFAILED": "media-remount.service,getty@tty1.service", "REBOOT": "1", "TEMP": "48", "BAT": "83|Discharging", "SMART": "1|4",
                "UPD": "12|", "ms": 600},
 }}, open(os.path.join(home, ".cache/phosphor/fleet.json"), "w"))
 env = dict(os.environ, HOME=home, PHOSPHOR_PROFILE=prof, NO_COLOR="1")
@@ -79,8 +79,9 @@ if d:
          and n.get("smart") == {"failing": 1, "checked": 4})
     need("fleet: updates without a security count", n.get("updates") == {"pending": 12, "security": None})
     need("fleet: failed units and reboot", n.get("failed_units") == 2 and n.get("reboot") is True)
+    need("fleet: which units failed", n.get("failed_names") == ["media-remount.service", "getty@tty1.service"])
     need("fleet: why names the host and what wants a look",
-         (d.get("why") or "").startswith("nebula: 2 services failed, reboot pending"))
+         (d.get("why") or "").startswith("nebula: media-remount, getty@tty1 failed, reboot pending"))
 rc, d, _ = run("containers", "nebula", "--json")
 if d:
     need("containers: the demo's engine", d["engine"] == "docker" and d["problem"] is None and rc == 0)

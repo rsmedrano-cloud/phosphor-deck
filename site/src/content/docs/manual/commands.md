@@ -183,10 +183,11 @@ sidebar:
   In `fleet`, pick a machine's card (arrows, Tab or a tap; Esc lets go) and open something on it in a tab of
   its own: `s` a shell there (ssh, or a plain shell for the brain), `l` its logs (what `phosphor tail HOST`
   runs), `t` a `phosphor triage` of it, `c` its containers (`phosphor containers HOST`, below), `u`
-  an upgrade and `b` a reboot (`phosphor upkeep`, below), and `a` its own actions when the profile
-  gives it some (`[[hosts.actions]]`, the profile page). The keys show on the bottom line and
-  tapping them works too; none of them changes anything on the host by itself: `u`, `b` and `a` say
-  what they'll run and wait for you there. `h` stays in the pane and draws that machine's last 24 hours:
+  an upgrade and `b` a reboot (`phosphor upkeep`, below), `a` its own actions when the profile
+  gives it some (`[[hosts.actions]]`, the profile page), and `f` its failed units when it has some
+  (the card names them: `● media-remount failed`, or the first ones and `+2`). The keys show on the
+  bottom line and tapping them works too; none of them changes anything on the host by itself: `u`,
+  `b`, `a` and `f` say what they'll run and wait for you there. `h` stays in the pane and draws that machine's last 24 hours:
   CPU, RAM, temperature and its fullest disk, one sparkline each, with the day's peak and when it was,
   and a red `·` where it was down (arrows or Tab go to the next machine, Esc back to the cards). The
   deck's own fleet keeps it, from the readings it already has -- nothing new runs on the hosts: every
@@ -206,14 +207,18 @@ sidebar:
   Bare, it lists what's snoozed and until when; `--wake` ends a host's snoozes now (no HOST: all of
   them). FLEET's `z`, Enter on a host in glance and the SolarOS panel's fleet menu do the same for
   24 hours. Kept in `~/.local/share/phosphor/snooze.json`; nothing on the host changes.
-- `phosphor upkeep (upgrade | reboot) HOST`, `phosphor upkeep run HOST [ACTION]` — does something
+- `phosphor upkeep (upgrade | reboot | units) HOST`, `phosphor upkeep run HOST [ACTION]` — does something
   about what FLEET flags, where you see it: prints the command and the machine, waits (Enter for an
   upgrade, the host's name typed for a reboot, `y` for an action), then runs it over `ssh -t` in that same terminal, so sudo asks you for its password and
   every line shows. `upgrade` uses the host's own package manager (apt, dnf, pacman, zypper or apk,
   the first it has; apt and dnf still ask before changing anything), `reboot` is `sudo systemctl
   reboot`, `run` one of the host's `[[hosts.actions]]` by its name or number (no ACTION: the list,
-  to pick one). HOST is a name FLEET shows; for the brain itself it runs right here. FLEET's `u`,
-  `b` and `a` open it in a tab of its own; a SolarOS panel's fleet (`phosphor solaros`) runs it in place.
+  to pick one). `units` shows each failed systemd unit's `systemctl status` and last 15 journal
+  lines (through `sudo journalctl` when the user isn't in `adm`, `systemd-journal` or `wheel`), then
+  `r N` restarts one and `x N` resets its failed state (a start limit hit weeks ago, a oneshot that
+  won't run again), each shown first and run on a `y`; then the list again, until none is left or
+  Enter leaves. HOST is a name FLEET shows; for the brain itself it runs right here. FLEET's `u`,
+  `b`, `a` and `f` open it in a tab of its own; a SolarOS panel's fleet (`phosphor solaros`) runs it in place.
 - `phosphor containers [HOST] [--once | --json | --select NAME]` — a host's containers (docker, or podman where docker isn't
   there or doesn't answer -- the engine its FLEET card counts), running first, an exit that wasn't 0
   in red; no `HOST` means this machine. Listed over ssh the same way FLEET reaches it (a key, never
@@ -476,10 +481,11 @@ reading them every few seconds never gets them rate-limited.
 - `phosphor fleet --json` — every host's latest readings, from the fleet's own cache (it polls
   nothing): `t`, `age` and `stale` (no reading for 90s: the deck's fleet isn't running), and
   `hosts`, one per profile host (null before its first poll) with `ok`, `cpu`, `memory`, `load`,
-  `uptime`, `disks`, `containers`, `gpus`, `failed_units`, `reboot`, `temp`, `battery`, `smart`
+  `uptime`, `disks`, `containers`, `gpus`, `failed_units` (a count) and `failed_names` (up to 8 of
+  them, `[]` when the host doesn't say), `reboot`, `temp`, `battery`, `smart`
   `updates` and `checks` (each `name`, `ok` and `error`, `[]` with none), or `ok: false` and its
   `error`; `why` is what glance would call out, per host
-  (`vault: disk 95%; relay: 1 service failed`), leaving out what's snoozed; `snoozed` lists that:
+  (`vault: disk 95%; relay: media-remount failed`), leaving out what's snoozed; `snoozed` lists that:
   `host`, `kind`, `detail`, `level`, `until` and `when` (`till 18:30`).
 - `phosphor snooze --json` — `snoozed`, the same list, and `line` (`1 snoozed`).
 - `phosphor glance --json` — the four questions with a `status` light (see above).

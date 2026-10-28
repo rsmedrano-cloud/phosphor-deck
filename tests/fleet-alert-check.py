@@ -107,6 +107,11 @@ try:
     check("singular: '1 service failed', not '1 services'",
           "db-box: 1 service failed" in alert_texts())
     reset()
+    fleet.update_host("db-box", {"ok": True, "SVCFAIL": 0})
+    fleet.update_host("db-box", {"ok": True, "SVCFAIL": 1, "SVCFAILED": "media-remount.service"})
+    check("names the unit when collect.sh says which",
+          "db-box: media-remount failed" in alert_texts())
+    reset()
     fleet.update_host("db-box", {"ok": False, "err": "timeout"})
     fleet.update_host("db-box", {"ok": False, "err": "timeout"})
     check("a down host reports no service alert (no SVCFAIL data to compare)",

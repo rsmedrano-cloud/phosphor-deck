@@ -114,7 +114,26 @@ check("SVCFAIL parses as an int, like CPU/MEMU/MEMT", d.get("SVCFAIL") == 2)
 check("REBOOT is present when the file says so", d.get("REBOOT") == "1")
 
 _, body = fleet.card("host", 40, {"ok": True, "CPU": 3, "MEMU": 100, "MEMT": 1000, "SVCFAIL": 2})
-check("the card calls out failed services", any("2 failed" in b for b in body))
+check("the card calls out failed services", any("2 services failed" in b for b in body))
+
+# ...and which ones, from SVCFAILED (#81): a string, .service dropped, the
+# first ones and +N when they don't fit, a name that isn't one left out
+def fake_names_run(cmd, **kw):
+    class R: stdout, stderr = "CPU=3\nMEMU=100\nMEMT=1000\nSVCFAIL=2\nSVCFAILED=getty@tty1.service,media-remount.service\n", ""
+    return R()
+fleet.subprocess.run = fake_names_run
+try:
+    d = fleet.collect("host", None)
+finally:
+    fleet.subprocess.run = real_run
+check("SVCFAILED stays the names", d.get("SVCFAILED") == "getty@tty1.service,media-remount.service")
+_, body = fleet.card("host", 40, d)
+check("the card names the failed units", any("● getty@tty1, media-remount failed" in b for b in body))
+_, body = fleet.card("host", 28, d)
+check("a narrow card: the first one and +N", any("● getty@tty1 +1 failed" in b for b in body))
+_, body = fleet.card("host", 40, dict(d, SVCFAIL=2, SVCFAILED="x;rm -rf.service,srv-media.mount"))
+check("a name that isn't a unit's is left out, still counted",
+      any("● srv-media.mount +1 failed" in b for b in body) and not any("rm -rf" in b for b in body))
 _, body = fleet.card("host", 40, {"ok": True, "CPU": 3, "MEMU": 100, "MEMT": 1000, "REBOOT": "1"})
 check("the card calls out a pending reboot", any("reboot pending" in b for b in body))
 _, body = fleet.card("host", 40, {"ok": True, "CPU": 3, "MEMU": 100, "MEMT": 1000})

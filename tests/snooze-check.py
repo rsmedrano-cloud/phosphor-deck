@@ -98,10 +98,10 @@ snooze.end([("vault", None)])
 # fleet alerts, the same texts from either poller
 rust = open(os.path.join(ROOT, "rust/fleet-poll/src/main.rs")).read()
 py = open(os.path.join(ROOT, "lib/fleet.py")).read()
-for t in ('"{} is back"', '"{} is unreachable"', '"{}: {} {} failed"', '"{}: services back to normal"',
+for t in ('"{} is back"', '"{} is unreachable"', '"{}: {}", name, failed_text(&r)', '"{}: services back to normal"',
           '"{}: {} {} failing SMART"'):
     need("rust/fleet-poll still says %s" % t, t in rust)
-for t in ('"%s is back"', '"%s is unreachable"', '"%s: %d service%s failed"', '"%s: services back to normal"',
+for t in ('"%s is back"', '"%s is unreachable"', '"%s: %s" % (n, failed_text(r))', '"%s: services back to normal"',
           '"%s: %d disk%s failing SMART"'):
     need("lib/fleet.py still says %s" % t, t in py)
 snooze.snooze("laptop", ["down"])
@@ -110,6 +110,9 @@ need("quiet: a snoozed host going down", snooze.quiets("laptop is unreachable"))
 need("quiet: and coming back", snooze.quiets("laptop is back"))
 need("quiet: one service, snoozed ahead", snooze.quiets("vault: 1 service failed"))
 need("loud: two is worse", not snooze.quiets("vault: 2 services failed"))
+need("quiet: one, by its name", snooze.quiets("vault: media-remount failed"))
+need("loud: two names is worse", not snooze.quiets("vault: getty@tty1, media-remount failed"))
+need("loud: one name and +1 is worse too", not snooze.quiets("vault: getty@tty1 +1 failed"))
 need("loud: another host", not snooze.quiets("db-box is unreachable"))
 need("loud: a kind not snoozed", not snooze.quiets("vault: 1 disk failing SMART"))
 need("loud: not a fleet alert", not snooze.quiets("build done"))

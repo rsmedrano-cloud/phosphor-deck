@@ -285,6 +285,23 @@ fn parse(stdout: &str) -> serde_json::Value {
     serde_json::Value::Object(d)
 }
 
+/// What failed, for an alert: "media-remount failed", "a, b +3 failed", or
+/// "2 services failed" when collect.sh sent no names (1:1 with lib/health.py's
+/// failed_text() with no width; the same names it lets through).
+fn failed_text(r: &serde_json::Value) -> String {
+    let n = r.get("SVCFAIL").and_then(|v| v.as_i64()).unwrap_or(0);
+    let ok = |u: &&str| !u.is_empty() && u.len() <= 128
+        && u.chars().all(|c| c.is_ascii_alphanumeric() || "@._:\\-".contains(c));
+    let names: Vec<&str> = r.get("SVCFAILED").and_then(|v| v.as_str()).unwrap_or("")
+        .split(',').filter(ok).take(n.max(0) as usize)
+        .map(|u| u.strip_suffix(".service").unwrap_or(u)).collect();
+    if names.is_empty() {
+        return format!("{} service{} failed", n, if n == 1 { "" } else { "s" });
+    }
+    let more = n - names.len() as i64;
+    format!("{}{} failed", names.join(", "), if more > 0 { format!(" +{}", more) } else { String::new() })
+}
+
 /// `phosphor notify --tab SYS --fleet-alert TEXT`, off the polling path
 /// (fire and forget, same as lib/fleet.py's `_alert`'s own thread). SYS,
 /// not FLEET: the fleet card lives inside the SYS tab, alongside the
@@ -390,8 +407,7 @@ fn main() {
                         if cooled {
                             if svcfail > 0 && was == 0 {
                                 last_alert.insert(name.clone(), Instant::now());
-                                let unit = if svcfail == 1 { "service" } else { "services" };
-                                notify(&format!("{}: {} {} failed", name, svcfail, unit));
+                                notify(&format!("{}: {}", name, failed_text(&r)));
                             } else if svcfail == 0 && was > 0 {
                                 last_alert.insert(name.clone(), Instant::now());
                                 notify(&format!("{}: services back to normal", name));
@@ -454,6 +470,14 @@ mod tests {
         assert_eq!(d["mnt"], serde_json::json!([["/", 63, "467G"], ["/mnt/data", 53, "1.9T"]]));
         assert_eq!(d["gpu"][0]["name"], serde_json::json!("AMD"));
         assert_eq!(d["ctr"], serde_json::json!(["docker", 7, 0]));
+    }
+
+    #[test]
+    fn failed_names_say_which_units() {
+        let d = parse("SVCFAIL=3\nSVCFAILED=getty@tty1.service,media-remount.service,x;y.service\n");
+        assert_eq!(failed_text(&d), "getty@tty1, media-remount +1 failed", "a name with ; is left out, still counted");
+        assert_eq!(failed_text(&parse("SVCFAIL=2\n")), "2 services failed", "an older host: no names, the count");
+        assert_eq!(failed_text(&parse("SVCFAIL=1\nSVCFAILED=srv-media.mount\n")), "srv-media.mount failed");
     }
 
     #[test]

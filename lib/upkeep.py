@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""phosphor upkeep - upgrade, reboot or run an action on a machine of the fleet,
-where you see it.
+"""phosphor upkeep - upgrade, reboot, run an action or see to its failed units on
+a machine of the fleet, where you see it.
 
 FLEET already says when a host has updates pending or wants a reboot.
 This does the one thing about it, in the open: it says what it's about to
 run and on which machine, waits for you, then runs it over `ssh -t` in
 this very terminal, so sudo asks you for its password and you watch every
-line. Nothing runs on a watched host behind your back; FLEET's u, b and a
-keys open it in a tab of its own; a SolarOS panel's fleet runs it in place.
+line. Nothing runs on a watched host behind your back; FLEET's u, b, a and
+f keys open it in a tab of its own; a SolarOS panel's fleet runs it in place.
 
     phosphor upkeep upgrade HOST   the host's own package manager: apt, dnf,
                                    pacman, zypper or apk, whichever it has
@@ -16,6 +16,9 @@ keys open it in a tab of its own; a SolarOS panel's fleet runs it in place.
                                    one of the host's [[hosts.actions]] (a
                                    runbook: name + run), once you type y;
                                    with no ACTION, a list to pick from
+    phosphor upkeep units HOST     its failed systemd units: each one's status
+                                   and last journal lines, then a restart or
+                                   a reset-failed of one, once you type y
 
 HOST is a name from the profile's [[hosts]] (what FLEET shows on a card).
 
@@ -27,12 +30,13 @@ An action's run is one line for the host's sh, as typed: sudo in it asks
 for its password in this terminal, which is why an action only ever runs
 here, never from glance --serve, the MCP server or a script.
 """
-import os, shlex, subprocess, sys, termios
+import os, re, shlex, subprocess, sys, termios
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import DIM, FG, PH, AMB, RST, OK, BAD
-import deckconf
+import deckconf, health, proc
 
-USAGE = "usage: phosphor upkeep (upgrade | reboot) HOST | phosphor upkeep run HOST [ACTION]"
+USAGE = ("usage: phosphor upkeep (upgrade | reboot | units) HOST"
+         " | phosphor upkeep run HOST [ACTION]")
 
 # Run on the host by sh: the first package manager it has, its upgrade asking
 # as usual (apt and dnf still say what they'll change and wait for a y).
@@ -43,6 +47,19 @@ UPGRADE = ("if command -v apt-get >/dev/null 2>&1; then sudo apt-get update && s
            "elif command -v apk >/dev/null 2>&1; then sudo apk upgrade; "
            "else echo 'no package manager phosphor knows (apt, dnf, pacman, zypper, apk)'; exit 3; fi")
 REBOOT = "sudo systemctl reboot"
+# Its failed units, a name a line, the same list collect.sh counts.
+UNITS = "systemctl --failed --plain --quiet --no-legend 2>/dev/null | awk 'NF{print $1}'"
+# Each one's status and its last journal lines; the journal through sudo
+# (asking here) when this user can't read it: not root, not in adm,
+# systemd-journal or wheel.
+SHOW = ('if [ "$(id -u)" = 0 ] || id -nG | grep -qwE "adm|systemd-journal|wheel"; '
+        'then j=journalctl; else j="sudo journalctl"; fi; '
+        'for u in "$@"; do echo; systemctl status --no-pager --lines=0 "$u"; '
+        '$j -u "$u" -n 15 --no-pager -q; done')
+# What units can do to one: a restart, or forgetting that it failed (a
+# start limit hit weeks ago, a oneshot that won't fail again).
+FIX = {"r": ("restart", "sudo systemctl restart %s"),
+       "x": ("reset-failed", "sudo systemctl reset-failed %s")}
 
 def where(name, prof=None):
     """(name, ssh target | None for this machine), or None for a name the
@@ -64,13 +81,15 @@ def actions(name, prof=None):
                     and isinstance(a.get("run"), str) and a["run"].strip()]
     return []
 
-def argv(what, target, script=None):
+def argv(what, target, script=None, args=()):
     """What runs: over ssh -t to target, or here for this machine. what is
-    upgrade, reboot, or run (an action's own script)."""
+    upgrade, reboot, or run (an action's own script, or one of units'),
+    args its "$@"."""
     script = script if what == "run" else UPGRADE if what == "upgrade" else REBOOT
     if target:
-        return ["ssh", "-t", target, "sh -c %s" % shlex.quote(script)]
-    return ["sh", "-c", script]
+        return ["ssh", "-t", target, " ".join(["sh", "-c", shlex.quote(script)]
+                                               + (["sh"] + [shlex.quote(a) for a in args] if args else []))]
+    return ["sh", "-c", script] + (["sh"] + list(args) if args else [])
 
 def ask(prompt):
     """input(), after dropping whatever was typed before the question (a
@@ -101,6 +120,54 @@ def pick(name, acts, want):
     a = (a or "").strip()
     return next((x for i, x in enumerate(acts, 1) if a in (x[0], str(i))), None) if a else None
 
+def failed_now(target):
+    """Its failed units' names right now (a key, no prompt: what FLEET's
+    poll already does), or None when it didn't answer."""
+    cmd = proc.ssh(target, UNITS, 8, persist="60s") if target else ["sh", "-c", UNITS]
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if r.returncode != 0:
+        return None
+    return [u for u in r.stdout.split() if health.UNIT.match(u)]
+
+def units(name, target):
+    """Show its failed units, then fix one at a time, each shown first and
+    run on a y; again from the top after each, until none is left or you
+    leave."""
+    while True:
+        got = failed_now(target)
+        if got is None:
+            print(BAD + " " + FG + "can't reach %s over ssh" % name + RST); return 2
+        if not got:
+            print(OK + " " + FG + "%s: no failed units" % name + RST); return 0
+        subprocess.call(argv("run", target, SHOW, got))
+        print()
+        for i, u in enumerate(got, 1):
+            print("  " + PH + "%d" % i + RST + "  " + FG + u + RST)
+        one = len(got) == 1
+        a = ask(FG + ("  r restarts it, x resets its failed state, Enter leaves: " if one else
+                      "  r N restarts one, x N resets its failed state, Enter leaves: ") + RST)
+        m = re.match(r"^([rx])\s*(\d*)$", (a or "").strip().lower())
+        i = (int(m.group(2)) if m and m.group(2) else 1 if one else 0) if m else 0
+        if not m or not 1 <= i <= len(got):
+            print(DIM + "  left alone" + RST); return 1
+        unit = got[i - 1]
+        label, line = FIX[m.group(1)]
+        cmd = argv("run", target, line % shlex.quote(unit))
+        print(FG + label + " " + PH + unit + RST + FG + " on " + PH + name + RST +
+              DIM + ("  (this machine)" if not target else "  (ssh %s)" % target) + RST)
+        print(DIM + "  runs: " + " ".join(shlex.quote(c) for c in cmd) + RST)
+        a = ask(FG + "  y runs it, anything else leaves: " + RST)
+        if a is None or a.strip().lower() not in ("y", "yes"):
+            print(DIM + "  left alone" + RST); return 1
+        try:
+            rc = subprocess.call(cmd)
+        except KeyboardInterrupt:
+            rc = 130
+        print((OK if rc == 0 else BAD) + " " + FG + "%s %s: %s" % (label, unit, "done" if rc == 0 else "exit %d" % rc) + RST)
+
 def run(what, name, prof=None, action=None):
     got = where(name, prof)
     if not got:
@@ -110,6 +177,11 @@ def run(what, name, prof=None, action=None):
     if not sys.stdin.isatty():
         print(BAD + " " + FG + "upkeep waits for you at a terminal: it never runs unattended" + RST)
         return 2
+    if what == "units":
+        try:
+            return units(name, target)
+        except KeyboardInterrupt:
+            print(); return 130
     label, script = what, None
     if what == "run":
         acts = actions(name, prof)
@@ -153,7 +225,7 @@ def main():
         print(USAGE); return 0
     if a[:1] == ["run"] and len(a) in (2, 3):
         return run("run", a[1], action=a[2] if len(a) == 3 else None)
-    if len(a) != 2 or a[0] not in ("upgrade", "reboot"):
+    if len(a) != 2 or a[0] not in ("upgrade", "reboot", "units"):
         print(USAGE); return 2
     return run(a[0], a[1])
 
