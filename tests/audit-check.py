@@ -14,7 +14,7 @@ os.makedirs(bin_)
 open(book, "w").write("# Phosphor notes\n\n")
 fake = os.path.join(bin_, "agy")
 open(fake, "w").write("""#!/bin/sh
-{ pwd; git remote | wc -l; env | grep -c '^ZELLIJ'; echo "$PHOSPHOR_NOTES"; echo "$PHOSPHOR_DATA"; } > %s
+{ pwd; git remote | wc -l; env | grep '^ZELLIJ' | grep -vc '^ZELLIJ_SOCKET_DIR='; echo "$PHOSPHOR_NOTES"; echo "$PHOSPHOR_DATA"; echo "$ZELLIJ_SOCKET_DIR"; echo "$PHOSPHOR_PROFILE"; echo "${PHOSPHOR_RUN-unset}"; } > %s
 [ -f AGENTS.md ] || exit 3
 echo "# Auditoria de prueba"
 echo "1. Bugs: nada"
@@ -22,20 +22,23 @@ echo "1. Bugs: nada"
 os.chmod(fake, 0o755)
 
 env = dict(os.environ, PATH=bin_ + os.pathsep + os.environ["PATH"], PHOSPHOR_NOTES=book,
-           ZELLIJ="0", ZELLIJ_SESSION_NAME="deck")
+           ZELLIJ="0", ZELLIJ_SESSION_NAME="deck", PHOSPHOR_RUN="1 BASH")
 r = subprocess.run([sys.executable, "tests/audit.py", "--timeout", "1", "--ref", "HEAD"], cwd=ROOT, env=env,
                    capture_output=True, text=True)
 fails = []
 if r.returncode != 0:
     fails.append("exit %d: %s" % (r.returncode, (r.stdout + r.stderr).strip()))
 else:
-    cwd, remotes, zellij, notes_env, data = open(seen).read().split("\n")[:5]
+    cwd, remotes, zellij, notes_env, data, sockets, prof, run = open(seen).read().split("\n")[:8]
     if not cwd.startswith(tempfile.gettempdir()) or cwd.startswith(ROOT):
         fails.append("agy ran in %s, not a throwaway clone" % cwd)
     if remotes.strip() != "0": fails.append("the clone still has a remote")
     if zellij.strip() != "0": fails.append("ZELLIJ variables reached agy")
     if notes_env == book or not data.startswith(tempfile.gettempdir()):
         fails.append("agy got the real notebook or data folder")
+    if not sockets.startswith(tempfile.gettempdir()): fails.append("agy can reach the live zellij's sockets")
+    if not prof.startswith(tempfile.gettempdir()): fails.append("agy got the real profile")
+    if run != "unset": fails.append("PHOSPHOR_RUN reached agy")
     if os.path.exists(cwd): fails.append("the scratch clone wasn't removed")
     text = open(book).read()
     if "· summary · agy #phosphor · audit " not in text or "Auditoria de prueba" not in text:

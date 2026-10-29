@@ -24,7 +24,8 @@ Before a pull request:
   zellij; `tests/fetch-zellij.py` gets the pinned one, `--latest` the newest);
 - `sh tests/from-zero.sh` (also `DISTRO=ubuntu|fedora|arch`, files in
   tests/distros/) and `python3 tests/tester-sim.py` pass (docker: a
-  clean install in a systemd container);
+  clean install in a systemd container; the pipeline runs the other
+  distros only at a tag, on main, or when the install itself changed);
 - `python3 tests/update-check.py` passes if you touched updates or channels
   (needs git).
 

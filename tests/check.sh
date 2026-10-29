@@ -5,8 +5,8 @@
 #     sh tests/check.sh          one step per core, reported in order
 #     sh tests/check.sh -j1      one at a time (or -jN)
 #
-# Each step is its own process with its own throwaway HOME, zellij socket
-# dir and ports, so they run side by side; one that ever shares a resource
+# Each step is its own process, and each test that needs one makes its own
+# throwaway HOME, zellij socket dir and ports, so they run side by side; one that ever shares a resource
 # (a fixed path, a port) goes inside a single step, run in a row.
 # The slow ones (a clean install in a systemd container) are
 # tests/from-zero.sh and tests/tester-sim.py.
@@ -182,7 +182,7 @@ launcher=$!
 fail=0
 n=0
 check() {
-    n=$((n+1)); printf '  %-34s' "$1"
+    n=$((n+1)); printf '  %-34s ' "$1"
     while [ ! -f "$T/$n.rc" ]; do sleep 0.1; done
     if [ "$(cat "$T/$n.rc")" = 0 ]; then
         if grep -q '^FLAKY ' "$T/$n.out"; then printf 'ok, on its second run\n'; grep '^FLAKY ' "$T/$n.out" | sed 's/^/      /'

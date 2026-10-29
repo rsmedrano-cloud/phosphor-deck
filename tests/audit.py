@@ -5,9 +5,11 @@
 
 Runs `agy -p --dangerously-skip-permissions` against a throwaway clone of
 the remote's dev (detached, with no remote at all, so nothing it does can
-be pushed), with the deck's session variables stripped (no zellij call
-lands in the live deck) and phosphor's data, cache and notebook pointed at
-copies in the same scratch folder. The report goes into the deck's
+be pushed), with the deck's session variables stripped and zellij's
+socket dir in the scratch folder (no zellij call lands in the live deck),
+and phosphor's profile (the example), data, cache and notebook pointed at
+copies there. HOME stays the real one, agy signs in from it: the prompt
+still forbids touching it. The report goes into the deck's
 notebook (`--by agy`, titled "audit VERSION (SHA)"), never into the repo;
 `--print` only prints it; `--ref` audits another commit (no fetch).
 The scratch folder is removed either way.
@@ -93,9 +95,16 @@ def main(argv):
         copy = os.path.join(tmp, "data", "notes.md")
         if os.path.exists(book):
             shutil.copy(book, copy)
-        env = {k: v for k, v in os.environ.items() if not k.startswith("ZELLIJ")}
+        # HOME stays (agy signs in from it); the profile, zellij's sockets
+        # and the pane marker that PHOSPHOR_RUN carries don't
+        prof = os.path.join(tmp, "deck.toml")
+        shutil.copy(os.path.join(work, "profiles", "example.toml"), prof)
+        os.makedirs(os.path.join(tmp, "zellij"))
+        env = {k: v for k, v in os.environ.items()
+               if not k.startswith("ZELLIJ") and k != "PHOSPHOR_RUN"}
         env.update(PHOSPHOR_DATA=os.path.join(tmp, "data"), PHOSPHOR_CACHE=os.path.join(tmp, "cache"),
-                   PHOSPHOR_NOTES=copy)
+                   PHOSPHOR_NOTES=copy, PHOSPHOR_PROFILE=prof,
+                   ZELLIJ_SOCKET_DIR=os.path.join(tmp, "zellij"))
         print("audit: agy on %s %s, up to %d minutes" % (version, sha, minutes))
         try:
             r = subprocess.run(["agy", "-p", PROMPT.format(version=version, sha=sha),

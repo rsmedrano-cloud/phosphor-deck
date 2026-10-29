@@ -40,13 +40,24 @@ zellij:
     - python3 tests/flaky.py python3 tests/fleet-keys-check.py --live
     - python3 tests/search-check.py
     - python3 tests/screen-kinds-check.py --live
+    - python3 tests/mirror-check.py
+    - python3 tests/newtab-attach-check.py
 
 # zellij-latest: the same checks against zellij's newest release. An early
 # warning, never a blocker: when it fails and zellij is pinned, the fix (or a
 # new pin in share/versions.json) is the next topic, before users meet it.
+# Only at a tag or on main, like distros (plus a dev push that changes the
+# fetcher): zellij's newest release doesn't change with each dev push, and
+# a warning a release ahead is still a warning in time.
 zellij-latest:
   extends: zellij
   allow_failure: true
+  rules:
+    - if: $CI_COMMIT_REF_PROTECTED != "true"
+      when: never
+    - if: $CI_COMMIT_TAG || $CI_COMMIT_BRANCH == "main"
+    - changes:
+        - tests/fetch-zellij.py
   variables:
     ZELLIJ_FETCH: "--latest"
 
@@ -97,11 +108,22 @@ install:
 
 # distros: the same install from zero (tests/from-zero.sh) on the other
 # distros the brain is meant to run on, one job each, in a systemd container.
+# Only at a tag or on main, plus a dev push that touches the install itself:
+# with one job at a time on the runner, three distros on every dev push kept
+# the pipeline waiting, for code that hardly ever breaks on one distro alone.
+# install (Debian) still runs on every push.
 distros:
   tags: [homelab]
   image: docker:27-cli
   rules:
-    - if: $CI_COMMIT_REF_PROTECTED == "true"
+    - if: $CI_COMMIT_REF_PROTECTED != "true"
+      when: never
+    - if: $CI_COMMIT_TAG || $CI_COMMIT_BRANCH == "main"
+    - changes:
+        - install.sh
+        - Containerfile.test
+        - tests/from-zero.sh
+        - tests/distros/**/*
   timeout: 30m
   parallel:
     matrix:

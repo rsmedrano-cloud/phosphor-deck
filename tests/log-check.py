@@ -54,6 +54,10 @@ with open(dlog.flag("PROBE"), "w") as f:
     f.write(str(time.time() - 1))            # the ~30 minutes already passed
 check("a trace turns itself off", not dlog.tracing("PROBE"))
 check("and clears its own flag", not os.path.exists(dlog.flag("PROBE")))
+import io, contextlib, trace
+with contextlib.redirect_stderr(io.StringIO()):
+    rc = trace.start("a/b")
+check("a tool name with a / is refused, not a traceback", rc == 2 and not os.path.exists(dlog.flag("A/B")))
 
 # -- a mention-hook that never prints still leaves a trace of a crash --
 open(dlog.LOG, "w").close()

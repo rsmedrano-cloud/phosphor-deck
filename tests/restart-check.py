@@ -9,9 +9,10 @@ the common case actually needs.
     python3 tests/restart-check.py
 
 No zellij, no systemd: session_live()/session_gone() are the only things
-that touch a real subprocess, and they're not exercised here -- see
-tests/hotswap-live-check.py and, for the live deck itself, a real
-`phosphor restart` timed before and after (not something a test does).
+that touch a real subprocess, and here they run against a fake zellij
+script; the real one is in tests/hotswap-live-check.py and, for the live
+deck itself, a real `phosphor restart` timed before and after (not
+something a test does).
 """
 import os, sys, time
 

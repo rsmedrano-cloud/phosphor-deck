@@ -6,6 +6,15 @@ before it updates.
 
 ## Unreleased
 
+## 2.6.0 — Checks and runbooks
+
+- `phosphor snooze --for 30d --json` prints JSON only: the "7 days at most" warning goes to
+  stderr, as `--json` promises.
+- `phosphor trace` refuses a tool name with a `/` (or anything but letters, digits, `-` and `_`)
+  with a usage line instead of a traceback.
+- A `[[hosts]]` name with a space, a `;` or another character a systemd unit can't carry is
+  named by `phosphor gen` and `doctor`, instead of a mount unit that quietly fails.
+
 ## 2.5.3 — Which units failed
 
 - Failed units by name: a FLEET card says which units failed (`● media-remount failed`, or the

@@ -5,7 +5,7 @@ just ignores them, so gen and doctor say so instead.
 
 The tables here follow doc/manual/profile.md (tests/profile-schema-check.py
 keeps the two in step). Warnings only: an unknown key never stops gen."""
-import difflib, json, os, sys
+import difflib, json, os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 BOOL = "true or false"
@@ -200,6 +200,11 @@ def problems(prof):
         elif sec == "hosts":
             _array("hosts", val, HOST, out)
             for h in val if isinstance(val, list) else ():
+                # the name goes into unit names, an rclone remote and an
+                # unquoted ExecStart (lib/gen.py's UNIT): a space splits it
+                if isinstance(h, dict) and isinstance(h.get("name"), str) \
+                        and not re.fullmatch(r"[A-Za-z0-9._-]+", h["name"]):
+                    out.append(("[[hosts]] %s" % h["name"], "name: letters, digits, '.', '-' and '_' only"))
                 if isinstance(h, dict) and "checks" in h:
                     _checks("[[hosts]] %s" % h.get("name", "?"), h["checks"], out)
                 if isinstance(h, dict) and "actions" in h:

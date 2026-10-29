@@ -132,8 +132,8 @@ not in any one assistant's memory.
   squashed releases, not GitLab's): point the author at an issue instead.
 - **Before a minor, an outside audit:** `python3 tests/audit.py` has agy
   (`-p --dangerously-skip-permissions`) audit a throwaway clone of dev with
-  no remote, the deck's zellij variables stripped and copies of phosphor's
-  data; the report goes into the notebook (`--by agy`, "audit VERSION
+  no remote, the deck's zellij variables stripped, a zellij socket dir of
+  its own and copies of phosphor's profile and data; the report goes into the notebook (`--by agy`, "audit VERSION
   (SHA)"), never the repo. It's a second opinion, not a verdict: check each
   finding against the code, fix what holds, then cut the minor.
   `tests/release.py --main` says so when the notebook has no audit of that

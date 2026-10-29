@@ -175,6 +175,9 @@ need("--for wants a duration", rc == 2)
 rc, out, _ = cli("vault", "--for", "4h")
 need("snooze HOST --for 4h", rc == 0 and "disk 95% snoozed till" in out
      and abs(snooze.until("vault") - time.time() - 4 * 3600) < 10)
+rc, out, err = cli("--for", "30d", "--json")
+need("--for past 7 days: the warning on stderr, stdout still JSON",
+     rc == 0 and "7 days at most" in err and isinstance(json.loads(out), dict))
 rc, out, _ = cli("--json")
 d = json.loads(out)
 need("--json: the list and a line", d["line"] == "1 snoozed" and d["snoozed"][0]["host"] == "vault")

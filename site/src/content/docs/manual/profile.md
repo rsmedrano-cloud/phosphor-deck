@@ -71,7 +71,7 @@ One block per machine.
 
 | key | what |
 |---|---|
-| name | its name in the deck |
+| name | its name in the deck: letters, digits, `.`, `-` and `_` (it names its mount unit and its folder) |
 | role | brain (exactly one, and local), work, desktop, storage, node, viewer |
 | local | true on the brain |
 | ssh | ssh alias or host name |

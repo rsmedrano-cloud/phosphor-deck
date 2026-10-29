@@ -249,7 +249,7 @@ def main():
         if not secs:
             print("--for takes 30m, 4h, 2d or a number of hours", file=sys.stderr); return 2
         if secs > MOST:
-            print(DIM + "a snooze lasts 7 days at most: 7d it is" + RST)
+            print(DIM + "a snooze lasts 7 days at most: 7d it is" + RST, file=sys.stderr)
     if any(a.startswith("-") for a in argv):
         print("usage: phosphor snooze [HOST [KIND...]] [--for 4h] [--wake] [--json]", file=sys.stderr); return 2
     if not argv and not wake:

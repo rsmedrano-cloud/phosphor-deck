@@ -12,7 +12,7 @@ accident. `off TOOL` stops one sooner. With no TOOL, it lists whatever is
 tracing right now -- and on a terminal, offers to start one (the tools
 deck.log has lines for, or any name) or stop one, in a panel.
 """
-import os, sys
+import os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import dlog, tui
 from ui import FG, DIM, AMB, PH, RST, pad, emit
@@ -30,6 +30,9 @@ def listing():
 
 
 def start(tool):
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", tool):
+        print("usage: phosphor trace TOOL  (a name like FLEET: letters, digits, - and _)", file=sys.stderr)
+        return 2
     tool = tool.upper()
     dlog.start_trace(tool, MINUTES)
     print("  tracing " + AMB + tool + RST + " for %d minutes" % MINUTES)

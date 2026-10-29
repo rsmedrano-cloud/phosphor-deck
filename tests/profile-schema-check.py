@@ -70,6 +70,11 @@ check("nothing else", len(got) == 12, got)
 got = profcheck.problems(tomllib.loads("[deck]\ngraphs = 2026-01-01\n"))
 check("a date value is named", got == [("[deck]", 'graphs = "2026-01-01" isn\'t one of braille, blocks')], got)
 
+# a host name goes into unit names and an unquoted ExecStart
+got = profcheck.problems(tomllib.loads('[[hosts]]\nname = "my box;x"\n'))
+check("a host name with a space or ; is named",
+      got == [("[[hosts]] my box;x", "name: letters, digits, '.', '-' and '_' only")], got)
+
 # 2. no false alarms on what Phosphor writes itself
 for p in sorted(glob.glob(os.path.join(ROOT, "profiles/*.toml"))):
     got = profcheck.problems(tomllib.load(open(p, "rb")))
