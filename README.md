@@ -88,7 +88,8 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
 - **A notebook and workspaces.** Alt-j writes a note from any tab; a
   workspace is a tab per idea with its folder and its assistants
   ([workspaces](doc/manual/workspaces.md)).
-- **Files between screens.** One clipboard for every screen; a real file as
+- **Files between screens.** One clipboard for every screen, and with
+  `[clipboard] sync` copy on one and paste on another; a real file as
   a one-time link and QR, or uploaded the same way
   ([clipboard](doc/manual/clipboard.md)).
 - **Made to remember.** The DECK tab has every action a key away, `?` on

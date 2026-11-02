@@ -285,6 +285,22 @@ def run(profile=None):
             print(row(WARN, "screens." + k, what))
             issues.append("screens.%s: %s" % (k, what))
 
+    if profile and ((profile.get("clipboard") or {}).get("sync") is True):
+        import clipsync
+        print("\n" + rule("clipboard", w))
+        ls = clipsync.linked() or []
+        print(row(OK, "sync", "on · %d screen%s linked" % (len(ls), "" if len(ls) == 1 else "s"),
+                  note="phosphor screens marks them clip"))
+        for s_ in ls:
+            print("  " + DIM + "%s from %s" % (s_["name"] or "?", s_["from"]) + RST)
+        # a `deck` written before sync existed never starts its half
+        mine = os.path.join(os.path.expanduser("~"), ".local/bin",
+                            ((profile.get("deck") or {}).get("command") or "deck"))
+        if os.path.exists(mine) and "clipsync" not in open(mine, errors="replace").read():
+            print(row(WARN, "this deck command", "older than sync: it doesn't link", note="phosphor gen"))
+            issues.append("this machine's deck command doesn't link the clipboard: phosphor gen")
+        print("  " + DIM + "another screen links once its deck command is new: phosphor gen there, or its kit again" + RST)
+
     print("\n" + rule("summary", w))
     if blockers:
         for b in blockers: print("  " + BAD + " " + RED + b + RST)

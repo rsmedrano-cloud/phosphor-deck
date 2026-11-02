@@ -16,6 +16,10 @@
   machine now (updates, backups, who can log in). On a shared brain other users
   may reach what the deck reaches: `phosphor security` says where they would
   (file permissions, the fleet's ssh servers, ports, sockets) and how to close it.
+- `[clipboard] sync` (off by default) sends what you copy on a linked screen
+  to every other one, through the brain, over ssh: the brain keeps no history
+  and writes nothing to disk, but anyone with a screen linked sees your copies.
+  What a password manager marks as secret stays on its screen.
 - The brain holds ssh keys into the fleet: narrow them in `authorized_keys`
   (e.g. `from="100.64.0.0/10"` with tailscale).
 - `phosphor backup` writes one file, 0600, holding your profile, notebook and

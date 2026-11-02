@@ -283,6 +283,7 @@ sidebar:
   smallest attached client, with no setting to change that), not for banning a device. Also `v` in
   the DECK tab. `--list` prints it once, no picker. A screen that reaches the brain through a
   tailscale relay is marked "relay": its deck's animations slow to one frame a second (see screens).
+  One whose clipboard is linked (`[clipboard] sync`) is marked "clip" (see clipboard).
 - `phosphor mem [--once | --json]` — how much memory each tab and pane of the deck takes, heaviest tab
   first, every 5s (j/k scroll, q leaves; also `M` in the DECK tab). A pane counts everything it
   started -- an assistant's workers, a shell's children -- since every process keeps the

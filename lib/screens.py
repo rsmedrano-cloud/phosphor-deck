@@ -276,6 +276,7 @@ class Panel(tui.ListPanel):
         self.base = ((prof or {}).get("deck") or {}).get("session", "deck")
         self.session = sessions(prof)
         self.addrs = set()
+        self.clips = set()
         self.here = None        # zellij's count: a terminal on the brain too
 
     def kind(self, r):
@@ -284,14 +285,22 @@ class Panel(tui.ListPanel):
             return r["session"][len(self.base) + 1:]
         return "deck (%s)" % r["said"] if r.get("said") else "deck"
 
-    def link(self, r):
+    def relayed(self, r):
         # through a tailscale relay: its deck's animations slow down for it
         import relay
-        return "relay" if relay.is_relayed(r["from"], self.addrs) else ""
+        return relay.is_relayed(r["from"], self.addrs)
+
+    def clip(self, r):
+        # its deck runs [clipboard] sync's watcher, linked from that address
+        return r["from"] in self.clips
+
+    def link(self, r):
+        return " ".join(w for w, on in (("relay", self.relayed(r)), ("clip", self.clip(r))) if on)
 
     def fetch(self):
-        import relay
+        import clipsync, relay
         self.addrs = relay.relayed(relay.ts_status())
+        self.clips = {s["from"] for s in (clipsync.linked() or [])} if clipsync.on(self.prof) else set()
         self.here = attached(self.session)
         rows = screens(self.session)
         if rows is None:
@@ -364,7 +373,7 @@ def main():
         return emit({"session": p.base, "problem": p.problem or None,
                      "attached": n, "line": p.problem or (none(n) if not rows else
                                                           "%d attached, %d over ssh" % (max(n or 0, len(rows)), len(rows))),
-                     "screens": [dict(r, said=r["said"] or None, relay=bool(p.link(r))) for r in rows]},
+                     "screens": [dict(r, said=r["said"] or None, relay=p.relayed(r), clip=p.clip(r)) for r in rows]},
                     1 if p.problem else 0)
     if "--list" in sys.argv[1:] or not (sys.stdin.isatty() and sys.stdout.isatty()):
         p = Panel(prof)

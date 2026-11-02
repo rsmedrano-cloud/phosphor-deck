@@ -121,7 +121,8 @@ A terminal on the brain itself is no ssh login, so it has no row to kick, but it
 counted all the same ("1 attached here on the brain, none over ssh"), the way the
 screens card and the header count it.
 Not a way to ban a device -- a way to force one reconnect without walking
-over to whichever screen is in the way.
+over to whichever screen is in the way. A screen whose clipboard follows the
+others' (`[clipboard] sync`, see clipboard) is marked "clip".
 
 `o` (asking too) changes which deck a kind of screen gets, from the screen
 in front of you: on a tablet in a deck of its own, every tablet shares this

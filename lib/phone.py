@@ -62,6 +62,7 @@ fi
 cat > "$PREFIX/bin/deck" <<EOF
 #!/data/data/com.termux/files/usr/bin/sh
 [ -n "\$ZELLIJ" ] && { echo "already inside a zellij session"; exit 1; }
+@CLIP@
 while :; do
   ssh -t -o ServerAliveInterval=15 -o ServerAliveCountMax=2 $T "$C 2>/dev/null || $Z attach $S" && break
   echo "[ lost the deck, reconnecting in 3s. Ctrl-C to stop ]"; sleep 3
@@ -160,6 +161,7 @@ mkdir -p "$B"
 cat > "$B/deck" <<EOF
 #!/bin/sh
 [ -n "\$ZELLIJ" ] && { echo "already inside a zellij session"; exit 1; }
+@CLIP@
 while :; do
   ssh -t -o ServerAliveInterval=15 -o ServerAliveCountMax=2 $T "$C" && break
   echo "[ lost the deck, reconnecting in 3s. Ctrl-C to stop ]"; sleep 3
@@ -175,8 +177,14 @@ esac
 say "done. Type: deck"
 """
 
+def clip_line(prof):
+    """[clipboard] sync's watcher, fetched from the brain each time `deck` runs."""
+    import clipsync
+    return clipsync.launch(target(prof), phosphor_cmd(), heredoc=True)
+
 def screen_script(prof, kind=""):
-    return POSIX_SCRIPT.replace("@T@", target(prof)).replace("@C@", launcher(prof, kind))
+    return (POSIX_SCRIPT.replace("@T@", target(prof)).replace("@C@", launcher(prof, kind))
+            .replace("@CLIP@", clip_line(prof)))
 
 def phosphor_cmd():
     """How the phone calls phosphor over ssh: no login shell, so no PATH."""
@@ -220,7 +228,8 @@ def script(prof, kind="phone"):
     sess = ((prof or {}).get("deck") or {}).get("session", "deck")
     cmd = launcher(prof, kind)
     return (SCRIPT.replace("@T@", target(prof)).replace("@Z@", proc.zellij() or "zellij")
-                  .replace("@S@", sess).replace("@C@", cmd).replace("@OLDKEYS@", " ".join("'%s'" % k for k in OLD_KEYS)).replace("@KEYS@", keys_row(prof)))
+                  .replace("@S@", sess).replace("@C@", cmd).replace("@OLDKEYS@", " ".join("'%s'" % k for k in OLD_KEYS)).replace("@KEYS@", keys_row(prof))
+                  .replace("@CLIP@", clip_line(prof)))
 
 def qr_lines(text, w):
     """The line as a QR, when the pane is wide enough for it to be scanned."""

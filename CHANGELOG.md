@@ -6,6 +6,19 @@ before it updates.
 
 ## Unreleased
 
+## 2.6.1 — One clipboard across screens
+
+- One clipboard across screens, the other way too: with `[clipboard] sync = true` in your
+  profile, copy on one screen and paste on another, without going through the deck. Each
+  screen's `deck` command runs a small watcher beside its ssh loop, for as long as it runs, and
+  the brain relays each copy to every other linked screen: over ssh (no new port), text only, up
+  to `max_kb` (256 by default), last copy wins, nothing stored and nothing installed on a screen.
+  Linux (X11: xclip or xsel; Wayland: wl-clipboard) and macOS both ways; Android receives
+  (Termux:API's `termux-clipboard-set`). What a password manager marks secret stays where it was
+  copied. Off by default; a screen links once its `deck` command is rewritten (`phosphor gen`
+  there, or the phone or screen kit again). `phosphor doctor` counts the linked screens and
+  `phosphor screens` marks them `clip`.
+
 ## 2.6.0 — Checks and runbooks
 
 - `phosphor snooze --for 30d --json` prints JSON only: the "7 days at most" warning goes to

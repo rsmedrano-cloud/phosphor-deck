@@ -42,7 +42,47 @@ The paste side is always the plain Android/desktop clipboard, not a
 Phosphor-specific spot: on the phone it's a long-press → Paste in whatever
 app you're pointed at, not something you'll find "inside" Phosphor. And it's
 live, not stored: the screen you're pasting into has to be attached to the
-deck at the moment you copy, same as the drag-select above.
+deck at the moment you copy, same as the drag-select above. (To copy
+on one screen and paste on another without the deck in between, see
+below.)
+
+## Copy on one screen, paste on another
+
+All of the above starts in the deck. To copy in a browser on the laptop and
+paste on the phone, or the other way, turn on sync in the profile:
+
+    [clipboard]
+    sync = true
+
+Each screen's `deck` command then runs a small watcher beside its ssh loop
+for as long as the deck runs, and the brain hands each copy on to every
+other screen linked at the time. It goes over ssh like the deck itself: no
+new port, same key. Nothing is installed or left running on a screen, and
+the brain keeps no history: only the clips in flight, in memory. The last
+copy wins; a screen that comes in gets what's copied from then on, never
+what was copied before it was there.
+
+| screen | copies out | pastes in | needs |
+|---|---|---|---|
+| Linux, X11 | yes | yes | xclip (or xsel) |
+| Linux, Wayland | yes | yes | wl-clipboard (`wl-paste`, `wl-copy`) |
+| macOS | yes | yes | nothing: pbcopy and pbpaste |
+| Android (Termux) | no | yes | the Termux:API app and `pkg install termux-api` |
+| the browser (`phosphor web`) | no | no | |
+
+Android lets only the app in front read the clipboard, so a copy on the
+phone still reaches the deck the way it always did: paste it into Termux,
+or share it to Termux. Text only, up to `max_kb` (256 KB by default); a
+bigger copy, an image or a file stays where it was copied. What a password
+manager marks as secret (KeePassXC and friends on Linux, the concealed type
+on macOS) never leaves its screen.
+
+A screen links once its `deck` command knows about sync: `phosphor gen` on
+another computer, the phone or screen kit again on a phone or a screen that
+got it that way (`phosphor phone` shows how). After that, turning sync
+on or off is just the profile: each `deck` asks the brain when it starts.
+`phosphor doctor` counts the linked screens, and `phosphor screens` marks
+them `clip`. Nothing happens on a screen whose clipboard tool is missing.
 
 ## A real file
 

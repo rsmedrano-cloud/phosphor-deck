@@ -449,6 +449,20 @@ phones, "A SolarOS panel"). `phosphor solaros on` and `off` write it;
     [glance]
     serve = "lan"
 
+## [clipboard]
+
+Copy on one screen, paste on another, without going through the deck (see
+clipboard, "Copy on one screen, paste on another"). Off until you turn it on:
+**what you copy on a linked screen reaches every other one**.
+
+| key | default | what |
+|---|---|---|
+| sync | false | every linked screen's clipboard follows the last copy on any of them |
+| max_kb | 256 | a bigger copy stays on the screen it was made on |
+
+    [clipboard]
+    sync = true
+
 ## [screens]
 
 A deck for each kind of screen: one block per kind (lowercase letters and

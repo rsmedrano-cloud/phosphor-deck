@@ -113,6 +113,7 @@ for the details; this is the tour.
 - **One clipboard for every screen.** Select text in the deck and it lands on
   the clipboard of every device looking at it, phone and PC at once.
   `phosphor clip file` sends a file; pasting the other way works as usual.
+  With `[clipboard] sync`, copy on one screen and paste on another, no deck in between.
   In yazi, `c` then `t` does the same to the hovered file, no shell tab needed.
   For a real file (any size, saved as itself, not pasted text), `phosphor
   send file` opens a one-time link and QR, gone once it's downloaded --

@@ -195,7 +195,7 @@ Every page's sections, so a grep finds the right one:
 - **patterns** (`doc/manual/patterns.md`): which shape to pick, growing a deck, moving it to a new brain
   Sections: Which shape; Growing it; Moving to a new brain; Sharing one tab; Backing out.
 - **profile** (`doc/manual/profile.md`): every setting in ~/.config/phosphor/deck.toml, and your own apps
-  Sections: [deck]; [[hosts]]; [[hosts.checks]]; [[hosts.actions]]; [[tabs]]; tabs.d: tabs you can share; [[tunnels]]; [keys]; [notes]; [mentions]; [prometheus]; [ci]; [tts]; [push]; Your own server, no cloud; [services]; [alerts]; [glance]; [screens]; apps.toml; panels.d.
+  Sections: [deck]; [[hosts]]; [[hosts.checks]]; [[hosts.actions]]; [[tabs]]; tabs.d: tabs you can share; [[tunnels]]; [keys]; [notes]; [mentions]; [prometheus]; [ci]; [tts]; [push]; Your own server, no cloud; [services]; [alerts]; [glance]; [clipboard]; [screens]; apps.toml; panels.d.
 - **commands** (`doc/manual/commands.md`): every `phosphor` command
   Sections: Getting started; Session; Workspaces; Notes; In the deck; For scripts: --json; For assistants: phosphor mcp; Before you push a fork; Shell; Help.
 - **keys** (`doc/manual/keys.md`): keys inside the deck, and what happens when a program ends
@@ -210,7 +210,7 @@ Every page's sections, so a grep finds the right one:
 - **web** (`doc/manual/web.md`): the deck in a browser, only inside your tailnet
 - **tunnels** (`doc/manual/tunnels.md`): keeping your ssh config's LocalForward tunnels up
 - **clipboard** (`doc/manual/clipboard.md`): one clipboard for every screen
-  Sections: A real file; The other way: getting a file in.
+  Sections: Copy on one screen, paste on another; A real file; The other way: getting a file in.
 - **privacy** (`doc/manual/privacy.md`): what stays where, and checking a fork before you push
 - **api** (`doc/manual/api.md`): what stays the same between versions, and how something goes away
   Sections: Public; Internal; How something goes away.

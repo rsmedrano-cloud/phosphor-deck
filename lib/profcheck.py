@@ -47,6 +47,7 @@ TABLES = {
              "open_web": BOOL, "clip": BOOL},
     "services": {"interval": None, "extra": None},
     "glance": {"serve": ("lan", "tailnet", False), "port": None},
+    "clipboard": {"sync": BOOL, "max_kb": None},
 }
 GAUGE = {"name": None, "type": ("gauge", "arc", "sparkline"), "query": None, "min": None,
          "max": None, "warn": None, "crit": None, "unit": None}
