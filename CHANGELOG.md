@@ -6,6 +6,13 @@ before it updates.
 
 ## Unreleased
 
+## 2.6.2 — A running deck keeps its own copy
+
+- Rewriting a `deck` command that's running no longer trips it up: `phosphor gen` (and every
+  file it writes) and the phone and screen kits now write a new file and move it over the old
+  one. Before, a `deck` running under bash (Fedora's `sh`, among others) could read on into the
+  new text after you detached, and even ssh back into the deck. Rewrite away while you're in it.
+
 ## 2.6.1 — One clipboard across screens
 
 - One clipboard across screens, the other way too: with `[clipboard] sync = true` in your

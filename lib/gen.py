@@ -4,7 +4,7 @@ Writes the session layout, per-tab layouts, the zellij theme, the systemd
 units, the rclone remotes and the brain's disk links. fleet and path read
 the profile themselves (through deckconf), so there's one source of truth.
 """
-import hashlib, os, re, shlex, shutil, subprocess, sys
+import hashlib, os, re, shlex, shutil, subprocess, sys, tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
 import clipsync, deckconf
@@ -679,8 +679,21 @@ def write(path, content, dry, changed):
     changed.append(path)
     if dry:
         print(row(AMB, os.path.basename(path), "WOULD CHANGE")); return
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    open(path, "w").write(content)
+    # a new file renamed over the old, never rewritten in place: a `deck`
+    # running right now reads its script as it goes (bash) and would read
+    # on into the new text. Through a link, keeping the mode.
+    real = os.path.realpath(path)
+    d = os.path.dirname(real)
+    os.makedirs(d, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=d, prefix="." + os.path.basename(real) + ".")
+    try:
+        with os.fdopen(fd, "w") as f:
+            f.write(content)
+        os.chmod(tmp, (os.stat(real).st_mode & 0o7777) if old is not None else 0o644)
+        os.replace(tmp, real)
+    except BaseException:
+        os.unlink(tmp)
+        raise
     print(row(OK, os.path.basename(path), "written" if old is None else "updated"))
 
 def run(prof, src, dry=False):

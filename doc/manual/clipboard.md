@@ -74,7 +74,8 @@ on macOS) never leaves its screen.
 
 A screen links once its `deck` command knows about sync: `phosphor gen` on
 another computer, the phone or screen kit again on a phone or a screen that
-got it that way (`phosphor phone` shows how). After that, turning sync
+got it that way (`phosphor phone` shows how), even from inside the deck: a
+`deck` that's running keeps the copy it started with. After that, turning sync
 on or off is just the profile: each `deck` asks the brain when it starts.
 `phosphor doctor` counts the linked screens, and `phosphor screens` marks
 them `clip`. Nothing happens on a screen whose clipboard tool is missing.

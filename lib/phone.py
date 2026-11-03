@@ -59,7 +59,7 @@ fi
 # 2. the deck command
 # ssh exits 0 on detach (EXIT key, Ctrl-q) and non-zero when the link drops
 # (the phone slept, the network changed): then it reconnects by itself.
-cat > "$PREFIX/bin/deck" <<EOF
+cat > "$PREFIX/bin/deck.new" <<EOF
 #!/data/data/com.termux/files/usr/bin/sh
 [ -n "\$ZELLIJ" ] && { echo "already inside a zellij session"; exit 1; }
 @CLIP@
@@ -68,7 +68,7 @@ while :; do
   echo "[ lost the deck, reconnecting in 3s. Ctrl-C to stop ]"; sleep 3
 done
 EOF
-chmod +x "$PREFIX/bin/deck"
+chmod +x "$PREFIX/bin/deck.new" && mv "$PREFIX/bin/deck.new" "$PREFIX/bin/deck"   # moved over: a deck running now keeps its own
 say "command ready: deck"
 
 # 3. a home-screen icon, through Termux:Widget
@@ -158,7 +158,7 @@ fi
 # ssh exits 0 when you detach and non-zero when the link drops or the deck
 # restarts: then it goes back in by itself.
 mkdir -p "$B"
-cat > "$B/deck" <<EOF
+cat > "$B/deck.new" <<EOF
 #!/bin/sh
 [ -n "\$ZELLIJ" ] && { echo "already inside a zellij session"; exit 1; }
 @CLIP@
@@ -167,7 +167,7 @@ while :; do
   echo "[ lost the deck, reconnecting in 3s. Ctrl-C to stop ]"; sleep 3
 done
 EOF
-chmod +x "$B/deck"
+chmod +x "$B/deck.new" && mv "$B/deck.new" "$B/deck"   # moved over: a deck running now keeps its own
 say "command ready: deck"
 case ":$PATH:" in
   *":$B:"*) ;;

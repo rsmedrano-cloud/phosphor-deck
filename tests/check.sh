@@ -127,6 +127,7 @@ check "every tool follows theme"           python3 tests/tool-colors-check.py
 check "yazi: c t clips the file"           python3 tests/yazi-keymap-check.py
 check "send: one file, one link, gone"     python3 tests/send-check.py
 check "clipboard sync: copy on one screen, paste on another" python3 tests/clipsync-check.py
+check "a running deck command keeps its own copy when gen or a kit writes a new one" python3 tests/script-swap-check.py
 check "receive: the other way, one upload, gone" python3 tests/receive-check.py
 check "services: units match what gen writes" python3 tests/services-check.py
 check "the deck's panes get your PATH"  python3 tests/deck-path-check.py
