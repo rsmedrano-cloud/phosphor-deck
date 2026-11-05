@@ -122,7 +122,8 @@ counted all the same ("1 attached here on the brain, none over ssh"), the way th
 screens card and the header count it.
 Not a way to ban a device -- a way to force one reconnect without walking
 over to whichever screen is in the way. A screen whose clipboard follows the
-others' (`[clipboard] sync`, see clipboard) is marked "clip".
+others' (`[clipboard] sync`, see clipboard) is marked "clip" ("clip?" when it
+can't paste them yet).
 
 `o` (asking too) changes which deck a kind of screen gets, from the screen
 in front of you: on a tablet in a deck of its own, every tablet shares this

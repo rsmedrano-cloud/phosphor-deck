@@ -278,7 +278,8 @@
   smallest attached client, with no setting to change that), not for banning a device. Also `v` in
   the DECK tab. `--list` prints it once, no picker. A screen that reaches the brain through a
   tailscale relay is marked "relay": its deck's animations slow to one frame a second (see screens).
-  One whose clipboard is linked (`[clipboard] sync`) is marked "clip" (see clipboard).
+  One whose clipboard is linked (`[clipboard] sync`) is marked "clip", or "clip?" when it
+  can't paste what the others copy (a phone without the Termux:API app; see clipboard).
 - `phosphor mem [--once | --json]` — how much memory each tab and pane of the deck takes, heaviest tab
   first, every 5s (j/k scroll, q leaves; also `M` in the DECK tab). A pane counts everything it
   started -- an assistant's workers, a shell's children -- since every process keeps the
@@ -493,7 +494,8 @@ reading them every few seconds never gets them rate-limited.
   sessions, a terminal on the brain itself too: the number the DECK tab and the screens card show;
   null with the deck down), `line` (that count in words) and `screens`, the ssh logins among
   them: `tty`, `from`, `login`,
-  `idle`, `pid`, `session`, `said` (the kind it came in as), `relay`.
+  `idle`, `pid`, `session`, `said` (the kind it came in as), `relay`, `clip`, `nopaste` (what a
+  linked screen that can't paste needs, else null).
 - `phosphor mem --json` — `session`, `running`, `tabs` (each with its `panes`, in bytes),
   `zellij` and `machine` (`total`, `available`).
 - `phosphor security [--local] --json` — `sections`, each a `title` and its `findings`: `level`

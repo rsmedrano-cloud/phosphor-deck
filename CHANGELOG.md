@@ -6,6 +6,14 @@ before it updates.
 
 ## Unreleased
 
+## 2.6.4 — A phone says why it can't paste
+
+- A phone that can't paste what the other screens copy says so: without the Termux:API app (or
+  `pkg install termux-api`), its deck still links but nothing ever landed, silently. Now
+  `phosphor screens` marks it `clip?`, `phosphor doctor` names what's missing, and
+  `phosphor screens --json` carries it as `nopaste`. A clipboard tool that hangs no longer holds
+  up every copy after it.
+
 ## 2.6.3 — Kits run again
 
 - Running the phone or screen kit again works again: on a screen whose key already reached the

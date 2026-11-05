@@ -159,9 +159,53 @@ try:
     time.sleep(3)
     need("over the cap: stays put", clip("b") == "and back from b")
 
+    # ── phones: Termux, its API app there or not ──────────────────────────
+    # a stand-in for /data/data/com.termux; termux-clipboard-* wait forever
+    # for a Termux:API app that isn't installed
+    troot = os.path.join(tmp, "termux")
+    os.makedirs(troot)
+    twatcher = watcher.replace("/data/data/com.termux", troot)
+    phones = {}
+    for n, tools in (("noapp", {"termux-clipboard-get": "sleep 600", "termux-clipboard-set": "sleep 600"}),
+                     ("nopkg", {}),
+                     ("ok", {"termux-clipboard-get": "exit 0",
+                             "termux-clipboard-set": '[ -e "$CLIPDIR/hang" ] && { rm "$CLIPDIR/hang"; sleep 600; }\n'
+                                                     'cat > "$CLIPDIR/new" && mv "$CLIPDIR/new" "$CLIPDIR/clip"'})):
+        d = os.path.join(tmp, "phone-" + n)
+        os.makedirs(os.path.join(d, "bin"))
+        for t, body in tools.items():
+            with open(os.path.join(d, "bin", t), "w") as f:
+                f.write("#!/bin/sh\n" + body + "\n")
+            os.chmod(os.path.join(d, "bin", t), 0o755)
+        e = dict(env, CLIPDIR=d, PATH=os.path.join(d, "bin") + os.pathsep + env["PATH"])
+        w = subprocess.Popen(["sh", "-c", twatcher, "clipsync", str(deck.pid), sys.executable, PH, "clipsync"],
+                             env=e, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                             stderr=subprocess.DEVNULL, start_new_session=True)
+        procs.append(w)
+        phones[n] = d
+    pclip = lambda n: (open(os.path.join(phones[n], "clip")).read()
+                       if os.path.exists(os.path.join(phones[n], "clip")) else "")
+    why = lambda: sorted(x.get("nopaste", "") for x in status().get("screens", []))
+    need("phones linked, each saying what it lacks (%s)" % why(),
+         until(lambda: why() == ["", "", "", "pkg install termux-api", "the Termux:API app"], 15))
+    r = subprocess.run([sys.executable, PH, "doctor"], env=env, capture_output=True, text=True, timeout=60)
+    need("doctor says what a phone that can't paste needs",
+         "needs the Termux:API app" in r.stdout and "needs pkg install termux-api" in r.stdout)
+    pn.nopaste = {"local": "the Termux:API app"}
+    need("SCREENS marks one that can't paste clip?", pn.link({"from": "local"}) == "clip?")
+    copy("a", "to the phones")
+    need("a phone with Termux:API pastes", until(lambda: pclip("ok") == "to the phones", 6))
+    open(os.path.join(phones["ok"], "hang"), "w").close()
+    copy("a", "this one hangs")
+    time.sleep(1)
+    copy("a", "and this one lands")
+    need("a paste that hangs doesn't hold up the next", until(lambda: pclip("ok") == "and this one lands", 20))
+
     deck.kill(); deck.wait()
     need("watchers end with their deck",
          until(lambda: all(w.poll() is not None for _, w in screens.values()), 8))
+    need("phone watchers end with their deck too",
+         until(lambda: all(p.poll() is not None for p in procs if p.args[0] == "sh"), 15))
     need("the hub goes after the last screen",
          until(lambda: not os.path.exists(os.path.join(env["XDG_RUNTIME_DIR"], "phosphor-clip.sock")), 20))
 

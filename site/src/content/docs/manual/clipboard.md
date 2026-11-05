@@ -83,7 +83,11 @@ got it that way (`phosphor phone` shows how), even from inside the deck: a
 `deck` that's running keeps the copy it started with. After that, turning sync
 on or off is just the profile: each `deck` asks the brain when it starts.
 `phosphor doctor` counts the linked screens, and `phosphor screens` marks
-them `clip`. Nothing happens on a screen whose clipboard tool is missing.
+them `clip`. Nothing happens on a desktop whose clipboard tool is missing. A
+phone without Termux:API still links, so it says what it lacks: `phosphor
+screens` marks it `clip?` and `phosphor doctor` names the missing piece
+(`pkg install termux-api`, or the Termux:API app: both are needed, and
+the app comes from wherever Termux came from, F-Droid or GitHub).
 
 ## A real file
 

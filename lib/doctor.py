@@ -293,6 +293,10 @@ def run(profile=None):
                   note="phosphor screens marks them clip"))
         for s_ in ls:
             print("  " + DIM + "%s from %s" % (s_["name"] or "?", s_["from"]) + RST)
+            if s_.get("nopaste"):
+                print(row(WARN, s_["name"] or s_["from"], "linked, but nothing lands there", note="needs " + s_["nopaste"]))
+                issues.append("%s (%s) can't paste what other screens copy: it needs %s"
+                              % (s_["name"] or "?", s_["from"], s_["nopaste"]))
         # a `deck` written before sync existed never starts its half
         mine = os.path.join(os.path.expanduser("~"), ".local/bin",
                             ((profile.get("deck") or {}).get("command") or "deck"))

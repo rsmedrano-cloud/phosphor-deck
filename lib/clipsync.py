@@ -71,11 +71,19 @@ def sock_path():
 # itself on the brain).
 WATCHER = r"""D=$1; shift
 MAX=@MAX@
-R= W= WATCH= SECRET=
+R= W= WATCH= SECRET= NOPASTE=
+TO=; command -v timeout >/dev/null 2>&1 && TO="timeout 10"   # a tool that hangs never holds up the next clip
 if [ -d /data/data/com.termux ]; then
-  # Android lets only the app in front read the clipboard: receive only
-  command -v termux-clipboard-set >/dev/null 2>&1 || exit 0
-  W=termux-clipboard-set
+  # Android lets only the app in front read the clipboard: receive only.
+  # Termux's commands wait forever for a Termux:API app that isn't there:
+  # still linked, but the brain hears why nothing lands here.
+  if ! command -v termux-clipboard-set >/dev/null 2>&1; then
+    NOPASTE="pkg install termux-api"
+  elif [ -n "$TO" ] && { timeout 5 termux-clipboard-get >/dev/null 2>&1; [ $? -eq 124 ]; }; then
+    NOPASTE="the Termux:API app"
+  else
+    W=termux-clipboard-set
+  fi
 elif [ "$(uname -s)" = Darwin ]; then
   R=pbpaste W=pbcopy SECRET=mac
 elif [ -n "$WAYLAND_DISPLAY" ] && command -v wl-paste >/dev/null 2>&1 && command -v wl-copy >/dev/null 2>&1; then
@@ -114,6 +122,7 @@ ticks() {                              # a line whenever it may have changed
 }
 up() {                                 # what this screen copies, to the brain
   printf 'H %s\n' "$(uname -n)"
+  [ -n "$NOPASTE" ] && printf 'P %s\n' "$NOPASTE"
   if [ -z "$R" ]; then
     while alive; do sleep 2; done
     return
@@ -133,9 +142,10 @@ up() {                                 # what this screen copies, to the brain
 down() {                               # what the other screens copy, onto this one
   while IFS= read -r line; do
     case $line in
-      "C "*) v=${line#C }
+      "C "*) [ -n "$W" ] || continue
+             v=${line#C }
              printf %s "$v" | $B64D 2>/dev/null | cksum > "$d/got"
-             printf %s "$v" | $B64D 2>/dev/null | $W ;;
+             printf %s "$v" | $B64D 2>/dev/null | $TO $W ;;
       "X off") : > "$d/off" ;;
     esac
   done
@@ -222,9 +232,13 @@ class Hub:
             p["from"] = rest.decode("utf-8", "replace")[:64]
         elif kind == b"H":
             p["name"] = "".join(ch for ch in rest.decode("utf-8", "replace") if ch.isprintable())[:64]
+        elif kind == b"P":
+            # linked, but it can't paste: what it needs
+            p["nopaste"] = "".join(ch for ch in rest.decode("utf-8", "replace") if ch.isprintable())[:64]
         elif kind == b"S":
             p["status"] = True
-            out = [{"name": q["name"], "from": q["from"], "since": q["since"]} for q in self.screens()]
+            out = [dict({"name": q["name"], "from": q["from"], "since": q["since"]},
+                        **({"nopaste": q["nopaste"]} if q.get("nopaste") else {})) for q in self.screens()]
             self.send(c, (json.dumps(out) + "\n").encode())
             self.drop(c)
         elif kind == b"C":
@@ -330,7 +344,8 @@ def connect(start=True):
 
 
 def linked():
-    """The screens linked right now, [{name, from, since}]; None when no hub
+    """The screens linked right now, [{name, from, since[, nopaste]}] (nopaste:
+    what one that can't paste needs); None when no hub
     is running (nobody linked, or sync off)."""
     s = connect(start=False)
     if not s:
