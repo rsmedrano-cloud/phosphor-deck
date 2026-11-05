@@ -43,14 +43,14 @@ if [ -z "$PREFIX" ] || [ ! -d /data/data/com.termux ]; then
   echo "  ssh -t $T $C"
   exit 1
 fi
-command -v ssh >/dev/null 2>&1 || pkg install -y openssh
+command -v ssh >/dev/null 2>&1 || pkg install -y openssh </dev/null
 
 # 1. a key, so the deck never asks for a password again
 if [ ! -f ~/.ssh/id_ed25519 ]; then
   say "creating this phone's ssh key"
   mkdir -p ~/.ssh && ssh-keygen -q -t ed25519 -N "" -f ~/.ssh/id_ed25519
 fi
-if ! ssh -o BatchMode=yes -o ConnectTimeout=8 "$T" true 2>/dev/null; then
+if ! ssh -n -o BatchMode=yes -o ConnectTimeout=8 "$T" true 2>/dev/null; then   # -n: the rest of this kit is stdin
   say "the brain asks for your password one last time"
   cat ~/.ssh/id_ed25519.pub | ssh "$T" 'mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys' \
     || { echo "couldn't copy the key; run this kit again"; exit 1; }
@@ -144,10 +144,10 @@ if [ ! -f ~/.ssh/id_ed25519 ] && [ ! -f ~/.ssh/id_rsa ]; then
   say "creating this machine's ssh key"
   mkdir -p ~/.ssh && chmod 700 ~/.ssh && ssh-keygen -q -t ed25519 -N "" -f ~/.ssh/id_ed25519
 fi
-if ! ssh -o BatchMode=yes -o ConnectTimeout=8 "$T" true 2>/dev/null; then
+if ! ssh -n -o BatchMode=yes -o ConnectTimeout=8 "$T" true 2>/dev/null; then   # -n: the rest of this kit is stdin
   say "the brain asks for your password one last time"
   if command -v ssh-copy-id >/dev/null 2>&1; then
-    ssh-copy-id "$T" || { echo "couldn't copy the key; run this again"; exit 1; }
+    ssh-copy-id "$T" </dev/null || { echo "couldn't copy the key; run this again"; exit 1; }
   else
     cat ~/.ssh/id_ed25519.pub | ssh "$T" 'mkdir -p ~/.ssh && chmod 700 ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys' \
       || { echo "couldn't copy the key; run this again"; exit 1; }

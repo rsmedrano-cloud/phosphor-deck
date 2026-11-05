@@ -6,6 +6,13 @@ before it updates.
 
 ## Unreleased
 
+## 2.6.3 — Kits run again
+
+- Running the phone or screen kit again works again: on a screen whose key already reached the
+  brain, the kit's own "does the key work" check read the rest of the kit as its input and the
+  kit ended right there, silently, leaving the old `deck` command (so `[clipboard] sync` never
+  linked). It now reaches the end and rewrites `deck`.
+
 ## 2.6.2 — A running deck keeps its own copy
 
 - Rewriting a `deck` command that's running no longer trips it up: `phosphor gen` (and every
