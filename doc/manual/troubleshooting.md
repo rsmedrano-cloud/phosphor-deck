@@ -23,6 +23,12 @@
   and the next time in shows nothing (and starts counting again).
 - **"the deck is starting..."**: `deck` found the session not up yet (right
   after boot or `phosphor up`) and waits for it, up to a minute and a half.
+- **Every screen flickers every few seconds**: something keeps trying to get
+  in. `who` on the brain lists the screens; a `deck` left running on a phone
+  whose Termux window is gone was the usual one (exit Termux from its
+  notification and open it again). A `deck` from this version on stops by
+  itself when its terminal is gone; run the kit again on a phone set up
+  before.
 - **The deck is gone**: the watchdog brings it back within a minute; `phosphor
   up` if you ran `phosphor down`.
 - **"the old deck isn't fully down"**: a restart (or an update's restart)

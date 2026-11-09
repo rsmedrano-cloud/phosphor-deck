@@ -103,7 +103,12 @@ subprocess.run(["rm", "-rf", os.path.join(CACHE, "splash")])
 profile()
 r = subprocess.run([sys.executable, PHOSPHOR, "attach"], env=ENV, input="",
                    capture_output=True, text=True, timeout=20)
-need("no terminal, no warm-up", not shown(r.stdout) and "ZELLIJ-ATTACHED" in r.stdout, r.stdout + r.stderr)
+# No terminal: no warm-up, and zellij isn't even called -- an orphaned
+# screen loop knocking every few seconds made every screen flicker. Exit 0
+# so an older screen's `ssh ... && break` loop stops.
+need("no terminal: no warm-up, no zellij, exit 0",
+     not shown(r.stdout) and "ZELLIJ-ATTACHED" not in r.stdout and r.returncode == 0
+     and "no terminal" in r.stdout, r.stdout + r.stderr)
 
 subprocess.run(["rm", "-rf", tmp])
 if fails:

@@ -45,6 +45,8 @@ mosh survives sleep and network changes but doesn't carry the mouse, so no
 touch. The `deck` command uses ssh and reconnects by itself when the link
 drops (every 3s until the network is back) and when the deck restarts;
 leaving with EXIT or Ctrl-q ends it. If Android killed Termux, tap the icon.
+It only reconnects while its window is still there: a `deck` left behind
+without a terminal stops instead of knocking on the brain forever.
 
 Narrow screens: Alt-z (ZOOM) gives one pane the whole screen. With headscale,
 the phone's Tailscale app must log into your headscale server; `phosphor

@@ -373,13 +373,15 @@ CONNECT = """#!/bin/sh
 # never left the brain. mosh survives sleep and network changes but drops
 # the mouse (it lacks SGR mouse mode), so it's opt-in: connect = "mosh".
 # ssh exits 0 when you detach (Alt-x, Ctrl-q) and non-zero when the link
-# drops (sleep, network change) or the deck is restarting: then retry.
+# drops (sleep, network change) or the deck is restarting: then retry, but
+# only while it still has a terminal (a closed window would retry forever).
 # The clip line: the brain hands over this screen's half of [clipboard] sync
 # (nothing when it's off), which ends with this script (lib/clipsync.py).
 CONNECT_CHECK = ("[ -n \"$ZELLIJ\" ] && { echo \"already inside a zellij session: no deck inside the deck\"; exit 1; }\n"
                  "%(clip)s\n")
 CONNECT_LOOP = ("while :; do\n"
                "  ssh -t -o ServerAliveInterval=15 -o ServerAliveCountMax=2 %(target)s '/bin/sh -lc \"exec %(command)s 2>/dev/null || exec zellij attach %(session)s\"' && break\n"
+               "  [ -t 0 ] || { echo \"[ no terminal left: not reconnecting ]\"; exit 1; }\n"
                "  echo \"[ lost the deck, reconnecting in 3s. Ctrl-C to stop ]\"; sleep 3\n"
                "done\n")
 CONNECT_SSH = CONNECT_CHECK + CONNECT_LOOP

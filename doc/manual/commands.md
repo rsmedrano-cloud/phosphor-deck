@@ -63,7 +63,8 @@
 - `phosphor up` — start the deck and enable it at boot (with the fleet mounts).
 - `phosphor attach [--screen KIND]` (alias `phosphor deck`, or just `deck`) — get in from the brain.
   `--screen KIND` goes into that kind's own deck when the profile has a `[screens.KIND]` block
-  (made the first time one comes in), else into the deck.
+  (made the first time one comes in), else into the deck. With no terminal (`ssh brain deck`
+  without `-t`) it says so and exits 0 without touching the session.
 - `phosphor update [FOLDER]` — newer version: git pull or copy from FOLDER, run the installer, then
   get the panes onto the new code -- a real `phosphor restart` only when the pull touched shared
   code; a pull that only touched one tool's own module refreshes just that tool's panes, live, in

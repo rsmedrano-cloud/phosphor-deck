@@ -6,6 +6,16 @@ before it updates.
 
 ## Unreleased
 
+## 2.6.5 — A lost phone deck no longer flickers every screen
+
+- Every screen on the deck flickered every few seconds when a phone's `deck` had lost its window (the
+  link dropped as the phone switched networks, and the reconnect loop outlived its terminal): it kept
+  knocking on the brain forever, and each try reached the live session. A screen's `deck` now
+  reconnects only while it still has a terminal, and `deck` on the brain with no terminal (`ssh brain
+  deck` without `-t`) says so and stops before touching the session -- which also ends the loop of a
+  phone set up before this version. Run the kit again (or `phosphor gen` on another computer) to get
+  the new `deck` there.
+
 ## 2.6.4 — A phone says why it can't paste
 
 - A phone that can't paste what the other screens copy says so: without the Termux:API app (or

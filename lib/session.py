@@ -225,6 +225,13 @@ def attach(argv):
     if os.environ.get("ZELLIJ"):
         print("  you're already inside a zellij session (the deck?): no need to attach")
         return 1
+    # No terminal (`ssh brain deck` without -t, or a screen's reconnect loop
+    # whose window is gone): zellij can't show anything there, and each try
+    # still reaches the live session and makes every screen on it flicker.
+    # Exit 0, so an older screen's loop (`ssh ... && break`) stops for good.
+    if not sys.stdin.isatty():
+        print("  no terminal here: the deck needs one (ssh -t)")
+        return 0
     import kinds
     prof, _ = load_profile()
     sess = ((prof or {}).get("deck") or {}).get("session", "deck")

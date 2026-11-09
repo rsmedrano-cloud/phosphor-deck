@@ -58,13 +58,16 @@ fi
 
 # 2. the deck command
 # ssh exits 0 on detach (EXIT key, Ctrl-q) and non-zero when the link drops
-# (the phone slept, the network changed): then it reconnects by itself.
+# (the phone slept, the network changed): then it reconnects by itself --
+# while it still has a terminal. One whose window is gone would knock on the
+# deck every few seconds forever, and every screen on it would flicker.
 cat > "$PREFIX/bin/deck.new" <<EOF
 #!/data/data/com.termux/files/usr/bin/sh
 [ -n "\$ZELLIJ" ] && { echo "already inside a zellij session"; exit 1; }
 @CLIP@
 while :; do
   ssh -t -o ServerAliveInterval=15 -o ServerAliveCountMax=2 $T "$C 2>/dev/null || $Z attach $S" && break
+  [ -t 0 ] || { echo "[ no terminal left: not reconnecting ]"; exit 1; }   # its window closed: retrying would never end
   echo "[ lost the deck, reconnecting in 3s. Ctrl-C to stop ]"; sleep 3
 done
 EOF
@@ -164,6 +167,7 @@ cat > "$B/deck.new" <<EOF
 @CLIP@
 while :; do
   ssh -t -o ServerAliveInterval=15 -o ServerAliveCountMax=2 $T "$C" && break
+  [ -t 0 ] || { echo "[ no terminal left: not reconnecting ]"; exit 1; }   # its window closed: retrying would never end
   echo "[ lost the deck, reconnecting in 3s. Ctrl-C to stop ]"; sleep 3
 done
 EOF
