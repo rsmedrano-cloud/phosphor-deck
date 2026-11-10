@@ -20,7 +20,9 @@ deck, with the phone's line as a QR to scan with the camera.
 The brain answers with a script made for your deck: the phone's ssh key (your
 password one last time), a `deck` command, a Termux:Widget icon, and extra keys
 (KEYBOARD, EDIT, ZOOM, EXIT). Run it again any time; it only adds what's
-missing, and a phone with the kit's older keys gets EDIT too.
+missing, and a phone with the kit's older keys gets EDIT too. A kit that
+arrives cut short (the link dropped halfway) runs none of itself; sh says
+`syntax error` or `end of file`, and you run the same line again.
 
 It also makes Termux a place to share files to: in any app (Files, the
 gallery, a browser's download), Share, pick Termux, then **Edit**, and the

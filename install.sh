@@ -9,6 +9,9 @@
 #  everything goes to ~/.local/bin. If something needs sudo, it
 #  tells you and carries on without it.
 # ─────────────────────────────────────────────────────────────
+# All of it is one function, called on the last line: piped into sh, a
+# download cut short is a syntax error that runs nothing, never half of it.
+install_phosphor() {
 set -eu
 
 REPO="${PHOSPHOR_REPO:-}"
@@ -267,3 +270,5 @@ d  "    generates the deck and starts it"
 g  "    deck"
 d  "    and you're in (the same word from any machine)"
 printf '\n'
+}
+install_phosphor

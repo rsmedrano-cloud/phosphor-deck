@@ -186,8 +186,19 @@ def clip_line(prof):
     import clipsync
     return clipsync.launch(target(prof), phosphor_cmd(), heredoc=True)
 
+def whole(kit):
+    """A kit is piped into sh, which runs each line as it arrives: a link that
+    drops halfway would leave it run in half (a phone once got 429 bytes).
+    So all of it is one function, called on its last line: sh reads a
+    function whole before it runs any of it, and a kit cut short is a
+    syntax error that runs nothing."""
+    lines = kit.split("\n")
+    n = next(i for i, l in enumerate(lines) if not l.startswith("#"))
+    return "\n".join(lines[:n]) + "\nphosphor_kit() {\n" + "\n".join(lines[n:]).rstrip("\n") + \
+        "\n}\nphosphor_kit\n"
+
 def screen_script(prof, kind=""):
-    return (POSIX_SCRIPT.replace("@T@", target(prof)).replace("@C@", launcher(prof, kind))
+    return whole(POSIX_SCRIPT.replace("@T@", target(prof)).replace("@C@", launcher(prof, kind))
             .replace("@CLIP@", clip_line(prof)))
 
 def phosphor_cmd():
@@ -231,7 +242,7 @@ def keys_row(prof):
 def script(prof, kind="phone"):
     sess = ((prof or {}).get("deck") or {}).get("session", "deck")
     cmd = launcher(prof, kind)
-    return (SCRIPT.replace("@T@", target(prof)).replace("@Z@", proc.zellij() or "zellij")
+    return whole(SCRIPT.replace("@T@", target(prof)).replace("@Z@", proc.zellij() or "zellij")
                   .replace("@S@", sess).replace("@C@", cmd).replace("@OLDKEYS@", " ".join("'%s'" % k for k in OLD_KEYS)).replace("@KEYS@", keys_row(prof))
                   .replace("@CLIP@", clip_line(prof)))
 

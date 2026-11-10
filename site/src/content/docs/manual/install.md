@@ -210,6 +210,10 @@ GitHub sometimes answers 5xx. The installer retries; if something is still
 missing it says so, and running it again fetches only what's missing. Without
 zellij it stops: the deck can't run without it.
 
+If the installer itself arrives cut short (`curl ... | sh` over a link that
+drops), it runs none of it and sh says `syntax error` or `end of file`: run
+the same line again.
+
 ## Remove it
 
     phosphor down

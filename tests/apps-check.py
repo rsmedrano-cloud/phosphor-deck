@@ -34,6 +34,7 @@ cmd = "nameless"
 ''' % tool)
 os.environ["PHOSPHOR_APPS"] = conf
 os.environ["PHOSPHOR_PROFILE"] = os.path.join(tmp, "none.toml")
+os.environ["PHOSPHOR_PANELS"] = os.path.join(tmp, "panels.d")   # not the panels of whoever runs it
 
 import apps, newtab, gen
 own, problem = apps.yours()

@@ -6,6 +6,13 @@ before it updates.
 
 ## Unreleased
 
+## 2.6.6 — A download cut short runs nothing
+
+- A phone or screen kit, or install.sh, that arrived cut short over a link that dropped
+  (`ssh brain 'phosphor phone' | sh`, `curl ... | sh`) used to run whatever half had arrived -- a
+  phone once got 429 bytes of its kit. Now none of it runs: sh says `syntax error` or `end of file`,
+  and you run the same line again.
+
 ## 2.6.5 — A lost phone deck no longer flickers every screen
 
 - Every screen on the deck flickered every few seconds when a phone's `deck` had lost its window (the

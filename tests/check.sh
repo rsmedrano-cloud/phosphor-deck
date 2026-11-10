@@ -128,7 +128,7 @@ check "yazi: c t clips the file"           python3 tests/yazi-keymap-check.py
 check "send: one file, one link, gone"     python3 tests/send-check.py
 check "clipboard sync: copy on one screen, paste on another" python3 tests/clipsync-check.py
 check "a running deck command keeps its own copy when gen or a kit writes a new one" python3 tests/script-swap-check.py
-check "a kit run again, piped into sh, reaches its end and rewrites deck" python3 tests/kit-rerun-check.py
+check "a kit run again, piped into sh, reaches its end; a kit or install.sh cut short runs nothing" python3 tests/kit-rerun-check.py
 check "a screen's deck reconnects only while it has a terminal" python3 tests/deck-loop-check.py
 check "receive: the other way, one upload, gone" python3 tests/receive-check.py
 check "services: units match what gen writes" python3 tests/services-check.py
