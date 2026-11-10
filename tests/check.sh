@@ -11,8 +11,8 @@
 # The slow ones (a clean install in a systemd container) are
 # tests/from-zero.sh and tests/tester-sim.py.
 cd "$(dirname "$0")/.." || exit 1
-# a caller's own data/cache/notebook (tests/audit.py sets them) must not leak into tests
-unset PHOSPHOR_DATA PHOSPHOR_CACHE PHOSPHOR_NOTES
+# a caller's own data/cache/notebook/profile (tests/audit.py sets them) must not leak into tests
+unset PHOSPHOR_DATA PHOSPHOR_CACHE PHOSPHOR_NOTES PHOSPHOR_PROFILE
 jobs=$(nproc 2>/dev/null || echo 4)
 case "$1" in -j[1-9]*) jobs=${1#-j} ;; "") ;; *) echo "usage: sh tests/check.sh [-jN]" >&2; exit 2 ;; esac
 T=$(mktemp -d) || exit 1

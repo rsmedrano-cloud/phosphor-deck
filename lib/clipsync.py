@@ -91,7 +91,7 @@ elif [ -n "$WAYLAND_DISPLAY" ] && command -v wl-paste >/dev/null 2>&1 && command
 elif [ -n "$DISPLAY" ] && command -v xclip >/dev/null 2>&1; then
   R="xclip -o -selection clipboard" W="xclip -i -selection clipboard" SECRET=x
 elif [ -n "$DISPLAY" ] && command -v xsel >/dev/null 2>&1; then
-  R="xsel -ob" W="xsel -ib"
+  W="xsel -ib"     # no R: xsel can't list targets, so it can't see a password manager's mark
 else
   exit 0
 fi

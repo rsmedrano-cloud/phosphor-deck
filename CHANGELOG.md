@@ -6,6 +6,12 @@ before it updates.
 
 ## Unreleased
 
+## 2.7.0 — One clipboard
+
+- Clipboard sync on an X11 screen with only xsel (no xclip) sent everything it copied, passwords
+  too: xsel can't see the mark a password manager puts on a secret. Such a screen now only pastes
+  in; install xclip and it copies out as well, with passwords staying put.
+
 ## 2.6.6 — A download cut short runs nothing
 
 - A phone or screen kit, or install.sh, that arrived cut short over a link that dropped

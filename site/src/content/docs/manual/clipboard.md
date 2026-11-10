@@ -64,7 +64,8 @@ what was copied before it was there.
 
 | screen | copies out | pastes in | needs |
 |---|---|---|---|
-| Linux, X11 | yes | yes | xclip (or xsel) |
+| Linux, X11 | yes | yes | xclip |
+| Linux, X11 with only xsel | no | yes | xsel (it can't see a password manager's mark; xclip can) |
 | Linux, Wayland | yes | yes | wl-clipboard (`wl-paste`, `wl-copy`) |
 | macOS | yes | yes | nothing: pbcopy and pbpaste |
 | Android (Termux) | no | yes | the Termux:API app and `pkg install termux-api` |

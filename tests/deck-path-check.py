@@ -17,7 +17,7 @@ def need(what, ok):
 
 home = tempfile.mkdtemp()
 os.environ.update(HOME=home, XDG_RUNTIME_DIR=tempfile.mkdtemp())
-for v in ("ZELLIJ", "ZELLIJ_SESSION_NAME", "PHOSPHOR_DATA", "PHOSPHOR_CACHE", "PHOSPHOR_NOTES", "VIRTUAL_ENV"):
+for v in ("ZELLIJ", "ZELLIJ_SESSION_NAME", "PHOSPHOR_DATA", "PHOSPHOR_CACHE", "PHOSPHOR_NOTES", "PHOSPHOR_PROFILE", "VIRTUAL_ENV"):
     os.environ.pop(v, None)
 for d in (".config/phosphor", ".local/bin", ".cargo/bin", "go/bin", "venv/bin"):
     os.makedirs(os.path.join(home, d))

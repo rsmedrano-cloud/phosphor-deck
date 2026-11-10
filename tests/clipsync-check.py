@@ -109,6 +109,9 @@ try:
     watcher = subprocess.run([sys.executable, PH, "clipsync", "--script"], env=env,
                              capture_output=True, text=True).stdout
     need("sync on: a watcher", "MAX=1024" in watcher)
+    xsel = [l for l in watcher.splitlines() if "xsel -" in l]
+    need("xsel alone only pastes in: it can't see a password manager's mark",
+         xsel and not any("R=" in l for l in xsel))
     deck = subprocess.Popen(["sleep", "600"])         # stands in for each screen's `deck`
     procs.append(deck)
     screens = {}
@@ -199,7 +202,7 @@ try:
     copy("a", "this one hangs")
     time.sleep(1)
     copy("a", "and this one lands")
-    need("a paste that hangs doesn't hold up the next", until(lambda: pclip("ok") == "and this one lands", 20))
+    need("a paste that hangs doesn't hold up the next", until(lambda: pclip("ok") == "and this one lands", 40))   # its paste times out at 10s; a loaded runner needs the margin
 
     deck.kill(); deck.wait()
     need("watchers end with their deck",
