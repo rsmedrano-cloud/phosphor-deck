@@ -13,6 +13,7 @@ prints the block to paste inside its `keybinds { }`.
     edit    = "Alt r"      # edit this tab
     new_tab = "Alt n"      # a new tab in the pane's folder
     note    = "Alt j"      # jot a note or todo, tagged with this tab
+    ask     = "Alt q"      # a question about this pane, its screen along
     zoom    = "Alt z"
     leave   = "Alt x"      # Ctrl-q always leaves too
     controls = "Alt g"     # zellij's own controls
@@ -30,6 +31,7 @@ ACTIONS = [
     ("edit",     "edit this tab: unlock, change, save or put back", "Alt r", "key"),
     ("new_tab",  "new tab (the + menu) in the pane's folder",       "Alt n", "key"),
     ("note",     "a note or todo from here, tagged with this tab",  "Alt j", "key"),
+    ("ask",      "a question about this pane, its screen along",    "Alt q", "key"),
     ("zoom",     "zoom: the focused pane takes the whole tab",      "Alt z", "key"),
     ("leave",    "leave the deck (it keeps running)",               "Alt x", "key"),
     ("controls", "take and give back zellij's controls",            "Alt g", "key"),
@@ -74,6 +76,19 @@ def expand(keys):
             for d in ("Left", "Right", "Up", "Down"): out["%s %s" % (k, d)] = a
     return out
 
+def screen_dump():
+    """Where the ask key has zellij write the screen it's about to cover
+    (a pane in place of another is suppressed, and zellij dumps a suppressed
+    one empty): the login's runtime dir (tmpfs, private), else ~/.cache's.
+    The ask reads it and deletes it."""
+    rt = os.environ.get("XDG_RUNTIME_DIR") or "/run/user/%d" % os.getuid()
+    if not os.path.isdir(rt) or not os.access(rt, os.W_OK):
+        rt = os.path.join(os.path.expanduser("~"), ".cache", "phosphor")
+    return os.path.join(rt, "phosphor-ask-screen.txt")
+
+def kdl_str(s):
+    return '"%s"' % s.replace("\\", "\\\\").replace('"', '\\"')
+
 def block(prof):
     """The lines gen writes between the markers."""
     k = current(prof)
@@ -85,6 +100,8 @@ def block(prof):
         lock.append('bind "%s" { %s; }' % (k["new_tab"], RUN % ("new --here", "NEW")))
     if k["note"]:
         lock.append('bind "%s" { %s; }' % (k["note"], RUN % ("note --here", "NOTE")))
+    if k["ask"]:
+        lock.append('bind "%s" { DumpScreen %s; %s; }' % (k["ask"], kdl_str(screen_dump()), RUN % ("ask --here", "ASK")))
     if k["controls"]:
         lock.append('bind "%s" { SwitchToMode "Normal"; }' % k["controls"])
         rest.append('bind "%s" { SwitchToMode "Locked"; }' % k["controls"])
@@ -116,6 +133,17 @@ def put(text, prof):
     new = "\n".join(lines[:i] + block(prof).split("\n") + lines[j + 1:])
     return new, ("same" if new == text else "updated")
 
+def strip(text):
+    """The config without its keys block (markers and all): what's left is
+    what a person could have edited. Text without the markers comes back as is."""
+    lines = text.split("\n")
+    try:
+        i = next(n for n, l in enumerate(lines) if l.strip().startswith("// ── PHOSPHOR KEYS"))
+        j = next(n for n, l in enumerate(lines) if n > i and l.strip().startswith("// ── END PHOSPHOR KEYS"))
+    except StopIteration:
+        return text
+    return "\n".join(lines[:i] + lines[j + 1:])
+
 def conflicts(keys, action, key):
     """(deck actions, tools) that already use what this key would take."""
     if not key: return [], []
@@ -129,7 +157,8 @@ def conflicts(keys, action, key):
 def guide_rows(rows, prof):
     """keys.json's deck section with the keys this profile really uses."""
     k = current(prof)
-    swap = {"Alt-r": dash(k["edit"]), "Alt-n": dash(k["new_tab"]), "Alt-j": dash(k["note"]), "Alt-z": dash(k["zoom"]),
+    swap = {"Alt-r": dash(k["edit"]), "Alt-n": dash(k["new_tab"]), "Alt-j": dash(k["note"]),
+            "Alt-q": dash(k["ask"]), "Alt-z": dash(k["zoom"]),
             "Alt-g": dash(k["controls"]),
             "Alt-1 … Alt-9": (dash(k["tabs"] + " 1") + " … " + dash(k["tabs"] + " 9")) if k["tabs"] else "off",
             "Alt-← ↑ ↓ →": (dash(k["panes"]) + "-← ↑ ↓ →") if k["panes"] else "off",

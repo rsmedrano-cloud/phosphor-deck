@@ -95,7 +95,7 @@ sidebar:
   `rm NAME` takes its tab out and moves its folder into phosphor's trash (asks first).
   Bare, on a terminal (or `z` in the DECK tab): every workspace and its git state, Enter opens its tab,
   `d` its diff, `n` a new one, `x` asks y/n and removes it.
-- `phosphor ask [--assistant NAME] [-c] QUESTION` — a one-shot question, no tab: shells out to whichever
+- `phosphor ask [--assistant NAME] [-c] QUESTION | --here` — a one-shot question, no tab: shells out to whichever
   assistant CLI is already installed (claude, gemini, codex, opencode, aider, agy -- the same
   list `phosphor workspace` knows, tried in that order) with a headless, single-answer flag of
   its own (`claude -p`, `gemini -p`, `codex exec`, `opencode run`, `aider --message`, `agy -p`)
@@ -108,6 +108,11 @@ sidebar:
   `-c` (`--notes`) sends your notebook's five latest decisions and summaries along, ahead of
   everything else, so "why did we drop X" has something to go on. Only when you ask for it:
   those notes go to the assistant's provider with the question.
+  `--here` is what Alt-q runs: a box opens in place of the pane you're in, saying how many of
+  that pane's last lines go to which assistant; Enter sends them with your question (the tab and
+  the pane's title too), the answer comes in a pager, and q or Esc gives the pane back. That
+  screen is text the deck didn't write, so the assistant gets no tools for it (as triage does).
+  Outside the deck it's the plain box.
 - `phosphor read URL | WORDS... [--ask QUESTION] [--assistant NAME]` — a web page as plain text,
   for docs in the middle of an incident without a browser. An address (`http`/`https`) is
   fetched and boiled down to its own text: the article or main part of the page when it has

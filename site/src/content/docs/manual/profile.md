@@ -224,6 +224,7 @@ left out keeps its default; `""` turns one off.
 | edit | "Alt r" | edit this tab: unlock, change, save or put back |
 | new_tab | "Alt n" | a new tab (the + menu) in the pane's folder |
 | note | "Alt j" | a note or todo from here, tagged with the tab you're in |
+| ask | "Alt q" | a question about the pane you're in, its screen along |
 | zoom | "Alt z" | the focused pane takes the whole tab |
 | leave | "Alt x" | leave the deck (Ctrl-q always does too) |
 | controls | "Alt g" | take and give back zellij's controls |

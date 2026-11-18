@@ -6,6 +6,21 @@ before it updates.
 
 ## Unreleased
 
+## 2.7.3 — Ask about the pane you're in
+
+- **Alt-q asks about the pane you're in.** A box opens over the pane,
+  says how many of its last lines go to which assistant, and sends them
+  with your question: "what does this error mean" needs no copying. The
+  answer comes in a pager; q or Esc gives the pane back. The assistant
+  gets no tools for it, since that screen isn't the deck's own text.
+  `phosphor ask --here` is what it runs; change the key with
+  `phosphor shortcuts` or `ask` under `[keys]`. It comes in at your next
+  `phosphor gen`, like the other keys.
+- A config.kdl the deck installed and nobody edited is recognized again
+  after a new default key: it gets the new one (backup: config.kdl.bak).
+- A text box keeps what you type while it redraws: fast typing, or a
+  slow link to a phone, no longer loses letters.
+
 ## 2.7.2 — zellij 0.46 ready
 
 - zellij 0.46 opens a "Release Notes" window on its first start, over the

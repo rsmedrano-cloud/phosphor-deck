@@ -85,7 +85,8 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
 - **Cards of your own.** Every command as a card with its live value:
   pipelines, plan usage, who's attached; place them in any pane
   ([profile](doc/manual/profile.md)).
-- **A notebook and workspaces.** Alt-j writes a note from any tab; a
+- **A notebook and workspaces.** Alt-j writes a note from any tab, Alt-q
+  asks an assistant about the pane you're in; a
   workspace is a tab per idea with its folder and its assistants
   ([workspaces](doc/manual/workspaces.md)).
 - **Files between screens.** One clipboard for every screen, and with
@@ -113,6 +114,7 @@ Alt-x, Ctrl-q  leave — the session keeps running
 Alt-n          new tab in the folder of the pane you're in
 Alt-r          edit this tab: unlock, change, save or put it back
 Alt-j          a note or todo from here: NOTES shows which tab it came from
+Alt-q          ask an assistant about the pane you're in (its screen goes along)
 Alt-g          take zellij's controls, and give them back
 Esc · q · ?    on the deck's own screens: Esc a step back (never closes a
                pane of the tab), q closes what you look at, ? its keys

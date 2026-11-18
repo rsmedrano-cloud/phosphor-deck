@@ -51,6 +51,14 @@ c = gen()
 need("a shipped config is updated", "PHOSPHOR KEYS" in c and os.path.exists(conf + ".bak"))
 need("with the profile's keys", 'bind "Alt y"' in c and 'bind "Alt r"' not in c)
 
+# 2.7.2's, after a new default key came in (Alt-q): still a copy we shipped
+os.remove(conf + ".bak")
+open(conf, "w").write(open(os.path.join(ROOT, "tests/fixtures/zellij-config-2.7.2.kdl")).read())
+c = gen()
+need("2.7.2's config is recognized though the default keys changed since",
+     os.path.exists(conf + ".bak") and 'show_release_notes' in c)
+need("and gets the ask key", 'ask --here' in c and 'bind "Alt q"' in c)
+
 c = open(conf).read().replace('    unbind "Ctrl g"', '    unbind "Ctrl g"\n    locked { bind "Alt u" { GoToTab 3; } }  // mine')
 open(conf, "w").write(c)
 open(prof, "a").write('zoom = "Ctrl Alt z"\n')

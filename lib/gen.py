@@ -604,16 +604,18 @@ def btop_config(dry, changed, name):
 def ctop_extra_args(name):
     return ["-i"] if name == "paper" else []
 
-# config.kdl as earlier versions installed it: a copy nobody touched gets the
-# new one (Alt-r and Alt-n came in 0.2; zellij's popups went off after 2.7.1);
-# an edited one is left alone. A change to share/zellij-config.kdl adds the
-# hash of the copy it replaces here.
+# config.kdl as earlier versions installed it, without the keys block (gen
+# writes that one from [keys] anyway, and a new default key would otherwise
+# change every hash): a copy nobody touched gets the new one; an edited one
+# is left alone. A change to share/zellij-config.kdl adds the hash of the
+# copy it replaces here (shortcuts.strip, then put_web(.., None)).
 SHIPPED_CONFIGS = {
     "a7183382a11d247489eb06e82c81f7596dd758701cac567d288d0af33f36bcc3",
     "11bb8eafb51fae74b4a1bcda41ca456d835e4e6d4d675091a83d56a0c9340f70",   # dev, with Alt-e
     "cb6486cc9d7c9c842470c420eded4c7e3c23db1394f52a743cb652923cebfc5e",   # dev, Alt-r and Alt-n
-    "5244c01e3faf1662c5f85c0ff395bdbfab73097cc46e50ffe517f3e1812ec465",   # [keys], before Alt-j
-    "bf42db43b7f2550692a53b98e8ea2acc1aba1b8ca902fd7bd888c6c05ff3c1c9",   # up to 2.7.1
+    "92865a0824e046cb367325b8bd83f0ab08ed012c0c43b2f740a010a9fdf12e1f",   # [keys], 0.2
+    "87aa31efa95055974e763b10169b9f42a66a1a83d523195b199e65f1cd1d89ab",   # up to 2.7.1
+    "0e2a3c3e8d8664a87a9e31b7f4bc031890ea25732771e135550e3ce13b131547",   # 2.7.2, before Alt-q
 }
 
 def zellij_config(dry, changed, prof=None, theme="p31"):
@@ -626,9 +628,9 @@ def zellij_config(dry, changed, prof=None, theme="p31"):
         write(ZCONF, put_web(shortcuts.put(new, prof)[0], theme)[0], dry, changed)
         return
     txt = open(ZCONF).read()
-    # with the keys block back at the defaults and no web block, is the rest a copy we shipped?
-    plain = put_web(shortcuts.put(txt, None)[0], None)[0]
-    if plain != new and hashlib.sha256(plain.encode()).hexdigest() in SHIPPED_CONFIGS:
+    # without the keys block and the web block, is the rest a copy we shipped?
+    plain = put_web(shortcuts.strip(txt), None)[0]
+    if plain != shortcuts.strip(new) and hashlib.sha256(plain.encode()).hexdigest() in SHIPPED_CONFIGS:
         if not dry: open(ZCONF + ".bak", "w").write(txt)
         write(ZCONF, put_web(shortcuts.put(new, prof)[0], theme)[0], dry, changed)
         print(row(OK, "config.kdl", ("would update" if dry else "updated") + ": the one Phosphor installed",

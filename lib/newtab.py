@@ -118,7 +118,7 @@ def hint(prof):
         pass
     import shortcuts
     k = shortcuts.current(prof)
-    parts = [(k["edit"], "edit tab"), (k["note"], "note"), (k["zoom"], "zoom"),
+    parts = [(k["edit"], "edit tab"), (k["note"], "note"), (k["ask"], "ask"), (k["zoom"], "zoom"),
              (k["tabs"] + " 1-9" if k["tabs"] else "", "tabs"), (k["leave"], "leave")]
     return "  ".join("%s %s" % (shortcuts.dash(key), what) for key, what in parts if key)
 

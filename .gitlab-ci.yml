@@ -42,6 +42,7 @@ zellij:
     - python3 tests/screen-kinds-check.py --live
     - python3 tests/mirror-check.py
     - python3 tests/newtab-attach-check.py
+    - python3 tests/ask-key-check.py
 
 # zellij-latest: the same checks against zellij's newest release. An early
 # warning, never a blocker: when it fails and zellij is pinned, the fix (or a

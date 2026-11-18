@@ -13,6 +13,7 @@ except these.
 | Alt-n | new tab (the + menu) in the folder of the pane you're in |
 | Alt-r | edit this tab: unlock, change, then save or put it back |
 | Alt-j | a note or todo from here: NOTES shows which tab it came from |
+| Alt-q | ask an assistant about the pane you're in: its screen goes along |
 | Alt-g | take and give back zellij's controls (same key) |
 | Alt-1 … Alt-9 | go to a tab, in the order of your profile |
 | tap | a tab to switch, a pane to focus it |

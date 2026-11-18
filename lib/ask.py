@@ -21,8 +21,15 @@ provider along with the question.
 
 Run with nothing at all on a terminal it asks instead: a box for the
 question, whether the notebook goes along, and the answer in a pager.
+
+--here is the deck's ask key (Alt-q): it opens in place of the pane you're
+in and sends what that pane shows (its last lines, its tab, its title)
+along with the question, so "what does this error mean" needs no copying.
+The box says how many lines go to which assistant before anything leaves.
+That text wasn't written by the deck, so the assistant runs with no tools
+(as triage does). Esc, or q on the answer, gives the pane back.
 """
-import os, shutil, subprocess, sys
+import os, shutil, subprocess, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import BAD, DIM, RST
 import newtab
@@ -112,6 +119,87 @@ def no_assistant(assistant):
     return 1
 
 
+CONTEXT_LINES = 120
+CONTEXT_CHARS = 12000
+
+
+def last_lines(text, n=CONTEXT_LINES, chars=CONTEXT_CHARS):
+    """A pane's dump, its trailing blank rows off, its last n lines and at
+    most `chars` of them: the end of a screen is where the error is."""
+    rows = [r.rstrip() for r in (text or "").splitlines()]
+    while rows and not rows[-1]:
+        rows.pop()
+    rows = rows[-n:]
+    while rows and sum(len(r) + 1 for r in rows) > chars:
+        rows.pop(0)
+    while rows and not rows[0]:
+        rows.pop(0)
+    return "\n".join(rows)
+
+
+def screen_context(tab, title, text):
+    """The pane, as the assistant gets it: where it is, then what it shows."""
+    where = "tab %s" % tab + (", pane %s" % title if title else "")
+    return ("This is what a terminal pane of mine shows right now (%s), its last "
+            "%d lines:\n\n```\n%s\n```" % (where, len(text.splitlines()), text))
+
+
+def covered_pane():
+    """(tab, pane title, its last lines) of the pane the ask key opened over,
+    or None: outside the deck, or nothing under this pane."""
+    if not os.environ.get("ZELLIJ_PANE_ID"):
+        return None
+    import edit
+    here = edit.where_am_i()
+    if not here or here[3] is None:
+        return None
+    _, _, tab, covered = here
+    title = next((p.get("title", "") for p in edit.panes() if p["id"] == covered and not p["is_plugin"]), "")
+    text = last_lines(key_dump() or newtab.zj("dump-screen", "--full", "--pane-id", "terminal_%d" % covered))
+    return tab, title, text
+
+
+def key_dump(fresh=30):
+    """What the key had zellij dump just before covering the pane, read
+    once (it may hold anything the screen did) and only if it's from this
+    press, not one that never got read."""
+    import shortcuts
+    path = shortcuts.screen_dump()
+    try:
+        recent = time.time() - os.path.getmtime(path) < fresh
+        text = open(path, encoding="utf-8", errors="replace").read() if recent else ""
+        os.remove(path)
+    except OSError:
+        return ""
+    return text
+
+
+def interactive_here(assistant):
+    """The ask key: a question about the pane it covers, its screen along."""
+    import form
+    chosen = pick(assistant)
+    if chosen is None:
+        return no_assistant(assistant)
+    pane = covered_pane()
+    if not pane or not pane[2]:
+        return interactive(assistant, False)
+    tab, title, text = pane
+    n = len(text.splitlines())
+    q = form.line("phosphor ask · " + tab,
+                  "about this pane: its last %d lines go to %s's provider -- Enter asks, Esc goes back" % (n, chosen))
+    if not (q or "").strip():
+        form.leave(); return 0
+    form.leave()
+    print(DIM + "  asking " + chosen + " about " + tab + "..." + RST)
+    try:
+        r = subprocess.run(command(chosen, prompt([q], screen_context(tab, title, text)), readonly=True),
+                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    except OSError as e:
+        print(BAD + " couldn't run %s: %s" % (chosen, e) + RST); return 1
+    form.pager("  " + q + "\n\n" + r.stdout.decode("utf-8", "replace"))
+    return r.returncode
+
+
 def interactive(assistant, with_notes):
     """No question and a terminal: a box for it, the notebook or not, the
     answer in a pager."""
@@ -146,14 +234,18 @@ def interactive(assistant, with_notes):
 
 def main():
     a = sys.argv[1:]
-    assistant, with_notes = None, False
-    while a and a[0] in ("--assistant", "-c", "--notes"):
+    assistant, with_notes, here = None, False, False
+    while a and a[0] in ("--assistant", "-c", "--notes", "--here"):
         if a[0] == "--assistant":
             if len(a) < 2:
                 print(BAD + " --assistant needs a name" + RST); return 1
             assistant, a = a[1], a[2:]
+        elif a[0] == "--here":
+            here, a = True, a[1:]
         else:
             with_notes, a = True, a[1:]
+    if here:
+        return interactive_here(assistant)
     piped = sys.stdin.read().strip() if not sys.stdin.isatty() else ""
     if not (a or piped):
         if sys.stdin.isatty() and sys.stdout.isatty():

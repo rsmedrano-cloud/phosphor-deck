@@ -21,6 +21,8 @@ def where(cmd, keys):
     """How to reach cmd from the deck: keys is {command: DECK key}."""
     if cmd == "note":                     # N in DECK too, but this one works anywhere
         return "Alt-j in any tab"
+    if cmd == "ask":                      # about the pane it's pressed in
+        return "Alt-q in any tab"
     if cmd in keys:
         return keys[cmd] + " in the DECK tab"
     return "phosphor " + cmd

@@ -83,6 +83,7 @@ check "an unknown flag is a usage error; no call of phosphor's own is one" pytho
 check "deprecated: warns on stderr, goes when it said it would" python3 tests/deprecations-check.py
 check "web on: never restarts unattended without --yes" python3 tests/web-check.py
 check "new --here: refuses with nobody attached" python3 tests/newtab-attach-check.py
+check "ask key: the pane it covers goes along, q gives it back" python3 tests/ask-key-check.py
 check "new: an assistant asks which folder it starts in" python3 tests/newtab-folder-check.py
 check "new: / searches tabs, the menu, workspaces, tools, commands" python3 tests/search-check.py
 check "commands: category/leaf picker, only safe ones auto-run" python3 tests/commands-menu-check.py

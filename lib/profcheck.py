@@ -34,7 +34,7 @@ PANE = {"cmd": None, "args": None, "ssh": None, "reconnect": BOOL, "size": None,
         "panes": None, "dash": None}
 TABLES = {
     "deck": DECK,
-    "keys": {"edit": None, "new_tab": None, "note": None, "zoom": None, "leave": None,
+    "keys": {"edit": None, "new_tab": None, "note": None, "ask": None, "zoom": None, "leave": None,
              "controls": None, "tabs": None, "panes": None},
     "notes": {"folder": None, "require_project": BOOL},
     "mentions": {"prepare": None, "by": None, "prompt": None, "timeout": None},

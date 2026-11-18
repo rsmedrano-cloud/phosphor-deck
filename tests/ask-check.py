@@ -194,6 +194,43 @@ try:
 except NameError as e:
     check("mentions: draws a note being prepared (%s)" % e, False)
 
+# --here (the ask key): the covered pane's last lines go along, with no tools
+screen = "\n".join("line %d" % i for i in range(300)) + "\n\n\n   \n"
+t = ask.last_lines(screen)
+check("here: trailing blank rows off", t.endswith("line 299"))
+check("here: only the last lines", len(t.splitlines()) == ask.CONTEXT_LINES and "line 179" not in t)
+check("here: capped in characters too", len(ask.last_lines("x" * 500 + "\n" + "y" * 80, chars=100)) <= 100)
+check("here: an empty pane is nothing", ask.last_lines("\n  \n\n") == "")
+c = ask.screen_context("SYS", "htop", "load 9.1")
+check("here: the context names the tab and the pane", "tab SYS, pane htop" in c and "load 9.1" in c)
+check("here: and how many lines", "last 1 lines" in c)
+check("here: the question goes after the screen",
+      ask.prompt(["why so loaded"], c).endswith("why so loaded") and ask.prompt(["q"], c).startswith("This is"))
+for k in ("ZELLIJ", "ZELLIJ_PANE_ID"):
+    os.environ.pop(k, None)
+check("here: outside the deck there's no pane to send", ask.covered_pane() is None)
+asked = []
+ask.pick = lambda name=None: "claude"
+ask.interactive = lambda a, n: asked.append(("plain", a, n)) or 0
+sys.argv = ["ask", "--here"]
+ask.main()
+check("here: outside the deck it's the plain ask, without the notebook", asked == [("plain", None, False)])
+ask.covered_pane = lambda: ("SYS", "htop", "load 9.1")
+import form
+ran, shown = [], []
+form.line = lambda title, hint, initial="": shown.append((title, hint)) or "why"
+form.leave = lambda: None
+form.pager = lambda text: shown.append(text)
+class R: returncode, stdout = 0, b"because"
+_run = ask.subprocess.run
+ask.subprocess.run = lambda argv, **k: ran.append(argv) or R()
+ask.main()
+ask.subprocess.run = _run
+check("here: the box says what goes where", shown and "SYS" in shown[0][0] and "1 lines go to claude" in shown[0][1])
+check("here: no tools for text the deck didn't write", ran and ran[0][:3] == [ran[0][0], "--tools", ""])
+check("here: the screen and the question in one prompt", ran and "load 9.1" in ran[0][-1] and ran[0][-1].endswith("why"))
+check("here: the answer in the pager", shown[-1:] and "because" in shown[-1])
+
 if fails:
     print("ask-check FAILED:\n  " + "\n  ".join(fails)); sys.exit(1)
 print("ask-check ok")

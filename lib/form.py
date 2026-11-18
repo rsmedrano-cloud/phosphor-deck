@@ -28,13 +28,16 @@ def leave():
 def line(title, hint, initial=""):
     """One line of text. Enter gives it back (maybe empty), Esc or a tap on
     "< back" gives None."""
-    q = initial
+    q, first = initial, True
     while True:
         screen(["", "  " + BLOOM + title + RST,
                 "  " + AMB + "< back" + RST + DIM + "   (Esc)" + RST,
                 "  " + DIM + hint + RST, "",
                 "  " + AMB + ">" + RST + " " + FG + q + RST + "\x1b[?25h"])
-        k = getkey(None, text=True)
+        # only what came before the box is dropped: what's typed while it
+        # redraws (fast fingers, a slow link) is the question itself
+        k = getkey(None, text=True, typeahead=not first)
+        first = False
         if isinstance(k, tuple):
             if k[0] == "MOUSE" and k[1] == 0 and k[4] and k[3] == 3:
                 return None
