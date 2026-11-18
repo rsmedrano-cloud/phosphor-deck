@@ -64,7 +64,10 @@ print(d + "/layouts/deck.kdl"); print(d + "/config.kdl")
                                 "attach", "--create", self.session], self.env)
         fcntl.ioctl(self.fd, termios.TIOCSWINSZ, struct.pack("HHHH", self.rows, self.cols, 0, 0))
         self.out = b""
-        if not self.wait(lambda: self.session in self.run("list-sessions", "-n", "-s"), 20):
+        # listed isn't ready: zellij 0.46 lists a session before it answers
+        # queries (list-tabs comes back empty), so wait for its tabs too
+        if not self.wait(lambda: self.session in self.run("list-sessions", "-n", "-s")
+                         and self.tabs() and '"name"' in self.action("list-tabs", "--json"), 20):
             text = self.text()[-2000:]
             self.__exit__()                   # no zellij server or scratch folder left behind
             raise RuntimeError("zellij didn't start:\n" + text)

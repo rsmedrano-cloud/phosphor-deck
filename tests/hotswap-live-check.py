@@ -46,8 +46,11 @@ def main():
         # ZELLIJ_SOCKET_DIR, not the default location -- hotswap's own
         # `zellij -s probe ...` calls need that in their environment to find
         # it (in production there's no override, so this only matters here).
-        old_env = os.environ.get("ZELLIJ_SOCKET_DIR")
-        os.environ["ZELLIJ_SOCKET_DIR"] = z.env["ZELLIJ_SOCKET_DIR"]
+        # Its cache too: since 0.46 a socket is named by a hash, and the
+        # session's name is looked up in zellij's cache folder.
+        lent = ("ZELLIJ_SOCKET_DIR", "XDG_CACHE_HOME")
+        old_env = {k: os.environ.get(k) for k in lent}
+        os.environ.update({k: z.env[k] for k in lent})
         try:
             # zellij's own view of the panes needs a moment to settle after
             # attach, and argv_of() reads /proc, which needs the outer
@@ -105,10 +108,11 @@ def main():
                               if hotswap.tool_of_argv(a) is None]
                 need("the other tab's pane was never touched", len(shell_panes) == 1)
         finally:
-            if old_env is None:
-                os.environ.pop("ZELLIJ_SOCKET_DIR", None)
-            else:
-                os.environ["ZELLIJ_SOCKET_DIR"] = old_env
+            for k, v in old_env.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
 
     if fails:
         print("FAILED:\n  " + "\n  ".join(fails))

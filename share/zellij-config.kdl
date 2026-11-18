@@ -8,6 +8,10 @@ default_layout "deck"
 pane_frames true
 session_serialization true
 mouse_mode true
+// zellij's own popups (release notes after an update, startup tips) would
+// open floating and take the keys meant for the deck: off.
+show_release_notes false
+show_startup_tips false
 
 ui {
     pane_frames {

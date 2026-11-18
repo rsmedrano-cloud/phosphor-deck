@@ -139,6 +139,8 @@ def main():
         tab = lambda: z.tabs()[0] if z.tabs() else ""
         sizes = lambda: re.findall(r'size="(\d+%)"', z.action("dump-layout").split("new_tab_template")[0])
         z.pump(2)
+        # zellij 0.46's release notes opened floating, focused, and took the keys below
+        need("zellij's own popups stay off", "zellij:about" not in z.action("dump-layout"))
 
         # 1. unlock, resize, save
         z.keys(ALT_E, 1)

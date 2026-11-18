@@ -605,11 +605,15 @@ def ctop_extra_args(name):
     return ["-i"] if name == "paper" else []
 
 # config.kdl as earlier versions installed it: a copy nobody touched gets the
-# new one (Alt-r and Alt-n came in 0.2); an edited one is left alone.
+# new one (Alt-r and Alt-n came in 0.2; zellij's popups went off after 2.7.1);
+# an edited one is left alone. A change to share/zellij-config.kdl adds the
+# hash of the copy it replaces here.
 SHIPPED_CONFIGS = {
     "a7183382a11d247489eb06e82c81f7596dd758701cac567d288d0af33f36bcc3",
     "11bb8eafb51fae74b4a1bcda41ca456d835e4e6d4d675091a83d56a0c9340f70",   # dev, with Alt-e
     "cb6486cc9d7c9c842470c420eded4c7e3c23db1394f52a743cb652923cebfc5e",   # dev, Alt-r and Alt-n
+    "5244c01e3faf1662c5f85c0ff395bdbfab73097cc46e50ffe517f3e1812ec465",   # [keys], before Alt-j
+    "bf42db43b7f2550692a53b98e8ea2acc1aba1b8ca902fd7bd888c6c05ff3c1c9",   # up to 2.7.1
 }
 
 def zellij_config(dry, changed, prof=None, theme="p31"):

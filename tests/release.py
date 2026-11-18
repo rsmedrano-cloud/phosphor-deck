@@ -229,7 +229,12 @@ def main():
     print("release: fast checks")
     r = subprocess.run(["sh", "tests/check.sh"], capture_output=True, text=True)
     if r.returncode != 0:
-        for l in (r.stdout + r.stderr).strip().splitlines()[-15:]: print("    " + l)
+        # the failing checks with what they said, not only the tail: a check
+        # that failed once is a flaky.json candidate, and needs its name
+        lines = (r.stdout + r.stderr).strip().splitlines()
+        hits = [i for i, l in enumerate(lines) if "FAIL" in l or "Traceback" in l]
+        show = sorted({j for i in hits for j in range(i, min(i + 6, len(lines)))}) or range(max(0, len(lines) - 15), len(lines))
+        for j in show: print("    " + lines[j])
         stop("sh tests/check.sh fails")
 
     # 3. the version commit, on dev

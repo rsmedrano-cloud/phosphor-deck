@@ -6,6 +6,15 @@ before it updates.
 
 ## Unreleased
 
+## 2.7.2 — zellij 0.46 ready
+
+- zellij 0.46 opens a "Release Notes" window on its first start, over the
+  deck and with the keys. The config.kdl the deck installs now turns
+  zellij's popups off (release notes and startup tips); a copy of it you
+  never edited gets the new one at the next `phosphor gen` (backup:
+  config.kdl.bak). Two older copies weren't recognized as Phosphor's and
+  were left alone: now they are.
+
 ## 2.7.1 — The tour keeps your keys
 
 - The demo's guide (`phosphor demo --tour`) could miss an Enter or a key pressed while it was

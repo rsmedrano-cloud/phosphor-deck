@@ -97,6 +97,11 @@ sidebar:
   config has no PHOSPHOR KEYS block: `phosphor shortcuts --kdl` prints it to
   paste inside `keybinds { }`. A terminal or a browser may take the key
   before the deck sees it: move it with `phosphor shortcuts`.
+- **A "Release Notes" or tips window over the deck, taking your keys**:
+  zellij's own popup, after it updates. Esc closes it. The config.kdl the
+  deck installs turns them off (`show_release_notes false`,
+  `show_startup_tips false`); one you edited by hand needs those two lines
+  added yourself.
 - **"This session exists and web clients cannot attach to it"**: your
   config.kdl predates `web_sharing "on"` (see web) or defines its own and
   it's off. `phosphor gen` (a fresh one adds the line; an old one you edited
