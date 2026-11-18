@@ -142,29 +142,27 @@ def main():
 
         # 1. unlock, resize, save
         z.keys(ALT_E, 1)
-        if not need("Alt-r shows the edit screen", z.wait(lambda: "EDIT SYS" in z.text(), 10)): return
-        z.keys(b"\r", 1)
+        if not need("Alt-r shows the edit screen", z.wait(lambda: shows(z, "EDIT SYS", "start editing"), 10)): return
+        ready(z); z.keys(b"\r", 1)
         if not need("the tab is marked while editing", z.wait(lambda: tab().startswith("SYS ✎"), 5)): return
         start = sizes()
         z.keys(CTRL_N, 0.3); z.keys(b"j", 0.3); z.keys(b"j", 0.3); z.keys(ESC, 0.5)
         if not need("resizing works while editing", z.wait(lambda: sizes() != start, 5)): return
         edited = sizes()
-        z.out = b""
         z.keys(ALT_E, 1)
-        need("Alt-r again shows what changed", z.wait(lambda: "what changed" in z.text() and "→" in z.text(), 10))
-        z.keys(b"s", 1)
+        need("Alt-r again shows what changed", z.wait(lambda: shows(z, "what changed", "→"), 10))
+        ready(z); z.keys(b"s", 1)
         need("s saves the new size", z.wait(lambda: edited[0] in open(prof).read(), 10))
         need("saving locks and unmarks the tab", z.wait(lambda: tab() == "SYS", 5))
 
         # 2. unlock, resize, put it back
         saved = sizes()
         before = len(sleeps(z))
-        z.keys(ALT_E, 1); z.wait(lambda: "EDIT SYS" in z.text(), 5); z.keys(b"\r", 1)
+        z.keys(ALT_E, 1); z.wait(lambda: shows(z, "EDIT SYS", "start editing"), 5); ready(z); z.keys(b"\r", 1)
         z.wait(lambda: tab().startswith("SYS ✎"), 5)
         z.keys(CTRL_N, 0.3); z.keys(b"k", 0.3); z.keys(b"k", 0.3); z.keys(b"k", 0.3); z.keys(ESC, 0.5)
         z.wait(lambda: sizes() != saved, 5)
-        z.out = b""
-        z.keys(ALT_E, 1); z.wait(lambda: "what changed" in z.text(), 10)
+        z.keys(ALT_E, 1); z.wait(lambda: shows(z, "what changed"), 10); ready(z)
         z.keys(b"d", 1)
         need("d puts the tab back as the profile has it",
              z.wait(lambda: sizes() == saved and z.tabs() == ["SYS", "SH"], 15))
@@ -174,34 +172,28 @@ def main():
         # 3. swap the program of the focused pane, then save
         items = z.py("import edit\nfor i in edit.options(): print(i[0])").splitlines()
         idx = items.index("mytool")
-        z.out = b""
-        z.keys(ALT_E, 1); z.wait(lambda: "EDIT SYS" in z.text(), 5); z.keys(b"\r", 1)
+        z.keys(ALT_E, 1); z.wait(lambda: shows(z, "EDIT SYS", "start editing"), 5); ready(z); z.keys(b"\r", 1)
         z.wait(lambda: tab().startswith("SYS ✎"), 5)
-        z.out = b""
-        z.keys(ALT_E, 1); z.wait(lambda: "what changed" in z.text(), 10)
-        z.keys(b"r", 1); z.wait(lambda: "what goes in this pane" in z.text(), 5)
-        for _ in range(idx): z.keys(b"j", 0.15)
-        z.keys(b"\r", 1)
+        z.keys(ALT_E, 1); z.wait(lambda: shows(z, "what changed"), 10); ready(z)
+        z.keys(b"r", 1); z.wait(lambda: shows(z, "what goes in this pane"), 5); ready(z)
+        for _ in range(idx): ready(z); z.keys(b"j", 0.15)
+        ready(z); z.keys(b"\r", 1)
         need("r swaps the pane's program", z.wait(lambda: '"903"' in z.action("dump-layout"), 15))
         need("the swapped-out program is gone", z.wait(lambda: not sleeps(z), 10))
-        z.out = b""
         z.keys(ALT_E, 1)
-        need("the swap shows as a change", z.wait(lambda: "sleep 601 → sleep 903" in z.text(), 10))
-        z.keys(b"s", 1)
+        need("the swap shows as a change", z.wait(lambda: shows(z, "sleep 601 → sleep 903"), 10))
+        ready(z); z.keys(b"s", 1)
         need("s saves the swapped program", z.wait(lambda: '"903"' in open(prof).read() and '"601"' not in open(prof).read(), 10))
 
         # 3b. c: a row of cards under the pane, picked in the gallery, then saved
-        z.out = b""
-        z.keys(ALT_E, 1); z.wait(lambda: "EDIT SYS" in z.text(), 5); z.keys(b"\r", 1)
+        z.keys(ALT_E, 1); z.wait(lambda: shows(z, "EDIT SYS", "start editing"), 5); ready(z); z.keys(b"\r", 1)
         z.wait(lambda: tab().startswith("SYS ✎"), 5)
-        z.out = b""
-        z.keys(ALT_E, 1); z.wait(lambda: "what changed" in z.text(), 10)
-        need("c offers a row of cards", "add a row of cards" in z.text())
-        z.keys(b"c", 1); z.wait(lambda: "put them under this pane" in z.text(), 10)
-        z.keys(b" ", 0.5); z.keys(b"\r", 1)
+        z.keys(ALT_E, 1); z.wait(lambda: shows(z, "what changed"), 10); ready(z)
+        need("c offers a row of cards", shows(z, "add a row of cards"))
+        z.keys(b"c", 1); z.wait(lambda: shows(z, "put them under this pane"), 10); ready(z)
+        z.keys(b" ", 0.5); ready(z); z.keys(b"\r", 1)
         need("c puts a row of cards under the pane", z.wait(lambda: "dash" in z.action("dump-layout"), 15))
-        z.out = b""
-        z.keys(ALT_E, 1); z.wait(lambda: "what changed" in z.text(), 10)
+        z.keys(ALT_E, 1); z.wait(lambda: shows(z, "what changed"), 10); ready(z)
         z.keys(b"s", 1)
         need("s keeps the row of cards in the profile", z.wait(lambda: "dash = [" in open(prof).read(), 10))
 
@@ -221,6 +213,17 @@ def main():
         forget(z)
 
 tap = zjprobe.tap
+
+def shows(z, *texts):
+    """The focused pane shows all of these now (dump-screen). Never z.text():
+    that's every byte since the probe started, so a wait on it can pass on
+    a screen from before and the next key lands before its screen is up."""
+    s = "\n".join(z.screen())
+    return all(t in s for t in texts)
+
+def ready(z, arg="edit"):
+    """The screen up (phosphor ARG) reads keys: the next one can't be flushed."""
+    z.wait(lambda: zjprobe.reading_keys(z, arg), 5)
 
 def drag(z, row0, row1, col=60):
     z.keys(b"\x1b[<0;%d;%dM" % (col, row0 + 1), 0.2)
@@ -292,8 +295,8 @@ def shapes(z):
     tap(z, "several panes at once"); tap(z, "2 rows")
     tap(z, "mytool")
     if not need("grid: cards is a row to tap", tap(z, "the cards you pick")): return
-    if not need("grid: the gallery opens", z.wait(lambda: "Enter: put them here" in z.text(), 10)): return
-    z.keys(b" ", 0.5); z.keys(b"\r", 1)
+    if not need("grid: the gallery opens", z.wait(lambda: shows(z, "Enter: put them here"), 10)): return
+    ready(z, "new"); z.keys(b" ", 0.5); ready(z, "new"); z.keys(b"\r", 1)
     need("grid: a program and cards side by side",
          z.wait(lambda: "LAYOUT" in z.tabs() and '"dash"' in body(), 10))
     need("the menu's tab closes behind it", z.wait(lambda: not any(t.startswith("Tab #") for t in z.tabs()), 5))
@@ -302,9 +305,9 @@ def jot(z):
     book = os.path.join(z.home, ".local/share/phosphor/notes.md")
     z.action("go-to-tab-name", "SYS"); z.pump(1)
     z.keys(b"\x1bj", 1)
-    if not need("Alt-j asks for a note", z.wait(lambda: "a note" in z.text(), 10)): return
+    if not need("Alt-j asks for a note", z.wait(lambda: shows(z, "a note"), 10)): return
     if not need("jot: todo is a row to tap", tap(z, "todo")): return
-    z.wait(lambda: "new todo" in z.text(), 5)
+    z.wait(lambda: shows(z, "new todo"), 5)
     z.keys(b"disk almost full\r", 0.5); z.keys(b"\r", 2)
     need("jot: saved with the tab it came from",
          z.wait(lambda: os.path.exists(book) and "todo · " in open(book).read()
@@ -329,14 +332,14 @@ def own_keys():
     with zjprobe.Probe(prof) as z:
         z.pump(2)
         z.keys(b"\x1br", 1.5)
-        need("own keys: the default edit key is free", "EDIT SYS" not in z.text())
+        need("own keys: the default edit key is free", not shows(z, "EDIT SYS"))
         z.keys(b"\x1by", 1)
-        need("own keys: [keys] edit opens the edit screen", z.wait(lambda: "EDIT SYS" in z.text(), 10))
+        need("own keys: [keys] edit opens the edit screen", z.wait(lambda: shows(z, "EDIT SYS"), 10))
         z.keys(b"q", 1)
         z.action("go-to-tab-name", "SH"); z.pump(1)
         z.keys(b"$HOME/.local/bin/phosphor shortcuts\r", 2)   # a login shell here has no ~/.local/bin in PATH
         if not need("shortcuts: the list", tap(z, "zoom: the focused pane")): return
-        z.wait(lambda: "press the new key" in z.text(), 5)
+        z.wait(lambda: shows(z, "press the new key"), 5)
         z.keys(b"\x1bu", 2)
         need("shortcuts: saved into the profile",
              z.wait(lambda: 'zoom' in open(z.env["PHOSPHOR_PROFILE"]).read() and '"Alt u"' in open(z.env["PHOSPHOR_PROFILE"]).read(), 10))

@@ -157,3 +157,25 @@ def tap(z, label, timeout=10):
             return True
         z.pump(0.3)
     return False
+
+def reading_keys(z, arg):
+    """The probe's program with this argument reads keys now (its tty out
+    of canonical mode). A screen draws before getkey() runs, and getkey()
+    drops what was typed before it (TCSAFLUSH): a key sent the moment the
+    screen shows can land before its setraw, under load, and be lost.
+    tcgetattr on the program's own tty (/proc/PID/fd/0) reads its modes."""
+    import termios
+    for d in os.listdir("/proc"):
+        if not d.isdigit(): continue
+        try:
+            if arg.encode() not in open("/proc/%s/cmdline" % d, "rb").read().split(b"\0")[1:] or \
+               ("HOME=" + z.home).encode() not in open("/proc/%s/environ" % d, "rb").read().split(b"\0"):
+                continue
+            fd = os.open("/proc/%s/fd/0" % d, os.O_RDONLY | os.O_NOCTTY | os.O_NONBLOCK)
+            try:
+                if not termios.tcgetattr(fd)[3] & termios.ICANON: return True
+            finally:
+                os.close(fd)
+        except (OSError, termios.error):
+            pass
+    return False

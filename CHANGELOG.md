@@ -6,6 +6,12 @@ before it updates.
 
 ## Unreleased
 
+## 2.7.1 — The tour keeps your keys
+
+- The demo's guide (`phosphor demo --tour`) could miss an Enter or a key pressed while it was
+  checking what you'd done or redrawing, most often on a busy machine: you pressed again. It now
+  keeps every key that comes in between its looks.
+
 ## 2.7.0 — One clipboard
 
 - Clipboard sync on an X11 screen with only xsel (no xclip) sent everything it copied, passwords

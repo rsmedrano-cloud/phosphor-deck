@@ -252,14 +252,20 @@ name = "SYS"
 panes = [ { cmd = "phosphor fleet" } ]
 '''
     with zjprobe.Probe(PROFILE, session="fleetkeys") as z:
-        need("fleet came up with its hint", z.wait(lambda: "tap a machine" in z.text(), 20))
+        def shows(what):
+            # the focused pane right now (dump-screen), never z.text(): that's
+            # every byte zellij ever sent this client, so a hint seen once
+            # stays "seen", and a line zellij drew in two frames never shows
+            # whole in it
+            return any(what in r for r in z.screen())
+        need("fleet came up with its hint", z.wait(lambda: shows("tap a machine"), 20))
         def opened(tab):
             return z.wait(lambda: tab in z.tabs(), 10)
         def back():
             # wait until fleet itself is on screen again: on a slow runner a
             # key sent right after the switch can land before SYS has focus
             z.action("go-to-tab-name", "SYS"); z.pump(1)
-            z.wait(lambda: "h history" in z.text(), 10)
+            need("back on SYS", z.wait(lambda: shows("h history"), 10))
         z.keys("\x1b[C", 1.5)                        # picks box
         z.keys("s", 1)
         need("s: a BOX tab (a shell on the brain)", opened("BOX"))
@@ -271,15 +277,15 @@ panes = [ { cmd = "phosphor fleet" } ]
         z.keys("t", 1)
         need("t: a TRIAGE-DB-BOX tab", opened("TRIAGE-DB-BOX"))
         back()
-        need("db-box has actions: a shows on its bottom line", any("a actions" in r for r in z.screen()))
+        need("db-box has actions: a shows on its bottom line", shows("a actions"))
         z.keys("a", 1)
-        need("a: a RUN-DB-BOX tab, its list, waiting", opened("RUN-DB-BOX")
-             and z.wait(lambda: "restart jellyfin" in z.text() and "which one" in z.text(), 10))
+        need("a: a RUN-DB-BOX tab", opened("RUN-DB-BOX"))
+        need("a: its list, waiting", z.wait(lambda: shows("restart jellyfin") and shows("which one"), 10))
         back()
         z.keys("\x1b", 1.5)
         z.keys("s", 0)
         need("Esc drops the pick, and s then only asks for one",
-             z.wait(lambda: "pick a machine first" in z.text()) and z.tabs().count("DB-BOX") == 0)
+             z.wait(lambda: shows("pick a machine first")) and z.tabs().count("DB-BOX") == 0)
 
 if fails:
     print("FAIL:\n  " + "\n  ".join(fails)); sys.exit(1)

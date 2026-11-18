@@ -16,7 +16,7 @@ value before they run (card.asked's own line, where Esc goes back).
 Then: Ctrl-C in the screen a card opened ends that screen, not whatever
 opened it (the cards, the DECK tab); and Esc at a y/n is no.
 """
-import os, pty, select, signal, subprocess, sys, tempfile, time
+import os, pty, select, signal, subprocess, sys, tempfile, termios, time
 from concurrent.futures import ThreadPoolExecutor
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "lib"))
@@ -44,6 +44,22 @@ def read(fd, secs, until=lambda out: False):
             except OSError:
                 break
     return out
+
+def reading_keys(fd, secs):
+    """Wait until the program reads keys (the pty out of canonical mode).
+    getkey() drops what was typed before it was called (TCSAFLUSH): an Esc
+    sent the moment a prompt shows, under a loaded check.sh, can land before
+    its setraw and be flushed, and the screen waits forever. On Linux,
+    tcgetattr on the master reads the slave's modes."""
+    end = time.time() + secs
+    while time.time() < end:
+        try:
+            if not termios.tcgetattr(fd)[3] & termios.ICANON:
+                return True
+        except termios.error:
+            return False
+        time.sleep(0.02)
+    return False
 
 def spawn(argv, env):
     """argv in a pty that is its controlling terminal: Ctrl-C is a signal."""
@@ -73,6 +89,7 @@ def tap(name):
         read(fd, 8, lambda out: b"\x1b[?1049h" in out and out.endswith((b"\x1b[J", b"\x1b[K")))
         if ended(pid, 0.5 if c.get("tui") else 8):
             return "itself"
+        reading_keys(fd, 2)
         os.write(fd, b"\x1b")
         read(fd, 0.2)
         how = "Esc" if ended(pid, 4) else "never"
@@ -111,6 +128,7 @@ os.close(fd)
 open(PROFILE, "w").write('[deck]\nsession = "card-exits"\n')
 pid, fd = spawn([os.path.join(ROOT, "phosphor"), "migrate"], ENV)
 read(fd, 8, lambda o: b"(Y/n)" in o or b"(y/N)" in o)
+reading_keys(fd, 4)
 os.write(fd, b"\x1b")
 if not ended(pid, 4):
     fails.append("migrate: Esc at its y/n didn't answer it")

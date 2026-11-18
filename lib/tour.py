@@ -154,7 +154,7 @@ def main():
                 advance(i)
                 continue
         try:
-            k = getkey(timeout=0.5)
+            k = getkey(timeout=0.5, typeahead=True)   # keys between polls are for this screen too
         except Exception:
             time.sleep(0.5); continue
         if k in ("\r", "\n"):
