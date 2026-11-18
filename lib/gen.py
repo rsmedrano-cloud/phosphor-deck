@@ -234,6 +234,8 @@ After=network-online.target
 
 [Service]
 Type=oneshot
+# a start that hangs anyway is stopped, so the timer can try again
+TimeoutStartSec=120
 # zellij forks its server and exits. Without KillMode=process systemd
 # cleans up the cgroup when the unit ends and takes the server with it.
 KillMode=process
@@ -271,10 +273,15 @@ if [ "%(web)s" = "1" ] && ! $Z web --status 2>/dev/null | grep -q online; then
   $Z web --start --daemonize >/dev/null 2>&1
 fi
 [ -n "$s" ] && exit 0
+# Only --web-sharing: the web server is the daemon above. Asking this client
+# for a web server too had it start one on the port the daemon holds, fail,
+# and drop out mid-start; zellij 0.45 panics on that and the attach waits
+# forever. timeout: whatever goes wrong, this run ends and the next tick of
+# deck.timer tries again (a hung start blocks every tick after it).
 if [ "%(web)s" = "1" ]; then
-  $Z --layout "$S" attach --create-background "$S" options --web-sharing on --web-server true || exit 1
+  timeout 60 $Z --layout "$S" attach --create-background "$S" options --web-sharing on || exit 1
 else
-  $Z --layout "$S" attach --create-background "$S" || exit 1
+  timeout 60 $Z --layout "$S" attach --create-background "$S" || exit 1
 fi
 # what the panes start with: phosphor update compares against it
 %(python)s %(repo)s/lib/hotswap.py --record "$S" >/dev/null 2>&1

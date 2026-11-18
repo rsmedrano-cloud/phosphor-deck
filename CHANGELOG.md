@@ -6,6 +6,16 @@ before it updates.
 
 ## Unreleased
 
+## 2.7.4 — The deck comes back up with browser access on
+
+- **The deck comes back up with browser access on.** Its start asked
+  zellij for a second web server on the port the first one holds; zellij
+  0.45 crashed on that and the start hung for good, so the watchdog never
+  tried again and the deck stayed down. The session now only shares (the
+  web server is the one already running), and a start that hangs anyway
+  ends after a minute so the next one goes ahead. It comes in with
+  `phosphor gen`.
+
 ## 2.7.3 — Ask about the pane you're in
 
 - **Alt-q asks about the pane you're in.** A box opens over the pane,

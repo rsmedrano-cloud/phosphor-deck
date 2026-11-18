@@ -80,6 +80,16 @@ try:
 finally:
     web.subprocess.run = real_run
 
+# deck-up: the web server is the daemon; the session only shares. A client
+# told to start its own (--web-server true) hit the daemon's port, dropped
+# out mid-start, zellij 0.45 panicked and the start hung for good.
+import gen
+check("deck-up never asks the client for a web server of its own", "--web-server" not in gen.DECK_UP)
+check("deck-up still makes the session shareable", "--web-sharing on" in gen.DECK_UP)
+check("deck-up's attach can't hang forever",
+      all(l.strip().startswith("timeout ") for l in gen.DECK_UP.splitlines() if "--create-background" in l and "$Z" in l))
+check("deck.service gives up on a hung start", "TimeoutStartSec=" in gen.DECK_UNIT)
+
 if fails:
     print("web-check FAILED:\n  " + "\n  ".join(fails)); sys.exit(1)
 print("web-check ok")
