@@ -15,7 +15,8 @@ same signal as something typed:
     terminal   typed in a shell, or a key that opens it in a pane
     pane       a tab's pane, started by phosphor run
     script     no terminal: a timer, a hook, another program
-Hidden commands (phosphor run, mention-hook) are plumbing, not counted.
+Hidden commands (phosphor run, mention-hook) are plumbing, not counted, and
+neither is an attach refused for having no terminal (deck.log has those).
 The panel reads terminal first: a card refreshing every few seconds runs
 thousands of times, and that says nothing about what people use.
 """
@@ -69,6 +70,13 @@ def way():
     return "script"
 
 
+def _tty(f):
+    try:
+        return f.isatty()
+    except (ValueError, AttributeError):
+        return False
+
+
 def count(cmd):
     """One more run of cmd, if it's a command of the manifest's and not a
     hidden one. Never fails the command it counts: a full disk or a
@@ -77,6 +85,11 @@ def count(cmd):
     if not e or e.get("hidden"):
         return
     name = cli.resolve(cmd)
+    # attach with no terminal is refused before it reaches the session
+    # (lib/session.py): a lost screen's loop, not a use. Its trace is a
+    # line in deck.log instead, with the time, which a count can't give (#96).
+    if name == "attach" and not _tty(sys.stdin):
+        return
     try:
         import fcntl
         os.makedirs(dlog.DIR, exist_ok=True)

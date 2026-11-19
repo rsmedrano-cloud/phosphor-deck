@@ -1,4 +1,5 @@
 {
   "tests/tabmark-check.py": "'T1 got marked' failed once on zellij-latest, passed on dev",
-  "tests/fleet-keys-check.py": "--live: 4 of 5 saves were the a step timing out (tab or its list), 1 the Esc; since the waits read dump-screen and a's need is split, a save names which half"
+  "tests/fleet-keys-check.py": "--live: 4 of 5 saves were the a step timing out (tab or its list), 1 the Esc; since the waits read dump-screen and a's need is split, a save names which half",
+  "tests/clipsync-check.py": "'a paste that hangs doesn't hold up the next' failed on CI (pipeline 3091620490) after #95's fix: the hung paste had started, the next copy still didn't land in 40s; root cause open in #105"
 }

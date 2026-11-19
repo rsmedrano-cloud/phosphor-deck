@@ -6,6 +6,12 @@ before it updates.
 
 ## Unreleased
 
+## 2.7.10 — Refused attaches leave a trace, not a count
+
+### Changed (#96)
+
+- **An attach with no terminal isn't counted in `phosphor stats`.** A lost screen retrying every few seconds made the counts look like daily use. Each refused try now writes one line to the deck log instead: `phosphor logs attach` shows the tries with their times.
+
 ## 2.7.9 — A key always skips the warm-up
 
 ### Fixed (#95)

@@ -40,7 +40,8 @@
   whose Termux window is gone was the usual one (exit Termux from its
   notification and open it again). A `deck` from this version on stops by
   itself when its terminal is gone; run the kit again on a phone set up
-  before.
+  before. `phosphor logs attach` shows each refused try with its time: a line
+  every few seconds there means a loop that outlived its screen.
 - **The deck is gone**: the watchdog brings it back within a minute; `phosphor
   up` if you ran `phosphor down`.
 - **"the old deck isn't fully down"**: a restart (or an update's restart)

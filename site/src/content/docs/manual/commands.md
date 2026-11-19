@@ -69,7 +69,8 @@ sidebar:
 - `phosphor attach [--screen KIND]` (alias `phosphor deck`, or just `deck`) — get in from the brain.
   `--screen KIND` goes into that kind's own deck when the profile has a `[screens.KIND]` block
   (made the first time one comes in), else into the deck. With no terminal (`ssh brain deck`
-  without `-t`) it says so and exits 0 without touching the session. When the deck still isn't
+  without `-t`) it says so, writes one line to the deck log (`phosphor logs attach`), and exits 0
+  without touching the session. When the deck still isn't
   up after its wait, a recovery screen says why and offers the fixes on keys and taps
   (troubleshooting, "the deck isn't up"); its keys restart `deck.service` and close processes
   on one press.
@@ -471,7 +472,8 @@ sidebar:
   split by how it started (`terminal`: typed, or a key that opens it; `pane`: a tab's pane;
   `script`: no terminal, like a timer or a hook) and the day it last ran. Typed most first,
   then, apart, what only panes and scripts run (a card refreshing all day runs thousands of
-  times and says nothing about use), then the commands never run since counting began. Every `phosphor CMD` adds one in
+  times and says nothing about use), then the commands never run since counting began. An attach
+  with no terminal isn't counted: it never reached the deck (its tries are in the deck log). Every `phosphor CMD` adds one in
   `~/.cache/phosphor/stats.json`: the name only, never its arguments, and it never leaves this
   machine. It's what decides the next removals (see api). `--clear` starts over from today.
 

@@ -221,6 +221,21 @@ def updown(cmd):
         print("  " + DIM_ + "get in: " + RST_ + ((prof or {}).get("deck") or {}).get("command", "deck"))
     return 1 if bad else 0
 
+def _refused():
+    """One line in deck.log per attach refused for no terminal: when, and
+    from what (ssh or this machine, the parent's program name), never an
+    address or a host -- deck.log stays safe to paste into an issue. A loop
+    that outlived its screen shows up there as a line every few seconds
+    (`phosphor logs attach`); stats doesn't count these (#96)."""
+    import dlog
+    try:
+        parent = open("/proc/%d/comm" % os.getppid()).read().strip()
+    except OSError:
+        parent = "?"
+    dlog.event("ATTACH", "no-tty", "via=%s parent=%s" % (
+        "ssh" if os.environ.get("SSH_CONNECTION") else "local", parent))
+
+
 def attach(argv):
     if os.environ.get("ZELLIJ"):
         print("  you're already inside a zellij session (the deck?): no need to attach")
@@ -231,6 +246,7 @@ def attach(argv):
     # Exit 0, so an older screen's loop (`ssh ... && break`) stops for good.
     if not sys.stdin.isatty():
         print("  no terminal here: the deck needs one (ssh -t)")
+        _refused()
         return 0
     import kinds
     prof, _ = load_profile()

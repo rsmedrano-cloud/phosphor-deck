@@ -2,7 +2,8 @@
 """phosphor stats: every phosphor CMD counts one run of CMD (name only,
 never its arguments), split by how it started, typed most first; --help, unknown commands
 and hidden plumbing count nothing; a broken stats.json never breaks a
-command; parallel runs don't lose counts.
+command; parallel runs don't lose counts; an attach refused for no
+terminal isn't a run (deck.log has it).
 
     python3 tests/stats-check.py
 
@@ -18,7 +19,8 @@ def need(what, ok):
 cache = tempfile.mkdtemp()
 home = tempfile.mkdtemp()
 env = dict(os.environ, PHOSPHOR_CACHE=cache, HOME=home)
-env.pop("PHOSPHOR_RUN", None)
+for k in ("PHOSPHOR_RUN", "ZELLIJ", "ZELLIJ_SESSION_NAME", "ZELLIJ_PANE_ID"):
+    env.pop(k, None)
 FILE = os.path.join(cache, "stats.json")
 
 def run(*a, **kw):
@@ -86,6 +88,16 @@ out = run("stats").stdout
 need("the panel puts what only panes and scripts run apart, after: %r" % out[:400],
      out.index("doctor") < out.index("fleet") < out.index("run only by panes") < out.index("workspace"))
 need("the terminal column comes first", out.index("terminal") < out.index("pane ") < out.index("runs"))
+
+# attach with no terminal is refused, not a use: no count, a line in deck.log
+# instead (when, and from what; never an address) -- #96
+before = (counts().get("attach") or {}).get("script", 0)
+r = run("attach", env=dict(env, SSH_CONNECTION="203.0.113.7 5022 203.0.113.1 22"))
+need("attach with no terminal still says why: %r" % r.stdout, "no terminal" in r.stdout and r.returncode == 0)
+need("and isn't counted: %r" % counts().get("attach"), (counts().get("attach") or {}).get("script", 0) == before)
+log = open(os.path.join(cache, "deck.log")).read() if os.path.exists(os.path.join(cache, "deck.log")) else ""
+need("its deck.log line says ssh, not the address: %r" % log[-200:],
+     "ATTACH" in log and "no-tty" in log and "via=ssh" in log and "203.0.113" not in log)
 
 # a broken file: the command still runs, counting starts again
 open(FILE, "w").write("{not json")

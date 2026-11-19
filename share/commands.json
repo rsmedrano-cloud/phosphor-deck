@@ -645,7 +645,7 @@
     "options": ["--json", "--clear"],
     "mutates": false,
     "needs_deck": false,
-    "note": "read-only; --clear deletes the counts (~/.cache/phosphor/stats.json) and starts again from today.",
+    "note": "read-only; --clear deletes the counts (~/.cache/phosphor/stats.json) and starts again from today. Not counted: hidden commands, and an attach refused for having no terminal (its tries are in deck.log).",
     "no_door": "numbers for deciding what to remove: its card is enough",
     "card": {"kind": "sensor", "state": "commands"}},
   "demo": {"category": "Before you push a fork",
