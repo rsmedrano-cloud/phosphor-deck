@@ -796,7 +796,7 @@ def main():
     argv = sys.argv[1:]
     if not argv and sys.stdin.isatty() and sys.stdout.isatty():
         return interactive()
-    if not argv or argv[0] in ("-h", "--help", "help"):
+    if not argv or argv[0] == "help" or "-h" in argv or "--help" in argv:
         print("usage: phosphor tts [\"message to speak\"]")
         print("       phosphor tts --voice VOICE \"message\"")
         print("       phosphor tts --list")

@@ -179,8 +179,33 @@ try:
     sys.argv = ["phosphor-tts", "--voice", "synth", "test"]
     rc = tts.main()
     check("speak returns 0", rc == 0)
+
+    # --help after a subcommand answers with the usage and runs nothing (#92)
+    import contextlib, io
+    ran = []
+    real = (tts.install_glados, tts.install_piper, tts.install_models, tts.status)
+    tts.install_glados = tts.install_piper = lambda *a, **k: ran.append("install") or 0
+    tts.install_models = lambda *a, **k: ran.append("install") or 0
+    tts.status = lambda: ran.append("status") or 0
+    try:
+        for args in (["install", "--help"], ["install", "piper", "-h"], ["status", "--help"]):
+            sys.argv = ["phosphor-tts"] + args
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                rc = tts.main()
+            check("%s: the usage, rc 0" % " ".join(args), rc == 0 and "usage:" in out.getvalue())
+        check("--help never installs or prints the status", not ran)
+    finally:
+        tts.install_glados, tts.install_piper, tts.install_models, tts.status = real
 finally:
     sys.argv = saved_argv
+
+# every voice tts knows is offered by --voice's completion, and nothing else
+import json as _json
+cmds = _json.load(open(os.path.join(ROOT, "share", "commands.json")))
+for name in ("tts", "notify"):
+    check("commands.json: %s --voice offers every voice" % name,
+          set(cmds[name]["values"]["--voice"]) == set(tts.VOICES))
 
 if fails:
     print("FAILED:\n  " + "\n  ".join(fails))

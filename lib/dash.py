@@ -247,7 +247,9 @@ def draw_short(names, live, w, rows, msg=None, removing=False):
     cw = (w + 1) // per - 1
     room = max(1, rows - 1 - (1 if msg or removing else 0)) * per
     shown = names if len(names) <= room else names[:room - 1]
-    cells = [(KEYS[i], row(KEYS[i], n, live, cw)) for i, n in enumerate(shown)]
+    # past the last key a card still shows, keyless: a tap on the title zooms
+    cells = [((KEYS[i] if i < len(KEYS) else ""), row(KEYS[i] if i < len(KEYS) else "", n, live, cw))
+             for i, n in enumerate(shown)]
     if len(shown) < len(names):
         cells.append((None, DIM + "  +%d more · a tap shows them all" % (len(names) - len(shown)) + RST))
     lines, hit = heading(names, w)[:1], {}

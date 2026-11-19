@@ -341,6 +341,17 @@ panes = [ { cmd = "phosphor", args = ["dash", "version"] }, { cmd = "sleep", arg
         check("live: q in the card gives the tab back, the boxes again",
               until("q", lambda: full() is False and "╭─ 1 version" in screen()))
 
+# a short, wide pane with more cards than keys (#92): every card shows, the
+# ones past the last key without one, and no tap lands on a keyless card
+many = dash.gallery_names()
+check("the gallery has more cards than keys (else this proves nothing)", len(many) > len(dash.KEYS))
+try:
+    lines, (hit, _) = dash.draw_short(many, card.Live([]), 400, 5)
+    check("draw_short: more cards than keys don't crash", True)
+    check("draw_short: taps only ever land on a key", all(k in dash.KEYS for k in hit.values()))
+except IndexError as e:
+    check("draw_short: more cards than keys don't crash (%s)" % e, False)
+
 live()
 
 if fails:

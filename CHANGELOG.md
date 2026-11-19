@@ -6,6 +6,16 @@ before it updates.
 
 ## Unreleased
 
+## 2.7.7 — Fixes from the 2.7.6 audit
+
+### Fixed (#92)
+
+- **A short, wide dash no longer crashes with more cards than keys.** The cards past the last key show without one.
+- **Ctrl-C or Ctrl-D at "Enter restarts" in `web on` no longer restarts the deck.** It says to run `phosphor restart` when you're ready.
+- **`recipe` works on Python 3.8-3.10 again.** It falls back to tomli there.
+- **`tts` completes `spanish` for `--voice`, also in `notify`.** `tts install --help` and `tts status --help` print their usage instead of failing or printing the status.
+- **The docs match the commands.** The commands manual lists `update --no-restart`, every `tts` voice and install target, and `adjutant --face/--speed/--floating`. The install manual's "Remove it" removes `phosphor-glance.service`. The phones manual's `glance --serve` JSON shows `snoozed`.
+
 ## 2.7.6 — A lighter AGENTS.md, the maintainer's workflow in its own page
 
 - **A lighter AGENTS.md, and the maintainer's workflow in its own page.**

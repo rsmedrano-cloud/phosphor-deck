@@ -77,6 +77,7 @@ sidebar:
   get the panes onto the new code -- a real `phosphor restart` only when the pull touched shared
   code; a pull that only touched one tool's own module refreshes just that tool's panes, live, in
   place (`lib/hotswap.py`; `--full` always restarts, skipping that judgement call).
+  `--no-restart` installs the new code but leaves the deck running as it is; the default restarts it (or hotswaps) without asking.
   A copy remembers FOLDER, so next time plain `phosphor update` goes back there.
   `--channel nightly` follows dev (what's done, not yet released); `--channel stable` goes back to
   releases. `phosphor version` and the DECK tab say which one you're on.
@@ -171,7 +172,7 @@ sidebar:
   profile points it at a folder you already sync (Obsidian, Syncthing, git) -- see profile.
 
 ## In the deck
-- `phosphor fleet`, `phosphor adjutant`, `phosphor prom`, `phosphor ci`, `phosphor services` — the SYS panels; adjutant watches the fleet's health alongside listening for events, prom draws your Prometheus queries, ci draws your GitLab/GitHub pipeline statuses,
+- `phosphor fleet`, `phosphor adjutant`, `phosphor prom`, `phosphor ci`, `phosphor services` — the SYS panels; adjutant watches the fleet's health alongside listening for events (`--face NAME` draws a face of your own, `--speed N` holds each frame of its animation N ticks: default 4, higher is slower; `--floating` runs it in a floating pane, the only form that reads keys: it jumps to a tab and hides itself, while the SYS one only displays), prom draws your Prometheus queries, ci draws your GitLab/GitHub pipeline statuses,
   services lists systemd units and their state (see `[prometheus]`, `[ci]` and `[services]` in profile; `--once` prints one frame;
   `fleet --json` and `services --json` print their readings as JSON, see below).
   services also opens from the `+` menu and with `y` in the DECK tab; on a terminal, pick a unit: `l` its logs,
@@ -270,7 +271,7 @@ sidebar:
   HTTP for a gadget that can't ssh (an ESP32 with e-paper, a Pi Zero with an OLED), on the
   tailnet or, with `--lan`, the LAN, plus a ready-made app for a SolarOS panel: see screens.
 - `phosphor notify [--tab TAB] [--voice VOICE] [--tts|--no-tts] [--push|--no-push] MESSAGE` — the adjutant announces it, speaks it if TTS is enabled, and pushes it to your phone if `[push]` is on -- with what it said attached as audio when it spoke it (`[push] clip`). The tab it names (or SYS with no `--tab`) also reads "`<TAB> ●N`" until you look.
-- `phosphor tts [MESSAGE]` — speak a message aloud with selectable voices (glados, adjutant, hal, synth, system); `phosphor tts install glados` assists with installing GLaDOS-TTS. `on`/`off` switch `[tts]`; with nothing, on a terminal, its status with on/off one key away.
+- `phosphor tts [MESSAGE]` — speak a message aloud with selectable voices (glados, adjutant, hal, spanish, synth, system); `phosphor tts install [glados|piper|models|all]` assists with installing them: glados is the GLaDOS engine, piper the Piper engine, models the extra Piper voices (adjutant, HAL, Spanish), all everything; a bare `install` is glados. `on`/`off` switch `[tts]`; with nothing, on a terminal, its status with on/off one key away.
 - `phosphor push [--qr | on | off | status [--json]]` — `[push]`'s status (on/off, server, topic, the "open the deck" button); `on`/`off`
   switch it (`on` with no topic makes up a long random one); with nothing, on a terminal, the same status with
   on/off and the QR one key away. `--qr` prints the subscribe

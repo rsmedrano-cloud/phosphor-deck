@@ -58,6 +58,14 @@ try:
         with_tty(True, lambda *_: "", lambda: web.on(yes=False))
         check("tty + Enter: restarts", restarted())
 
+        # a tty, Ctrl-C or Ctrl-D at "Enter restarts": not now, no restart (#92)
+        for name, exc in (("Ctrl-C", KeyboardInterrupt), ("Ctrl-D", EOFError)):
+            def interrupted(*_, exc=exc):
+                raise exc()
+            calls.clear()
+            with_tty(True, interrupted, lambda: web.on(yes=False))
+            check("tty + %s: doesn't restart" % name, not restarted())
+
         # no tty, no --yes: does NOT restart on its own
         calls.clear()
         with_tty(False, not_reached, lambda: web.on(yes=False))

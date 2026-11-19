@@ -224,7 +224,8 @@ header -- and gets one JSON object back:
 
     {"status": "amber", "t": 1791287707,
      "fleet": {"ok": 3, "total": 3, "stale": false,
-               "problems": [{"host": "db-box", "detail": "reboot pending", "down": false}]},
+               "problems": [{"host": "db-box", "detail": "reboot pending", "down": false}],
+               "snoozed": []},
      "worst": {"host": "db-box", "detail": "reboot pending"},
      "mentions": 0, "todos": 2, "workspaces": 1}
 

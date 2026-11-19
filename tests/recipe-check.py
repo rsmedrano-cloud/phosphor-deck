@@ -22,7 +22,16 @@ recipes = recipe.available()
 check("every bundled recipe file is found", set(recipes) == {"homelab", "dev", "bubble", "workbench"})
 check("each has a one-line blurb", all(blurb for _, blurb in recipes.values()))
 
-import tomllib
+# Python 3.8-3.10 have no tomllib: deckconf falls back to tomli, and a bare
+# `import tomllib` anywhere in lib/ breaks them (#92)
+import re
+for f in sorted(os.listdir(os.path.join(ROOT, "lib"))):
+    if f.endswith(".py") and f != "deckconf.py":
+        src = open(os.path.join(ROOT, "lib", f)).read()
+        check("lib/%s takes tomllib from deckconf, not bare" % f,
+              not re.search(r"^\s*(import\s+[\w, ]*\btomllib\b|from\s+tomllib\s)", src, re.M))
+
+tomllib = deckconf.tomllib
 for name, (path, _) in recipes.items():
     with open(path, "rb") as f:
         data = tomllib.load(f)

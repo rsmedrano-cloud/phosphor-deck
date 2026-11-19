@@ -212,10 +212,11 @@ the same line again.
 ## Remove it
 
     phosphor down
-    systemctl --user disable deck.timer deck.service
+    systemctl --user disable deck.timer deck.service phosphor-glance.service
     rm -rf ~/.phosphor ~/phosphor-deck ~/.config/phosphor ~/.local/share/phosphor ~/.cache/phosphor ~/fleet
     rm -f ~/.config/systemd/user/deck.* ~/.config/systemd/user/fleet-*.service \
-          ~/.config/systemd/user/tunnel-*.service ~/.local/bin/phosphor ~/.local/bin/deck
+          ~/.config/systemd/user/tunnel-*.service ~/.config/systemd/user/phosphor-glance.service \
+          ~/.local/bin/phosphor ~/.local/bin/deck
 
 `~/.config/zellij` and the binaries in `~/.local/bin` only if you didn't have
 them before.

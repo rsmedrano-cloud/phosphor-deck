@@ -151,7 +151,11 @@ def on(restart=True, yes=False):
         print("  " + DIM + "The deck restarts so its session can be shared in the browser." + RST)
         if sys.stdin.isatty():
             try: input("  " + FG + "Copy the token first (it's on your clipboard too): Enter restarts " + RST)
-            except (EOFError, KeyboardInterrupt): print()
+            except (EOFError, KeyboardInterrupt):
+                print()
+                print("  " + DIM + "Not restarting: " + RST + PH + "phosphor restart" + RST +
+                      DIM + " when you're ready." + RST)
+                return 0
         elif not yes:
             print("  " + WARN + " no tty: not restarting on its own -- " + RST +
                   PH + "phosphor restart" + RST + DIM + " when you're ready (or pass --yes)." + RST)

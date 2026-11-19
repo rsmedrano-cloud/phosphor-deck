@@ -15,7 +15,7 @@ programs aren't installed: what `phosphor store` carries it offers to
 install (no sudo, into ~/.local/bin); the rest it names with the line its
 [recipe.install] table gives. Taking a recipe out never uninstalls anything.
 """
-import os, shutil, subprocess, sys, tomllib
+import os, shutil, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
 import deckconf
@@ -43,7 +43,7 @@ def available():
 def tab_names(path):
     try:
         with open(path, "rb") as f:
-            return [t["name"] for t in tomllib.load(f).get("tabs", []) if t.get("name")]
+            return [t["name"] for t in deckconf.tomllib.load(f).get("tabs", []) if t.get("name")]
     except Exception:
         return []
 
@@ -70,7 +70,7 @@ def needs(path):
     line, or "" when the recipe doesn't say."""
     try:
         with open(path, "rb") as f:
-            data = tomllib.load(f)
+            data = deckconf.tomllib.load(f)
     except Exception:
         return []
     hints = (data.get("recipe") or {}).get("install") or {}
