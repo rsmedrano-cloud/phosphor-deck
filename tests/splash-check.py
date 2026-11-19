@@ -28,7 +28,9 @@ def stub(name, body):
     p = os.path.join(BIN, name)
     open(p, "w").write("#!/bin/sh\n" + body + "\n")
     os.chmod(p, 0o755)
-stub("zellij", 'case "$1" in attach) exec "%s" -c "%s";; esac' % (sys.executable, (
+# the deck is up (list-sessions lists it): with none, attach would stop at
+# the recovery screen (lib/rescue.py) instead of going in
+stub("zellij", 'case "$1" in list-sessions) echo "splash-probe [Created 1s ago]";; attach) exec "%s" -c "%s";; esac' % (sys.executable, (
     "import os, select, sys; print('ZELLIJ-ATTACHED', flush=True); "
     "r = select.select([0], [], [], 0.5)[0]; "
     "print('KEY-REACHED:[%s]' % (os.read(0, 16).decode().strip() if r else ''), flush=True)")))

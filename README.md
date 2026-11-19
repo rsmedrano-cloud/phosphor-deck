@@ -70,7 +70,8 @@ Then the real one, on the machine that will stay on: `phosphor init && phosphor 
 - **One session, many screens.** A persistent zellij session with a
   watchdog, on a machine that stays on; a desktop, a tablet, a phone, an
   e-ink reader are windows into it ([screens](doc/manual/phones.md)).
-  Coming back, one screen says what happened while you were away.
+  Coming back, one screen says what happened while you were away; when
+  the deck won't start, it says why and offers the fix on a key.
   A screen nobody has tried starts with `phosphor screen --probe`.
 - **Tabs, not apps.** Laid out once from your profile; the `+` in the tab
   bar opens a shell here or on any machine, an assistant, files, any

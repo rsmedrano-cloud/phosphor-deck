@@ -82,6 +82,7 @@ check "doors: every public command has a card, a door in the deck" python3 tests
 check "an unknown flag is a usage error; no call of phosphor's own is one" python3 tests/argv-check.py
 check "deprecated: warns on stderr, goes when it said it would" python3 tests/deprecations-check.py
 check "web on: never restarts unattended without --yes" python3 tests/web-check.py
+check "the deck won't start: deck says why and offers the fix" python3 tests/rescue-check.py
 check "new --here: refuses with nobody attached" python3 tests/newtab-attach-check.py
 check "ask key: the pane it covers goes along, q gives it back" python3 tests/ask-key-check.py
 check "new: an assistant asks which folder it starts in" python3 tests/newtab-folder-check.py

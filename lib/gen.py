@@ -260,6 +260,9 @@ DECK_UP = """#!/bin/sh
 # it's idempotent: a live session is left alone.
 Z=%(zellij)s
 S=%(session)s
+# PHOSPHOR_WEB=0 in the user manager's environment: this one start without
+# browser access (the recovery screen's w, lib/rescue.py)
+W=${PHOSPHOR_WEB:-%(web)s}
 s=$($Z list-sessions -n 2>/dev/null | grep "^$S " || true)
 case "$s" in
   # a dead session stays in the resurrection cache and --create-background
@@ -269,7 +272,7 @@ esac
 # Browser access (web = true): the session is created shareable, and the
 # web server (127.0.0.1 only; tailscale serve publishes it) kept running.
 # `zellij web --status` exits 0 either way: read what it says.
-if [ "%(web)s" = "1" ] && ! $Z web --status 2>/dev/null | grep -q online; then
+if [ "$W" = "1" ] && ! $Z web --status 2>/dev/null | grep -q online; then
   $Z web --start --daemonize >/dev/null 2>&1
 fi
 [ -n "$s" ] && exit 0
@@ -278,7 +281,7 @@ fi
 # and drop out mid-start; zellij 0.45 panics on that and the attach waits
 # forever. timeout: whatever goes wrong, this run ends and the next tick of
 # deck.timer tries again (a hung start blocks every tick after it).
-if [ "%(web)s" = "1" ]; then
+if [ "$W" = "1" ]; then
   timeout 60 $Z --layout "$S" attach --create-background "$S" options --web-sharing on || exit 1
 else
   timeout 60 $Z --layout "$S" attach --create-background "$S" || exit 1

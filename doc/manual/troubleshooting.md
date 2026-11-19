@@ -23,6 +23,18 @@
   and the next time in shows nothing (and starts counting again).
 - **"the deck is starting..."**: `deck` found the session not up yet (right
   after boot or `phosphor up`) and waits for it, up to a minute and a half.
+- **"the deck isn't up"** (the recovery screen): `deck` waited and the
+  session still isn't there. It says why: what `deck.service` is doing and
+  for how long, how its last start ended, zellij's last crash, and what is
+  holding the start up (a start that never finished, a screen's reconnect
+  loop, another `deck` waiting, the browser-access server), each with since
+  when. A key or a tap each: `r` retries the start (closes the one that hung,
+  starts `deck.service` again, and its watchdog if it was off), `w` starts it
+  once without browser access, `k` closes everything it listed and retries,
+  `1`-`9` closes just that one, `l` shows the log, `d` runs doctor, `s` opens
+  a shell on the brain, `q` leaves. It goes in by itself as soon as the deck
+  is up. `phosphor doctor` says the same two things: a start hung for
+  minutes, and a crash of zellij's server since the deck last started.
 - **Every screen flickers every few seconds**: something keeps trying to get
   in. `who` on the brain lists the screens; a `deck` left running on a phone
   whose Termux window is gone was the usual one (exit Termux from its

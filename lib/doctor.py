@@ -1,6 +1,6 @@
 """phosphor doctor - preflight. Every check here exists because something
 broke before."""
-import os, shutil, sys
+import os, shutil, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
 import proc
@@ -61,6 +61,28 @@ def zellij_versions():
         tested = None
     return (m.group(1) if m else None), tested
 
+def deck_start(sess, st=None, log=None, now=None):
+    """[(sym, label, value, fix)] for how the deck's last start went: a
+    start hung for minutes (the 4h lockout of 2.7.4 looked like that) and
+    a zellij panic since it began. Only what's wrong; nothing when it went
+    fine. st, log: lib/rescue.py's state() and log text, for tests."""
+    import rescue
+    st = rescue.state(sess) if st is None else st
+    if not st: return []
+    out, now = [], now or time.time()
+    if st["state"] == "activating" and st["since"] and now - st["since"] > rescue.STUCK:
+        out.append((BAD, "%s.service" % sess, "starting for %s" % rescue.ago(st["since"], now),
+                    "the deck's start is hung: `deck` offers r (retry) on its recovery screen"))
+    elif st["state"] == "failed":
+        out.append((WARN, "%s.service" % sess, rescue.describe(st, now)[1],
+                    "the deck's last start failed: journalctl --user -u %s.service" % sess))
+    pan = rescue.panics(rescue.log_tail() if log is None else log, st.get("started"))
+    if pan:
+        t, msg = pan[-1]
+        out.append((WARN, "zellij panic", "%d since the deck's last start, the last at %s: %s"
+                    % (len(pan), rescue.clock(t), cut(msg, 60)), "zellij panicked: " + rescue.LOG))
+    return out
+
 def run(profile=None):
     w = width()
     issues, blockers = [], []
@@ -111,6 +133,10 @@ def run(profile=None):
     print(row(OK if ok_l else WARN, "linger", ling or "?",
               note="" if ok_l else "without it the deck dies when you log out"))
     if not ok_l: issues.append("sudo loginctl enable-linger $(id -un)")
+    if has_user:
+        for st, label, val, fix in deck_start((profile or {}).get("deck", {}).get("session", "deck")):
+            print(row(st, label, val))
+            if fix: (blockers if st == BAD else issues).append(fix)
 
     print("\n" + rule("FUSE (fleet mounts)", w))
     devf = os.path.exists("/dev/fuse")

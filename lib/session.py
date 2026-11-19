@@ -279,6 +279,15 @@ def attach(argv):
             ["systemctl", "--user", "is-active", "-q", "%s.service" % sess, "%s.timer" % sess], timeout=30).returncode == 0:
         print("  the deck is starting...")
         poll_until(lambda: session_live(zj, sess), 90)
+    # Still not up: say why and offer the fixes (lib/rescue.py), instead
+    # of zellij's "No session found" and an ssh from somewhere else.
+    def rescued():
+        if session_live(zj, sess):
+            return True
+        import rescue
+        return rescue.screen(zj, sess, prof, lambda: session_live(zj, sess))
+    if not rescued():
+        return 1
     def screen_up():
         """A kind's session comes with the deck: made the first time
         that screen comes in (and again after a restart took it down),
@@ -307,6 +316,5 @@ def attach(argv):
             return rc
         # kicked out by `phosphor restart`: wait for the new deck, go back in
         print("\n  the deck is restarting: you'll be back in by yourself...")
-        if not poll_until(lambda: session_live(zj, sess) and not restarting(), 180):
-            print("  it isn't back yet: try deck again in a minute")
+        if not poll_until(lambda: session_live(zj, sess) and not restarting(), 180) and not rescued():
             return 1

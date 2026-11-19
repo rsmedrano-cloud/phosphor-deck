@@ -232,6 +232,13 @@ for an e-ink reader or a Pi on a shelf. `phosphor setup` asks, when you
 connect one, whether it shares this deck or gets its own -- and says first
 that its own deck runs its panes a second time, assistants included.
 
+**When it won't start.** If the deck isn't up after `deck` has waited for
+it, a recovery screen says why (what its service is doing and for how long,
+zellij's last crash, what's holding the start up) and offers the fixes on a
+key or a tap each: retry, start without browser access, close what holds it
+up, the log, doctor, a shell. Nothing needs an ssh from somewhere else
+(troubleshooting, "the deck isn't up").
+
 **tailscale, headscale, or neither.** Headscale is a self-hosted control
 server for the same tailscale client, so the deck works the same with both;
 `init` detects which one you use (`mesh` in the profile) and `phosphor phone`

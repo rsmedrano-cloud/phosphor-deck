@@ -6,6 +6,19 @@ before it updates.
 
 ## Unreleased
 
+## 2.7.5 — When the deck won't start, deck says why and offers the fix
+
+- **When the deck won't start, `deck` says why and offers the fix.**
+  Instead of zellij's "No session found" (or waiting for ever), a recovery
+  screen shows what the deck's service is doing and for how long, zellij's
+  last crash, and what is holding the start up, each with since when. One
+  key or tap each: retry the start, start it once without browser access,
+  close what holds it up (all, or one), the log, doctor, a shell on the
+  brain. It goes in by itself once the deck is up: locked out on a phone,
+  nothing needs an ssh from somewhere else. `phosphor doctor` now also flags
+  a start hung for minutes and a zellij crash since the deck last started.
+  Starting without browser access comes in with `phosphor gen`.
+
 ## 2.7.4 — The deck comes back up with browser access on
 
 - **The deck comes back up with browser access on.** Its start asked
