@@ -6,6 +6,16 @@ before it updates.
 
 ## Unreleased
 
+## 2.7.6 — A lighter AGENTS.md, the maintainer's workflow in its own page
+
+- **A lighter AGENTS.md, and the maintainer's workflow in its own page.**
+  AGENTS.md now holds only how an assistant uses the deck (rules, concepts,
+  the manual's index), about half its old size. How to work on Phosphor
+  itself moved to doc/maintaining.md: a session protocol, GitLab issues as
+  the work queue (priority labels `p1`-`p3`, `decision`, `needs-verify`),
+  which model does what, and the hard-won rules that used to live only in
+  one assistant's memory. Releases and the GitHub mirror: doc/releasing.md.
+
 ## 2.7.5 — When the deck won't start, deck says why and offers the fix
 
 - **When the deck won't start, `deck` says why and offers the fix.**
