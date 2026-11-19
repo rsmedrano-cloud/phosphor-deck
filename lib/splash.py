@@ -97,7 +97,9 @@ def show(prof):
     try:
         for text, hold in frames(cols, rows, prof):
             w(text); sys.stdout.flush()
-            if ui.getkey(timeout=hold) is not None:
+            # typeahead: a key pressed while a frame went out counts too
+            # (a flush before each frame dropped it, and the splash ran on)
+            if ui.getkey(timeout=hold, typeahead=True) is not None:
                 break                               # any key: straight in
     except (KeyboardInterrupt, OSError):
         pass

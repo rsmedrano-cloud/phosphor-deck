@@ -30,9 +30,13 @@ failed_clone() {
     case "$out" in *"couldn't clone"*rc=1) ;; *) printf '%s\n' "$out"; return 1 ;; esac
 }
 qr() { out=$(python3 tests/qr-check.py 2>&1) || { printf '%s\n' "$out" | tail -3; return 1; }; }
+# under CI, a missing git is the image's fault, not a reason to skip the git halves (#94)
+ci_has_git() { [ -z "$CI" ] || command -v git >/dev/null || { echo "CI is set and there's no git: the git halves would skip"; return 1; }; }
 release_notes() { v=$(cat VERSION); grep -q "^## $v" CHANGELOG.md || { echo "CHANGELOG.md has no '## $v' entry"; return 1; }; }
 
 steps() {
+check "CI: git there, so nothing git skips"  ci_has_git
+check "what check.sh skips, CI runs"       python3 tests/ci-coverage-check.py
 check "python compiles"                    python3 -m py_compile phosphor lib/*.py tests/*.py
 check "no function shadows the module's"   python3 tests/shadow-check.py
 check "every name used is defined"         python3 tests/names-check.py

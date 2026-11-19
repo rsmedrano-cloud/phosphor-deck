@@ -1,7 +1,4 @@
 {
   "tests/tabmark-check.py": "'T1 got marked' failed once on zellij-latest, passed on dev",
-  "tests/fleet-keys-check.py": "--live: 4 of 5 saves were the a step timing out (tab or its list), 1 the Esc; since the waits read dump-screen and a's need is split, a save names which half",
-  "tests/splash-check.py": "timing under a full check.sh",
-  "tests/adjutant-width-check.py": "12 cols with a message: a frame drawn before the pty's resize lands, under a full check.sh; passes alone",
-  "tests/clipsync-check.py": "'a paste that hangs doesn't hold up the next' timed out at 40s on CI's check job (2026-11-19, 511d512, a change that doesn't touch clipsync); passed locally"
+  "tests/fleet-keys-check.py": "--live: 4 of 5 saves were the a step timing out (tab or its list), 1 the Esc; since the waits read dump-screen and a's need is split, a save names which half"
 }

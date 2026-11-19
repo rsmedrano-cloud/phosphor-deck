@@ -172,7 +172,7 @@ try:
     for n, tools in (("noapp", {"termux-clipboard-get": "sleep 600", "termux-clipboard-set": "sleep 600"}),
                      ("nopkg", {}),
                      ("ok", {"termux-clipboard-get": "exit 0",
-                             "termux-clipboard-set": '[ -e "$CLIPDIR/hang" ] && { rm "$CLIPDIR/hang"; sleep 600; }\n'
+                             "termux-clipboard-set": '[ -e "$CLIPDIR/hang" ] && { rm "$CLIPDIR/hang"; : > "$CLIPDIR/hung"; sleep 600; }\n'
                                                      'cat > "$CLIPDIR/new" && mv "$CLIPDIR/new" "$CLIPDIR/clip"'})):
         d = os.path.join(tmp, "phone-" + n)
         os.makedirs(os.path.join(d, "bin"))
@@ -200,7 +200,11 @@ try:
     need("a phone with Termux:API pastes", until(lambda: pclip("ok") == "to the phones", 6))
     open(os.path.join(phones["ok"], "hang"), "w").close()
     copy("a", "this one hangs")
-    time.sleep(1)
+    # the next copy only once this one's paste is hanging: screen a looks
+    # at its clipboard once a second, so two copies a second apart could
+    # reach the phone as one -- the second, which then hung itself
+    need("the paste that hangs reached the phone",
+         until(lambda: os.path.exists(os.path.join(phones["ok"], "hung")), 15))
     copy("a", "and this one lands")
     need("a paste that hangs doesn't hold up the next", until(lambda: pclip("ok") == "and this one lands", 40))   # its paste times out at 10s; a loaded runner needs the margin
 

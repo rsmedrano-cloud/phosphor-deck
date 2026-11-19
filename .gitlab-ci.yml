@@ -4,7 +4,11 @@
 # anyone's machine. The project is private, so GitLab's shared runners would
 # spend its CI minutes.
 #
-# check: the fast checks. Under a minute (one step per core); no network.
+# check: the fast checks. Under a minute (one step per core); no network
+# past installing git, which the checks' git halves need (version, audit,
+# workspace, digest...): without it they said "skipped" and passed (#94).
+# tests/check.sh fails under CI when git is missing, and
+# tests/ci-coverage-check.py fails when this job stops installing it.
 #
 # install: a clean install in a systemd container, then a first-time user
 # driving it on a real terminal, on the brain's docker.
@@ -13,6 +17,9 @@ check:
   rules:
     - if: $CI_COMMIT_REF_PROTECTED == "true"
   image: python:3.12-slim
+  before_script:
+    - export DEBIAN_FRONTEND=noninteractive
+    - apt-get update -qq && apt-get install -y -qq --no-install-recommends git >/dev/null
   script:
     - sh tests/check.sh
 
@@ -20,8 +27,9 @@ check:
 # share/versions.json, as installs get), with a client attached in a pty:
 # Alt-r edits, saves, puts back and swaps a pane; a tab of cards is built
 # the whole way, from + and from Alt-r. A throwaway session in its
-# own HOME. The ones in tests/flaky.json run through tests/flaky.py: a
-# second run before they fail the job.
+# own HOME. Every test with a zellij half that check.sh skips here
+# (tests/ci-coverage-check.py says which). The ones in tests/flaky.json
+# run through tests/flaky.py: a second run before they fail the job.
 zellij:
   tags: [homelab]
   rules:
@@ -43,6 +51,8 @@ zellij:
     - python3 tests/mirror-check.py
     - python3 tests/newtab-attach-check.py
     - python3 tests/ask-key-check.py
+    - python3 tests/dash-check.py
+    - python3 tests/zoom-check.py
 
 # zellij-latest: the same checks against zellij's newest release. An early
 # warning, never a blocker: when it fails and zellij is pinned, the fix (or a

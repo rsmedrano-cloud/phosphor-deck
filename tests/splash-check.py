@@ -47,36 +47,39 @@ def need(what, ok, out=""):
     if not ok:
         fails.append(what + ("\n" + out[-500:] if out else ""))
 
-def attach(key_after=None, env=None):
-    """Run it; optionally press a key after that many seconds. (output, seconds until zellij)"""
+def attach(key=False, env=None):
+    """Run it; with key, press one as soon as the warm-up's first frame is
+    out. (output, seconds the warm-up held the screen: from entering the
+    alternate screen to leaving it, None if it never did)"""
     pid, fd = pty.fork()
     if pid == 0:
         os.execve(sys.executable, [sys.executable, PHOSPHOR, "attach"], dict(ENV, **(env or {})))
-    out, t0, sent, at = b"", time.time(), False, None
-    while time.time() - t0 < 10:
-        if key_after is not None and not sent and time.time() - t0 >= key_after:
-            os.write(fd, b"x\r"); sent = True
+    out, t0, sent, start, span = b"", time.time(), False, None, None
+    while time.time() - t0 < 20:
         r, _, _ = select.select([fd], [], [], 0.02)
         if r:
             try: data = os.read(fd, 4096)
             except OSError: break
             if not data: break
             out += data
-            if at is None and b"ZELLIJ-ATTACHED" in out:
-                at = time.time() - t0
+            if start is None and b"\x1b[?1049h" in out:
+                start = time.time()
+            if start is not None and span is None and b"\x1b[?1049l" in out:
+                span = time.time() - start
+            if key and not sent and start is not None and span is None and "·".encode() in out:
+                os.write(fd, b"x\r"); sent = True
         elif b"KEY-REACHED" in out:
             break
-    took = at if at is not None else time.time() - t0
     try: os.close(fd)
     except OSError: pass
     os.waitpid(pid, 0)
-    return out.decode("utf-8", "replace"), took
+    return out.decode("utf-8", "replace"), span
 
 def shown(out): return "█▀█" in out
 
 profile()
-out, _ = attach()
-need("a returning screen gets the warm-up", shown(out), out)
+out, full = attach()
+need("a returning screen gets the warm-up", shown(out) and full is not None, out)
 need("the warm-up says which deck and version",
      "splash-probe · v" in out and "2 machines" in out, out)
 need("then it attaches", "ZELLIJ-ATTACHED" in out, out)
@@ -90,8 +93,12 @@ out, _ = attach(env={"SSH_CONNECTION": "192.0.2.7 50000 192.0.2.1 22"})
 need("another screen still gets it", shown(out), out)
 
 subprocess.run(["rm", "-rf", os.path.join(CACHE, "splash")])
-out, took = attach(key_after=0.15)
-need("any key skips it, straight in", "ZELLIJ-ATTACHED" in out and took < 0.6, "took %.2fs\n%s" % (took, out))
+out, cut = attach(key=True)
+# relative to the run with no key, not a wall clock: a loaded check.sh
+# stretches python's start, never the key's effect
+need("any key skips it, straight in",
+     "ZELLIJ-ATTACHED" in out and cut is not None and cut < full / 2,
+     "held %s s with a key, %.2fs without\n%s" % (cut and "%.2f" % cut, full, out))
 need("and that key never reaches the deck", "KEY-REACHED:[]" in out, out)
 
 for extra, why in (('theme = "paper"', "paper (e-ink) stays plain"),

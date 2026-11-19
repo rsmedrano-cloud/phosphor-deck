@@ -13,13 +13,20 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
 fails = []
 
-def frames(cols, rows, args, cache):
-    """What the adjutant draws in a cols x rows pty for about a second."""
+def spawn(cols, rows, args, cache):
+    """The adjutant in a cols x rows pty. The size is set in the child,
+    before exec: set from here after fork, it raced the first frame (one
+    drawn at the pty's default 80 columns under a loaded check.sh)."""
     pid, fd = pty.fork()
     if pid == 0:
+        fcntl.ioctl(0, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
         os.environ.update(PHOSPHOR_CACHE=cache, PHOSPHOR_DATA=cache, COLUMNS="", LINES="")
         os.execv(sys.executable, [sys.executable, os.path.join(ROOT, "phosphor"), "adjutant"] + args)
-    fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
+    return pid, fd
+
+def frames(cols, rows, args, cache):
+    """What the adjutant draws in a cols x rows pty for about a second."""
+    pid, fd = spawn(cols, rows, args, cache)
     buf, end = b"", time.time() + 1.2
     while time.time() < end:
         if select.select([fd], [], [], 0.1)[0]:
@@ -48,16 +55,18 @@ for face in ([], ["--face", "no-such-face"]):          # the bitmap one, then ch
 cache = tempfile.mkdtemp()
 with open(os.path.join(cache, "events"), "w") as f:
     pass
-pid, fd = pty.fork()
-if pid == 0:
-    os.environ.update(PHOSPHOR_CACHE=cache, PHOSPHOR_DATA=cache)
-    os.execv(sys.executable, [sys.executable, os.path.join(ROOT, "phosphor"), "adjutant"])
-fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", 14, 12, 0, 0))
-time.sleep(0.4)
+pid, fd = spawn(12, 14, [], cache)
+# it reads events from where the file ends when it starts: append only once
+# its first frame is out (a fixed 0.4s lost the message on a loaded runner)
+buf, end = b"", time.time() + 15
+while time.time() < end and b"\x1b[H" not in buf:
+    if select.select([fd], [], [], 0.1)[0]:
+        try: buf += os.read(fd, 65536)
+        except OSError: break
 with open(os.path.join(cache, "events"), "a") as f:
     f.write("SYS\t%s\n" % ("a long message " * 6))
 # the static fades in under two seconds; a busy runner gets a deadline, not a fixed wait
-buf, end = b"", time.time() + 6
+end = time.time() + 6
 while time.time() < end and b"a long" not in buf:
     if select.select([fd], [], [], 0.1)[0]:
         try: buf += os.read(fd, 65536)

@@ -9,6 +9,13 @@ comment, a size) stay quiet.
 
     python3 tests/shapes-check.py            # check
     python3 tests/shapes-check.py --update   # after adding the offer or step
+    python3 tests/shapes-check.py --update --no-offer   # a change no profile needs
+
+The offers and the profile version are part of the snapshot too: an offer
+that goes away (profiles that took or declined it lose track) or a version
+that goes back fails, and --update refuses a changed shape when
+lib/migrate.py has neither a new offer nor a new step, unless --no-offer
+says it on purpose (an element removed, a fix existing profiles don't need).
 """
 import json, os, sys
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -39,11 +46,28 @@ def structure(shape):
 
 now = {"shapes": {s: structure(s) for s in init.SHAPES}, "offers": [i for i, _, _ in migrate.OFFERS],
        "version": migrate.CURRENT}
+was = json.load(open(SNAP))
+shapes_changed = now["shapes"] != was["shapes"]
+gone = [o for o in was["offers"] if o not in now["offers"]]
+added = [o for o in now["offers"] if o not in was["offers"]]
+offer_fails = ["offer %s is gone from lib/migrate.py: profiles that took or declined it lose track" % o
+               for o in gone]
+if now["version"] < was["version"]:
+    offer_fails.append("the profile version went back: %s -> %s" % (was["version"], now["version"]))
 if "--update" in sys.argv:
+    if offer_fails:
+        print("shapes-check: not updated\n  " + "\n  ".join(offer_fails)); sys.exit(1)
+    if shapes_changed and not added and now["version"] == was["version"] and "--no-offer" not in sys.argv:
+        print("shapes-check: not updated: a shape changed, and lib/migrate.py has no new offer and no new step,\n"
+              "  so a profile that already exists never gets it. Add one (and its check in tests/migrate-check.py),\n"
+              "  or say no profile needs it: python3 tests/shapes-check.py --update --no-offer")
+        sys.exit(1)
     json.dump(now, open(SNAP, "w"), indent=1); open(SNAP, "a").write("\n")
     print("shapes-check: tests/shapes.json updated"); sys.exit(0)
-was = json.load(open(SNAP))
-fails = []
+fails = list(offer_fails)
+if not offer_fails and (added or now["version"] != was["version"]):
+    fails.append("lib/migrate.py changed (offers %s, version %s -> %s) but tests/shapes.json didn't"
+                 % (added or "the same", was["version"], now["version"]))
 for s in sorted(set(now["shapes"]) | set(was["shapes"])):
     a, b = was["shapes"].get(s), now["shapes"].get(s)
     if a == b:
@@ -60,8 +84,9 @@ for s in sorted(set(now["shapes"]) | set(was["shapes"])):
         if n in tb and ta[n] != tb[n]:
             fails.append("%s: %s's panes %s -> %s" % (s, n, json.dumps(ta[n]), json.dumps(tb[n])))
 if fails:
-    print("shapes-check FAILED: a shape changed\n  " + "\n  ".join(fails))
-    print("  a profile that already exists never gets it: add an offer (or a step) in lib/migrate.py,\n"
-          "  check it in tests/migrate-check.py, then: python3 tests/shapes-check.py --update")
+    print("shapes-check FAILED\n  " + "\n  ".join(fails))
+    if shapes_changed:
+        print("  a profile that already exists never gets it: add an offer (or a step) in lib/migrate.py,\n"
+              "  check it in tests/migrate-check.py, then: python3 tests/shapes-check.py --update")
     sys.exit(1)
 print("shapes-check ok")

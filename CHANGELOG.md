@@ -6,6 +6,12 @@ before it updates.
 
 ## Unreleased
 
+## 2.7.9 — A key always skips the warm-up
+
+### Fixed (#95)
+
+- **A key pressed during the warm-up screen always skips it.** One pressed just as a frame was drawn could be dropped, and the warm-up ran to its end.
+
 ## 2.7.8 — send and receive listen only where their link points
 
 ### Fixed (#93)

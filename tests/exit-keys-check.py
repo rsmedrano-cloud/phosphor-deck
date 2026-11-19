@@ -52,14 +52,25 @@ for run, card, want, why in (
         fails.append("zoom (%s): own_pane, esc, esc(opened) = %s, want %s" % (why, got, want))
 
 # ── the screens, for real
-def read_for(fd, secs):
-    out, end = b"", time.time() + secs
+def read_for(fd, secs, p=None, until=None, quiet=0.25):
+    """What fd prints in at most secs: back as soon as `until(out)` holds, p
+    has ended, or the screen has drawn something and gone quiet for `quiet`."""
+    out, end, last = b"", time.time() + secs, None
     while time.time() < end:
-        if select.select([fd], [], [], 0.05)[0]:
+        if until and until(out):
+            break
+        if p is not None and p.poll() is not None and not select.select([fd], [], [], 0)[0]:
+            break
+        if last and time.time() - last >= quiet:
+            break
+        if select.select([fd], [], [], 0.02)[0]:
             try:
-                out += os.read(fd, 65536)
+                chunk = os.read(fd, 65536)
             except OSError:
                 break
+            if not chunk:
+                break
+            out, last = out + chunk, time.time()
     return out
 
 def ended(p, secs):
@@ -68,8 +79,9 @@ def ended(p, secs):
     except subprocess.TimeoutExpired:
         return False
 
-def drive(argv, keys, pane):
-    """Run `phosphor argv`, send keys one by one; True when it ended."""
+def drive(argv, keys, pane, want=None):
+    """Run `phosphor argv`, send keys one by one; True when it ended. With
+    `want`, the last key's output stops being read once it shows."""
     env = dict(ENV)
     if pane:
         env["PHOSPHOR_RUN"] = "%d PROBE" % os.getpid()      # its parent is us: a pane of the tab
@@ -77,14 +89,26 @@ def drive(argv, keys, pane):
     p = subprocess.Popen([sys.executable, PHOSPHOR] + argv, stdin=slave, stdout=slave,
                          stderr=slave, env=env, cwd=tmp, start_new_session=True)
     os.close(slave)
-    first = read_for(master, 2.5)
+    # drawn: the alternate screen is up and the first frame is out
+    first = read_for(master, 8, p, quiet=0.3)
+    while b"\x1b[?1049h" not in first and p.poll() is None and len(first) < 1 << 20:
+        more = read_for(master, 8, p, quiet=0.3)
+        if not more:
+            break
+        first += more
     done, seen = False, b""
-    for k in keys:
+    for i, k in enumerate(keys):
         os.write(master, k)
-        seen += read_for(master, 0.6)
+        last = i == len(keys) - 1
+        if want and last:
+            seen += read_for(master, 3, p, until=lambda o: want in o)
+        else:
+            seen += read_for(master, 0.6, p)
         if p.poll() is not None:
             done = True; break
-    done = done or ended(p, 1.5)
+    # a screen that should close does so at once; one that shouldn't gets a
+    # moment to prove it stays
+    done = done or ended(p, 0.8)
     if not done:
         os.killpg(p.pid, signal.SIGKILL); p.wait()
     os.close(master)
@@ -106,7 +130,7 @@ for name, argv in SCREENS:
     done, _ = drive(argv, [b"\x1b", b"q"], pane=True)
     if not done:
         fails.append("%s, a pane of the tab: q didn't close it" % name)
-    done, out = drive(argv, [b"?"], pane=True)
+    done, out = drive(argv, [b"?"], pane=True, want=b"its keys")
     if b"its keys" not in out:
         fails.append("%s: ? didn't list its keys" % name)
     done, _ = drive(argv, [b"?", b"q"], pane=True)
