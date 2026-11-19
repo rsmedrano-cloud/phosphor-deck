@@ -15,7 +15,7 @@ the internet, and gone as soon as it's used. The file lands in ~/received
 (or --dir), never overwriting one that's already there.
 """
 import os, re, secrets, subprocess, sys, time
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
 import clip, deckconf, send
@@ -144,7 +144,7 @@ def receive(prof, dest_dir=DEFAULT_DIR, timeout=DEFAULT_TIMEOUT, result=None):
     ip, where = send.pick_address(prof)
     result = {} if result is None else result
 
-    httpd = HTTPServer(("0.0.0.0", 0), handler_for(path, upload_path, dest_dir, result))
+    httpd = send.listen(ip, handler_for(path, upload_path, dest_dir, result))
     url_ = "http://%s:%d%s" % (ip, httpd.server_port, path)
 
     print(row(OK, "waiting for", "a file", note="lands in %s" % tilde(dest_dir)))

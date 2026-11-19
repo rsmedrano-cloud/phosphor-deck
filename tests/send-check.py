@@ -35,6 +35,36 @@ send.tailnet_ip = lambda: ""            # tailscale client present but no IP yet
 fm.kind = "tailscale"
 need("falls back to LAN if the tailnet IP can't be read", send.pick_address(None) == ("192.168.1.50", "LAN"))
 
+# where it listens: the picked address only, not every interface (#93)
+import contextlib, io
+from http.server import BaseHTTPRequestHandler
+h = send.listen("127.0.0.1", BaseHTTPRequestHandler)
+need("listens on the picked address, not 0.0.0.0", h.server_address[0] == "127.0.0.1")
+h.server_close()
+buf = io.StringIO()
+with contextlib.redirect_stdout(buf):
+    h = send.listen("203.0.113.10", BaseHTTPRequestHandler)   # not this machine's: can't bind
+need("falls back to every interface if the picked one can't be bound", h.server_address[0] == "0.0.0.0")
+need("and says so", "every interface" in buf.getvalue())
+h.server_close()
+
+class Stop(Exception): pass
+bound = []
+def fake_listen(ip, handler):
+    bound.append(ip); raise Stop
+real_listen, real_pick = send.listen, send.pick_address
+send.listen, send.pick_address = fake_listen, lambda prof: ("198.51.100.7", "tailnet")
+import receive
+d0 = tempfile.mkdtemp(); f0 = os.path.join(d0, "x"); open(f0, "w").write("x")
+for what, call in (("send", lambda: send.send(f0, None)), ("receive", lambda: receive.receive(None, d0))):
+    bound.clear()
+    try:
+        call()
+    except Stop:
+        pass
+    need(what + " listens on the address its link names", bound == ["198.51.100.7"])
+send.listen, send.pick_address = real_listen, real_pick
+
 # the server itself: one real request, then it's gone
 d = tempfile.mkdtemp()
 path = os.path.join(d, "informe más largo.md")

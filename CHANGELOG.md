@@ -6,6 +6,12 @@ before it updates.
 
 ## Unreleased
 
+## 2.7.8 — send and receive listen only where their link points
+
+### Fixed (#93)
+
+- **`send` and `receive` listen only on the address their link names.** They used to listen on every interface, a public one included; if that address can't be bound they say so and fall back to all of them.
+
 ## 2.7.7 — Fixes from the 2.7.6 audit
 
 ### Fixed (#92)

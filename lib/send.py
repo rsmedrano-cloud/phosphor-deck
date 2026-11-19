@@ -53,6 +53,16 @@ def pick_address(prof):
             return ip, "tailnet"
     return lan_ip(), "LAN"
 
+def listen(ip, handler):
+    """An HTTPServer on ip only, the address the link names: not on every
+    interface, a public one included. If that address can't be bound, every
+    interface, and a WARN row saying so."""
+    try:
+        return HTTPServer((ip, 0), handler)
+    except OSError as e:
+        print(row(WARN, "listening", "on every interface", note="can't bind %s: %s" % (ip, e.strerror or e)))
+        return HTTPServer(("0.0.0.0", 0), handler)
+
 def qr_lines(text):
     try:
         import qr
@@ -89,7 +99,7 @@ def send(file_path, prof, timeout=DEFAULT_TIMEOUT):
     path = "/%s/%s" % (secret, quote(name))
     ip, where = pick_address(prof)
 
-    httpd = HTTPServer(("0.0.0.0", 0), handler_for(path, name, data, ctype))
+    httpd = listen(ip, handler_for(path, name, data, ctype))
     url_ = "http://%s:%d%s" % (ip, httpd.server_port, path)
 
     print(row(OK, "sharing", name, note="%d bytes" % len(data)))

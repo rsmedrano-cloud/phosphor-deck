@@ -100,7 +100,9 @@ sheet can open. For an actual file, of any size or type, saved as itself:
     phosphor send report.pdf --timeout 60
 
 It opens a one-time link on your tailnet (or your LAN, without one) behind a
-random token, prints it with a QR to scan, and shuts itself down the moment
+random token, listening only on the address the link names, not on every
+interface (if that address can't be bound it says so and listens on all of
+them), prints it with a QR to scan, and shuts itself down the moment
 someone downloads it -- or after the timeout (default 180s) if nobody does.
 Nothing is kept running, nothing is stored anywhere: it's the deck-native
 version of the throwaway "open a port, send the file, close it" script
