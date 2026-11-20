@@ -254,6 +254,29 @@ New decks get the bar. `phosphor migrate` offers it to an older profile; if you 
 goes into `[deck] declined` and it's never offered again. A change takes effect with
 `phosphor gen && phosphor restart`. How to use the bar from the keyboard: keys.md.
 
+## [home]
+
+The grid that `phosphor home` shows: your cards and your tabs as tiles, one screen of them at a time.
+
+    [home]
+    layout = "fleet:4x2,ci,screens|term@CHAT"
+
+| key | default | what |
+|---|---|---|
+| layout | `fleet:4x2,ci,screens,usage,web` | the tiles, in order: commas between them, a `\|` starts the next page. Unset, that default |
+
+- **A tile** is a card's name (`fleet`, `ci`, `screens`... the names in `phosphor commands`), or
+  `term@TAB`: a tab of the deck, showing what runs there, its last line and whether it's busy.
+- **A size** after a colon: `fleet:4x2` takes 4 columns and 2 rows. Sizes are the ones the card
+  takes (its card's `sizes` in share/commands.json). Left out, or not one of them, the first size is used.
+- **A name nothing knows** is skipped, and `phosphor home --json` says which.
+- **The grid** is 4 columns wide (2 on a screen under 60 columns), and a row is 3 lines. Tiles
+  fill it in order; what doesn't fit goes to the next screen.
+
+`s` in `phosphor home` writes this line for you (a `deck.toml.bak` first). Edit it by hand and
+`phosphor home` reads it the next time it opens: no `gen` or restart needed. How to move tiles and
+keep the layout: commands.md, "In the deck".
+
 ## [notes]
 
 Where the shared notebook lives. Without this table it's private, at

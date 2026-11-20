@@ -58,7 +58,7 @@ for the details; this is the tour.
   something wants a look. The panels with named rows open straight on one with
   `--select NAME` (`phosphor screens --select pts/3`). `phosphor mcp` hands the same to any
   assistant that speaks MCP (`claude mcp add phosphor -- phosphor mcp`):
-  glance, fleet, notes, workspaces and the deck's log, read-only, over stdio.
+  glance, fleet, notes, workspaces, home and the deck's log, read-only, over stdio.
 - **Panels of your own.** A Python file in `~/.config/phosphor/panels.d`
   with a class on phosphor's `ListPanel` ("my restic backups" in about 20
   lines) is a panel like the deck's: keys, taps, a y/n before an action, a
@@ -416,6 +416,7 @@ more depth on every one of these.
 | `phosphor mem` | how much memory each tab and pane of the deck takes, heaviest first, every kind of screen's deck included |
 | `phosphor panels [NAME]` | your own panels: a Python file in `~/.config/phosphor/panels.d` on the same kit as every panel (keys, taps, y/n, pager); also in the store and the + menu |
 | `phosphor dash [CARD...]` | a dashboard of your own: the cards you pick, each with its live value and its command; `+` opens the gallery of every card, `-` takes one away; also `cards` in the + menu (`phosphor cards`) |
+| `phosphor home [--json \| --once]` | the grid: your cards and tabs as tiles, one command line; a prototype beside the DECK tab, dash and the `+` menu (the layout is `[home]` in the profile) |
 | `phosphor screens` | who's attached (phone, tablet, another computer), and which come through a tailscale relay; `x` kicks one loose, `o` gives its kind a deck of its own or shares this one (both ask y/n first) |
 | `phosphor keys` | key guide, updates itself when you install a tool |
 | `phosphor store` | install TUIs from their releases, no sudo; open what you have, and your own apps |

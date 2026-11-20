@@ -47,6 +47,7 @@ TABLES = {
              "open_web": BOOL, "clip": BOOL},
     "services": {"interval": None, "extra": None},
     "bar": {"enabled": BOOL},
+    "home": {"layout": None},
     "glance": {"serve": ("lan", "tailnet", False), "port": None},
     "clipboard": {"sync": BOOL, "max_kb": None},
 }

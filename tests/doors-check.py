@@ -34,10 +34,10 @@ sys.path.insert(0, os.path.join(ROOT, "lib"))
 import cli
 bad = []
 
-KINDS = {"sensor":   ({"state"}, {"from", "tui"}),
-         "toggle":   ({"state", "on", "off"}, {"from", "ask", "confirm"}),
-         "button":   (set(), {"args", "ask", "confirm", "tui"}),
-         "shortcut": (set(), {"args", "ask", "confirm", "tui"}),
+KINDS = {"sensor":   ({"state"}, {"from", "tui", "sizes"}),
+         "toggle":   ({"state", "on", "off"}, {"from", "ask", "confirm", "sizes"}),
+         "button":   (set(), {"args", "ask", "confirm", "tui", "sizes"}),
+         "shortcut": (set(), {"args", "ask", "confirm", "tui", "sizes"}),
          "plumbing": ({"why"}, set())}
 LISTS = ("from", "on", "off", "args", "ask")
 
@@ -71,6 +71,9 @@ for name, e in entries.items():
     for f in ("state", "why"):
         if f in c and not (isinstance(c[f], str) and c[f].strip()):
             bad.append("%s: card `%s` should be a non-empty string" % (where, f))
+    if "sizes" in c and not (strs(c["sizes"]) and len(set(c["sizes"])) == len(c["sizes"])
+                             and all(re.match(r"^[124]x[124]$", z) for z in c["sizes"])):
+        bad.append("%s: card `sizes` are home's tiles, each once: 2x2, 4x2, 2x4, 4x4..." % where)
     if "confirm" in c and c["confirm"] is not True:
         bad.append("%s: card `confirm` is true or left out" % where)
     if "tui" in c and c["tui"] is not True:

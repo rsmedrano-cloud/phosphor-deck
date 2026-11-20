@@ -71,6 +71,10 @@ def t_logs(a):
         lines = dlog.tail(dlog.LOG, n)
     return {"tool": tool, "lines": lines}
 
+def t_home(a):
+    import home
+    return home.snapshot()
+
 def _obj(props=None):
     return {"type": "object", "properties": props or {}, "additionalProperties": False}
 
@@ -91,6 +95,10 @@ TOOLS = {
                     "archive": {"type": "boolean", "description": "read the archive instead", "default": False}})),
     "workspaces": (t_workspaces, "The workspaces under the projects folder, each with its git state "
                    "(uncommitted changes, commits ahead/behind).", _obj()),
+    "home": (t_home, "phosphor home's grid: the [home] layout line (tiles by comma, pages by |, "
+             "name:WxH), the names it skipped, and each tile's place and what it shows: a card's "
+             "value, why and line from its --json, or term@TAB's program, last line and activity. "
+             "To change it, propose a new layout line for the user to save.", _obj()),
     "logs": (t_logs, "The end of the deck's own log (crashes, hangs, exits, restarts), or one tool's "
              "lines (its trace file when one is on). Holds no note text or host names.",
              _obj({"tool": {"type": "string", "description": "e.g. FLEET, PROM, NOTES"},

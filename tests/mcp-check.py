@@ -20,7 +20,8 @@ for d in (".config/phosphor", ".cache/phosphor", ".local/share/phosphor"):
 prof = os.path.join(home, ".config/phosphor/deck.toml")
 open(prof, "w").write('[deck]\nsession = "mcp-check-nosuch"\ndemo = true\n\n'
                       '[[hosts]]\nname = "nebula"\nssh = "nebula"\n\n'
-                      '[[hosts]]\nname = "atlas"\nssh = "atlas"\n')
+                      '[[hosts]]\nname = "atlas"\nssh = "atlas"\n\n'
+                      '[home]\nlayout = "fleet:4x2,nosuch,ci:9x9|term@CHAT"\n')
 json.dump({"t": time.time(), "hosts": {"nebula": {"ok": True, "CPU": 12, "MEMU": 100, "MEMT": 1000, "ms": 40}}},
           open(os.path.join(home, ".cache/phosphor/fleet.json"), "w"))
 open(os.path.join(home, ".local/share/phosphor/notes.md"), "w").write(
@@ -40,8 +41,9 @@ def snapshot():
         for f in files:
             p = os.path.join(base, f)
             # stats.json is the dispatcher counting `phosphor mcp` itself
-            # (phosphor stats), before the server starts: not a tool writing
-            if "__pycache__" not in p and not f.startswith("stats.json"):
+            # (phosphor stats), before the server starts: not a tool writing;
+            # answer-*.json is a card's --json remembering its answer (home)
+            if "__pycache__" not in p and not f.startswith(("stats.json", "answer-")):
                 out[p] = hashlib.sha1(open(p, "rb").read()).hexdigest()
     return out
 
@@ -59,6 +61,7 @@ msgs = [
     {"jsonrpc": "2.0", "id": 8, "method": "tools/call", "params": {"name": "workspaces"}},
     {"jsonrpc": "2.0", "id": 9, "method": "tools/call", "params": {"name": "logs", "arguments": {"tool": "prom"}}},
     {"jsonrpc": "2.0", "id": 10, "method": "tools/call", "params": {"name": "restart"}},
+    {"jsonrpc": "2.0", "id": 13, "method": "tools/call", "params": {"name": "home"}},
     {"jsonrpc": "2.0", "id": 11, "method": "resources/list"},
     {"jsonrpc": "2.0", "id": 12, "method": "ping"},
 ]
@@ -74,7 +77,7 @@ for l in lines:
     except ValueError:
         fails.append("stdout carries a non-protocol line: %r" % l[:120]); continue
     replies[m.get("id")] = m
-need("one reply per request, none for the notification (%d)" % len(lines), len(lines) == 13)
+need("one reply per request, none for the notification (%d)" % len(lines), len(lines) == 14)
 need("no escape codes", "\x1b" not in r.stdout)
 
 def result(i):
@@ -87,7 +90,7 @@ need("initialize: echoes a known protocol version", init.get("protocolVersion") 
 need("initialize: tools capability and its name", "tools" in init.get("capabilities", {})
      and init.get("serverInfo", {}).get("name") == "phosphor")
 tools = {t["name"]: t for t in result(2).get("tools", [])}
-need("tools/list: the five tools (%s)" % sorted(tools), set(tools) == {"glance", "fleet", "notes", "workspaces", "logs"})
+need("tools/list: the six tools (%s)" % sorted(tools), set(tools) == {"glance", "fleet", "notes", "workspaces", "logs", "home"})
 need("every tool says it's read-only", all(t.get("annotations", {}).get("readOnlyHint") is True
                                            and t.get("annotations", {}).get("destructiveHint") is False
                                            for t in tools.values()))
@@ -107,6 +110,14 @@ need("notes: query matches the body in any case", data(7).get("total") == 1 and 
      and n[0].get("body") == "No writes from an assistant.")
 need("workspaces: root and list", "root" in data(8) and data(8).get("workspaces") == [])
 need("logs: only that tool's lines", data(9).get("lines") == ["2026-01-01 10:00:01  PROM       exit 1"])
+h = data(13)
+need("home: the layout line, unknown names skipped, a size it doesn't take is its first (%r)" % h.get("layout"),
+     h.get("layout") == "fleet,ci|term@CHAT" and h.get("skipped") == ["nosuch"])
+t = {x["name"]: x for x in h.get("tiles", [])}
+need("home: each tile placed, fleet's value read (%r)" % t.get("fleet"),
+     set(t) == {"fleet", "ci", "term@CHAT"} and t["fleet"]["x"] == 0 and t["fleet"]["y"] == 0
+     and t["ci"]["y"] == 2 and t["term@CHAT"]["page"] == 1 and "value" in (t["fleet"]["shows"] or {}))
+need("home: a tab with no deck running shows nothing", t.get("term@CHAT", {}).get("shows") is None)
 need("an unknown tool is a protocol error", (replies.get(10) or {}).get("error", {}).get("code") == -32602)
 need("an unknown method is -32601", (replies.get(11) or {}).get("error", {}).get("code") == -32601)
 need("ping", result(12) == {} and "error" not in (replies.get(12) or {"error": 1}))

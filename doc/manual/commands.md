@@ -323,6 +323,7 @@
   high (SYS's top row) the cards sit side by side under the title, as many to a line as fit,
   and `+` zooms the pane for the gallery. `--json` prints each card's `name`, `kind`, `state`,
   `value` and `why`, and runs nothing.
+- `phosphor home [--json | --once]` — the grid: your cards and your tabs as tiles, with one command line at the bottom. A prototype beside what exists: the DECK tab, `dash` and the `+` menu stay. The tiles come from `[home]` in the profile (see profile, "[home]"). A tile is a card, or `term@TAB`: the program running in that tab, its last line, and whether it's busy. Enter, a tile's key or a tap opens it, as its card says (a card that publishes or restarts asks first); a `term@` tile goes to its tab. Arrows move between tiles. `m` picks the selected tile up: arrows move it earlier or later, `+` and `-` change its size, Enter puts it down, Esc puts it back. `s` saves the layout into `deck.toml` (a `.bak` first); nothing is written before that. `/` opens the command line: suggestions while you type, the `+` menu's search, and a command shows its usage first. PgUp/PgDn, `[` and `]`, or a tap on the page dots change screens. `?` lists the keys, `q` leaves. Tiles use only the theme's ink, paper and dim, so it reads the same on e-ink. `--json` prints the layout line, the names it skipped, and each tile's place and what it shows; it runs each card's `--json` once and changes nothing. `--once` prints one frame. MCP: `home`.
 - `phosphor keys` — the key guide, a key per row (the wheel, j/k or a tap move through it; `s` runs setup); `phosphor store` — install TUIs, no sudo: Enter installs (or opens what you have in a tab), `d` removes one (only from ~/.local/bin, asks y/n first), `i` shows only what's installed, `/` filters, Esc clears; rows and keys answer a tap.
   Enter on an installed app opens it in a new tab; `i` shows only what's installed. Your own apps
   (`apps.toml`, see profile) come first, as "yours".
@@ -565,6 +566,9 @@ Its tools only read what's already on the brain, and none of them sends, restart
   and `archive` narrow it.
 - `workspaces` — what `workspace list --json` says.
 - `logs` — the end of deck.log, or one tool's lines (`tool`, `lines`: 100, up to 400).
+- `home` — what `home --json` says: the `[home]` layout line, the names it skipped, and each
+  tile's place and what it shows (a card's value, why and line; a `term@` tile's program, last line
+  and activity).
 
 ## Before you push a fork
 - `phosphor demo` — a throwaway session over made-up machines and a made-up notebook, for a

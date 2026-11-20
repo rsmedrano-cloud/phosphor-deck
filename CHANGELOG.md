@@ -6,6 +6,18 @@ before it updates.
 
 ## Unreleased
 
+## 2.8.2 — phosphor home, the grid prototype
+
+### Added (#101)
+
+- **A grid of tiles: `phosphor home`.** Your cards and your tabs as tiles on one screen, with one
+  command line at the bottom. A tile shows a card's value, or a tab's program, its last line and
+  whether it's busy. Tap a tile or press its key to open it. Arrows move between tiles, and `m`
+  moves or resizes one. `s` saves the layout to your profile (a `deck.toml.bak` first). Set the
+  tiles under `[home]` in the profile. The DECK tab, `dash` and the `+` menu stay as they are.
+  It's a prototype: it doesn't take the key bar's HOME yet. `phosphor home --json` and the MCP
+  tool `home` print the same layout as data.
+
 ## 2.8.1 — the key bar
 
 ### Added (#100)
