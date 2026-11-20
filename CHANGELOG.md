@@ -6,6 +6,14 @@ before it updates.
 
 ## Unreleased
 
+## 2.8.6 — restart counts panels right
+
+### Fixed
+
+- **`restart` no longer calls a panels tab a duplicate (#112).** Its summary counted
+  `phosphor panels ...` as a second `phosphor panel` and printed `panel 2 <- duplicate`;
+  it now matches each program's name whole.
+
 ## 2.8.5 — ASK knows the deck
 
 ### Added (#115)

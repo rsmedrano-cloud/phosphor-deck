@@ -69,6 +69,20 @@ try:
 finally:
     os.unlink(fake_zj)
 
+# 5. panel_count(): restart's summary counts each phosphor program by its
+#    whole name (#112): a `phosphor panels mattermost` tab isn't a second
+#    `phosphor panel`, and the `phosphor run` watching a pane isn't the pane.
+ps = [(1, "python3 /opt/phosphor/phosphor panel"),
+      (2, "python3 /opt/phosphor/phosphor panels mattermost"),
+      (3, "/opt/phosphor/phosphor run fleet -- phosphor fleet"),
+      (4, "python3 /opt/phosphor/phosphor fleet"),
+      (5, "phosphor notes"),
+      (6, "python3 /opt/phosphor/phosphor panel --tab sys")]
+check("panel_count: 'panels' isn't 'panel'", phosphor_cli.panel_count("panel", ps) == 2)
+check("panel_count: the watching `phosphor run` isn't counted", phosphor_cli.panel_count("fleet", ps) == 1)
+check("panel_count: a bare argv[0] counts", phosphor_cli.panel_count("notes", ps) == 1)
+check("panel_count: 'note' isn't 'notes'", phosphor_cli.panel_count("note", ps) == 0)
+
 if fails:
     print("FAILED:\n  " + "\n  ".join(fails))
     sys.exit(1)

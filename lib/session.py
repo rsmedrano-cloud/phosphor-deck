@@ -27,6 +27,15 @@ def session_gone(zj, sess):
         return True                          # can't tell either way: don't block on it
     return not any(l.split()[:1] == [sess] for l in out.stdout.splitlines())
 
+def panel_count(name, procs):
+    """How many of procs ([(pid, args)]) run `phosphor NAME`, the word
+    whole: `phosphor panels ...` isn't `phosphor panel` (#112). The
+    `phosphor run` watching over a pane isn't the pane."""
+    import re
+    pat = re.compile(r"(?:^|[\s/])phosphor %s(?:\s|$)" % re.escape(name))
+    return sum(1 for _, a in procs if pat.search(a) and " run " not in a)
+
+
 def poll_until(check, timeout, interval=0.15):
     """True as soon as `check()` is, sleeping `interval` between tries --
     same worst case as a blind `sleep(timeout)`, usually a lot less: down
@@ -199,8 +208,7 @@ def updown(cmd):
     for name in ("adjutant", "fleet", "keys", "store", "notes", "mentions", "panel"):
         want = len(_re.findall(r'phosphor" "%s"' % name, lay))
         if not want: continue
-        # the program, not the `phosphor run` watching over it
-        n = sum(1 for _, a in procs() if ("phosphor %s" % name) in a and " run " not in a)
+        n = panel_count(name, procs())
         note = "" if n == want else ("   <- missing" if n < want else "   <- duplicate")
         if note: bad = True
         print("    %-10s %d%s" % (name, n, note))
