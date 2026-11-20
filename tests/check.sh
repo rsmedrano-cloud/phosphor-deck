@@ -89,6 +89,7 @@ check "web on: never restarts unattended without --yes" python3 tests/web-check.
 check "the deck won't start: deck says why and offers the fix" python3 tests/rescue-check.py
 check "new --here: refuses with nobody attached" python3 tests/newtab-attach-check.py
 check "ask key: the pane it covers goes along, q gives it back" python3 tests/ask-key-check.py
+check "the key bar: in every tab, a tap does what its Alt key does on the pane you were in" python3 tests/bar-check.py
 check "new: an assistant asks which folder it starts in" python3 tests/newtab-folder-check.py
 check "new: / searches tabs, the menu, workspaces, tools, commands" python3 tests/search-check.py
 check "commands: category/leaf picker, only safe ones auto-run" python3 tests/commands-menu-check.py

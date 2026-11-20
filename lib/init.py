@@ -500,6 +500,8 @@ def render(hosts, theme, comms, net="auto", web=False, tun=(), editor=None, shel
          "[deck]", "version = %d" % migrate.CURRENT, 'session = "deck"', 'theme   = "%s"' % theme,
          'mesh    = "%s"' % net, 'mount_root = "~/fleet"'] + (['web     = true'] if web else []) \
         + (['editor  = "%s"' % editor] if editor else []) + (['shell   = "%s"' % shell] if shell else []) + [""]
+    L += ["# A row of keys under every tab: HOME, ASK, NOTE, EDIT, ZOOM and the status light.",
+          "[bar]", "enabled = true", ""]
     if notes_folder:
         L += ["[notes]", 'folder = "%s"' % notes_folder, ""]
     for h in hosts:

@@ -126,6 +126,9 @@ Ctrl and Alt keys, and every one can be changed: `phosphor shortcuts` (or `c`
 in the DECK tab). Your keys live in the profile, so updates never reset them.
 `?` in the DECK tab lists the keys of every installed tool.
 
+A row of tappable keys (HOME, ASK, NOTE, EDIT, ZOOM and the fleet light)
+runs along the bottom of every tab; `[bar]` in the profile turns it off.
+
 ## The manual
 
 Everything, in depth, lives in [doc/manual](doc/manual/README.md) -- also

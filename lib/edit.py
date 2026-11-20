@@ -214,7 +214,8 @@ def finish(tab_id, name):
 def visible(tab_id, covered):
     """The panes you can see in this tab once this screen is gone."""
     me = int(os.environ.get("ZELLIJ_PANE_ID", "-1"))
-    ps = [p for p in panes() if not p["is_plugin"] and p["tab_id"] == tab_id]
+    import bar
+    ps = [p for p in panes() if not p["is_plugin"] and p["tab_id"] == tab_id and not bar.is_bar(p)]
     return [p["id"] for p in ps if p["id"] != me and (not p["is_suppressed"] or p["id"] == covered)]
 
 def origin(name):

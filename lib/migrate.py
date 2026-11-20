@@ -111,10 +111,31 @@ def sys_cards(text):
         panes = [row, dict({"split": t["split"]} if t.get("split") else {}, panes=panes)]
     return keep.put(text, t["name"], keep.block(t["name"], panes, "rows"))
 
+def key_bar(text):
+    """2.8.1: a row of keys under every tab ([bar], lib/bar.py). Goes in
+    after [deck]; unchanged when the profile has a [bar] already, on or off."""
+    if "bar" in _parse(text):
+        return text
+    block = ("# A row of keys under every tab: HOME, ASK, NOTE, EDIT, ZOOM and the status light.\n"
+             "[bar]\nenabled = true\n\n")
+    deck = re.search(r"^\[deck\][ \t]*$", text, re.M)
+    nxt = re.search(r"^[ \t]*\[", text[deck.end():], re.M) if deck else None
+    if not nxt:
+        return text.rstrip("\n") + "\n\n" + block.rstrip("\n") + "\n"
+    at = deck.end() + nxt.start()
+    # the comments right above the next table are its heading: the bar goes above them
+    head = text[:at].rstrip("\n").split("\n")
+    while head and head[-1].lstrip().startswith("#"):
+        head.pop()
+    at = len("\n".join(head)) + 1 if head else 0
+    rest = text[at:].lstrip("\n")
+    return text[:at].rstrip("\n") + "\n\n" + block + rest
+
 # (id, what it adds, fn): fn takes the profile's text and returns it with
 # the default added, or unchanged when the profile has it or has no place
 # for it. An id never changes: [deck] declined keeps it.
-OFFERS = [("sys-cards", "a row of cards on top of SYS: version, screens, and what else this deck has set up", sys_cards)]
+OFFERS = [("sys-cards", "a row of cards on top of SYS: version, screens, and what else this deck has set up", sys_cards),
+          ("bar", "a row of keys under every tab: HOME, ASK, NOTE, EDIT, ZOOM and the status light", key_bar)]
 
 def declined(prof):
     """The offers the profile said no to: [deck] declined."""

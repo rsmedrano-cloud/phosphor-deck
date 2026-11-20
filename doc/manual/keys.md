@@ -57,7 +57,8 @@ is left alone; `phosphor shortcuts --kdl` prints the block to paste inside
 its `keybinds { }`.
 
 The phone kit's EDIT, ZOOM and EXIT keys send whatever `[keys]` says (run the
-kit again after changing them).
+kit again after changing them). With the key bar on, EDIT is on the bar instead
+(see the key bar, below).
 
 ## Esc and q
 
@@ -102,7 +103,7 @@ its own, so a tap answers it too, on a screen with no keyboard.
 Tap a tab to switch, a pane to focus it; `+` in the tab bar opens the new-tab
 menu, and its last row ("close this tab") takes the tab back out if you
 opened it by mistake. On phones, taps go to the deck, so the keyboard needs its own key (the
-phone kit adds KEYBOARD, EDIT, ZOOM and EXIT).
+phone kit adds KEYBOARD, EDIT, ZOOM and EXIT; with the key bar, EDIT is on the bar).
 
 A panel's title ends in ⤢: a tap there zooms its pane, the same as Alt-z,
 and Esc gives the tab back. A panel in a pane too short for it (under six
@@ -115,3 +116,29 @@ lists the keys of every installed tool. Its second line, when nothing more
 urgent wants it, is a "did you know?": one thing the deck does and where it
 is, the ones you've never used first, a new one every ten minutes; a tap on
 it does it when it names a key of the DECK tab.
+
+## The key bar
+
+With `[bar]` on (the default for new decks, see profile), the bottom line of
+every tab has five keys and the fleet light:
+
+    ⌂ HOME Alt-1   ? ASK Alt-q   ✎ NOTE Alt-j   ⇲ EDIT Alt-r   ⤢ ZOOM Alt-z      ● 2
+
+A tap runs a key the way its Alt key does, on the pane you were in before you
+tapped. HOME goes to the first tab. The light opens `phosphor glance` in place
+of the pane; `q` gives the pane back.
+
+From the keyboard: Alt-Down moves into the bar. Left and Right pick a key, Enter
+runs it, Esc or q gives the focus back.
+
+The shortcuts shown come from `[keys]`: a key turned off shows none, and HOME
+shows the tab prefix and 1.
+
+While a pane is zoomed, the bar is hidden. Alt-z (ZOOM on a phone's extra keys,
+or Esc in a phosphor panel) gives the tab back.
+
+Saving an edited tab (Alt-r) never writes the bar into the tab's panes. A tab
+whose last pane closes goes with its bar; it never stays as a bar alone.
+
+Known limit, not checked yet: two screens on the same tab at once (a phone and
+a desktop). Which one a tap moves the focus back to is zellij's call.

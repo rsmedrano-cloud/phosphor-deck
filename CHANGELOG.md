@@ -6,6 +6,18 @@ before it updates.
 
 ## Unreleased
 
+## 2.8.1 — the key bar
+
+### Added (#100)
+
+- **A row of keys under every tab: the key bar.** Each tab's bottom line has HOME, ASK, NOTE,
+  EDIT and ZOOM, each with its shortcut, and on the right a light for the fleet (green, amber or
+  red) with the number of problems. Tap a key or the light to use it. New decks get it; an
+  existing profile is offered it by `phosphor migrate` (say no and it's never offered again).
+  Turn it off with `enabled = false` under `[bar]`. Run `phosphor gen && phosphor restart` after
+  a change. On a phone, the extra keys drop EDIT, which is on the bar now. ZOOM stays a key:
+  a zoomed pane hides the bar, so ZOOM is the way back.
+
 ## 2.8.0 — Stable catches up
 
 - On stable, this takes in everything since 2.7.0 (2.7.1 to 2.7.11 below), above all the fix

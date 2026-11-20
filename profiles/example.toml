@@ -31,6 +31,10 @@ bar     = "tabs"         # tabs (with the + menu) | compact | full (adds key hin
 # folder = "~/Obsidian/Deck"
 # require_project = true      # every new note needs a project (--project, or asked)
 
+# A row of keys under every tab: HOME, ASK, NOTE, EDIT, ZOOM and the status light.
+[bar]
+enabled = true
+
 # ── THE FLEET ───────────────────────────────────────────────
 # role: brain    holds the session (exactly one, and it's local)
 #       work     your projects live here

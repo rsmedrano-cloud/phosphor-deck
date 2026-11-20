@@ -147,7 +147,9 @@ def mine():
     me = int(os.environ.get("ZELLIJ_PANE_ID", "-1"))
     p = next((p for p in ps if not p["is_plugin"] and p["id"] == me), None)
     if not p: return None, 0
-    n = sum(1 for q in ps if not q["is_plugin"] and q["tab_id"] == p["tab_id"] and not q["is_suppressed"])
+    import bar
+    n = sum(1 for q in ps if not q["is_plugin"] and q["tab_id"] == p["tab_id"] and not q["is_suppressed"]
+            and not bar.is_bar(q))
     return bare(p["tab_name"]), n
 
 def kept(name):

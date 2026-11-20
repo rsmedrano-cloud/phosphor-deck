@@ -51,6 +51,7 @@ zellij:
     - python3 tests/mirror-check.py
     - python3 tests/newtab-attach-check.py
     - python3 tests/ask-key-check.py
+    - python3 tests/bar-check.py
     - python3 tests/dash-check.py
     - python3 tests/zoom-check.py
 

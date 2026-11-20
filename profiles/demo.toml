@@ -12,6 +12,10 @@ session = "phosphor-demo"
 theme   = "p31"
 demo    = true            # fleet fakes its readings instead of polling over ssh
 
+# A row of keys under every tab: HOME, ASK, NOTE, EDIT, ZOOM and the status light.
+[bar]
+enabled = true
+
 [[hosts]]
 name   = "nebula"
 role   = "brain"

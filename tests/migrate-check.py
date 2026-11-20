@@ -20,7 +20,8 @@ fails = []
 def check(what, ok):
     if not ok: fails.append(what)
 
-OLD = ('[deck]\nsession = "deck"\ntts = true\n\n'
+# it has its [bar] (the bar offer is checked on its own, below)
+OLD = ('[deck]\nsession = "deck"\ntts = true\n\n[bar]\nenabled = false\n\n'
        '[[tabs]]\nname  = "SYS"\npanes = [ { cmd = "phosphor fleet" } ]\n\n'
        '[[tabs]]\nname  = "DECK"\nsplit = "cols"\npanes = [\n  { cmd = "phosphor panel", size = "50%" },\n'
        '  { cmd = "phosphor keys" },\n]\n\n[[tabs]]\nname  = "NOTES"\npanes = [ { cmd = "phosphor notes" } ]\n')
@@ -158,7 +159,24 @@ cols = '[[tabs]]\nname = "SYS"\nsplit = "cols"\npanes = [ { cmd = "phosphor flee
 t = deckconf.tomllib.loads(migrate.sys_cards(cols))["tabs"][0]
 check("a SYS in columns: rows, the columns kept under the cards",
       t["split"] == "rows" and t["panes"][1] == {"split": "cols", "panes": [{"cmd": "phosphor fleet"}, {"cmd": "btop"}]})
-check("no fleet tab: nothing offered", migrate.offers('[[tabs]]\nname = "X"\npanes = [ { cmd = "btop" } ]\n') == [])
+check("no fleet tab: no row of cards offered",
+      [i for i, _, _ in migrate.offers('[[tabs]]\nname = "X"\npanes = [ { cmd = "btop" } ]\n')] == ["bar"])
+
+# the bar: offered to a profile without [bar], after [deck] and above the
+# next table's heading; a [bar] there already, on or off, is left alone
+B = '[deck]\nsession = "deck"\n# my web\nweb = true\n\n# ── THE FLEET\n[[hosts]]\nname = "db-box"\nrole = "brain"\nlocal = true\n'
+got = migrate.key_bar(B)
+check("bar: offered without [bar]", [i for i, _, _ in migrate.offers(B)] == ["bar"])
+check("bar: on, after [deck], above the fleet's heading (%r)" % got,
+      deckconf.tomllib.loads(got)["bar"] == {"enabled": True} and deckconf.tomllib.loads(got)["deck"]["web"] is True
+      and got.index("[bar]") < got.index("# ── THE FLEET") and got.index("web = true") < got.index("[bar]"))
+check("bar: the rest untouched", got.replace(got[got.index("# A row of keys"):got.index("# ── THE FLEET")], "") ==
+      B)
+check("bar: once is enough", migrate.key_bar(got) == got)
+check("bar: a [bar] that says off stays off", migrate.offers(B + "\n[bar]\nenabled = false\n") == [])
+check("bar: a profile with no [deck] gets it at the end",
+      deckconf.tomllib.loads(migrate.key_bar('[[tabs]]\nname = "X"\n'))["bar"] == {"enabled": True})
+check("bar: declined, never again", migrate.offers('[deck]\ndeclined = ["bar"]\n') == [])
 
 open(p, "w").write(newer)
 rc, out = run()
@@ -174,8 +192,8 @@ def offered(text):
         update.offer_migrate()
     return buf.getvalue()
 check("update points at migrate for an older shape", "phosphor migrate" in offered(OLD))
-check("...not for one with nothing to change", offered('[deck]\nsession = "deck"\n') == "")
-check("update names an offer", "row of cards" in offered('[deck]\nversion = %d\n\n' % migrate.CURRENT
+check("...not for one with nothing to change", offered('[deck]\nsession = "deck"\n\n[bar]\nenabled = true\n') == "")
+check("update names an offer", "row of cards" in offered('[deck]\nversion = %d\n\n[bar]\nenabled = true\n\n' % migrate.CURRENT
                                                          + '[[tabs]]\nname = "SYS"\npanes = [ { cmd = "phosphor fleet" } ]\n'))
 
 # the DECK tab: P only while there's something to migrate

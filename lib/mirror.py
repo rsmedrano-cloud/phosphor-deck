@@ -58,8 +58,9 @@ def zj(sess, *a, timeout=8):
 def panes(sess):
     """The session's terminal panes, as list-panes says them."""
     try:
+        import bar
         return [p for p in json.loads(zj(sess, "list-panes", "-a", "-j") or "[]")
-                if not p.get("is_plugin")]
+                if not p.get("is_plugin") and not bar.is_bar(p)]
     except ValueError:
         return []
 

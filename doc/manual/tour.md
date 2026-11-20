@@ -8,7 +8,9 @@ for the details; this is the tour.
 - **One session, many viewers.** A persistent `zellij` session with a
   watchdog: if it dies, it's back within a minute.
 - **Tabs, not apps.** Laid out once from your profile. Switch with Alt-1..9
-  or by tapping the bar; tap a pane to focus it.
+  or by tapping the tab bar; tap a pane to focus it.
+- **A key bar under every tab.** HOME, ASK, NOTE, EDIT and ZOOM, each one tap, and the
+  fleet's status light on the right. `[bar]` in your profile turns it off (keys.md).
 - **A menu behind the "+".** Tap it for a new tab: a shell here or on any
   machine, an installed assistant, files, or any command. **layout** opens
   several at once: pick a shape, then what goes in each pane (four
@@ -219,7 +221,7 @@ The brain answers with a small script made for your deck: it creates the
 phone's key (your password, one last time), a `deck` command, a home-screen
 icon through Termux:Widget, and extra keys for touch: `KEYBOARD` brings the
 keyboard back (taps go to the deck), `EDIT` edits the tab you're in, `ZOOM`
-gives one pane the whole screen, `EXIT` leaves. `phosphor phone` on the brain (or `p` in the DECK tab) prints these lines for
+gives one pane the whole screen, `EXIT` leaves. With the key bar on, `EDIT` is on the bar instead. `phosphor phone` on the brain (or `p` in the DECK tab) prints these lines for
 you, with the phone's one as a QR code to scan with the camera — no typing.
 
 **A deck for each kind of screen.** A phone and a desktop looking at the
@@ -465,6 +467,10 @@ never the live deck): measured on an AMD Ryzen 5 3550H (8 cores, 13 GiB RAM).
 |---|---|---|
 | revived (no CLOUD tab) | ~275 MB | ~6% of one core |
 | homelab (adds yazi, btop, ctop) | ~395 MB | ~10% of one core |
+
+The key bar (`[bar]`, on for new decks) adds one small process per tab, about
+7 MB of its own. The status light is worked out once for all the bars, every
+30 seconds at most, in the background (a shared file in `~/.cache/phosphor`).
 
 A real fleet's polling cost isn't in this number yet — that needs a real fleet,
 not a throwaway session.

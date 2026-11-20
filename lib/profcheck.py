@@ -46,6 +46,7 @@ TABLES = {
              "priority": ("min", "low", "default", "high", "max"), "title": None,
              "open_web": BOOL, "clip": BOOL},
     "services": {"interval": None, "extra": None},
+    "bar": {"enabled": BOOL},
     "glance": {"serve": ("lan", "tailnet", False), "port": None},
     "clipboard": {"sync": BOOL, "max_kb": None},
 }

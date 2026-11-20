@@ -111,6 +111,8 @@ def spec_of(pane, ctx):
     """One pane as the profile writes it, or None for a pane to skip."""
     if any(c["word"] == "plugin" for c in pane["children"]):
         return None                       # the tab bar: gen writes it
+    if pane["attrs"].get("name") == "BAR":
+        return None                       # the key bar ([bar]): gen writes it too
     kids = [c for c in pane["children"] if c["word"] == "pane"]
     spec = {}
     size = pane["attrs"].get("size")

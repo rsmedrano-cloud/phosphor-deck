@@ -182,18 +182,30 @@ def bars(ctx):
         return (tab, 'pane size=2 borderless=true { plugin location="zellij:status-bar"; }')
     return (tab, None)
 
+def key_bar(ctx):
+    """[bar] enabled: the row of keys under every tab (lib/bar.py), or None."""
+    import bar
+    if not bar.enabled(ctx.prof):
+        return None
+    return 'pane size=1 borderless=true name="%s" command="%s" { args "bar"; }' % (bar.NAME, PHOSPHOR)
+
+def bottoms(ctx):
+    """What goes under a tab's panes: the key bar, then zellij's status-bar."""
+    return [b for b in (key_bar(ctx), bars(ctx)[1]) if b]
+
 def deck_kdl(prof, ctx, src, tabs=None, land=None, floating=True):
     """The session layout: the deck's own, or a kind of screen's (its tabs,
     the one it lands on, no floating panes)."""
-    top, bottom = bars(ctx)
+    top = bars(ctx)[0]
+    under = ["        " + b for b in bottoms(ctx)]
     out = [HEADER % src, "layout {", "    default_tab_template {", "        " + top,
-           "        children"] + (["        " + bottom] if bottom else []) + ["    }", ""]
+           "        children"] + under + ["    }", ""]
     # "+" and any new tab open the menu (phosphor new). It execs what you
     # pick, so when that exits the tab closes with it.
     out += ["    new_tab_template {", "        " + top,
             '        pane command="%s" {' % PHOSPHOR,
             "            close_on_exit true", '            args "new"', "        }"] \
-        + (["        " + bottom] if bottom else []) + ["    }", ""]
+        + under + ["    }", ""]
     every = deckconf.effective_tabs(prof) if tabs is None else tabs
     for i, tab in enumerate(every):
         foc = " focus=true" if (tab["name"] == land if land else i == 0) else ""
@@ -210,7 +222,7 @@ def tab_kdl(tab, ctx, src):
     """A standalone tab layout, for `zellij action new-tab --layout`."""
     return "\n".join([HEADER % src, "layout {",
         "    " + bars(ctx)[0], tab_body(tab, ctx, 4)]
-        + (["    " + bars(ctx)[1]] if bars(ctx)[1] else []) + ["}"])
+        + ["    " + b for b in bottoms(ctx)] + ["}"])
 
 UNIT = """[Unit]
 Description=Phosphor fleet mount - %(name)s (rclone sftp)

@@ -30,7 +30,7 @@ The keys they know are the ones in the tables below (tabs.d files too).
 | key | default | what |
 |---|---|---|
 | version | 1 | which shape the profile is: `phosphor init` writes the current one, `phosphor migrate` brings an older one up to date; leave it to them |
-| declined | [] | the new defaults you said no to in `phosphor migrate` (`"sys-cards"`): never offered again; take one out to be asked again |
+| declined | [] | the new defaults you said no to in `phosphor migrate` (`"sys-cards"`, `"bar"`): never offered again; take one out to be asked again |
 | session | "deck" | the session's name; it shows in the tab bar |
 | command | "deck" | the one-word command that gets you in (`~/.local/bin/<it>`) |
 | theme | "p31" | p31 green, p3 amber, p4 white, ega (the 16 colors of an old PC), paper (e-ink); `phosphor theme` previews them |
@@ -230,6 +230,29 @@ left out keeps its default; `""` turns one off.
 | controls | "Alt g" | take and give back zellij's controls |
 | tabs | "Alt" | this + 1..9 goes to a tab ("Alt", "Ctrl Alt", "Ctrl Shift") |
 | panes | "Alt" | this + arrows moves between panes |
+
+## [bar]
+
+A row of keys along the bottom of every tab: `⌂ HOME Alt-1   ? ASK Alt-q   ✎ NOTE Alt-j   ⇲ EDIT Alt-r   ⤢ ZOOM Alt-z      ● 2`.
+It's not `bar` under [deck], which is zellij's own bars at the top and bottom.
+
+| key | default | what |
+|---|---|---|
+| enabled | false | the row under every tab (`phosphor init` writes `true`). `false` takes it away |
+
+- **HOME** goes to the first tab.
+- **ASK, NOTE, EDIT, ZOOM** do what their Alt key does, on the pane you were in before you tapped.
+  The shortcuts shown are the ones in [keys]; a key turned off shows none.
+- **The light** on the right is glance's: green, amber or red, dim when there's no fleet data,
+  and the number of fleet problems beside it. A tap opens `phosphor glance` in place of the pane;
+  `q` gives the pane back.
+
+Where there's room, each key shows its glyph, word and shortcut. Narrower, only the glyph and
+word. On a phone-width screen, only the words. It fits from 30 columns up.
+
+New decks get the bar. `phosphor migrate` offers it to an older profile; if you say no, `bar`
+goes into `[deck] declined` and it's never offered again. A change takes effect with
+`phosphor gen && phosphor restart`. How to use the bar from the keyboard: keys.md.
 
 ## [notes]
 

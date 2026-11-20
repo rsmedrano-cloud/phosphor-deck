@@ -14,8 +14,12 @@ deck, with the phone's line as a QR to scan with the camera.
 
 The brain answers with a script made for your deck: the phone's ssh key (your
 password one last time), a `deck` command, a Termux:Widget icon, and extra keys
-(KEYBOARD, EDIT, ZOOM, EXIT). Run it again any time; it only adds what's
-missing, and a phone with the kit's older keys gets EDIT too. A kit that
+(KEYBOARD, EDIT, ZOOM, EXIT). With the key bar on (`[bar]`, the default for
+new decks), EDIT is on the bar instead, so the extra keys are KEYBOARD, ESC,
+TAB, CTRL, ALT, UP, DOWN, ZOOM and EXIT. ZOOM stays: a zoomed pane hides the
+bar, so ZOOM is the way back. EXIT stays too, since zellij can only detach the
+client a key came from. Run the kit again any time: a phone with the kit's
+older keys gets EDIT too, and the row follows `[bar]` either way. A kit that
 arrives cut short (the link dropped halfway) runs none of itself; sh says
 `syntax error` or `end of file`, and you run the same line again.
 

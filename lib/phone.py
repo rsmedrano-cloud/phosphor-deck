@@ -5,7 +5,8 @@ On the brain it prints what to type on the phone. Piped (that's how the
 phone asks for it: `ssh you@brain '~/.local/bin/phosphor phone' | sh`) it
 prints a Termux script made for this deck: a key so the password is asked
 one last time, the `deck` command, a Termux:Widget icon and the extra keys
-that make touch comfortable (KEYBOARD brings the keyboard back, EDIT, ZOOM, EXIT).
+that make touch comfortable (KEYBOARD brings the keyboard back, EDIT, ZOOM, EXIT;
+EDIT lives on the key bar instead when [bar] is on).
 
 It uses plain ssh on purpose: mosh doesn't carry the mouse, so no touch.
 
@@ -88,14 +89,14 @@ for old in @OLDKEYS@; do
   fi
 done
 if grep -qxF 'extra-keys = @KEYS@' "$P"; then
-  say "extra keys: KEYBOARD, EDIT, ZOOM, EXIT"
+  say "extra keys: @KEYNAMES@"
 elif grep -q '^[[:space:]]*extra-keys' "$P"; then
   say "you already have extra-keys; for the deck's, replace them with:"
   echo '  extra-keys = @KEYS@'
 else
   echo 'extra-keys = @KEYS@' >> "$P"
   termux-reload-settings 2>/dev/null || true
-  say "extra keys added: KEYBOARD, EDIT, ZOOM, EXIT"
+  say "extra keys added: @KEYNAMES@"
 fi
 
 # 5. Share -> Termux -> Edit: a file from any app lands in the brain's ~/received
@@ -229,21 +230,43 @@ def launcher(prof, kind=""):
 def target(prof):
     return "%s@%s" % (getpass.getuser(), address(prof))    # not $USER: may be unset
 
-def keys_row(prof):
-    """The extra keys, with EDIT, ZOOM and EXIT sending the keys in [keys]."""
+def deck_keys(prof, bar=None):
+    """[(action, label)] the extra keys add for the deck: EDIT, ZOOM and EXIT;
+    under the key bar ([bar]) EDIT is on the bar instead. ZOOM stays: a
+    zoomed pane covers the whole tab, the bar too, and this is the way back.
+    EXIT stays: zellij detaches the client a key came from, and nothing a
+    bar runs can say which client tapped it."""
+    import bar as keybar
+    on = keybar.enabled(prof) if bar is None else bar
+    return ([] if on else [("edit", "EDIT")]) + [("zoom", "ZOOM"), ("leave", "EXIT")]
+
+def keys_row(prof, bar=None):
+    """The extra keys, the deck's sending the keys in [keys]."""
     import shortcuts
     k = shortcuts.current(prof)
     row = ['{key: KEYBOARD, popup: DRAWER}', 'ESC', 'TAB', 'CTRL', 'ALT', 'UP', 'DOWN']
-    for action, label in (("edit", "EDIT"), ("zoom", "ZOOM"), ("leave", "EXIT")):
+    for action, label in deck_keys(prof, bar):
         if k[action]:
             row.append('{macro: "%s", display: "%s"}' % (shortcuts.phone_macro(k[action]), label))
     return "[[" + ", ".join(row) + "]]"
+
+def key_names(prof):
+    import shortcuts
+    k = shortcuts.current(prof)
+    return ", ".join(["KEYBOARD"] + [label for action, label in deck_keys(prof) if k[action]])
+
+def old_rows(prof):
+    """Rows an earlier kit wrote: those, and this profile's row with the bar
+    the other way (turning [bar] on or off swaps them on the next kit)."""
+    other = keys_row(prof, bar=not __import__("bar").enabled(prof))
+    return OLD_KEYS + ([other] if other != keys_row(prof) else [])
 
 def script(prof, kind="phone"):
     sess = ((prof or {}).get("deck") or {}).get("session", "deck")
     cmd = launcher(prof, kind)
     return whole(SCRIPT.replace("@T@", target(prof)).replace("@Z@", proc.zellij() or "zellij")
-                  .replace("@S@", sess).replace("@C@", cmd).replace("@OLDKEYS@", " ".join("'%s'" % k for k in OLD_KEYS)).replace("@KEYS@", keys_row(prof))
+                  .replace("@S@", sess).replace("@C@", cmd).replace("@OLDKEYS@", " ".join("'%s'" % k for k in old_rows(prof))).replace("@KEYS@", keys_row(prof))
+                  .replace("@KEYNAMES@", key_names(prof))
                   .replace("@CLIP@", clip_line(prof)))
 
 def qr_lines(text, w):
