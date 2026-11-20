@@ -11,7 +11,7 @@ and the rest stubbed to leave a mark if anything calls them.
 import os, subprocess, sys, tempfile
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "lib"))
-import commands
+import cli, commands
 
 fails = []
 tmp = tempfile.mkdtemp(prefix="phosphor-help-")
@@ -64,6 +64,25 @@ for argv in (["note", "--kind", "idea", "--help"], ["restart", "--dry-run", "-h"
         fails.append("%s: ran instead of explaining (exit %d)" % (" ".join(argv), r.returncode))
     for f in (notes, mark):
         if os.path.exists(f): os.remove(f)
+
+# The commands that answer --help themselves too, with a word before it:
+# `push on --help` turned push on, `theme p3 --help` saved the theme.
+before = open(prof).read()
+for cmd in sorted(c for c, d in cli.entries(hidden=True).items() if d.get("own_help") and c != "mention-hook"):
+    for argv in ([cmd, "on", "--help"], [cmd, "p3", "-h"]):
+        try:
+            r = subprocess.run([sys.executable, os.path.join(ROOT, "phosphor")] + argv, env=env,
+                               stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=20)
+        except subprocess.TimeoutExpired:
+            fails.append("%s: still running after 20s" % " ".join(argv)); continue
+        if r.returncode != 0:
+            fails.append("%s: exit %d" % (" ".join(argv), r.returncode))
+        if open(prof).read() != before:
+            fails.append("%s: changed the profile" % " ".join(argv))
+            open(prof, "w").write(before)
+        for f in (notes, mark):
+            if os.path.exists(f):
+                fails.append("%s: ran instead of explaining" % " ".join(argv)); os.remove(f)
 
 if fails:
     print("\n".join(fails)); sys.exit(1)

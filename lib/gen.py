@@ -793,7 +793,7 @@ def run(prof, src, dry=False):
         print(row(WARN, "shell", "%s isn't installed" % want, note="panes use " + deckconf.shell(prof)))
     ed = editor(ctx).split()[0] if editor(ctx) else ""
     if ctx.deck.get("editor") and not deckconf.exe(ed):
-        print(row(WARN, "editor", "%s isn't installed" % ed, note="phosphor store has micro and helix"))
+        print(row(WARN, "editor", "%s isn't installed" % ed, note="phosphor store has helix"))
 
     print("\n" + rule("session layout"))
     write(os.path.join(ZDIR, "%s.kdl" % ctx.deck.get("session", "deck")),
@@ -870,8 +870,11 @@ def run(prof, src, dry=False):
         print("  " + OK + " %d files written." % len(changed))
     if changed and not dry:
         try:
-            live = subprocess.run([resolve("zellij"), "list-sessions", "-n"], capture_output=True,
-                                  text=True).stdout.startswith(ctx.deck.get("session", "deck") + " ")
+            # any line, not only the first, and not a dead one left in zellij's cache
+            sess = ctx.deck.get("session", "deck")
+            out = subprocess.run([resolve("zellij"), "list-sessions", "-n"], capture_output=True,
+                                 text=True).stdout
+            live = any(l.split()[:1] == [sess] and "EXITED" not in l for l in out.splitlines())
         except OSError:                   # no zellij yet: nothing is running
             live = False
         if live:

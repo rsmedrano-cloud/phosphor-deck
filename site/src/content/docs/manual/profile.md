@@ -314,7 +314,7 @@ calls it: a fleet host going down or coming back, a chat mention or DM).
 | key | default | what |
 |---|---|---|
 | enabled | false | speak notifications aloud |
-| voice | "glados" | voice profile: glados, adjutant, hal, synth, system |
+| voice | "glados" | voice profile: glados, adjutant, hal, spanish, synth, system |
 | glados_path | "~/.local/share/phosphor/glados-tts" | path to GLaDOS-TTS installation |
 | volume | 1.0 | volume (0.0 to 1.0) |
 | fleet_alerts | false | also announce fleet health alerts |

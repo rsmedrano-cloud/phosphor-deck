@@ -123,6 +123,7 @@ def install(app, say):
             if len(cands) >= 1: found = max(cands, key=os.path.getsize)
         if not found: raise RuntimeError("couldn't find the binary inside the package")
         dst = os.path.join(BIN, target)
+        os.makedirs(BIN, exist_ok=True)   # a fresh machine may not have it yet
         shutil.copy(found, dst); os.chmod(dst, 0o755)
     return tag
 

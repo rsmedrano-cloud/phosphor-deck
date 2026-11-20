@@ -716,7 +716,8 @@ def state():
     g_ok, g_detail = is_glados_ready(get_glados_dir(cfg))
     piper, (_, system), (player, _) = find_piper(), find_system_tts(), find_audio_player()
     why = None
-    if cfg["enabled"] and not player:
+    # the system voice (espeak, say, spd-say) plays by itself: no player needed
+    if cfg["enabled"] and not player and not (cfg["voice"] == "system" and system):
         why = "no audio player found (aplay, paplay or pw-play): nothing is heard"
     elif cfg["enabled"] and cfg["voice"] == "glados" and not g_ok:
         why = "the GLaDOS voice isn't ready (%s): phosphor tts install glados" % g_detail

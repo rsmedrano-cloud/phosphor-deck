@@ -52,9 +52,15 @@ def main():
     # Anywhere before a `--` (`note --kind idea --help` wrote one too), not after
     # it: there it belongs to the text or the command being passed along.
     opts = sys.argv[2:sys.argv.index("--")] if "--" in sys.argv else sys.argv[2:]
-    if {"-h", "--help"} & set(opts) and not (cli.get(cmd) or {}).get("own_help"):
+    asked = bool({"-h", "--help"} & set(opts))
+    own = (cli.get(cmd) or {}).get("own_help")
+    if asked and not own:
         if cli.help_for(cmd):
             return 0
+    # The own_help ones only look at their first word: `push on --help` turned
+    # push on and `theme p3 --help` saved the theme. Ask them the plain way.
+    if asked and own and cmd != "mention-hook" and opts[0] not in ("-h", "--help"):
+        sys.argv[2:] = ["--help"]
 
     # a flag the command doesn't take is a usage error, not something it
     # silently ignores (or, worse, reads as a word: a note titled "--kidn")

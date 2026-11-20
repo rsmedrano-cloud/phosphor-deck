@@ -139,6 +139,8 @@ def main():
         except (IndexError, ValueError):
             print("usage: phosphor send FILE [--timeout SECONDS]"); return 1
         del a[i:i + 2]
+    if not a:                             # `send --timeout 5`: a timeout, no file
+        print("usage: phosphor send FILE [--timeout SECONDS]"); return 1
     prof, _ = deckconf.load()
     return send(a[0], prof, timeout)
 

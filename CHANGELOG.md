@@ -6,6 +6,22 @@ before it updates.
 
 ## Unreleased
 
+## 2.8.0 — Stable catches up
+
+- On stable, this takes in everything since 2.7.0 (2.7.1 to 2.7.11 below), above all the fix
+  for the lockout with browser access on (2.7.4) and the screen that says why the deck won't
+  start (2.7.5).
+- `phosphor CMD --help` only explains, wherever the `--help` goes: `phosphor push on --help`
+  turned push on and `phosphor theme p3 --help` saved the theme.
+- `phosphor send --timeout 5` with no file prints its usage instead of a traceback.
+- `phosphor gen` says "next: phosphor restart" whenever the deck is running, not only when it's
+  the first session zellij lists, and not for a dead one.
+- `phosphor store` installs on a machine with no `~/.local/bin` yet.
+- `phosphor tts status` no longer says nothing is heard with the system voice and no audio
+  player: espeak, say and spd-say play by themselves.
+- The store's editor hint names helix only (micro isn't in it), and the docs list the
+  `spanish` voice.
+
 ## 2.7.11 — Privacy also catches your handle
 
 ### Changed (#98)

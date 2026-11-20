@@ -166,7 +166,7 @@ panes = [ { cmd = "phosphor notes" } ]
 # topic   = "deck-change-me-to-something-long-and-random"
 
 # ── TEXT-TO-SPEECH NOTIFICATIONS ────────────────────────────
-# Speak notifications aloud when received. Voices: glados, adjutant, hal, synth, system.
+# Speak notifications aloud when received. Voices: glados, adjutant, hal, spanish, synth, system.
 # Install GLaDOS neural models with: phosphor tts install glados
 # [tts]
 # enabled = true

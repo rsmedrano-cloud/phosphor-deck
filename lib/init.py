@@ -469,7 +469,7 @@ def pick_one(question, names, current, note):
 def tools():
     """The editor files open with and the shell every shell pane runs."""
     ed = pick_one("editor for files", deckconf.EDITORS, deckconf.editor(None),
-                  "(more in phosphor store: micro, helix)")
+                  "(more in phosphor store: helix)")
     shell = pick_one("shell for new panes", deckconf.SHELLS, deckconf.login_shell() or "bash",
                   "(yours by default)")
     return ed, shell
