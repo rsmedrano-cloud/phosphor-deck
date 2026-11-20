@@ -53,7 +53,7 @@ def fake_sh(cmd, t=10, err=False):
     if cmd.startswith("tailscale status --json"):
         return 0, TS_JSON
     if cmd.startswith("hostname -I"):
-        return 0, "192.168.1.50"
+        return 0, "198.51.100.50"
     return 1, ""
 init.proc.sh = fake_sh
 

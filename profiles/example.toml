@@ -92,7 +92,7 @@ ssh   = "pi"
 # [[ci.pipelines]]
 # name     = "Phosphor Deck (GitLab)"
 # provider = "gitlab"
-# repo     = "rsmedranojobs/phosphor-deck"
+# repo     = "nimbus/phosphor-deck"
 # url      = "https://gitlab.com"
 # [[ci.pipelines]]
 # name     = "Frontend (GitHub)"

@@ -148,6 +148,7 @@ check "glance: fleet, mentions, todos"     python3 tests/glance-check.py
 check "mirror: one pane for a slow screen"  python3 tests/mirror-check.py
 check "solaros: the switch, pairing, the panel menu" python3 tests/solaros-check.py
 check "phosphor review: MRs/PRs, safely"   python3 tests/review-check.py
+check "privacy: your handle and glab login block" python3 tests/privacy-check.py
 check "phosphor screens: who's attached, kick one" python3 tests/screens-check.py
 check "phosphor mem: memory per tab and pane" python3 tests/mem-check.py
 check "animations slow down for a screen through a relay" python3 tests/relay-check.py

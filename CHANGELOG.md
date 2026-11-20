@@ -6,6 +6,12 @@ before it updates.
 
 ## Unreleased
 
+## 2.7.11 — Privacy also catches your handle
+
+### Changed (#98)
+
+- **`phosphor privacy` also flags your git handle and your glab login.** The part of your git email before the @ and the user glab is logged in as now count as findings, like your email does. Phosphor's examples and fixtures no longer carry a real handle or private addresses.
+
 ## 2.7.10 — Refused attaches leave a trace, not a count
 
 ### Changed (#96)

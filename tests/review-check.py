@@ -19,11 +19,11 @@ def check(what, ok):
 # the "check" job's image has no `git` on purpose (fast, no network), so
 # this can't shell out and expect an answer. Cover both hosts and both
 # URL shapes (https, ssh-style) instead.
-check("gitlab https", review.provider("https://gitlab.com/rsmedranojobs/phosphor-deck.git") == "gitlab")
+check("gitlab https", review.provider("https://gitlab.com/nimbus/phosphor-deck.git") == "gitlab")
 check("github ssh", review.provider("git@github.com:owner/repo.git") == "github")
 check("neither", review.provider("https://example.com/x/y.git") is None)
-slug = review.repo_slug("https://gitlab.com/rsmedranojobs/phosphor-deck.git")
-check("repo slug looks like owner/name", slug == "rsmedranojobs/phosphor-deck")
+slug = review.repo_slug("https://gitlab.com/nimbus/phosphor-deck.git")
+check("repo slug looks like owner/name", slug == "nimbus/phosphor-deck")
 check("repo slug from ssh-style remote", review.repo_slug("git@github.com:owner/repo.git") == "owner/repo")
 
 # 2. GitLab list parsing, without touching the network
@@ -31,7 +31,7 @@ class FakeResult:
     def __init__(self, out): self.returncode, self.stdout, self.stderr = 0, out, ""
 
 GITLAB_JSON = json.dumps([{
-    "iid": 4, "title": "tts support", "author": {"username": "rsmedranojobs"},
+    "iid": 4, "title": "tts support", "author": {"username": "nimbus"},
     "source_branch": "feature/tts", "target_branch": "dev",
     "has_conflicts": False, "draft": False, "web_url": "https://gitlab.com/x/y/-/merge_requests/4",
 }])
@@ -41,7 +41,7 @@ items, err = review.list_gitlab()
 check("gitlab: no error", err is None)
 check("gitlab: one item", len(items) == 1)
 check("gitlab: fields carried over", items and items[0] == {
-    "id": 4, "title": "tts support", "author": "rsmedranojobs",
+    "id": 4, "title": "tts support", "author": "nimbus",
     "src": "feature/tts", "dst": "dev", "conflicts": False, "draft": False,
     "url": "https://gitlab.com/x/y/-/merge_requests/4",
 })

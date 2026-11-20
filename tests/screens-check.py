@@ -32,9 +32,9 @@ def check(what, ok):
 
 
 # 1. WHO_RE: with a remote address, and a local (no parens) login
-m = screens.WHO_RE.match("you       pts/0        2026-09-22 11:07 00:05     1050101 (192.168.1.16)")
+m = screens.WHO_RE.match("you       pts/0        2026-09-22 11:07 00:05     1050101 (198.51.100.16)")
 check("parses tty/idle/pid/from", m and m.group(2) == "pts/0" and m.group(5) == "00:05"
-      and m.group(6) == "1050101" and m.group(7) == "192.168.1.16")
+      and m.group(6) == "1050101" and m.group(7) == "198.51.100.16")
 m2 = screens.WHO_RE.match("you       tty1         2026-09-22 09:00 .        12345")
 check("local login (no parens) still parses", m2 and m2.group(7) is None)
 

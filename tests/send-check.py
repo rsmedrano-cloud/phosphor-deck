@@ -25,15 +25,15 @@ class FakeMesh:
 fm = FakeMesh()
 send.mesh = fm
 send.tailnet_ip = lambda: "203.0.113.10"     # RFC 5737 TEST-NET-3: never a real address
-send.lan_ip = lambda: "192.168.1.50"
+send.lan_ip = lambda: "198.51.100.50"
 
 fm.kind = "tailscale"
 need("tailnet address when there's a tailnet", send.pick_address(None) == ("203.0.113.10", "tailnet"))
 fm.kind = "none"
-need("LAN address otherwise", send.pick_address(None) == ("192.168.1.50", "LAN"))
+need("LAN address otherwise", send.pick_address(None) == ("198.51.100.50", "LAN"))
 send.tailnet_ip = lambda: ""            # tailscale client present but no IP yet
 fm.kind = "tailscale"
-need("falls back to LAN if the tailnet IP can't be read", send.pick_address(None) == ("192.168.1.50", "LAN"))
+need("falls back to LAN if the tailnet IP can't be read", send.pick_address(None) == ("198.51.100.50", "LAN"))
 
 # where it listens: the picked address only, not every interface (#93)
 import contextlib, io

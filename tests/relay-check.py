@@ -28,7 +28,7 @@ def check(what, ok):
 STATUS = {"Peer": {
     "a": {"HostName": "Pixel", "DNSName": "pixel.tail1234.ts.net.", "TailscaleIPs": ["203.0.113.2", "fd7a::1"],
           "CurAddr": "", "Relay": "lhr"},
-    "b": {"HostName": "relay", "TailscaleIPs": ["203.0.113.3"], "CurAddr": "192.168.1.13:41641", "Relay": "lhr"},
+    "b": {"HostName": "relay", "TailscaleIPs": ["203.0.113.3"], "CurAddr": "198.51.100.13:41641", "Relay": "lhr"},
     "c": {"HostName": "nimbus", "TailscaleIPs": ["203.0.113.9"], "CurAddr": "", "Relay": ""},
 }}
 r = relay.relayed(STATUS)
@@ -40,11 +40,11 @@ check("no tailscale: nothing relayed", relay.relayed(None) == set())
 
 check("from an address", relay.is_relayed("203.0.113.2", r))
 check("from a name (UseDNS)", relay.is_relayed("Pixel.tail1234.ts.net", r))
-check("a LAN screen isn't", not relay.is_relayed("192.168.1.16", r))
+check("a LAN screen isn't", not relay.is_relayed("198.51.100.16", r))
 check("a local login isn't", not relay.is_relayed("local", r) and not relay.is_relayed("", r))
 check("an address never matches by its first label", not relay.is_relayed("203.1.1.1", {"203"}))
 
-rows = [{"from": "203.0.113.2", "session": "deck-phone"}, {"from": "192.168.1.16", "session": "deck"}]
+rows = [{"from": "203.0.113.2", "session": "deck-phone"}, {"from": "198.51.100.16", "session": "deck"}]
 real = screens.screens
 asked = []
 screens.screens = lambda s: (asked.append(s), [x for x in rows if x["session"] == s])[1]

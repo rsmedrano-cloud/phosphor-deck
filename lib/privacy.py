@@ -2,9 +2,9 @@
 publish. Project Phosphor Deck.
 
 What counts as yours is read from your own setup, never written here: the
-host names, IPs, users and ssh aliases in your profile, your git email, your
-user and home, tailscale addresses, your headscale server, and your
-matterhorn server and login.
+host names, IPs, users and ssh aliases in your profile, your git email and
+the handle before its @, your glab login, your user and home, tailscale
+addresses, your headscale server, and your matterhorn server and login.
 
   phosphor privacy            scan what's staged/tracked (the git index)
   phosphor privacy --hook     same, quiet unless something turns up (pre-commit)
@@ -53,7 +53,12 @@ def tokens():
             put(h.get("user"), "user in your profile", True)
             put(h.get("name"), "host name", False)
             put(h.get("ssh"), "ssh alias", False)
-    put(git("config", "user.email").stdout, "your git email", True)
+    email = git("config", "user.email").stdout.strip()
+    put(email, "your git email", True)
+    if "@" in email:
+        put(email.split("@", 1)[0], "your handle (git email)", True)
+    for login in glab_logins():
+        put(login, "your glab login", True)
     user = os.environ.get("USER", "")
     put(user, "your user", True)
     home = os.path.expanduser("~")
@@ -83,6 +88,18 @@ def tokens():
             dlog.event("PRIVACY", "matterhorn-config-failed")
     return T
 
+def glab_logins():
+    """The users glab is logged in as, from its config file (no network).
+    gh's isn't read: a GitHub owner is usually the repo's public home, in
+    every install URL."""
+    base = os.environ.get("GLAB_CONFIG_DIR") or os.path.join(
+        os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"), "glab-cli")
+    try:
+        text = open(os.path.join(base, "config.yml")).read()
+    except OSError:
+        return []
+    return sorted(set(re.findall(r"^\s+user:\s*['\"]?([\w.-]+)", text, re.M)))
+
 ALLOW = ".privacy-allow"
 
 def allowed():
@@ -106,8 +123,11 @@ def scan():
     for f in files:
         blob = git("show", ":" + f).stdout
         for n, line in enumerate(blob.splitlines(), 1):
+            hit = []
             for rx, t, k, h in pats:
-                if rx.search(line):
+                # the handle inside the email is one finding, not two
+                if rx.search(line) and not any(t.lower() in o.lower() for o in hit):
+                    hit.append(t)
                     if not h and f in ok.get(t.lower(), ()):
                         let += 1; continue
                     out.append((f, n, k, h, t))

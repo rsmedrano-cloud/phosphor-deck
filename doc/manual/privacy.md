@@ -59,8 +59,10 @@
   or copies the token.
 - Your profile is personal and lives in `~/.config`, not the repo. Before you
   push a fork: `phosphor privacy` (or `--install` as a pre-commit hook). It
-  reads your profile, git email, user, home, tailscale addresses, headscale
-  and matterhorn servers, and scans what git would publish.
+  reads your profile, git email and its handle (before the @), glab's login
+  (its config file, no network), user, home, tailscale addresses, headscale
+  and matterhorn servers, and scans what git would publish. gh's login is
+  not read: a GitHub owner is often the repo's own public home.
 - A host name that appears on purpose (an example, a CI runner tag) goes in
   `.privacy-allow` at the top of the repo, with the files it may appear in:
   `myserver  profiles/example.toml README.md`. It still warns anywhere else,

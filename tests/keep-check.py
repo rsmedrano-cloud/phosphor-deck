@@ -23,8 +23,8 @@ import keep
 # absolute, and with the addresses gen would expand: the point of the test is
 # that a kept tab keeps the tokens, not what they happened to resolve to
 PROFILE = {"deck": {"mount_root": "/home/someone/fleet"},
-           "hosts": [{"name": "brain", "role": "brain", "local": True, "ip": "10.0.0.1"},
-                     {"name": "workbox", "role": "work", "ssh": "workbox", "ip": "10.0.0.2", "mount": "/"}]}
+           "hosts": [{"name": "brain", "role": "brain", "local": True, "ip": "203.0.113.1"},
+                     {"name": "workbox", "role": "work", "ssh": "workbox", "ip": "203.0.113.2", "mount": "/"}]}
 
 WANT = {
     "WORK": '''[[tabs]]
