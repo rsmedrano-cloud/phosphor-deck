@@ -59,6 +59,31 @@ def where_am_i():
     if MARK in name: name = name.split(MARK)[0]       # "SYS ✎ Alt r" while it's edited
     return mine["tab_id"], mine["tab_position"], name, covered
 
+_covering = []
+
+def covering():
+    """(name, still running) of the pane this screen was opened over, in
+    place (a key on the bar, an Alt key), or None. That pane is only hidden
+    underneath: it comes back when this screen ends. Asked once a process."""
+    if not _covering:
+        found = None
+        here = where_am_i() if os.environ.get("ZELLIJ_PANE_ID") else None
+        if here and here[3] is not None:
+            p = next((p for p in panes() if p["id"] == here[3] and not p["is_plugin"]), None)
+            if p:
+                name = p.get("title") or os.path.basename((p.get("pane_command") or "").split(" ")[0]) or "the pane"
+                found = (name, not p.get("exited"))
+        _covering.append(found)
+    return _covering[0]
+
+def back_line():
+    """The first line of a screen opened over a pane (#110): how to get back
+    to it, and that it's still there; "" over nothing."""
+    over = covering()
+    if not over:
+        return ""
+    return "  " + DIM + "Esc: back to " + RST + FG + over[0] + RST + DIM + (" (still running)" if over[1] else "") + RST
+
 def argv_of(pane_id):
     """The command line a pane was started with, from its first process."""
     procs = pane_procs(pane_id)
@@ -193,7 +218,7 @@ def in_profile(name):
 def begin(tab_id, name, covered):
     import shortcuts
     ek = shortcuts.dash(shortcuts.current(deckconf.load()[0])["edit"])
-    head = ["", BLOOM + "  EDIT " + name + RST, "",
+    head = [back_line(), BLOOM + "  EDIT " + name + RST, "",
             "  " + FG + "The tab unlocks until you're done." + RST,
             "  " + DIM + "resize: drag a border, or Ctrl-n and the arrows" + RST,
             "  " + DIM + "panes: Ctrl-p n / x, or split and close from %s" % ek + RST,
@@ -229,7 +254,7 @@ def done(tab_id, pos, name, covered, st):
     diff = changes(before, now)
     mine, src = origin(name)
     known = mine or bool(src)
-    head = ["", BLOOM + "  EDIT " + name + RST + DIM + "  what changed" + RST, ""]
+    head = [back_line(), BLOOM + "  EDIT " + name + RST + DIM + "  what changed" + RST, ""]
     head += ["  " + FG + "· " + d + RST for d in diff] or ["  " + DIM + "nothing yet" + RST]
     if src:
         head += ["", "  " + AMB + name + " comes from " + src.replace(os.path.expanduser("~"), "~", 1)

@@ -6,6 +6,19 @@ before it updates.
 
 ## Unreleased
 
+## 2.8.3 — the key bar: two rows, and the way back
+
+### Fixed (#110, #111)
+
+- **The key bar is two rows tall.** Each key shows its glyph over its word, and where there's
+  room the glyph row has the shortcut too. Narrow screens show the glyph over the word, with less
+  space between keys. The light shows its problem count under the dot. With one row, the last line
+  of the pane above could be hidden under the bar in zellij 0.45 and 0.46. A tap on either row of a
+  key works. Run `phosphor gen && phosphor restart` to get the two-row bar.
+- **Esc says how to get back.** A screen the bar opens over a pane (the light's glance, ASK, NOTE,
+  EDIT) starts with `Esc: back to <pane> (still running)`. The pane keeps running underneath. Glance
+  over a pane now leaves with Esc too, not only with q. ASK's answer says `q: back to <pane>`.
+
 ## 2.8.2 — phosphor home, the grid prototype
 
 ### Added (#101)

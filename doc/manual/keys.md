@@ -69,7 +69,10 @@ menus) takes these two the same way:
   a page for its list, gives the tab back to a zoomed pane. With nothing
   left to go back from, it closes a screen you opened from somewhere (a
   card, a key of the DECK tab, the `+` menu, a shell) and you're back
-  there. A pane of your tab stays where it is: Esc never closes it.
+  there. A screen the key bar opens over a pane (glance, ASK, NOTE, EDIT)
+  says `Esc: back to <pane> (still running)` on its first line; Esc gives
+  you the pane back, and it kept running. A pane of your tab stays where
+  it is: Esc never closes it.
 - **q** closes what you're looking at: a page goes back to its list, a
   picker to the step before it, a panel ends. A pane of your tab then
   asks, like any program that ends (below): Enter opens it again.
@@ -119,14 +122,21 @@ it does it when it names a key of the DECK tab.
 
 ## The key bar
 
-With `[bar]` on (the default for new decks, see profile), the bottom line of
-every tab has five keys and the fleet light:
+With `[bar]` on (the default for new decks, see profile), the bottom two rows
+of every tab have five keys and the fleet light. Each key shows its glyph over
+its word; where there's room, the top row also has the shortcut:
 
-    ⌂ HOME Alt-1   ? ASK Alt-q   ✎ NOTE Alt-j   ⇲ EDIT Alt-r   ⤢ ZOOM Alt-z      ● 2
+     ⌂ Alt-1   ? Alt-q   ✎ Alt-j   ⇲ Alt-r   ⤢ Alt-z        ●
+      HOME       ASK      NOTE      EDIT      ZOOM          2
 
-A tap runs a key the way its Alt key does, on the pane you were in before you
-tapped. HOME goes to the first tab. The light opens `phosphor glance` in place
-of the pane; `q` gives the pane back.
+Narrower, only the glyph over the word:
+
+      ⌂      ?     ✎      ⇲      ⤢       ●
+     HOME   ASK   NOTE   EDIT   ZOOM     2
+
+A tap on either row of a key runs it the way its Alt key does, on the pane you
+were in before you tapped. HOME goes to the first tab. The light opens
+`phosphor glance` in place of the pane; `q` or Esc gives the pane back.
 
 From the keyboard: Alt-Down moves into the bar. Left and Right pick a key, Enter
 runs it, Esc or q gives the focus back.

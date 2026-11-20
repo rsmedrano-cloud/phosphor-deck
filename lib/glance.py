@@ -319,6 +319,8 @@ DOWN = ("\x1b[B", "\x1bOB", "j", "\x1b[C", "\x1bOC", "\t")
 BACK = ("\x1b", "\x7f", "\x08", "h")
 IDLE = 120         # this long with no key, the cursor goes and the summary is back
 
+OVER = False   # watch() opened over a pane: Esc gives it back
+
 def press(v, k, items):
     """One key on the screen's state v ({"sel", "page", "act"}): sel is the
     summary's cursor (None: no cursor, the screen as it sits on a shelf),
@@ -344,8 +346,8 @@ def press(v, k, items):
         elif k in BACK + ("q", "Q"):
             v["page"] = None
         return None
-    if k in ("q", "Q") or (k == "\x1b" and v["sel"] is None and zoom.tapped()):
-        return "quit"                    # Esc: opened by a card, back to it (keys.md)
+    if k in ("q", "Q") or (k == "\x1b" and v["sel"] is None and (zoom.tapped() or OVER)):
+        return "quit"                    # Esc: opened by a card or over a pane, back to it (keys.md)
     if not items:
         v["sel"] = None
     elif k in UP:
@@ -582,20 +584,25 @@ def watch(show):
     dlog.event("GLANCE", "start", "TERM=%s %dx%d" % (os.environ.get("TERM", "?"), size.columns, size.lines))
     sys.stdout.write("\x1b[?1049h\x1b[?25l")
     loud = ui.quiet()
+    import edit
+    global OVER
+    back = edit.back_line()              # opened over a pane (the bar's light): the way back, on top
+    OVER = bool(back)
+    top = 2 if back else 1
     v = {"sel": None, "page": None, "act": 0}
     last, prev, painted, clear, why, touched = None, None, 0, True, "?", time.time()
     try:
         while True:
             cols, rows = shutil.get_terminal_size((60, 20))
-            status, lines, items = body(cols, rows - 1, v["sel"])
+            status, lines, items = body(cols, rows - top, v["sel"])
             if v["sel"] is not None and v["sel"] >= len(items):
                 v["sel"] = len(items) - 1 if items else None
-                status, lines, items = body(cols, rows - 1, v["sel"])
+                status, lines, items = body(cols, rows - top, v["sel"])
             if v["page"]:
-                lines = page(v["page"], cols, rows - 1, v["act"])
+                lines = page(v["page"], cols, rows - top, v["act"])
             now = (cols, rows, lines)
             if clear or now != last or time.time() - painted >= HEARTBEAT:
-                out = [show(l) for l in [head(cols, status)] + lines]
+                out = [show(l) for l in ([back] if back else []) + [head(cols, status)] + lines]
                 fresh = clear or not last or last[:2] != now[:2]
                 sys.stdout.write(("\x1b[2J" if clear else "") + paint(out, None if fresh else prev))
                 sys.stdout.flush()

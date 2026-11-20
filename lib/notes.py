@@ -603,11 +603,13 @@ def here(kind=None):
     a tap), write it, and it's saved tagged with this tab. Then it's gone."""
     tab = this_tab()
     kinds = [("n", "note"), ("t", "todo"), ("i", "idea")]
+    import edit
+    back = edit.back_line()
     if kind is None:
         sys.stdout.write("\x1b[?1049h\x1b[?25l\x1b[?1000h\x1b[?1006h"); sys.stdout.flush()
         try:
             while kind is None:
-                sys.stdout.write("\x1b[2J\x1b[H\n  " + BLOOM + "a note" + RST
+                sys.stdout.write("\x1b[2J\x1b[H" + back + "\n  " + BLOOM + "a note" + RST
                                  + (DIM + " from " + RST + PH + tab + RST if tab else "") + "\n\n")
                 for n, (k, name) in enumerate(kinds):
                     sys.stdout.write("   " + AMB + k + RST + "  " + KINDS[name] + name + RST + "\n\n")

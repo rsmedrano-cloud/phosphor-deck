@@ -20,6 +20,12 @@ def screen(lines):
     sys.stdout.flush()
 
 
+def back_line():
+    """The first row of a screen: over a pane (opened in place), how to get
+    back to it (edit.back_line); else blank."""
+    return edit.back_line()
+
+
 def leave():
     """Off the alternate screen, mouse off: what runs next prints normally."""
     sys.stdout.write("\x1b[?1006l\x1b[?1000l\x1b[?1049l\x1b[?25h"); sys.stdout.flush()
@@ -30,7 +36,7 @@ def line(title, hint, initial=""):
     "< back" gives None."""
     q, first = initial, True
     while True:
-        screen(["", "  " + BLOOM + title + RST,
+        screen([back_line(), "  " + BLOOM + title + RST,
                 "  " + AMB + "< back" + RST + DIM + "   (Esc)" + RST,
                 "  " + DIM + hint + RST, "",
                 "  " + AMB + ">" + RST + " " + FG + q + RST + "\x1b[?25h"])

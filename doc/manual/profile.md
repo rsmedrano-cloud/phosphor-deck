@@ -228,22 +228,23 @@ left out keeps its default; `""` turns one off.
 
 ## [bar]
 
-A row of keys along the bottom of every tab: `⌂ HOME Alt-1   ? ASK Alt-q   ✎ NOTE Alt-j   ⇲ EDIT Alt-r   ⤢ ZOOM Alt-z      ● 2`.
+Two rows of keys along the bottom of every tab: each key's glyph over its word, and the
+shortcut on the glyph row where there's room: `⌂ Alt-1   ? Alt-q   ✎ Alt-j   ⇲ Alt-r   ⤢ Alt-z      ●` over `HOME   ASK   NOTE   EDIT   ZOOM   2`.
 It's not `bar` under [deck], which is zellij's own bars at the top and bottom.
 
 | key | default | what |
 |---|---|---|
-| enabled | false | the row under every tab (`phosphor init` writes `true`). `false` takes it away |
+| enabled | false | the two rows under every tab (`phosphor init` writes `true`). `false` takes them away |
 
 - **HOME** goes to the first tab.
 - **ASK, NOTE, EDIT, ZOOM** do what their Alt key does, on the pane you were in before you tapped.
   The shortcuts shown are the ones in [keys]; a key turned off shows none.
 - **The light** on the right is glance's: green, amber or red, dim when there's no fleet data,
-  and the number of fleet problems beside it. A tap opens `phosphor glance` in place of the pane;
-  `q` gives the pane back.
+  and the problem count under the dot (none when there are none). A tap opens `phosphor glance`
+  in place of the pane; `q` or Esc gives the pane back.
 
-Where there's room, each key shows its glyph, word and shortcut. Narrower, only the glyph and
-word. On a phone-width screen, only the words. It fits from 30 columns up.
+Where there's room, the top row shows each key's glyph and shortcut, the bottom row its word.
+Narrower, the top row shows only the glyph. It fits from 30 columns up.
 
 New decks get the bar. `phosphor migrate` offers it to an older profile; if you say no, `bar`
 goes into `[deck] declined` and it's never offered again. A change takes effect with

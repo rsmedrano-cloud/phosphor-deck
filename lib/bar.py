@@ -1,6 +1,8 @@
-"""phosphor bar - one row at the bottom of every tab.
+"""phosphor bar - two rows at the bottom of every tab: each key's glyph
+over its word, the light over its count.
 
-     ⌂ HOME Alt-1   ? ASK Alt-q   ✎ NOTE Alt-j   ⇲ EDIT Alt-r   ⤢ ZOOM Alt-z      ● 2
+     ⌂ Alt-1   ? Alt-q   ✎ Alt-j   ⇲ Alt-r   ⤢ Alt-z        ●
+      HOME       ASK      NOTE      EDIT      ZOOM          2
 
 gen puts it in every tab's template when [bar] enabled = true. A tap on a
 key does what its Alt key does, on the pane you were in: zellij gives the
@@ -11,7 +13,7 @@ pane covers the whole tab, the bar too: Alt-z (ZOOM on a phone's extra
 keys, which keep it for that) gives the tab back.
 
 Where there's room each key shows its shortcut; on a narrow screen (a
-phone) only the word. The light on the right is glance's (green, amber,
+phone) only the glyph and the word. The light on the right is glance's (green, amber,
 red; dim with no fleet data) with the count of fleet problems; a tap opens
 glance in place of the pane. One bar works it out for all of them: the
 first to find the shared answer stale asks glance, in the background.
@@ -37,6 +39,11 @@ LOCK_STALE = 60           # a lock older than this was left by a bar that died
 KEYS = [("home", "⌂", "HOME"), ("ask", "?", "ASK"), ("note", "✎", "NOTE"),
         ("edit", "⇲", "EDIT"), ("zoom", "⤢", "ZOOM")]
 LIGHT = {"green": PH, "amber": AMB, "red": RED}
+# Two rows, not one: zellij (0.45, 0.46) doesn't keep a row for the line
+# over a pane that ends one row above the bottom, under the tab-bar on top:
+# the line and that pane's last line take turns (#111). Two rows tall,
+# zellij keeps it, and a tap on a phone has a taller target.
+ROWS = 2
 # what each pane-bound key opens in place of the pane: (name, phosphor args)
 IN_PLACE = {"ask": ("ASK", ["ask", "--here"]), "note": ("NOTE", ["note", "--here"]),
             "edit": ("EDIT", ["edit"]), "light": ("GLANCE", ["glance"])}
@@ -66,35 +73,43 @@ def shortcuts_of(prof):
 
 
 def light_text(status):
-    """("● 2", color) for the right end; status is the shared answer or None."""
+    """("●", "2", color) for the right end: the light over its count (none
+    with no problems); status is the shared answer or None."""
     st = (status or {}).get("status", "unknown")
     n = (status or {}).get("problems", 0)
-    return ("● %d" % n) if n else "●", LIGHT.get(st, DIM)
+    return "●", ("%d" % n) if n else "", LIGHT.get(st, DIM)
 
 
-# (key text, gap between keys): the richest that fits wins
-def _tiers(keys):
-    full = lambda i, g, w: "%s %s %s" % (g, w, keys[i]) if keys.get(i) else "%s %s" % (g, w)
-    return [(full, 3), (lambda i, g, w: "%s %s" % (g, w), 3), (lambda i, g, w: "%s %s" % (g, w), 2),
-            (lambda i, g, w: w, 2), (lambda i, g, w: w, 1)]
+# (show the shortcut, gap between keys): the richest that fits wins
+TIERS = [(True, 3), (False, 3), (False, 2), (False, 1)]
 
 
-def layout(width, keys, light):
-    """[(start, end, id, text)] across one row of `width` columns, 0-based,
-    end exclusive: the keys from the left, the light at the right end.
-    keys: {id: shortcut}; light: its text. A tap anywhere between two keys
-    goes to the nearer one (hit())."""
-    for fmt, gap in _tiers(keys):
-        texts = [(i, fmt(i, g, w)) for i, g, w in KEYS]
-        need = 1 + sum(len(t) for _, t in texts) + gap * (len(texts) - 1) + 2 + len(light) + 1
+def layout(width, keys, light, rows=ROWS):
+    """[(start, end, id, top, bottom)] across `width` columns, 0-based, end
+    exclusive: the keys from the left, the light at the right end. Each key
+    is a cell, its glyph (and shortcut, where there's room) over its word;
+    on one row (a layout older than the bar's two) only the word.
+    keys: {id: shortcut}; light: (glyph, count). A tap anywhere between two
+    keys goes to the nearer one (hit())."""
+    for short, gap in TIERS:
+        cells = []
+        for i, g, w in KEYS:
+            top = "%s %s" % (g, keys[i]) if short and keys.get(i) else g
+            cells.append((i, top if rows > 1 else "", w))
+        need = 1 + sum(max(len(a), len(b)) for _, a, b in cells) + gap * (len(cells) - 1) + 2 + 3 + 1
         if need <= width:
             break
+    lt, lb = light
+    if rows < 2:
+        lt, lb = "", (lt + " " + lb).strip()
     out, x = [], 1
-    for i, t in texts:
-        out.append((x, x + len(t), i, t))
-        x += len(t) + gap
-    lx = max(x - gap + 2, width - 1 - len(light))
-    out.append((lx, lx + len(light), "light", light))
+    for i, a, b in cells:
+        n = max(len(a), len(b))
+        out.append((x, x + n, i, a, b))
+        x += n + gap
+    n = max(len(lt), len(lb))
+    lx = max(x - gap + 2, width - 1 - n)
+    out.append((lx, lx + n, "light", lt, lb))
     return out
 
 
@@ -102,29 +117,37 @@ def hit(spans, col):
     """The id at this 0-based column: the key under it, else the nearest one."""
     if not spans:
         return None
-    for a, b, i, _ in spans:
+    for a, b, i, *_ in spans:
         if a <= col < b:
             return i
     return min(spans, key=lambda s: min(abs(col - s[0]), abs(col - (s[1] - 1))))[2]
 
 
-def draw(width, keys, status, sel=None):
-    """The row, painted: words in ink, shortcuts dim, the light in its color,
-    the selected key (when the bar has the focus) in reverse."""
-    text, color = light_text(status)
-    spans = layout(width, keys, text)
-    row, x = "", 0
-    for a, b, i, t in spans:
-        row += " " * (a - x)
-        if i == "light":
-            piece = color + t + RST
-        else:
+def draw(width, keys, status, sel=None, rows=ROWS):
+    """(spans, lines): the bar painted, glyphs and words in ink, shortcuts
+    dim, the light in its color, the selected key (when the bar has the
+    focus) in reverse on both rows."""
+    lt, lb, color = light_text(status)
+    spans = layout(width, keys, (lt, lb), rows)
+    lines = []
+    for row in range(min(rows, 2)):
+        line, x = "", 0
+        for a, b, i, top, bottom in spans:
+            text = (top, bottom)[row] if rows > 1 else bottom
+            pad = b - a - len(text)
+            left, right = " " * (pad // 2), " " * (pad - pad // 2)
             short = keys.get(i, "")
-            words = t[:len(t) - len(short)].rstrip() if short and t.endswith(short) else t
-            piece = FG + words + RST + ((" " + DIM + short + RST) if words != t else "")
-        row += ("\x1b[7m" + piece.replace(RST, RST + "\x1b[7m") + RST) if i == sel else piece
-        x = b
-    return spans, row
+            if i == "light":
+                piece = left + color + text + RST + right
+            elif short and text.endswith(" " + short):     # the glyph, its shortcut dim
+                piece = left + FG + text[:-len(short)] + DIM + short + RST + right
+            else:
+                piece = left + FG + text + RST + right
+            line += " " * (a - x)
+            line += ("\x1b[7m" + piece.replace(RST, RST + "\x1b[7m") + RST) if i == sel else piece
+            x = b
+        lines.append(line)
+    return spans, lines
 
 
 # ── the light, shared by every bar ────────────────────────────
@@ -303,6 +326,13 @@ def width():
         return 80
 
 
+def height():
+    try:
+        return os.get_terminal_size(1).lines
+    except OSError:
+        return ROWS
+
+
 def run():
     import termios, tty
     prof, _ = deckconf.load()
@@ -332,8 +362,8 @@ def run():
             frame = (width(), json.dumps(status, sort_keys=True), focused and KEYS[sel][0])
             if frame != shown or resized[0]:
                 resized[0] = False
-                spans, row = draw(frame[0], keys, status, frame[2] or None)
-                out.write("\x1b[H\x1b[2K" + row); out.flush()
+                spans, lines = draw(frame[0], keys, status, frame[2] or None, height())
+                out.write("".join("\x1b[%d;1H\x1b[2K" % (n + 1) + l for n, l in enumerate(lines))); out.flush()
                 shown = frame
             try:
                 ready = select.select([fd], [], [], 2.0)[0]
@@ -385,7 +415,7 @@ def main():
     if "--once" in args:
         prof, _ = deckconf.load()
         w = int(args[args.index("--width") + 1]) if "--width" in args else width()
-        print(draw(w, shortcuts_of(prof), read_status())[1])
+        print("\n".join(draw(w, shortcuts_of(prof), read_status())[1]))
         return 0
     if not sys.stdin.isatty():
         print("phosphor bar: the row at the bottom of each tab; [bar] enabled = true and phosphor gen put it there",

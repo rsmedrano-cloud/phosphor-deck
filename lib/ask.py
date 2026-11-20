@@ -196,7 +196,9 @@ def interactive_here(assistant):
                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     except OSError as e:
         print(BAD + " couldn't run %s: %s" % (chosen, e) + RST); return 1
-    form.pager("  " + q + "\n\n" + r.stdout.decode("utf-8", "replace"))
+    back = form.back_line()
+    form.pager((back.replace("Esc", "q") + "\n" if back else "") + "  " + q + "\n\n"
+               + r.stdout.decode("utf-8", "replace"))
     return r.returncode
 
 

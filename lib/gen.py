@@ -183,11 +183,11 @@ def bars(ctx):
     return (tab, None)
 
 def key_bar(ctx):
-    """[bar] enabled: the row of keys under every tab (lib/bar.py), or None."""
+    """[bar] enabled: the two rows of keys under every tab (lib/bar.py), or None."""
     import bar
     if not bar.enabled(ctx.prof):
         return None
-    return 'pane size=1 borderless=true name="%s" command="%s" { args "bar"; }' % (bar.NAME, PHOSPHOR)
+    return 'pane size=%d borderless=true name="%s" command="%s" { args "bar"; }' % (bar.ROWS, bar.NAME, PHOSPHOR)
 
 def bottoms(ctx):
     """What goes under a tab's panes: the key bar, then zellij's status-bar."""
