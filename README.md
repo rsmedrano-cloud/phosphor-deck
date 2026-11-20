@@ -115,7 +115,7 @@ Alt-x, Ctrl-q  leave — the session keeps running
 Alt-n          new tab in the folder of the pane you're in
 Alt-r          edit this tab: unlock, change, save or put it back
 Alt-j          a note or todo from here: NOTES shows which tab it came from
-Alt-q          ask an assistant about the pane you're in (its screen goes along)
+Alt-q          ask an assistant about the pane you're in (its screen and tab's profile entry go along)
 Alt-m          talk into the pane you're in: a phone records, the words land at the prompt
 Alt-g          take zellij's controls, and give them back
 Esc · q · ?    on the deck's own screens: Esc a step back (never closes a

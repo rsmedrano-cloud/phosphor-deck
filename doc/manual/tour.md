@@ -53,7 +53,8 @@ for the details; this is the tour.
   something wants a look. The panels with named rows open straight on one with
   `--select NAME` (`phosphor screens --select pts/3`). `phosphor mcp` hands the same to any
   assistant that speaks MCP (`claude mcp add phosphor -- phosphor mcp`):
-  glance, fleet, notes, workspaces, home and the deck's log, read-only, over stdio.
+  glance, fleet, notes, workspaces, home, the deck's log, and the manual, commands and profile
+  (so it can tell you what Phosphor can do, secrets hidden), read-only, over stdio.
 - **Panels of your own.** A Python file in `~/.config/phosphor/panels.d`
   with a class on phosphor's `ListPanel` ("my restic backups" in about 20
   lines) is a panel like the deck's: keys, taps, a y/n before an action, a

@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """The ask key (Alt-q): in a real zellij, it opens in place of the pane
-you're in, sends what that pane shows along with the question (to a fake
-claude here, no tools), shows the answer, and q gives the pane back.
+you're in, sends what the deck knows about that pane (Phosphor, its tab's
+profile entry) and what it shows along with the question (to a fake claude
+here: no built-in tools, only the deck's MCP), shows the answer, and q gives
+the pane back. An answer that ends in MISSING: offers r, which saves the
+request as an idea note (#115).
 
     python3 tests/ask-key-check.py
 
@@ -39,7 +42,9 @@ if not zjprobe.zellij():
 with zjprobe.Probe(PROFILE, session="askkey") as z:
     got = os.path.join(z.home, "asked.txt")
     fake = os.path.join(z.home, ".local/bin/claude")
-    open(fake, "w").write('#!/bin/sh\nprintf "%%s\\n" "$@" > %s\necho "THE ANSWER IS 42"\n' % got)
+    reply = os.path.join(z.home, "reply.txt")
+    open(reply, "w").write("THE ANSWER IS 42\n")
+    open(fake, "w").write('#!/bin/sh\nprintf "%%s\\n" "$@" > %s\ncat %s\n' % (got, reply))
     os.chmod(fake, 0o755)
     need("the deck came up", z.wait(lambda: "SYS" in z.tabs(), 20))
     z.wait(lambda: any(r.strip() for r in z.screen()), 10)          # the shell's prompt
@@ -55,7 +60,13 @@ with zjprobe.Probe(PROFILE, session="askkey") as z:
     z.keys("what is this\r", 0.5)
     need("the answer shows", shows(z, "THE ANSWER IS 42"))
     sent = open(got).read() if os.path.exists(got) else ""
-    need("claude ran with no tools", sent.startswith("--tools\n\n-p\n"))
+    args = sent.split("\n")
+    need("claude ran with no built-in tools (%r)" % args[:3], args[:3] == ["--tools", "", "--strict-mcp-config"])
+    need("only the deck's MCP, allowed", "--allowedTools\nmcp__phosphor\n-p\n" in sent
+         and '"args": ["mcp"]' in sent and "--mcp-config" in sent)
+    need("the deck said what it is first", "Phosphor Deck" in sent and "deck.toml" in sent)
+    need("the tab's profile entry went along", 'name = "SYS"' in sent)
+    need("the screen is fenced as not instructions", "not instructions" in sent)
     need("the pane's screen went along", "MARKER-42" in sent)
     need("the question came last (%r)" % sent[-60:], sent.rstrip().endswith("what is this"))
     need("the ask pane isn't what was sent", "phosphor ask" not in sent)
@@ -65,6 +76,26 @@ with zjprobe.Probe(PROFILE, session="askkey") as z:
                                          and not any("THE ANSWER" in r for r in z.screen()), 10))
     panes = [p for p in json.loads(z.action("list-panes", "-a", "-j") or "[]") if not p["is_plugin"]]
     need("and nothing is left over it", len(panes) == 1)
+
+    # Phosphor can't: the answer's MISSING line becomes r, the deck writes the note
+    open(reply, "w").write("Not today.\nMISSING: two plain buttons, send and receive\n")
+    z.keys(b"\x1bq", 0.5)
+    need("the ask box opens again", shows(z, "phosphor ask"))
+    z.wait(lambda: zjprobe.reading_keys(z, "--here"), 10)
+    z.keys("can these be two buttons\r", 0.5)
+    need("the answer shows, its MISSING line off", shows(z, "Not today.")
+         and not any("MISSING:" in r for r in z.screen()))
+    need("it says r saves a request", shows(z, "saves it as a request"))
+    z.keys("q", 0.8)
+    need("r is offered after the answer", shows(z, "save it as a request for Phosphor"))
+    z.keys("r", 1.5)
+    book = os.path.join(z.home, ".local/share/phosphor/notes.md")
+    saved = open(book).read() if os.path.exists(book) else ""
+    need("r wrote an idea under #phosphor (%r)" % saved[-200:],
+         "· idea · ask @SYS #phosphor · Request: two plain buttons, send and receive" in saved
+         and "can these be two buttons" in saved and "Not today." in saved)
+    need("and the pane comes back", z.wait(lambda: any("MARKER-42" in r for r in z.screen())
+                                           and not any("Not today" in r for r in z.screen()), 10))
 
 if fails:
     print("ask-key-check FAILED:\n  " + "\n  ".join(fails)); sys.exit(1)

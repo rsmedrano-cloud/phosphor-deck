@@ -6,6 +6,23 @@ before it updates.
 
 ## Unreleased
 
+## 2.8.5 — ASK knows the deck
+
+### Added (#115)
+
+- **ASK knows the deck.** Alt-q sends the pane's tab, its command and the tab's profile
+  entry along with the screen. Secrets in that entry are hidden. For a Phosphor panel it
+  also sends that panel's manual section, so the answer says what the panel can do.
+- **Claude answers ASK with the deck's read-only tools only.** No built-in tools and none
+  of your other MCP servers. The box says so.
+- **`phosphor mcp` can say what Phosphor can do.** Three new read-only tools: `manual`
+  (the manual's pages, sections and search), `commands` (every command and its card) and
+  `profile` (your profile's keys and tab names, no values; a tab's entry with secrets
+  hidden). Nine tools in all.
+- **What Phosphor can't do yet becomes a request.** When ASK's answer says Phosphor can't do
+  what you asked, press `r` after you close it. It goes to the notebook as an idea under
+  project phosphor, titled "Request: ...", with the question and the answer.
+
 ## 2.8.4 — talk to the deck: MIC
 
 ### Added (#85)

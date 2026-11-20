@@ -7,10 +7,11 @@ listens on a port, and it ends when the assistant closes the pipe. Register
 it once, e.g. `claude mcp add phosphor -- phosphor mcp`.
 
 Its tools only read what's already on this machine: glance, fleet (from the
-deck's own cache, no ssh), notes, workspaces and the deck's log. None of
+deck's own cache, no ssh), notes, workspaces, the deck's log, and what it
+can do: the manual, the commands and the profile (secrets hidden). None of
 them sends, restarts or writes anything, so there's no tool to ask for that.
 """
-import io, json, os, sys
+import io, json, os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Newest first; an older client gets its own version back, anything else ours.
@@ -75,6 +76,103 @@ def t_home(a):
     import home
     return home.snapshot()
 
+MAX_TEXT = 8000          # one manual section, one tab entry: an answer's worth, not the manual
+
+def capped(text, top=MAX_TEXT):
+    return text if len(text) <= top else text[:top].rstrip() + "\n[... %d more characters]" % (len(text) - top)
+
+def t_manual(a):
+    import docs
+    topic, section, q = (a.get("topic") or "").strip(), (a.get("section") or "").strip(), (a.get("query") or "").strip()
+    pages = [n for n in docs.ORDER if os.path.exists(os.path.join(docs.MAN, n + ".md"))]
+    what = docs.summaries()
+    if topic:
+        if topic not in pages:
+            raise ValueError("no manual page %r: %s" % (topic, ", ".join(pages)))
+        secs = docs.sections(topic)
+        if not section:
+            return {"topic": topic, "about": what.get(topic, ""), "sections": [h for h, _ in secs]}
+        hit = next((t for h, t in secs if h == section), None) or \
+              next((t for h, t in secs if section.lower() in h.lower()), None)
+        if hit is None:
+            raise ValueError("no section %r in %s: %s" % (section, topic, "; ".join(h for h, _ in secs)))
+        return {"topic": topic, "section": section, "text": capped(hit)}
+    if q:
+        words, hits = q.lower().split(), []
+        for n in pages:
+            for h, t in docs.sections(n):
+                low = (h + "\n" + t).lower()
+                if all(w in low for w in words):
+                    line = next((l.strip() for l in t.splitlines()[1:] if words[0] in l.lower()), "")
+                    hits.append({"topic": n, "section": h, "line": line[:200]})
+        return {"query": q, "total": len(hits), "matches": hits[:20]}
+    return {"pages": [{"topic": n, "about": what.get(n, ""), "sections": [h for h, _ in docs.sections(n)]}
+                      for n in pages]}
+
+def t_commands(a):
+    import cli
+    db = json.load(open(os.path.join(cli.REPO, "share", "commands.json")))
+    name = (a.get("name") or "").strip()
+    if name:
+        e = cli.get(name)
+        if not e:
+            raise ValueError("no command %r: phosphor help lists them" % name)
+        return {"name": name, **e}
+    return {"commands": [{"name": n, "category": e.get("category"), "summary": e.get("summary"),
+                          "usage": e.get("usage"), "card": (e.get("card") or {}).get("kind")}
+                         for n, e in db.items() if not n.startswith("_") and e.get("category")]}
+
+# Keys and values that look like a credential never leave: the entry is
+# shown, the secret part is "<hidden>".
+SECRET_KEY = re.compile(r"(?i)(^|_)(token|secret|password|passwd|pass|apikey|api_key|credentials?|auth)$")
+SECRET_VAL = re.compile(r"(?i)(bearer\s+|(?:token|password|secret|api_?key|auth)[=:]\s*)\S+"
+                        r"|\b(?=[A-Za-z0-9_\-]*\d)(?=[A-Za-z0-9_\-]*[A-Za-z])[A-Za-z0-9_\-]{32,}\b")
+
+def scrub(v, key=""):
+    """A profile value with whatever looks like a secret hidden."""
+    if key and SECRET_KEY.search(key) and not (isinstance(v, str) and v.startswith("env:")):
+        return "<hidden>"
+    if isinstance(v, dict):
+        return {k: scrub(x, k) for k, x in v.items() if k != "secrets"}
+    if isinstance(v, list):
+        return [scrub(x) for x in v]
+    if isinstance(v, str):
+        return SECRET_VAL.sub(lambda m: (m.group(1) or "") + "<hidden>", v)
+    return v
+
+def profile_tab(name, prof=None):
+    """A tab's entry as the profile (or tabs.d) has it, scrubbed; None if none."""
+    import deckconf
+    if prof is None:
+        prof = deckconf.load()[0] or {}
+    t = next((t for t in deckconf.effective_tabs(prof) if t.get("name") == name), None)
+    return None if t is None else scrub(t)
+
+def t_profile(a):
+    import deckconf
+    prof, path = deckconf.load()
+    if prof is None:
+        raise ValueError("the profile can't be read: %s" % (deckconf.ERR or path))
+    tab = (a.get("tab") or "").strip()
+    names = [t.get("name") for t in deckconf.effective_tabs(prof)]
+    if tab:
+        got = profile_tab(tab, prof)
+        if got is None:
+            raise ValueError("no tab %r in the profile: %s" % (tab, ", ".join(map(str, names))))
+        return {"tab": got}
+    outline = {}
+    for k, v in prof.items():
+        if k == "secrets":
+            continue
+        if isinstance(v, dict):
+            outline[k] = sorted(v)
+        elif isinstance(v, list) and v and isinstance(v[0], dict):
+            outline[k] = "%d entries" % len(v)
+        else:
+            outline[k] = "set"
+    return {"path": "~/.config/phosphor/deck.toml", "tabs": names, "sections": outline,
+            "how": "edit the profile, then phosphor gen && phosphor restart; the manual's profile page has every key"}
+
 def _obj(props=None):
     return {"type": "object", "properties": props or {}, "additionalProperties": False}
 
@@ -103,6 +201,21 @@ TOOLS = {
              "lines (its trace file when one is on). Holds no note text or host names.",
              _obj({"tool": {"type": "string", "description": "e.g. FLEET, PROM, NOTES"},
                    "lines": {"type": "integer", "minimum": 1, "maximum": MAX_LINES, "default": 100}})),
+    "manual": (t_manual, "Phosphor's manual, the authority on what the deck can do and how. No arguments: "
+               "its pages and their sections. query: the sections holding every word. topic and "
+               "section: that section's text (a heading or part of one, e.g. topic profile, section [[tabs]]).",
+               _obj({"topic": {"type": "string", "description": "a page, e.g. profile, commands, keys"},
+                     "section": {"type": "string", "description": "a heading on that page"},
+                     "query": {"type": "string", "description": "words to find across the manual"}})),
+    "commands": (t_commands, "Every public phosphor command: its category, summary, usage and how it "
+                 "shows in the deck as a card (sensor, toggle, button, shortcut or plumbing, none). "
+                 "name: that command's whole entry (flags, note, card).",
+                 _obj({"name": {"type": "string", "description": "a command, e.g. send"}})),
+    "profile": (t_profile, "The user's profile (~/.config/phosphor/deck.toml), the deck's only source "
+                "of truth. No arguments: its sections and keys (no values) and the tab names. tab: "
+                "that tab's entry as written, anything secret-looking hidden. To change the deck, "
+                "propose the profile lines for the user to edit.",
+                _obj({"tab": {"type": "string", "description": "a tab's name, e.g. SYS"}})),
 }
 
 def tool_list():
@@ -145,7 +258,8 @@ def handle(msg):
         return ok({"protocolVersion": want if want in PROTOCOLS else PROTOCOLS[0],
                    "capabilities": {"tools": {"listChanged": False}},
                    "serverInfo": {"name": "phosphor", "version": version()},
-                   "instructions": "Phosphor Deck, read-only: glance, fleet, notes, workspaces, logs. "
+                   "instructions": "Phosphor Deck, read-only: glance, fleet, notes, workspaces, logs, "
+                                   "and the manual, commands and profile for what it can do. "
                                    "Nothing here can send, restart or write."})
     if method == "ping":
         return ok({})

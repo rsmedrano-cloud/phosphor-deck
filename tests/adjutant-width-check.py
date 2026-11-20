@@ -77,6 +77,8 @@ for _ in range(5):                      # the frame it's in, whole
         except OSError: break
 os.kill(pid, 15)
 os.waitpid(pid, 0)
+# the last read can stop inside an escape (\x1b[38;2;11): not a column drawn
+buf = re.sub(rb"\x1b(\[[0-9;?]*)?$", b"", buf)
 lines = [ANSI.sub("", ln).rstrip("\r") for f in buf.decode("utf-8", "replace").split("\x1b[H")[1:]
          for ln in f.split("\n")]
 if not any("a long" in ln for ln in lines):

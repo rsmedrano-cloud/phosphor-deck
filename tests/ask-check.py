@@ -215,7 +215,36 @@ ask.interactive = lambda a, n: asked.append(("plain", a, n)) or 0
 sys.argv = ["ask", "--here"]
 ask.main()
 check("here: outside the deck it's the plain ask, without the notebook", asked == [("plain", None, False)])
-ask.covered_pane = lambda: ("SYS", "htop", "load 9.1")
+# what the deck knows, before the screen (#115): over a dash pane, the
+# preamble, the tab's profile entry, the command's line and the manual's
+# [[tabs]] section, under a budget; over a shell, only the preamble
+DASH = ["/usr/bin/python3", "/opt/x/phosphor", "run", "--name", "CARDS", "--",
+        "/opt/x/phosphor", "dash", "--tab", "SYS", "send", "receive"]
+entry = {"name": "SYS", "panes": [{"dash": ["send", "receive"], "size": 5}, {"cmd": "htop"}]}
+check("here: the program past phosphor run", ask.program(DASH) == DASH[6:] and ask.program(["/bin/bash"]) == [])
+d = ask.deck_context("SYS", DASH, entry)
+check("here: a dash pane gets the preamble", "Phosphor Deck" in d and "deck.toml" in d
+      and "runs: `phosphor dash --tab SYS send receive`" in d)
+check("here: its tab's entry, as TOML", '[[tabs]]\nname = "SYS"' in d and '{ dash = ["send", "receive"], size = 5 },' in d)
+check("here: its command's line and the manual's [[tabs]]", "`phosphor dash`:" in d and "The manual on it" in d
+      and "## [[tabs]]" in d)
+check("here: under the budget (%d)" % len(d), len(d) < ask.MANUAL_CHARS + 2500)
+check("here: and how to say Phosphor lacks it", "MISSING: " in d)
+sh = ask.deck_context("AI", ["/bin/bash"], None)
+check("here: a shell pane gets only the preamble", "runs: a shell" in sh and "manual on it" not in sh
+      and "[[tabs]]" not in sh and len(sh) < 1000)
+check("here: the tools line only when there are tools", "phosphor mcp" not in sh
+      and "phosphor mcp" in ask.deck_context("AI", [], None, with_tools=True))
+check("missing: the last line is the request, cut from the answer",
+      ask.missing("No.\n\n**MISSING: two buttons**\n") == ("No.\n", "two buttons"))
+check("missing: none, the answer as it was", ask.missing("Yes: dash = [...]\n") == ("Yes: dash = [...]\n", None))
+check("missing: only near the end", ask.missing("MISSING: x\n1\n2\n3\n4\n")[1] is None)
+check("claude gets the deck's MCP and nothing else", ask.mcp_flags("claude")[:2] == ["--strict-mcp-config", "--mcp-config"]
+      and ask.mcp_flags("claude")[-2:] == ["--allowedTools", "mcp__phosphor"] and ask.mcp_flags("gemini") == [])
+
+ask.covered_pane = lambda: ("SYS", "htop", "load 9.1", DASH)
+import mcp
+mcp.profile_tab = lambda name, prof=None: entry if name == "SYS" else None
 import form
 ran, shown = [], []
 form.line = lambda title, hint, initial="": shown.append((title, hint)) or "why"
@@ -226,9 +255,14 @@ _run = ask.subprocess.run
 ask.subprocess.run = lambda argv, **k: ran.append(argv) or R()
 ask.main()
 ask.subprocess.run = _run
-check("here: the box says what goes where", shown and "SYS" in shown[0][0] and "1 lines go to claude" in shown[0][1])
-check("here: no tools for text the deck didn't write", ran and ran[0][:3] == [ran[0][0], "--tools", ""])
+check("here: the box says what goes where", shown and "SYS" in shown[0][0] and "1 lines and its tab's profile entry go to claude" in shown[0][1]
+      and "read-only tools" in shown[0][1])
+check("here: no tools of its own for text the deck didn't write", ran and ran[0][:3] == [ran[0][0], "--tools", ""])
+check("here: the deck's MCP, read-only", ran and "mcp__phosphor" in ran[0] and "--strict-mcp-config" in ran[0])
 check("here: the screen and the question in one prompt", ran and "load 9.1" in ran[0][-1] and ran[0][-1].endswith("why"))
+check("here: the deck's part first, then the screen", ran and ran[0][-1].index("Phosphor Deck") < ran[0][-1].index("load 9.1")
+      and 'name = "SYS"' in ran[0][-1])
+check("here: no MISSING line, no r offered", not any("saves it as a request" in str(x) for x in shown))
 check("here: the answer in the pager", shown[-1:] and "because" in shown[-1])
 
 if fails:

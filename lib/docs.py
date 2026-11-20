@@ -76,6 +76,25 @@ def summaries():
     rows = re.findall(r"^\| (\w+) \| (.+?) \|$", page("README"), flags=re.M)
     return {t: d for t, d in rows if t != "topic"}
 
+def sections(name):
+    """A page as [(heading, text)], one per ## or ### heading (a fenced
+    block's lines are text, not headings); what comes before the first is
+    under the page's own title."""
+    out, head, buf, fenced = [], None, [], False
+    for line in page(name).splitlines():
+        if line.startswith("```"):
+            fenced = not fenced
+        m = None if fenced else re.match(r"^(#{1,3}) (.+)$", line)
+        if m:
+            if head is not None or any(b.strip() for b in buf):
+                out.append((head or name, "\n".join(buf).strip()))
+            head, buf = m.group(2).strip(), [line]
+        else:
+            buf.append(line)
+    if head is not None or any(b.strip() for b in buf):
+        out.append((head or name, "\n".join(buf).strip()))
+    return out
+
 def index():
     """The rest of the manual as pointers: the full text stays one file read away."""
     what = summaries()

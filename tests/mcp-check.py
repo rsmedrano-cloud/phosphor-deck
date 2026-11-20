@@ -21,7 +21,10 @@ prof = os.path.join(home, ".config/phosphor/deck.toml")
 open(prof, "w").write('[deck]\nsession = "mcp-check-nosuch"\ndemo = true\n\n'
                       '[[hosts]]\nname = "nebula"\nssh = "nebula"\n\n'
                       '[[hosts]]\nname = "atlas"\nssh = "atlas"\n\n'
-                      '[home]\nlayout = "fleet:4x2,nosuch,ci:9x9|term@CHAT"\n')
+                      '[home]\nlayout = "fleet:4x2,nosuch,ci:9x9|term@CHAT"\n\n'
+                      '[push]\ntopic = "deck-0123456789abcdef"\ntoken = "tk_SECRETSECRET"\n\n'
+                      '[[tabs]]\nname = "SYS"\npanes = [ { dash = ["send", "receive"] }, '
+                      '{ cmd = "curl", args = ["-H", "Authorization: Bearer s3cretBEARERvalue"] } ]\n')
 json.dump({"t": time.time(), "hosts": {"nebula": {"ok": True, "CPU": 12, "MEMU": 100, "MEMT": 1000, "ms": 40}}},
           open(os.path.join(home, ".cache/phosphor/fleet.json"), "w"))
 open(os.path.join(home, ".local/share/phosphor/notes.md"), "w").write(
@@ -62,6 +65,14 @@ msgs = [
     {"jsonrpc": "2.0", "id": 9, "method": "tools/call", "params": {"name": "logs", "arguments": {"tool": "prom"}}},
     {"jsonrpc": "2.0", "id": 10, "method": "tools/call", "params": {"name": "restart"}},
     {"jsonrpc": "2.0", "id": 13, "method": "tools/call", "params": {"name": "home"}},
+    {"jsonrpc": "2.0", "id": 14, "method": "tools/call", "params": {"name": "manual", "arguments": {}}},
+    {"jsonrpc": "2.0", "id": 15, "method": "tools/call", "params": {"name": "manual", "arguments": {"topic": "profile", "section": "[[tabs]]"}}},
+    {"jsonrpc": "2.0", "id": 16, "method": "tools/call", "params": {"name": "manual", "arguments": {"query": "dash gallery"}}},
+    {"jsonrpc": "2.0", "id": 17, "method": "tools/call", "params": {"name": "commands", "arguments": {}}},
+    {"jsonrpc": "2.0", "id": 18, "method": "tools/call", "params": {"name": "commands", "arguments": {"name": "send"}}},
+    {"jsonrpc": "2.0", "id": 19, "method": "tools/call", "params": {"name": "profile", "arguments": {}}},
+    {"jsonrpc": "2.0", "id": 20, "method": "tools/call", "params": {"name": "profile", "arguments": {"tab": "SYS"}}},
+    {"jsonrpc": "2.0", "id": 21, "method": "tools/call", "params": {"name": "manual", "arguments": {"topic": "nosuch"}}},
     {"jsonrpc": "2.0", "id": 11, "method": "resources/list"},
     {"jsonrpc": "2.0", "id": 12, "method": "ping"},
 ]
@@ -77,7 +88,7 @@ for l in lines:
     except ValueError:
         fails.append("stdout carries a non-protocol line: %r" % l[:120]); continue
     replies[m.get("id")] = m
-need("one reply per request, none for the notification (%d)" % len(lines), len(lines) == 14)
+need("one reply per request, none for the notification (%d)" % len(lines), len(lines) == 22)
 need("no escape codes", "\x1b" not in r.stdout)
 
 def result(i):
@@ -90,7 +101,8 @@ need("initialize: echoes a known protocol version", init.get("protocolVersion") 
 need("initialize: tools capability and its name", "tools" in init.get("capabilities", {})
      and init.get("serverInfo", {}).get("name") == "phosphor")
 tools = {t["name"]: t for t in result(2).get("tools", [])}
-need("tools/list: the six tools (%s)" % sorted(tools), set(tools) == {"glance", "fleet", "notes", "workspaces", "logs", "home"})
+need("tools/list: the nine tools (%s)" % sorted(tools), set(tools) == {"glance", "fleet", "notes", "workspaces", "logs", "home",
+                                                                       "manual", "commands", "profile"})
 need("every tool says it's read-only", all(t.get("annotations", {}).get("readOnlyHint") is True
                                            and t.get("annotations", {}).get("destructiveHint") is False
                                            for t in tools.values()))
@@ -118,6 +130,22 @@ need("home: each tile placed, fleet's value read (%r)" % t.get("fleet"),
      set(t) == {"fleet", "ci", "term@CHAT"} and t["fleet"]["x"] == 0 and t["fleet"]["y"] == 0
      and t["ci"]["y"] == 2 and t["term@CHAT"]["page"] == 1 and "value" in (t["fleet"]["shows"] or {}))
 need("home: a tab with no deck running shows nothing", t.get("term@CHAT", {}).get("shows") is None)
+pages = {p["topic"]: p for p in data(14).get("pages", [])}
+need("manual: its pages and their sections", "profile" in pages and "[[tabs]]" in pages["profile"]["sections"])
+need("manual: a section's text", data(15).get("text", "").startswith("## [[tabs]]") and "dash" in data(15)["text"])
+need("manual: a query finds sections with every word (%r)" % data(16).get("matches", [])[:2],
+     any(m["topic"] == "profile" and m["section"] == "[[tabs]]" for m in data(16).get("matches", [])))
+need("manual: an unknown page is an error result", result(21).get("isError") is True)
+cmds = {c["name"]: c for c in data(17).get("commands", [])}
+need("commands: each with its card kind", cmds.get("send", {}).get("card") == "button" and "dash" in cmds)
+need("commands: one command's whole entry", data(18).get("name") == "send" and "usage" in data(18) and "card" in data(18))
+pr = data(19)
+need("profile: tab names and sections' keys, no values (%r)" % pr,
+     pr.get("tabs") == ["SYS"] and pr.get("sections", {}).get("push") == ["token", "topic"]
+     and "tk_SECRET" not in json.dumps(pr) and "0123456789abcdef" not in json.dumps(pr))
+tab = json.dumps(data(20))
+need("profile: a tab's entry, a bearer token hidden (%s)" % tab[:200],
+     '"send"' in tab and "curl" in tab and "s3cretBEARER" not in tab and "<hidden>" in tab)
 need("an unknown tool is a protocol error", (replies.get(10) or {}).get("error", {}).get("code") == -32602)
 need("an unknown method is -32601", (replies.get(11) or {}).get("error", {}).get("code") == -32601)
 need("ping", result(12) == {} and "error" not in (replies.get(12) or {"error": 1}))

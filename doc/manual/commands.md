@@ -110,8 +110,16 @@
   those notes go to the assistant's provider with the question.
   `--here` is what Alt-q runs: a box opens in place of the pane you're in, saying how many of
   that pane's last lines go to which assistant; Enter sends them with your question (the tab and
-  the pane's title too), the answer comes in a pager, and q or Esc gives the pane back. That
-  screen is text the deck didn't write, so the assistant gets no tools for it (as triage does).
+  the pane's title too), the answer comes in a pager, and q or Esc gives the pane back. The
+  box also says that the tab's profile entry goes along (secrets hidden), and for claude, that
+  it gets the deck's read-only tools. That screen is text the deck didn't write, so the
+  assistant gets no built-in tools for it (as triage does). Claude gets only the deck's MCP,
+  none of your other servers. Other assistants keep their read-only mode, with the same
+  instructions written into the question. The deck says what it knows first: this is Phosphor, the profile is the
+  source of truth, and for a Phosphor panel its command and manual section. When Phosphor
+  can't do what you asked, the answer ends with a `MISSING:` line; the deck takes it off,
+  says so, and after the pager `r` saves the request as an idea in the notebook (project
+  phosphor, "Request: ..."), with the question and the answer. The assistant can't write it.
   Outside the deck it's the plain box.
 - `phosphor read URL | WORDS... [--ask QUESTION] [--assistant NAME]` — a web page as plain text,
   for docs in the middle of an incident without a browser. An address (`http`/`https`) is
@@ -570,6 +578,14 @@ Its tools only read what's already on the brain, and none of them sends, restart
 - `home` — what `home --json` says: the `[home]` layout line, the names it skipped, and each
   tile's place and what it shows (a card's value, why and line; a `term@` tile's program, last line
   and activity).
+- `manual` — what Phosphor can do, from the manual. No arguments: its pages and their sections.
+  `query` (words): the sections holding every word. `topic` and `section`: that section's text,
+  capped at one answer's worth (e.g. `topic` profile, `section` [[tabs]]).
+- `commands` — every public command: category, summary, usage and card kind. `name`: one
+  command's whole entry.
+- `profile` — your profile's sections and their keys, never the values, and the tab names.
+  `tab`: that tab's entry as written, with anything secret-looking hidden (tokens, passwords,
+  bearer values, long opaque strings).
 
 ## Before you push a fork
 - `phosphor demo` — a throwaway session over made-up machines and a made-up notebook, for a
