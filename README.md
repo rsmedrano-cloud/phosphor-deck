@@ -116,6 +116,7 @@ Alt-n          new tab in the folder of the pane you're in
 Alt-r          edit this tab: unlock, change, save or put it back
 Alt-j          a note or todo from here: NOTES shows which tab it came from
 Alt-q          ask an assistant about the pane you're in (its screen goes along)
+Alt-m          talk into the pane you're in: a phone records, the words land at the prompt
 Alt-g          take zellij's controls, and give them back
 Esc · q · ?    on the deck's own screens: Esc a step back (never closes a
                pane of the tab), q closes what you look at, ? its keys
@@ -126,8 +127,8 @@ Ctrl and Alt keys, and every one can be changed: `phosphor shortcuts` (or `c`
 in the DECK tab). Your keys live in the profile, so updates never reset them.
 `?` in the DECK tab lists the keys of every installed tool.
 
-A bar of tappable keys (HOME, ASK, NOTE, EDIT, ZOOM and the fleet light)
-runs along the bottom of every tab, two rows tall; `[bar]` in the profile turns it off.
+A bar of tappable keys (HOME, ASK, NOTE, EDIT, ZOOM and the fleet light; MIC too
+once voice is on) runs along the bottom of every tab, two rows tall; `[bar]` in the profile turns it off.
 
 ## The manual
 

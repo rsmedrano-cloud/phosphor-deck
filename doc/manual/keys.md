@@ -69,7 +69,7 @@ menus) takes these two the same way:
   a page for its list, gives the tab back to a zoomed pane. With nothing
   left to go back from, it closes a screen you opened from somewhere (a
   card, a key of the DECK tab, the `+` menu, a shell) and you're back
-  there. A screen the key bar opens over a pane (glance, ASK, NOTE, EDIT)
+  there. A screen the key bar opens over a pane (glance, MIC, ASK, NOTE, EDIT)
   says `Esc: back to <pane> (still running)` on its first line; Esc gives
   you the pane back, and it kept running. A pane of your tab stays where
   it is: Esc never closes it.
@@ -123,11 +123,17 @@ it does it when it names a key of the DECK tab.
 ## The key bar
 
 With `[bar]` on (the default for new decks, see profile), the bottom two rows
-of every tab have five keys and the fleet light. Each key shows its glyph over
+of every tab have five keys and the fleet light. With `[voice]` on, MIC makes six:
+it comes after HOME, and its shortcut is Alt-m. Each key shows its glyph over
 its word; where there's room, the top row also has the shortcut:
 
      ⌂ Alt-1   ? Alt-q   ✎ Alt-j   ⇲ Alt-r   ⤢ Alt-z        ●
       HOME       ASK      NOTE      EDIT      ZOOM          2
+
+With voice on:
+
+     ⌂ Alt-1   ◉ Alt-m   ? Alt-q   ✎ Alt-j   ⇲ Alt-r   ⤢ Alt-z        ●
+      HOME       MIC       ASK      NOTE      EDIT      ZOOM          2
 
 Narrower, only the glyph over the word:
 

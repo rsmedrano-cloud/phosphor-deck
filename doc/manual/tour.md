@@ -9,8 +9,8 @@ for the details; this is the tour.
   watchdog: if it dies, it's back within a minute.
 - **Tabs, not apps.** Laid out once from your profile. Switch with Alt-1..9
   or by tapping the tab bar; tap a pane to focus it.
-- **A key bar under every tab.** HOME, ASK, NOTE, EDIT and ZOOM, each one tap, and the
-  fleet's status light on the right. `[bar]` in your profile turns it off (keys.md).
+- **A key bar under every tab.** HOME, ASK, NOTE, EDIT and ZOOM, each one tap (MIC too, once
+  voice is on), and the fleet's status light on the right. `[bar]` in your profile turns it off (keys.md).
 - **A menu behind the "+".** Tap it for a new tab: a shell here or on any
   machine, an installed assistant, files, or any command. **layout** opens
   several at once: pick a shape, then what goes in each pane (four
@@ -403,6 +403,7 @@ more depth on every one of these.
 | `phosphor notify --push` | the same notice on your phone (ntfy), for a brain nobody sits near: `[push]` in the profile; with `[tts]` on, what the brain said rides along as audio |
 | `phosphor push [--qr\|on\|off\|status]` | `[push]`'s status, on or off, or a QR to subscribe on the phone without typing the server/topic in |
 | `phosphor tts` | speak notifications aloud with selectable voices (GLaDOS, Adjutant, HAL, Spanish, Synth, System) |
+| `phosphor voice` | talk into a pane: a phone records, whisper.cpp on the brain writes it down (MIC on the bar, Alt-m) |
 | `phosphor ci` | GitLab/GitHub pipeline status cards (see `[ci]` in the profile) |
 | `phosphor services` | systemd units and their state: Phosphor's own, plus any you add (see `[services]` in the profile); pick one for its logs, restart, start/stop |
 | `phosphor upkeep (upgrade \| reboot \| run \| units) HOST` | upgrade, reboot, run one of its `[[hosts.actions]]` or see to its failed units (status, journal, restart or reset-failed) on a fleet machine where you see it: says what it runs, waits for you, sudo asks in the same terminal (`u`/`b`/`a`/`f` over a card in FLEET) |

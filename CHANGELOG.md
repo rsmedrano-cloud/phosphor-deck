@@ -6,6 +6,22 @@ before it updates.
 
 ## Unreleased
 
+## 2.8.4 — talk to the deck: MIC
+
+### Added (#85)
+
+- **Talk into a pane: `phosphor voice`.** MIC on the key bar (or Alt-m) opens over the pane
+  you're in. A phone with Termux records what you say. The brain writes it down with
+  whisper.cpp, on the brain, with no cloud. The words are typed at the pane's prompt without
+  Enter: read them, then press Enter yourself. Esc throws the recording away.
+- **Set it up with `phosphor voice install`.** It builds whisper.cpp and downloads the
+  `base` model (about 142 MB), all under your data folder. It needs git, make, a C++ compiler
+  and ffmpeg. Settings are under `[voice]` in the profile. Run `phosphor gen && phosphor restart`
+  to put MIC on the bar and Alt-m in your keys.
+- **Phones talk without a new kit.** A phone that already has the deck leaves and comes back
+  with `deck`, and it gets the microphone. Its Termux needs the termux-api package and the
+  Termux:API app.
+
 ## 2.8.3 — the key bar: two rows, and the way back
 
 ### Fixed (#110, #111)

@@ -18,6 +18,7 @@ after the last one.
     phosphor clipsync --script    the screen's half, for its `deck` to run
     phosphor clipsync             the link: lines on stdin and stdout
     phosphor clipsync --status    the linked screens, as JSON (--json)
+    phosphor clipsync voice       a screen's microphone link (phosphor voice)
 
 Lines, both ways: `H NAME` (the screen says who it is), `C BASE64` (one
 clip, text only), and `X off` from the link when sync is off, so the
@@ -161,8 +162,18 @@ done
 
 
 def script(prof=None):
-    """The watcher for a screen's `deck`, or "" when sync is off."""
-    return WATCHER.replace("@MAX@", str(cap(prof))) if on(prof) else ""
+    """What a screen's `deck` runs beside its ssh loop: the clipboard's
+    watcher ([clipboard] sync) and the microphone's (voice.WATCHER, when
+    voice is on), side by side; "" when neither is on."""
+    import voice
+    parts = []
+    if on(prof):
+        parts.append(WATCHER.replace("@MAX@", str(cap(prof))))
+    if voice.on(prof):
+        parts.append(voice.WATCHER)
+    if len(parts) < 2:
+        return "".join(parts)
+    return "".join("(\n%s) &\n" % p for p in parts) + "wait\n"
 
 
 SSH = "ssh -T -o BatchMode=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=2"
@@ -291,10 +302,9 @@ class Hub:
                 return
 
 
-def hub():
-    """Serve until no screen has been linked for IDLE seconds. One at a time:
-    the lock decides, a second one just goes."""
-    path = sock_path()
+def serve(path, hub_obj):
+    """Run hub_obj on a unix socket at path until its run() returns. One at
+    a time: the lock decides, a second one just goes."""
     lock = open(path + ".lock", "w")
     try:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -313,7 +323,7 @@ def hub():
     srv.listen(16)
     srv.setblocking(False)
     try:
-        Hub(cap()).run(srv)
+        hub_obj.run(srv)
     finally:
         try:
             os.unlink(path)
@@ -323,9 +333,13 @@ def hub():
     return 0
 
 
-def connect(start=True):
-    """A connection to the hub; started first when there's none (start)."""
-    path = sock_path()
+def hub():
+    """Serve until no screen has been linked for IDLE seconds."""
+    return serve(sock_path(), Hub(cap()))
+
+
+def dial(path, argv, start=True):
+    """A connection to the hub at path; argv starts it first when there's none (start)."""
     for i in range(30):
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         try:
@@ -336,11 +350,15 @@ def connect(start=True):
         if not start:
             return None
         if i == 0:
-            subprocess.Popen([sys.executable, os.path.abspath(__file__), "--hub"],
-                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+            subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                              stderr=subprocess.DEVNULL, start_new_session=True)
         time.sleep(0.1)
     return None
+
+
+def connect(start=True):
+    """A connection to the hub; started first when there's none (start)."""
+    return dial(sock_path(), [sys.executable, os.path.abspath(__file__), "--hub"], start)
 
 
 def linked():
@@ -366,17 +384,9 @@ def linked():
         s.close()
 
 
-def link():
-    """stdin/stdout (the screen, through ssh) <-> the hub, until either ends."""
+def pump(s):
+    """stdin/stdout (the screen, through ssh) <-> the socket s, until either ends."""
     out = sys.stdout.buffer
-    if not on():
-        out.write(b"X off\n"); out.flush()
-        return 0
-    s = connect()
-    if not s:
-        return 1
-    sc = os.environ.get("SSH_CONNECTION", "").split()
-    s.sendall(("F %s\n" % (sc[0] if sc else "local")).encode())
     inp = sys.stdin.fileno()
     sel = selectors.DefaultSelector()
     sel.register(inp, selectors.EVENT_READ)
@@ -400,10 +410,31 @@ def link():
         s.close()
 
 
+def came_from():
+    sc = os.environ.get("SSH_CONNECTION", "").split()
+    return sc[0] if sc else "local"
+
+
+def link():
+    """The screen's clipboard link to the hub."""
+    out = sys.stdout.buffer
+    if not on():
+        out.write(b"X off\n"); out.flush()
+        return 0
+    s = connect()
+    if not s:
+        return 1
+    s.sendall(("F %s\n" % came_from()).encode())
+    return pump(s)
+
+
 def main():
     args = sys.argv[1:]
     if "--hub" in args:
         return hub()
+    if args[:1] == ["voice"]:
+        import voice
+        return voice.link()
     if "--script" in args:
         sys.stdout.write(script())
         return 0

@@ -34,7 +34,7 @@ PANE = {"cmd": None, "args": None, "ssh": None, "reconnect": BOOL, "size": None,
         "panes": None, "dash": None}
 TABLES = {
     "deck": DECK,
-    "keys": {"edit": None, "new_tab": None, "note": None, "ask": None, "zoom": None, "leave": None,
+    "keys": {"edit": None, "new_tab": None, "note": None, "ask": None, "mic": None, "zoom": None, "leave": None,
              "controls": None, "tabs": None, "panes": None},
     "notes": {"folder": None, "require_project": BOOL},
     "mentions": {"prepare": None, "by": None, "prompt": None, "timeout": None},
@@ -42,6 +42,7 @@ TABLES = {
     "ci": {"interval": None, "pipelines": None},
     "tts": {"enabled": BOOL, "voice": None, "glados_path": None, "volume": None,
             "fleet_alerts": BOOL},
+    "voice": {"enabled": BOOL, "model": None, "language": None, "max_seconds": None, "whisper": None},
     "push": {"enabled": BOOL, "url": None, "topic": None, "token": None,
              "priority": ("min", "low", "default", "high", "max"), "title": None,
              "open_web": BOOL, "clip": BOOL},

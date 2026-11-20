@@ -331,6 +331,26 @@ def run(profile=None):
             issues.append("this machine's deck command doesn't link the clipboard: phosphor gen")
         print("  " + DIM + "another screen links once its deck command is new: phosphor gen there, or its kit again" + RST)
 
+    import voice
+    wants = ((profile or {}).get("voice") or {}).get("enabled") is True
+    if profile and (wants or voice.on(profile)):
+        print("\n" + rule("voice", w))
+        lack = voice.missing(profile)
+        if lack:
+            print(row(WARN, "MIC", "can't write audio down", note="phosphor voice install"))
+            for l in lack:
+                print("  " + DIM + "missing: " + l + RST)
+            issues.append("voice: the brain lacks %s" % ", ".join(lack))
+        else:
+            ls = voice.linked()
+            can = [s_ for s_ in ls if s_.get("mic")]
+            print(row(OK, "MIC", "whisper %s · %d screen%s can record" % (voice.model_name(profile), len(can),
+                                                                        "" if len(can) == 1 else "s"),
+                      note="" if can else "a phone with Termux and termux-api, its deck reconnected"))
+            for s_ in ls:
+                if not s_.get("mic"):
+                    print(row(WARN, s_["name"] or s_["from"], "linked, can't record", note="needs " + s_.get("why", "?")))
+
     print("\n" + rule("summary", w))
     if blockers:
         for b in blockers: print("  " + BAD + " " + RED + b + RST)

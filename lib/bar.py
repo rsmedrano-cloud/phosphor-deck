@@ -1,8 +1,8 @@
 """phosphor bar - two rows at the bottom of every tab: each key's glyph
 over its word, the light over its count.
 
-     ⌂ Alt-1   ? Alt-q   ✎ Alt-j   ⇲ Alt-r   ⤢ Alt-z        ●
-      HOME       ASK      NOTE      EDIT      ZOOM          2
+     ⌂ Alt-1   ◉ Alt-m   ? Alt-q   ✎ Alt-j   ⇲ Alt-r   ⤢ Alt-z        ●
+      HOME       MIC       ASK      NOTE      EDIT      ZOOM          2
 
 gen puts it in every tab's template when [bar] enabled = true. A tap on a
 key does what its Alt key does, on the pane you were in: zellij gives the
@@ -35,8 +35,9 @@ PHOSPHOR = os.path.join(REPO, "phosphor")
 LIB = os.path.dirname(os.path.abspath(__file__))
 STALE = 30                # seconds before the light is asked again
 LOCK_STALE = 60           # a lock older than this was left by a bar that died
-# (id, glyph, word); the shortcut comes from [keys]. MIC joins with #85.
-KEYS = [("home", "⌂", "HOME"), ("ask", "?", "ASK"), ("note", "✎", "NOTE"),
+# (id, glyph, word); the shortcut comes from [keys]. MIC only while voice
+# is on (phosphor voice): keys_shown() says which.
+KEYS = [("home", "⌂", "HOME"), ("mic", "◉", "MIC"), ("ask", "?", "ASK"), ("note", "✎", "NOTE"),
         ("edit", "⇲", "EDIT"), ("zoom", "⤢", "ZOOM")]
 LIGHT = {"green": PH, "amber": AMB, "red": RED}
 # Two rows, not one: zellij (0.45, 0.46) doesn't keep a row for the line
@@ -45,7 +46,7 @@ LIGHT = {"green": PH, "amber": AMB, "red": RED}
 # zellij keeps it, and a tap on a phone has a taller target.
 ROWS = 2
 # what each pane-bound key opens in place of the pane: (name, phosphor args)
-IN_PLACE = {"ask": ("ASK", ["ask", "--here"]), "note": ("NOTE", ["note", "--here"]),
+IN_PLACE = {"mic": ("MIC", ["voice", "--here"]), "ask": ("ASK", ["ask", "--here"]), "note": ("NOTE", ["note", "--here"]),
             "edit": ("EDIT", ["edit"]), "light": ("GLANCE", ["glance"])}
 
 
@@ -62,6 +63,16 @@ def enabled(prof):
 
 
 # ── what it shows ─────────────────────────────────────────────
+def keys_shown(prof):
+    """The keys this deck's bar shows: all of them, MIC while voice is on."""
+    try:
+        import voice
+        mic = voice.on(prof)
+    except Exception:
+        mic = False
+    return [k for k in KEYS if k[0] != "mic" or mic]
+
+
 def shortcuts_of(prof):
     """{key id: "Alt-q"} for the keys that have one."""
     import shortcuts
@@ -84,7 +95,7 @@ def light_text(status):
 TIERS = [(True, 3), (False, 3), (False, 2), (False, 1)]
 
 
-def layout(width, keys, light, rows=ROWS):
+def layout(width, keys, light, rows=ROWS, ids=None):
     """[(start, end, id, top, bottom)] across `width` columns, 0-based, end
     exclusive: the keys from the left, the light at the right end. Each key
     is a cell, its glyph (and shortcut, where there's room) over its word;
@@ -93,7 +104,7 @@ def layout(width, keys, light, rows=ROWS):
     keys goes to the nearer one (hit())."""
     for short, gap in TIERS:
         cells = []
-        for i, g, w in KEYS:
+        for i, g, w in (ids or KEYS):
             top = "%s %s" % (g, keys[i]) if short and keys.get(i) else g
             cells.append((i, top if rows > 1 else "", w))
         need = 1 + sum(max(len(a), len(b)) for _, a, b in cells) + gap * (len(cells) - 1) + 2 + 3 + 1
@@ -123,12 +134,12 @@ def hit(spans, col):
     return min(spans, key=lambda s: min(abs(col - s[0]), abs(col - (s[1] - 1))))[2]
 
 
-def draw(width, keys, status, sel=None, rows=ROWS):
+def draw(width, keys, status, sel=None, rows=ROWS, ids=None):
     """(spans, lines): the bar painted, glyphs and words in ink, shortcuts
     dim, the light in its color, the selected key (when the bar has the
     focus) in reverse on both rows."""
     lt, lb, color = light_text(status)
-    spans = layout(width, keys, (lt, lb), rows)
+    spans = layout(width, keys, (lt, lb), rows, ids)
     lines = []
     for row in range(min(rows, 2)):
         line, x = "", 0
@@ -276,6 +287,8 @@ def act(key):
         import shortcuts
         zj("dump-screen", "--pane-id", pane, "--path", shortcuts.screen_dump())
     name, args = IN_PLACE[key]
+    if key == "mic":
+        args = args + ["--pane", pane]
     zj("new-pane", "--in-place", "--pane-id", pane, "--close-on-exit", "--name", name,
        "--", PHOSPHOR, *args)
 
@@ -336,7 +349,7 @@ def height():
 def run():
     import termios, tty
     prof, _ = deckconf.load()
-    keys = shortcuts_of(prof)
+    keys, ids = shortcuts_of(prof), keys_shown(prof)
     fd = sys.stdin.fileno()
     saved = termios.tcgetattr(fd)
     tty.setraw(fd)
@@ -359,10 +372,10 @@ def run():
                 seen, status = m, read_status()
             if child is None and time.time() - (status or {}).get("t", 0) > STALE:
                 child = ask_glance()
-            frame = (width(), json.dumps(status, sort_keys=True), focused and KEYS[sel][0])
+            frame = (width(), json.dumps(status, sort_keys=True), focused and ids[sel][0])
             if frame != shown or resized[0]:
                 resized[0] = False
-                spans, lines = draw(frame[0], keys, status, frame[2] or None, height())
+                spans, lines = draw(frame[0], keys, status, frame[2] or None, height(), ids)
                 out.write("".join("\x1b[%d;1H\x1b[2K" % (n + 1) + l for n, l in enumerate(lines))); out.flush()
                 shown = frame
             try:
@@ -394,10 +407,10 @@ def run():
                     if key:
                         act(key)
                 elif v in ("left", "right"):
-                    sel = (sel + (1 if v == "right" else -1)) % len(KEYS)
+                    sel = (sel + (1 if v == "right" else -1)) % len(ids)
                 elif v == "enter":
                     focused = False
-                    act(KEYS[sel][0])
+                    act(ids[sel][0])
                 elif v in ("esc", "q"):
                     focused = False
                     zj("focus-last-pane")
@@ -415,7 +428,7 @@ def main():
     if "--once" in args:
         prof, _ = deckconf.load()
         w = int(args[args.index("--width") + 1]) if "--width" in args else width()
-        print("\n".join(draw(w, shortcuts_of(prof), read_status())[1]))
+        print("\n".join(draw(w, shortcuts_of(prof), read_status(), ids=keys_shown(prof))[1]))
         return 0
     if not sys.stdin.isatty():
         print("phosphor bar: the row at the bottom of each tab; [bar] enabled = true and phosphor gen put it there",

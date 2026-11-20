@@ -14,6 +14,7 @@ prints the block to paste inside its `keybinds { }`.
     new_tab = "Alt n"      # a new tab in the pane's folder
     note    = "Alt j"      # jot a note or todo, tagged with this tab
     ask     = "Alt q"      # a question about this pane, its screen along
+    mic     = "Alt m"      # talk into this pane (phosphor voice)
     zoom    = "Alt z"
     leave   = "Alt x"      # Ctrl-q always leaves too
     controls = "Alt g"     # zellij's own controls
@@ -32,6 +33,7 @@ ACTIONS = [
     ("new_tab",  "new tab (the + menu) in the pane's folder",       "Alt n", "key"),
     ("note",     "a note or todo from here, tagged with this tab",  "Alt j", "key"),
     ("ask",      "a question about this pane, its screen along",    "Alt q", "key"),
+    ("mic",      "talk: a screen records, the text lands in the pane", "Alt m", "key"),
     ("zoom",     "zoom: the focused pane takes the whole tab",      "Alt z", "key"),
     ("leave",    "leave the deck (it keeps running)",               "Alt x", "key"),
     ("controls", "take and give back zellij's controls",            "Alt g", "key"),
@@ -102,6 +104,8 @@ def block(prof):
         lock.append('bind "%s" { %s; }' % (k["note"], RUN % ("note --here", "NOTE")))
     if k["ask"]:
         lock.append('bind "%s" { DumpScreen %s; %s; }' % (k["ask"], kdl_str(screen_dump()), RUN % ("ask --here", "ASK")))
+    if k["mic"]:
+        lock.append('bind "%s" { %s; }' % (k["mic"], RUN % ("voice --here", "MIC")))
     if k["controls"]:
         lock.append('bind "%s" { SwitchToMode "Normal"; }' % k["controls"])
         rest.append('bind "%s" { SwitchToMode "Locked"; }' % k["controls"])
@@ -158,7 +162,7 @@ def guide_rows(rows, prof):
     """keys.json's deck section with the keys this profile really uses."""
     k = current(prof)
     swap = {"Alt-r": dash(k["edit"]), "Alt-n": dash(k["new_tab"]), "Alt-j": dash(k["note"]),
-            "Alt-q": dash(k["ask"]), "Alt-z": dash(k["zoom"]),
+            "Alt-q": dash(k["ask"]), "Alt-m": dash(k["mic"]), "Alt-z": dash(k["zoom"]),
             "Alt-g": dash(k["controls"]),
             "Alt-1 … Alt-9": (dash(k["tabs"] + " 1") + " … " + dash(k["tabs"] + " 9")) if k["tabs"] else "off",
             "Alt-← ↑ ↓ →": (dash(k["panes"]) + "-← ↑ ↓ →") if k["panes"] else "off",

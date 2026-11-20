@@ -7,6 +7,7 @@
 ["Alt-r", "edit this tab: unlock, change, then save or put it back"],
 ["Alt-j", "a note or todo from here: NOTES shows which tab it came from"],
 ["Alt-q", "ask an assistant about the pane you're in: its screen goes along"],
+["Alt-m", "talk into the pane you're in: a phone records, the words land at the prompt (phosphor voice)"],
 ["Alt-g", "take and give back zellij's controls (same key)"],
 ["Alt-1 … Alt-9", "go to a tab, in the order of your profile"],
 ["tap", "a tab to switch, a pane to focus it"],

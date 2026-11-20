@@ -30,12 +30,15 @@ def need(what, ok):
 
 # ── the row ───────────────────────────────────────────────────
 KEYS = {"home": "Alt-1", "ask": "Alt-q", "note": "Alt-j", "edit": "Alt-r", "zoom": "Alt-z"}
-WORDS = [w for _, _, w in bar.KEYS]
-for w in range(30, 201):
+WORDS = [w for i, _, w in bar.KEYS if i != "mic"]      # the probe has no voice: no MIC
+# without MIC (voice off) from 30 columns, with it from 34
+NOMIC = [k for k in bar.KEYS if k[0] != "mic"]
+for keyset, least in ((NOMIC, 30), (bar.KEYS, 34)):
+  for w in range(least, 201):
     for light in (("●", ""), ("●", "12")):
-        spans = bar.layout(w, KEYS, light)
+        spans = bar.layout(w, dict(KEYS, mic="Alt-m"), light, ids=keyset)
         ids = [s[2] for s in spans]
-        need("%d cols: every key and the light (%s)" % (w, ids), ids == [i for i, _, _ in bar.KEYS] + ["light"])
+        need("%d cols: every key and the light (%s)" % (w, ids), ids == [i for i, _, _ in keyset] + ["light"])
         need("%d cols: inside the row" % w, spans[0][0] >= 1 and spans[-1][1] <= w)
         need("%d cols: in order, apart" % w, all(a[1] < b[0] for a, b in zip(spans, spans[1:])))
         need("%d cols: each cell holds both its rows" % w,

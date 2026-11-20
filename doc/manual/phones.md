@@ -29,6 +29,22 @@ file goes over the same ssh into the brain's `~/received`, under a name of
 plain characters, never over one already there. (Termux keeps its own copy
 in `~/downloads`. A `~/bin/termux-file-editor` of your own is left alone.)
 
+## Talking to the deck (voice)
+
+MIC on the key bar, or Alt-m, talks into the pane you're in. Your phone records; the
+brain writes it down and types the words at the pane's prompt, without Enter. Read them,
+then press Enter yourself. Esc throws the recording away. The audio goes from the phone
+to the brain over the deck's own ssh and nowhere else.
+
+What the phone needs: Termux, the `termux-api` package (`pkg install termux-api`), and
+the Termux:API app. Allow its microphone when Android asks. Then leave and come back with
+`deck`: the deck fetches the new script, so nothing is reinstalled. The brain needs
+`phosphor voice install` once (see commands, "In the deck").
+
+With one screen that can record, MIC uses it without asking. With several, MIC lists them,
+and a number or a tap picks one. With none, MIC says what a phone needs. `phosphor voice`
+on the brain says whether it's ready and which screens can record.
+
 ## Another computer (Linux, macOS, WSL)
 
     ssh you@brain '~/.local/bin/phosphor screen' | sh

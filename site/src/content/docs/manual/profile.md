@@ -225,6 +225,7 @@ left out keeps its default; `""` turns one off.
 | new_tab | "Alt n" | a new tab (the + menu) in the pane's folder |
 | note | "Alt j" | a note or todo from here, tagged with the tab you're in |
 | ask | "Alt q" | a question about the pane you're in, its screen along |
+| mic | "Alt m" | talk into the pane you're in: a phone records, the words land at the prompt (see [voice]) |
 | zoom | "Alt z" | the focused pane takes the whole tab |
 | leave | "Alt x" | leave the deck (Ctrl-q always does too) |
 | controls | "Alt g" | take and give back zellij's controls |
@@ -234,7 +235,7 @@ left out keeps its default; `""` turns one off.
 ## [bar]
 
 Two rows of keys along the bottom of every tab: each key's glyph over its word, and the
-shortcut on the glyph row where there's room: `⌂ Alt-1   ? Alt-q   ✎ Alt-j   ⇲ Alt-r   ⤢ Alt-z      ●` over `HOME   ASK   NOTE   EDIT   ZOOM   2`.
+shortcut on the glyph row where there's room: `⌂ Alt-1   ? Alt-q   ✎ Alt-j   ⇲ Alt-r   ⤢ Alt-z      ●` over `HOME   ASK   NOTE   EDIT   ZOOM   2`. With `[voice]` on, MIC comes after HOME (`◉ Alt-m`).
 It's not `bar` under [deck], which is zellij's own bars at the top and bottom.
 
 | key | default | what |
@@ -242,7 +243,8 @@ It's not `bar` under [deck], which is zellij's own bars at the top and bottom.
 | enabled | false | the two rows under every tab (`phosphor init` writes `true`). `false` takes them away |
 
 - **HOME** goes to the first tab.
-- **ASK, NOTE, EDIT, ZOOM** do what their Alt key does, on the pane you were in before you tapped.
+- **MIC, ASK, NOTE, EDIT, ZOOM** do what their Alt key does, on the pane you were in before you tapped.
+  MIC shows only while `[voice]` is on.
   The shortcuts shown are the ones in [keys]; a key turned off shows none.
 - **The light** on the right is glance's: green, amber or red, dim when there's no fleet data,
   and the problem count under the dot (none when there are none). A tap opens `phosphor glance`
@@ -370,6 +372,22 @@ calls it: a fleet host going down or coming back, a chat mention or DM).
 a host going down or coming back still shows in SYS and pushes to your phone if
 `[push]` is on, it just isn't spoken -- most people want a message meant for
 them read aloud, not every blip of a machine nobody's looking at.
+
+## [voice]
+
+Talk into a pane (`phosphor voice`): a phone records, and the brain writes it down with
+whisper.cpp. No cloud. How it's set up and used: phones, "Talking to the deck".
+
+| key | default | what |
+|---|---|---|
+| enabled | unset | `false` hides MIC. Unset, MIC is on once whisper and its model are installed. `true` turns it on, even before that |
+| model | "base" | whisper model: tiny, base, small or medium (bigger is slower and better), or a path to a model file |
+| language | "auto" | the language you speak: "auto", or a code such as "es" or "en" |
+| max_seconds | 120 | a recording stops itself after this many seconds |
+| whisper | (none) | path to a whisper-cli of your own. Unset, the one `phosphor voice install` built is used |
+
+`phosphor voice install` sets up whisper.cpp and the `base` model. A change takes effect
+with `phosphor gen && phosphor restart`, which puts MIC on the bar and Alt-m in the keys.
 
 ## [push]
 
