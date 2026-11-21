@@ -225,47 +225,50 @@ need("paint: a shorter screen clears the rest", glance.paint(["a"], ["a", "b"]) 
 need("paint: with nothing before, the whole screen", glance.paint(["a", "b"], None).startswith("\x1b[H"))
 
 # the screen that stays up repaints only on a change: one paint while nothing
-# moves, a clean repaint on r, out on q. Polling every 0.2 s instead of 5.
+# moves, a clean repaint on r, out on q. Polling every 0.2 s instead of 5,
+# and each gather takes 0.3 s, as under a loaded check.sh: most keys land
+# between two waits, and must not be lost (#104).
 import pty, select, time
 pid, fd = pty.fork()
 if pid == 0:
     os.execve(sys.executable, [sys.executable, "-c",
-        "import sys; sys.path.insert(0, %r); import glance; glance.INTERVAL = 0.2;"
+        "import sys, time; sys.path.insert(0, %r); import glance; glance.INTERVAL = 0.2;"
+        " b = glance.body; glance.body = lambda *a: (time.sleep(0.3), b(*a))[1];"
         " sys.argv = ['glance']; sys.exit(glance.main())" % os.path.join(ROOT, "lib")],
         dict(os.environ, HOME=home, TERM="xterm-mono", COLUMNS="130", LINES="17"))
 seen = ""
-def drain(secs):
+def drain(secs, want=None):
+    """Read what it paints for secs, or until want(seen)."""
     global seen
     end = time.time() + secs
-    while time.time() < end:
+    while time.time() < end and not (want and want(seen)):
         if select.select([fd], [], [], 0.1)[0]:
             try: data = os.read(fd, 65536)
             except OSError: return
             if not data: return
             seen += data.decode("utf-8", "replace")
-drain(2.5)
+# a loaded check.sh can take seconds to start it: wait for the first paint,
+# then watch that nothing more comes
+drain(20, lambda s: "ATTENTION" in s); drain(2)
 need("watch: painted once while nothing changed", seen.count("\x1b[H") == 1)
 need("watch: no color on xterm-mono", "38;2;" not in seen and "ATTENTION" in seen)
-os.write(fd, b"r"); drain(1.5)
+# one key, once: a key that lands while it gathers is kept, not flushed (#104)
+os.write(fd, b"r"); drain(10, lambda s: s.count("\x1b[2J") == 2 and s.count("\x1b[H") == 2)
 need("watch: r clears and repaints", seen.count("\x1b[2J") == 2 and seen.count("\x1b[H") == 2)
-def until(key, want, secs=5):
-    """Send key until the screen answers (setraw flushes a key that lands
-    between two reads)."""
+def until(key, want, secs=10):
+    """Send key once and wait for the screen's answer."""
     global seen
-    seen, end = "", time.time() + secs
-    while time.time() < end:
-        os.write(fd, key); drain(0.6)
-        if want(seen): return True
-    return False
+    seen = ""
+    os.write(fd, key); drain(secs, want)
+    return want(seen)
 need("watch: a cursor step sends a line or two, not the screen",
      until(b"\x1b[B", lambda s: "forge" in s) and "\x1b[H" not in seen and seen.count(";1H") <= 3)
 need("watch: Enter opens the item's page", until(b"\r", lambda s: "[ back ]" in s))
 need("watch: Enter on back is the summary again", until(b"\r", lambda s: "needs you" in s))
-end, code = time.time() + 5, None
+os.write(fd, b"q")
+end, code = time.time() + 10, None
 while time.time() < end and code is None:
-    try: os.write(fd, b"q")             # again if it landed between two reads (setraw flushes it)
-    except OSError: pass
-    drain(0.5)
+    drain(0.2)
     p_, st = os.waitpid(pid, os.WNOHANG)
     if p_: code = os.waitstatus_to_exitcode(st)
 if code is None:

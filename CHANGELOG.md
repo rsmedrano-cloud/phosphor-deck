@@ -6,6 +6,16 @@ before it updates.
 
 ## Unreleased
 
+## 2.8.10 — glance keeps the keys you type
+
+### Fixed
+
+- **glance no longer loses a key typed while it refreshes (#104).** Every wait
+  for a key started by throwing away what was already typed, so a key that
+  came while glance gathered or repainted (more often on a busy brain) went
+  unanswered. It now keeps it. Two tests that timed keys the same way
+  (glance-check, asks-check) wait until the screen reads them.
+
 ## 2.8.9 — back in after a restart, even if dropped once
 
 ### Fixed

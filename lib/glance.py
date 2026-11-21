@@ -559,10 +559,11 @@ HEARTBEAT = 600    # repaint at least this often, so a time that stops moving me
 
 def wait(seconds):
     """A key typed within seconds, else None. Without a terminal, or once
-    the input has ended, it just sleeps them out."""
+    the input has ended, it just sleeps them out. A key that came between
+    two waits (while it gathered and painted) is kept, not flushed."""
     t0 = time.time()
     try:
-        k = ui.getkey(seconds)
+        k = ui.getkey(seconds, typeahead=True)   # a key typed while it gathered is for this screen too
     except (termios.error, OSError, ValueError):
         ui.idle(seconds); return None
     if k is None:                        # a timeout, or an end of input that returns at once

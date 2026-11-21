@@ -8,7 +8,7 @@ Every command runs for real, in a pseudo-terminal, against a throwaway
 HOME, profile, data and cache; the assistant, less and yazi are stand-ins
 on PATH that only say what they were given. Nothing of the real deck.
 """
-import base64, os, pty, re, select, shutil, signal, subprocess, sys, tempfile, time
+import base64, fcntl, os, pty, re, select, shutil, signal, struct, subprocess, sys, tempfile, termios, time
 import urllib.request
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PHOSPHOR = os.path.join(ROOT, "phosphor")
@@ -75,9 +75,35 @@ class Term:
             self.read(0.2, 1)
         return text in self.out
 
+    def reading(self, limit=5):
+        """Wait until it reads keys: its tty raw (getkey's setraw) and what
+        was typed before taken. getkey drops keys typed before it is called
+        (TCSAFLUSH), and under a loaded check.sh the gap between a screen
+        showing and its setraw is long enough for a key to land in it (#104).
+        Gives up at once when it has ended, after limit when it reads some
+        other way."""
+        end = time.time() + limit
+        while time.time() < end:
+            try:
+                tty = os.open("/proc/%d/fd/0" % self.pid, os.O_RDONLY | os.O_NOCTTY | os.O_NONBLOCK)
+            except OSError:
+                return False
+            try:
+                lflag = termios.tcgetattr(tty)[3]
+                queued = struct.unpack("i", fcntl.ioctl(tty, termios.FIONREAD, b"\0" * 4))[0]
+            except (OSError, termios.error):
+                return False
+            finally:
+                os.close(tty)
+            if not lflag & (termios.ICANON | termios.ISIG) and not queued:
+                return True
+            self.read(0.05, 0.05)
+        return False
+
     def keys(self, *ks):
         for k in ks:
             self.read()
+            self.reading()
             os.write(self.fd, k.encode())
         return self
 
