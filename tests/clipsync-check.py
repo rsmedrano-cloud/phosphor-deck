@@ -103,7 +103,8 @@ try:
                 'case "$*" in\n'
                 '  *"-t TARGETS"*) cat "$CLIPDIR/targets" 2>/dev/null ;;\n'
                 '  *-o*) [ -s "$CLIPDIR/clip" ] || exit 1; cat "$CLIPDIR/clip" ;;\n'
-                '  *-i*) cat > "$CLIPDIR/new" && mv "$CLIPDIR/new" "$CLIPDIR/clip"; echo x >> "$CLIPDIR/writes" ;;\n'
+                '  *-i*) [ -e "$CLIPDIR/slow" ] && sleep 1.5\n'
+                '        cat > "$CLIPDIR/new" && mv "$CLIPDIR/new" "$CLIPDIR/clip"; echo x >> "$CLIPDIR/writes" ;;\n'
                 'esac\n')
     os.chmod(os.path.join(fake, "xclip"), 0o755)
     watcher = subprocess.run([sys.executable, PH, "clipsync", "--script"], env=env,
@@ -161,6 +162,20 @@ try:
     copy("a", "y" * 1500)
     time.sleep(3)
     need("over the cap: stays put", clip("b") == "and back from b")
+    # two clips that land within a tick: a slow paste holds the first on
+    # the clipboard while the second is on its way; it was sent back as a
+    # copy and every screen's clipboard went back a step (#105)
+    for n in screens:
+        open(os.path.join(screens[n][0], "slow"), "w").close()
+    c = link()
+    put(c, "C " + b64("first of two")); put(c, "C " + b64("second of two"))
+    need("two clips at once: both screens end on the second",
+         until(lambda: clip("a") == clip("b") == "second of two", 10))
+    time.sleep(2.5)
+    need("two clips at once: the first isn't sent back", got(c) == "")
+    for n in screens:
+        os.unlink(os.path.join(screens[n][0], "slow"))
+    c.stdin.close(); c.wait(5)
 
     # ── phones: Termux, its API app there or not ──────────────────────────
     # a stand-in for /data/data/com.termux; termux-clipboard-* wait forever
@@ -172,8 +187,10 @@ try:
     for n, tools in (("noapp", {"termux-clipboard-get": "sleep 600", "termux-clipboard-set": "sleep 600"}),
                      ("nopkg", {}),
                      ("ok", {"termux-clipboard-get": "exit 0",
-                             "termux-clipboard-set": '[ -e "$CLIPDIR/hang" ] && { rm "$CLIPDIR/hang"; : > "$CLIPDIR/hung"; sleep 600; }\n'
-                                                     'cat > "$CLIPDIR/new" && mv "$CLIPDIR/new" "$CLIPDIR/clip"'})):
+                             "termux-clipboard-set": 'echo "$(date +%s.%N) set $$" >> "$CLIPDIR/log"\n'
+                                                     '[ -e "$CLIPDIR/hang" ] && { rm "$CLIPDIR/hang"; : > "$CLIPDIR/hung"; sleep 600; }\n'
+                                                     'cat > "$CLIPDIR/new" && mv "$CLIPDIR/new" "$CLIPDIR/clip"\n'
+                                                     'echo "$(date +%s.%N) set $$ done: $(cat "$CLIPDIR/clip")" >> "$CLIPDIR/log"'})):
         d = os.path.join(tmp, "phone-" + n)
         os.makedirs(os.path.join(d, "bin"))
         for t, body in tools.items():
@@ -181,7 +198,10 @@ try:
                 f.write("#!/bin/sh\n" + body + "\n")
             os.chmod(os.path.join(d, "bin", t), 0o755)
         e = dict(env, CLIPDIR=d, PATH=os.path.join(d, "bin") + os.pathsep + env["PATH"])
-        w = subprocess.Popen(["sh", "-c", twatcher, "clipsync", str(deck.pid), sys.executable, PH, "clipsync"],
+        # what reaches the phone from its link, timed, for a failure's report
+        tap = ['sh', '-c', '"$@" | while IFS= read -r l; do echo "$(date +%s.%N) got ${#l}" >> "$CLIPDIR/log"; '
+               'printf "%s\\n" "$l"; done', "tap", sys.executable, PH, "clipsync"]
+        w = subprocess.Popen(["sh", "-c", twatcher, "clipsync", str(deck.pid)] + tap,
                              env=e, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                              stderr=subprocess.DEVNULL, start_new_session=True)
         procs.append(w)
@@ -206,7 +226,22 @@ try:
     need("the paste that hangs reached the phone",
          until(lambda: os.path.exists(os.path.join(phones["ok"], "hung")), 15))
     copy("a", "and this one lands")
-    need("a paste that hangs doesn't hold up the next", until(lambda: pclip("ok") == "and this one lands", 40))   # its paste times out at 10s; a loaded runner needs the margin
+    t0 = time.time()
+    landed = until(lambda: pclip("ok") == "and this one lands", 40)   # its paste times out at 10s; a loaded runner needs the margin
+    if not landed or os.environ.get("CLIPSYNC_TRACE"):
+        sids, rows = {p.pid for p in procs if p.args[0] == "sh"}, []
+        for pid in filter(str.isdigit, os.listdir("/proc")):     # no ps on a slim CI image
+            try:
+                st = open("/proc/%s/stat" % pid).read().rsplit(")", 1)[1].split()
+                args = open("/proc/%s/cmdline" % pid, "rb").read().replace(b"\0", b" ").decode()[:120]
+            except OSError:
+                continue
+            if int(st[3]) in sids:       # its session: a watcher's, whatever it started
+                rows.append("  %s ppid %s pgid %s %s %s" % (pid, st[1], st[2], st[0], args))
+        log = open(os.path.join(phones["ok"], "log")).read() if os.path.exists(os.path.join(phones["ok"], "log")) else ""
+        print("phone ok, copy at %.2f:\n%s\nscreens: %s\nwatcher processes:\n%s" % (
+            t0, log, status().get("screens"), "\n".join(rows)))
+    need("a paste that hangs doesn't hold up the next", landed)
 
     deck.kill(); deck.wait()
     need("watchers end with their deck",

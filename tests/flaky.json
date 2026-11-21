@@ -1,7 +1,7 @@
 {
   "tests/tabmark-check.py": "'T1 got marked' failed once on zellij-latest, passed on dev",
   "tests/fleet-keys-check.py": "--live: 4 of 5 saves were the a step timing out (tab or its list), 1 the Esc; since the waits read dump-screen and a's need is split, a save names which half",
-  "tests/clipsync-check.py": "'a paste that hangs doesn't hold up the next' failed on CI (pipeline 3091620490) after #95's fix: the hung paste had started, the next copy still didn't land in 40s; root cause open in #105",
+  "tests/zoom-check.py": "'live: a tap on the mark zooms the pane' failed once inside a full check.sh (with #105's change, which doesn't touch it), passed 3/3 alone; root cause open in #121",
   "tests/bar-check.py": "'a tap on the light opens glance over the pane you were in' failed once inside a full check.sh (release 2.8.3), never alone (8 runs, 3 at once); the message now says where the focus and any GLANCE pane were; root cause open in #113",
   "tests/adjutant-width-check.py": "'12 cols with a message: a line 14 wide' failed once on CI (release 2.8.5, pipeline 3095957831), never locally (5 runs); likely the last read ending inside an escape, stripped since"
 }

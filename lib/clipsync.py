@@ -133,7 +133,17 @@ up() {                                 # what this screen copies, to the brain
     now=$(look)
     [ "$now" = "$seen" ] && continue
     seen=$now
-    [ "$now" = "$(cat "$d/got" 2>/dev/null)" ] && continue   # it just came from the brain
+    # it came from the brain: forget it and what came before it. Every
+    # paste is one got.N in order, not just the last: two clips that land
+    # within a tick would send the first one back to every screen
+    hit=
+    for f in "$d"/got.*; do
+      [ -e "$f" ] && [ "$(cat "$f")" = "$now" ] && { hit=$f; break; }
+    done
+    if [ -n "$hit" ]; then
+      for f in "$d"/got.*; do rm -f "$f"; [ "$f" = "$hit" ] && break; done
+      continue
+    fi
     n=${now##* }
     [ "$n" -gt 0 ] && [ "$n" -le "$MAX" ] || continue
     secret && continue
@@ -141,11 +151,16 @@ up() {                                 # what this screen copies, to the brain
   done
 }
 down() {                               # what the other screens copy, onto this one
+  k=0
   while IFS= read -r line; do
     case $line in
       "C "*) [ -n "$W" ] || continue
              v=${line#C }
-             printf %s "$v" | $B64D 2>/dev/null | cksum > "$d/got"
+             if [ -n "$R" ]; then           # what up() must not send back
+               k=$((k + 1)); g=$(printf '%s/got.%09d' "$d" "$k")
+               printf %s "$v" | $B64D 2>/dev/null | cksum > "$d/g" && mv "$d/g" "$g"
+               rm -f "$(printf '%s/got.%09d' "$d" $((k - 16)))"   # one never seen goes in time
+             fi
              printf %s "$v" | $B64D 2>/dev/null | $TO $W ;;
       "X off") : > "$d/off" ;;
     esac
@@ -153,7 +168,7 @@ down() {                               # what the other screens copy, onto this 
   : > "$d/gone"
 }
 while kill -0 "$D" 2>/dev/null && [ ! -e "$d/off" ]; do
-  rm -f "$d/gone"
+  rm -f "$d/gone" "$d"/got.*           # a new link counts its pastes from 1
   up | "$@" | down
   i=0                                  # the link dropped: again in 10s, unless the deck went
   while [ $i -lt 10 ] && [ ! -e "$d/off" ] && kill -0 "$D" 2>/dev/null; do sleep 1; i=$((i + 1)); done

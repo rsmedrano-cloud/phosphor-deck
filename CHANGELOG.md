@@ -6,6 +6,16 @@ before it updates.
 
 ## Unreleased
 
+## 2.8.13 — two quick copies stay put
+
+### Fixed
+
+- **Two quick copies no longer bounce back to the other screens (#105).**
+  With `[clipboard] sync` on, copying twice within about a second on one
+  screen could make another screen send the first copy back, so every
+  screen's clipboard went back to the older one. Each copy that arrives is
+  now remembered, so a screen never sends back what it just received.
+
 ## 2.8.12 — mirror keeps keys typed during a slow read
 
 ### Fixed
