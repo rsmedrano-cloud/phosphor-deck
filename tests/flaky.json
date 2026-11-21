@@ -4,5 +4,6 @@
   "tests/clipsync-check.py": "'a paste that hangs doesn't hold up the next' failed on CI (pipeline 3091620490) after #95's fix: the hung paste had started, the next copy still didn't land in 40s; root cause open in #105",
   "tests/bar-check.py": "'a tap on the light opens glance over the pane you were in' failed once inside a full check.sh (release 2.8.3), never alone (8 runs, 3 at once); the message now says where the focus and any GLANCE pane were; root cause open in #113",
   "tests/adjutant-width-check.py": "'12 cols with a message: a line 14 wide' failed once on CI (release 2.8.5, pipeline 3095957831), never locally (5 runs); likely the last read ending inside an escape, stripped since",
-  "tests/mirror-check.py": "'a key reaches the pane' failed once inside a full local check.sh (2026-11-21, during #97, which doesn't touch mirror), passed 3 of 3 alone; the typed line didn't show in the mirror or the dump within the wait; root cause open in #119"
+  "tests/mirror-check.py": "'a key reaches the pane' failed once inside a full local check.sh (2026-11-21, during #97, which doesn't touch mirror), passed 3 of 3 alone; the typed line didn't show in the mirror or the dump within the wait; root cause open in #119",
+  "tests/glance-check.py": "'watch: r clears and repaints' failed once inside a full local check.sh (2026-11-21, during #108, which doesn't touch glance), passed 3 of 3 alone; root cause open in #104"
 }

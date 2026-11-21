@@ -36,8 +36,9 @@ first. After a push, `python3 tests/ci.py` waits for the pipeline and prints
 only what matters: a line per job, and the end of a failed job's log. A bug
 found by hand becomes a failing test before it's fixed. A test that fails
 now and then goes into `tests/flaky.json` with why: `tests/flaky.py` gives
-it a second run before it fails a job, and counts every save (`python3
-tests/flaky.py` lists them; ci.py names them under their job). The rest of
+it a second run before it fails a job, and counts every save with the
+end of the run that failed (`python3 tests/flaky.py` lists them, `--tail
+TEST` shows that end; ci.py names them under their job). The rest of
 the list:
 
 - `phosphor docs --check` passes: a change in behavior updates doc/manual/,

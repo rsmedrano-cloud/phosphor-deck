@@ -124,6 +124,7 @@ check "--json on the read-only commands"   python3 tests/json-check.py
 check "phosphor mcp: read-only, clean JSON-RPC" python3 tests/mcp-check.py
 check "panels.d: your own panels"          python3 tests/panels-check.py
 check "TTS notifications and voices"       python3 tests/tts-check.py
+check "store and piper: the build for this arch" python3 tests/store-arch-check.py
 check "push notifications (ntfy)"          python3 tests/push-check.py
 check "notify: --no-event, --fleet-alert, PHOSPHOR_CACHE" python3 tests/notify-check.py
 check "fleet alerts: down/back, debounced, cooled down" python3 tests/fleet-alert-check.py

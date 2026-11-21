@@ -528,13 +528,13 @@ def install_piper():
         req = urllib.request.Request(api_url, headers={"User-Agent": "phosphor-deck"})
         with urllib.request.urlopen(req, timeout=20) as r:
             rel = json.load(r)
-        asset_url = None
-        for a in rel.get("assets", []):
-            if "linux_x86_64" in a["name"]:
-                asset_url = a["browser_download_url"]
-                break
+        import store                     # the catalog's piper entry says which asset is ours
+        from ui import share
+        app = next(a for a in json.load(open(share("store.json"))) if a["n"] == "piper")
+        name = store.pick(app, [a["name"] for a in rel.get("assets", [])])
+        asset_url = next((a["browser_download_url"] for a in rel.get("assets", []) if a["name"] == name), None)
         if not asset_url:
-            print("%s could not find x86_64 release for Piper." % BAD)
+            print("%s could not find a %s release for Piper." % (BAD, store.arch()))
             return 1
         with tempfile.TemporaryDirectory() as td:
             tar_path = os.path.join(td, "piper.tar.gz")

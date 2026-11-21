@@ -2,7 +2,7 @@
 """phosphor store - a catalog of TUIs, installed from their GitHub releases
 into ~/.local/bin. No sudo. Your own apps (apps.toml) are listed first as
 "yours"; Enter on anything installed opens it in a new tab."""
-import json, os, re, shutil, sys, tarfile, tempfile, urllib.request, zipfile
+import json, os, platform, re, shutil, sys, tarfile, tempfile, urllib.request, zipfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import FG, DIM, MUTE, PH, AMB, RED, RST, share, topbar
 import apps as mine
@@ -62,15 +62,38 @@ def remove(a):
         return True, "removed " + a["n"]
     return "remove %s from ~/.local/bin?" % a["n"], gone
 
+def arch():
+    """This machine as the catalog names it: x86_64 or aarch64."""
+    m = platform.machine().lower()
+    return {"amd64": "x86_64", "arm64": "aarch64"}.get(m, m)
+
+def matcher(app, a=None):
+    """The release asset pattern for arch a (this machine's by default);
+    None when upstream ships no build for it. "m" maps arch to pattern."""
+    m = app["m"]
+    if isinstance(m, str): m = {"x86_64": m}     # an old copy in ~/.local/share/phosphor
+    return m.get(a or arch())
+
+def pick(app, names, a=None):
+    """The asset name, out of a release's names, that arch a installs."""
+    pat = matcher(app, a)
+    return next((n for n in names if re.search(pat, n)), None) if pat else None
+
+def inside(app, a=None):
+    """The binary's path inside a package that holds several arches ("p")."""
+    return app.get("p", {}).get(a or arch())
+
 def fetch_asset(app):
+    if not matcher(app):
+        raise RuntimeError("%s ships no build for %s" % (app["n"], arch()))
     req = urllib.request.Request(API % app["r"], headers={"User-Agent": "phosphor-store"})
     with urllib.request.urlopen(req, timeout=25) as r:
         rel = json.load(r)
-    pat = re.compile(app["m"])
+    name = pick(app, [a["name"] for a in rel.get("assets", [])])
     for a in rel.get("assets", []):
-        if pat.search(a["name"]):
+        if a["name"] == name:
             return a["browser_download_url"], a["name"], rel.get("tag_name", "")
-    raise RuntimeError("no release asset matches /%s/" % app["m"])
+    raise RuntimeError("no release asset matches /%s/" % matcher(app))
 
 def install(app, say):
     act = app.get("action")
@@ -110,7 +133,10 @@ def install(app, say):
             shutil.copy(p, os.path.join(out, binname(app)))
         target = binname(app)
         found = None
-        for root, _, files in os.walk(out):
+        if inside(app):                  # one package, every arch: take ours
+            found = os.path.join(out, inside(app))
+            if not os.path.isfile(found): raise RuntimeError("no " + inside(app) + " inside the package")
+        for root, _, files in ([] if found else os.walk(out)):
             for f in files:
                 fp = os.path.join(root, f)
                 if f == target or f == app["n"]:

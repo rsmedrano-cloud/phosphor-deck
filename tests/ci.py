@@ -51,8 +51,19 @@ def flakes(lines, job):
     import flaky
     saved = sorted({m.group(1) for l in lines for m in [re.search(r"\bFLAKY (tests/\S+?):", l)] if m})
     for t in saved:
-        flaky.count(t, "job %d" % job)
+        flaky.count(t, "job %d" % job, first_run(lines, t))
     return saved
+
+def first_run(lines, test):
+    """The lines a saved test's failed first run printed: back from
+    flaky.py's marker to the step's own command line ($ ...)."""
+    end = next((i for i, l in enumerate(lines) if l.startswith("--- %s failed" % test)), None)
+    if end is None:
+        return None
+    start = end
+    while start > 0 and not lines[start - 1].startswith("$ "):
+        start -= 1
+    return lines[start:end] or None
 
 def main():
     args = sys.argv[1:]

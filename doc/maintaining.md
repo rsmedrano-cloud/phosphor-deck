@@ -99,8 +99,8 @@ Spend the big model on judgment, not on reading or prose.
   Trying it on real screens is the tester's part; what they find becomes a
   failing test first, then the fix.
 - A test that fails now and then goes into `tests/flaky.json` with why
-  (`python3 tests/flaky.py` shows the saves). Never rerun a job by hand to
-  get past one.
+  (`python3 tests/flaky.py` shows the saves, `--tail TEST` how its last
+  saved run failed). Never rerun a job by hand to get past one.
 
 ## Every change updates, in the same commit
 

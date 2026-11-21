@@ -6,6 +6,19 @@ before it updates.
 
 ## Unreleased
 
+## 2.8.8 — the store installs on aarch64
+
+### Fixed
+
+- **`phosphor store` and the Piper voices install on aarch64 too (#108).** Every entry
+  used to download the x86_64 build only, so on a Raspberry Pi or other ARM brain an
+  install failed (no release asset matched). Each entry now installs the build for the
+  machine's architecture. `jless` and `dog` ship no aarch64 build upstream: installing
+  them says so.
+- **broot from the store is the right build (#108).** Its release holds every platform
+  in one zip, and the store could copy another platform's `broot`. It now takes the
+  x86_64 or aarch64 Linux build.
+
 ## 2.8.7 — stats counts cards apart
 
 ### Changed
