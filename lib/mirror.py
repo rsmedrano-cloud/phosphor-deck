@@ -165,8 +165,10 @@ def raw_input():
 
 
 def send(sess, pid, data):
-    """data typed on the screen, into the pane."""
-    zj(sess, "write", "-p", pid, *[str(b) for b in data])
+    """data typed on the screen, into the pane. A write zellij refuses goes
+    to deck.log: those keys are lost, and nobody would know why."""
+    if zj(sess, "write", "-p", pid, *[str(b) for b in data]) is None:
+        dlog.event("MIRROR", "key lost", "%d bytes to %s" % (len(data), pid))
 
 
 def put(s):
@@ -193,6 +195,10 @@ def watch(sess, target, watch_only):
     undo = raw_input()
     put("\x1b[?1049h\x1b[?25l\x1b[2J")
     prev, last_size, why, due = None, None, "?", 0.0
+    # keys go to the last pane found, not the last frame's: one read that
+    # fails (a slow zellij) mustn't drop what's typed meanwhile, and zellij
+    # never gives a closed pane's id to another. Before any is found, they wait.
+    last, held = None, b""
     try:
         while True:
             now = time.time()
@@ -204,6 +210,9 @@ def watch(sess, target, watch_only):
                 if paint:
                     put(paint)
                 prev, last_size, due = lines, (w, rows), time.time() + EVERY
+                last = pid or last
+                if last and held:
+                    send(sess, last, held); held = b""
             r = select.select([sys.stdin], [], [], max(0.0, due - time.time()))[0]
             if not r:
                 continue
@@ -212,8 +221,11 @@ def watch(sess, target, watch_only):
                 why = "end of input"; break
             if LEAVE in data or (watch_only and data[:1] in (b"q", b"\x03")):
                 why = "key"; break
-            if not watch_only and pid:
-                send(sess, pid, data)
+            if not watch_only:
+                if last:
+                    send(sess, last, data)
+                else:
+                    held = (held + data)[-4096:]
                 due = min(due, time.time() + ECHO)
     except SystemExit as e:
         why = str(e) or "exit"

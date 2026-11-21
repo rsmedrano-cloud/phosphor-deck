@@ -6,6 +6,16 @@ before it updates.
 
 ## Unreleased
 
+## 2.8.12 — mirror keeps keys typed during a slow read
+
+### Fixed
+
+- **Keys typed on a mirror screen are no longer dropped (#119).** When the
+  deck's pane could not be read in time (a busy brain), `phosphor mirror`
+  lost the keys typed meanwhile. They now go to the pane mirror last found,
+  and a key typed before the pane is found waits for it. A key zellij refuses
+  is logged as `MIRROR key lost` in deck.log.
+
 ## 2.8.11 — screens keep the keys you type
 
 ### Fixed

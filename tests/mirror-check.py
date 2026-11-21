@@ -73,22 +73,87 @@ class Screen:
         os.kill(self.pid, signal.SIGKILL); os.waitpid(self.pid, 0)
         return None
 
+def keys_vs_failed_reads(mode, tmp):
+    """watch() in a pty of its own against a fake zellij, whose reads fail:
+    'flaky' after the first frame (dump-screen), 'late' for the first two
+    (list-panes). What's typed meanwhile must still reach the pane (#119).
+    Returns (what the pane got, the screen's output, deck.log)."""
+    got, log = os.path.join(tmp, mode + ".writes"), os.path.join(tmp, mode + ".log")
+    pid, fd = pty.fork()
+    if pid == 0:
+        try:
+            n = {"list-panes": 0, "dump-screen": 0}
+            def zj(sess, *a, timeout=8):
+                if a[0] in n:
+                    n[a[0]] += 1
+                if a[0] == "list-panes":
+                    if mode == "late" and n["list-panes"] <= 2:
+                        return None
+                    return json.dumps([{"id": 7, "tab_name": "AI", "is_plugin": False, "is_focused": True}])
+                if a[0] == "dump-screen":
+                    return "hello\n" if mode != "flaky" or n["dump-screen"] == 1 else None
+                if a[0] == "write":
+                    with open(got, "a") as f:
+                        f.write("%s %s\n" % (a[2], bytes(int(x) for x in a[3:]).decode()))
+                    return ""
+                return None
+            mirror.zj, mirror.EVERY, mirror.dlog.LOG = zj, 0.3, log
+            os._exit(mirror.watch("probe", {"tab": "AI"}, False) or 0)
+        except BaseException:
+            os._exit(3)
+    s = Screen.__new__(Screen); s.pid, s.fd, s.out = pid, fd, b""
+    fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", 10, 50, 0, 0))
+    seen = lambda: open(got).read() if os.path.exists(got) else ""
+    if mode == "flaky":
+        s.wait(lambda: b"can't read" in s.out, 5)     # the first frame painted, the next read failed
+    else:
+        s.wait(lambda: b"no tab AI" in s.out, 5)      # nothing found yet
+    s.type("abc")
+    s.wait(lambda: "abc" in seen(), 3)
+    s.type(b"\x1d"); s.done()
+    return seen(), s.out, open(log).read() if os.path.exists(log) else ""
+
 def main():
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        w, out, _ = keys_vs_failed_reads("flaky", tmp)
+        need("a key typed while a read of the pane fails still reaches it (#119; screen saw %r)"
+             % out[-120:], w == "terminal_7 abc\n")
+        w, out, _ = keys_vs_failed_reads("late", tmp)
+        need("a key typed before the pane is found waits for it (#119; screen saw %r)"
+             % out[-120:], w == "terminal_7 abc\n")
     if not zjprobe.zellij():
-        print("no zellij here: skipped"); return 0
+        print("no zellij here: the rest skipped")
+    else:
+        against_zellij()
+    for f in fails:
+        print("FAIL:", f)
+    print("mirror-check", "ok" if not fails else "FAILED")
+    return 1 if fails else 0
+
+def against_zellij():
     with zjprobe.Probe(PROFILE) as z:
         z.pump(2)
         env = dict(z.env, TERM="xterm-mono")     # from outside the deck, as over ssh: the profile names the session
         # this process's own zellij calls go through z (the probe's socket), never mirror.find
-        ai = next("terminal_%d" % p["id"] for p in json.loads(z.action("list-panes", "-a", "-j"))
-                  if not p["is_plugin"] and p["tab_name"] == "AI")
+        def ai_pane():
+            try: ps = json.loads(z.action("list-panes", "-a", "-j"))
+            except ValueError: return None    # listed tabs before panes, once (#119)
+            return next(("terminal_%d" % p["id"] for p in ps
+                         if not p["is_plugin"] and p["tab_name"] == "AI"), None)
+        z.wait(ai_pane, 15)
+        ai = ai_pane()
+        if not need("the probe lists the AI pane", ai):
+            return
         dump = lambda: z.action("dump-screen", "-p", ai)
         z.action("write-chars", "-p", ai, "echo hidden-$((6*7))\n")
-        z.pump(1)
+        # the pane's shell prints it in its own time (seconds, under check.sh's load)
+        need("the pane printed what was written to it", z.wait(lambda: "hidden-42" in (dump() or ""), 20))
 
         r = subprocess.run([sys.executable, os.path.join(ROOT, "phosphor"), "mirror", "--tab", "ai", "--once"],
                            env=env, capture_output=True, text=True, timeout=30)
-        need("--once shows a tab nobody looks at (any case)", r.returncode == 0 and "hidden-42" in r.stdout)
+        need("--once shows a tab nobody looks at (any case; exit %s, said %r)" % (r.returncode, r.stdout[-160:]),
+             r.returncode == 0 and "hidden-42" in r.stdout)
         r = subprocess.run([sys.executable, os.path.join(ROOT, "phosphor"), "mirror"],
                            env=env, capture_output=True, text=True, timeout=30)
         need("no target: exit 2, the panes listed", r.returncode == 2 and "AI" in r.stderr and "SH" in r.stderr)
@@ -100,7 +165,10 @@ def main():
         s = Screen(env, ["--tab", "AI"])
         need("paints the pane", s.wait(lambda: b"hidden-42" in s.out))
         s.type("echo typed-$((2+3))\r")
-        need("a key reaches the pane", s.wait(lambda: b"typed-5" in s.out) and "typed-5" in dump())
+        shown = s.wait(lambda: b"typed-5" in s.out, 20)
+        landed = "typed-5" in (dump() or "")
+        need("a key reaches the pane (in the pane: %s, back on the screen: %s)" % (landed, shown),
+             shown and landed)
         need("no color on the screen", b"38;2;" not in s.out and b"38;5;" not in s.out)
 
         # a screen that stops reading: mirror waits on its write, nothing piles up
@@ -134,10 +202,6 @@ def main():
         tail = open(log, errors="replace").read()[-2000:] if os.path.exists(log) else ""
         need("a hangup ends it quietly (exit %s, no crash in deck.log)" % code,
              code == 0 and "crash" not in tail and "Traceback" not in tail)
-    for f in fails:
-        print("FAIL:", f)
-    print("mirror-check", "ok" if not fails else "FAILED")
-    return 1 if fails else 0
 
 if __name__ == "__main__":
     sys.exit(main())

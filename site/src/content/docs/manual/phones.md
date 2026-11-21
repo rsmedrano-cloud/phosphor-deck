@@ -297,6 +297,8 @@ Ctrl-C and all reach the program there; only Ctrl-] stays with mirror, and
 leaves it. `--view` only watches (no key reaches the pane; `q` and Ctrl-C
 leave too), `--pane ID` picks one pane of a tab with several (`phosphor
 mirror` alone lists them), and `--once` prints one frame, for a script.
+A key typed while the deck's pane is read slowly isn't lost: it goes to
+the pane mirror found last, and one typed before the first read waits for it.
 A key that should only ever watch the AI tab can say so in
 `~/.ssh/authorized_keys`: `command="~/.local/bin/phosphor mirror --tab AI
 --view" ssh-ed25519 ...`.
