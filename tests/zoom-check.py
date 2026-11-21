@@ -8,7 +8,7 @@ throwaway zellij (tests/zjprobe.py) for the tap and the Esc themselves.
 
     python3 tests/zoom-check.py
 """
-import json, os, re, sys, tempfile
+import json, os, re, sys, tempfile, time
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "lib"))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -152,33 +152,85 @@ panes = [
   { cmd = "sh" },
 ]
 '''
+    # the dash starts late, like on a loaded CI runner: its pane (and its
+    # name in the frame) is there seconds before it asks for the mouse (#121)
+    slow = tempfile.mkdtemp(prefix="zoom-slow-")
+    open(os.path.join(slow, "sitecustomize.py"), "w").write(
+        "import os, sys, time\n"
+        "if os.path.basename(sys.argv[0] if sys.argv else '') == 'phosphor' and sys.argv[1:2] == ['dash']:\n"
+        "    time.sleep(3)\n")
+    os.environ["PYTHONPATH"] = slow + (os.pathsep + os.environ["PYTHONPATH"] if os.environ.get("PYTHONPATH") else "")
     with zjprobe.Probe(prof) as z:
-        def pane():
+        cache = os.path.join(z.home, ".cache/phosphor")
+        os.makedirs(cache, exist_ok=True)
+        open(os.path.join(cache, "trace-zoom"), "w").write(str(time.time() + 3600))
+        seen, t0 = [], time.time()          # what each try found, printed if a check fails
+
+        def panes():
             try:
-                ps = json.loads(z.action("list-panes", "-a", "-j") or "[]")
+                return [p for p in json.loads(z.action("list-panes", "-a", "-j") or "[]") if not p.get("is_plugin")]
             except ValueError:
                 return None
-            return next((p for p in ps if not p.get("is_plugin") and "dash" in (p.get("terminal_command") or "")), None)
+
+        def pane():
+            return next((p for p in panes() or [] if "dash" in (p.get("terminal_command") or "")), None)
+
+        def note(what):
+            ps = panes()
+            seen.append("%5.1fs %s: %s" % (time.time() - t0, what, "list-panes failed" if ps is None else "; ".join(
+                "%s%s %s%s at %s,%s %sx%s" % (p.get("id"), " FOCUSED" if p.get("is_focused") else "",
+                                              "dash" if "dash" in (p.get("terminal_command") or "") else "sh",
+                                              " FULLSCREEN" if p.get("is_fullscreen") else "",
+                                              p.get("pane_content_x"), p.get("pane_content_y"),
+                                              p.get("pane_content_columns"), p.get("pane_content_rows")) for p in ps)))
+
+        def tell():
+            for l in seen:
+                print("  " + l)
+            try:
+                print("  zoom trace:\n" + "".join("    " + l for l in open(os.path.join(cache, "trace-zoom.log"))))
+            except OSError:
+                print("  no zoom trace")
+
         check("live: the dash pane is there", z.wait(lambda: pane() is not None, 20))
-        check("live: it draws its title", z.wait(lambda: "DASH" in plain(z.text()), 20))
+        # its own first line, mark and all: "DASH" alone is also the pane's
+        # name in its frame, there before the dash runs; a tap then comes
+        # before it asks for the mouse, and zellij drops it (#121)
+        def first_line():
+            d, out = pane(), os.path.join(z.home, "dash.txt")
+            if not d:
+                return ""
+            z.action("dump-screen", "--pane-id", "terminal_%d" % d["id"], "--path", out)
+            try:
+                return (open(out).read().splitlines() or [""])[0]
+            except OSError:
+                return ""
+        check("live: it draws its title, mark and all",
+              z.wait(lambda: "DASH" in first_line() and zoom.MARK in first_line(), 30))
         d = pane() or {}
         if not d:
             return
         x = d["pane_content_x"] + d["pane_content_columns"] - 1     # the mark, 1-based on the screen
         y = d["pane_content_y"] + 1
-        # a panel drops what came while it was drawing (getkey flushes):
-        # under load a tap can land then, so try again until it takes
-        def until(send, cond, tries=4):
-            for _ in range(tries):
-                send()
-                if z.wait(cond, 5):
-                    return True
-            return False
+        # one tap, one Esc, and a long wait: since #120 the dash keeps what
+        # comes while it's busy, so a second tap after a slow first one would
+        # give the tab back (#121); what each try saw is printed on a fail
+        def until(what, send, cond):
+            note(what)
+            send()
+            ok = z.wait(cond, 20)
+            note("%s %s" % (what, "took" if ok else "never took in 20s"))
+            return ok
         zoomed = lambda: (pane() or {}).get("is_fullscreen") is True
+        n = len(fails)
         check("live: a tap on the mark zooms the pane",
-              until(lambda: z.keys("\x1b[<0;%d;%dM\x1b[<0;%d;%dm" % (x, y, x, y)), zoomed))
-        check("live: Esc gives the tab back", until(lambda: z.keys("\x1b", settle=1.0), lambda: not zoomed()))
-        check("live: and the dashboard is still there", pane() is not None)
+              until("tap at %d,%d" % (x, y), lambda: z.keys("\x1b[<0;%d;%dM\x1b[<0;%d;%dm" % (x, y, x, y)), zoomed))
+        check("live: Esc gives the tab back", until("Esc", lambda: z.keys("\x1b", settle=1.0), lambda: not zoomed()))
+        # one list-panes under load can come back empty: wait, don't read once
+        check("live: and the dashboard is still there", z.wait(lambda: pane() is not None, 10))
+        if len(fails) > n:
+            note("at the end")
+            tell()
 
 live()
 

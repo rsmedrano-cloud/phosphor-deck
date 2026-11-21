@@ -450,6 +450,7 @@ def main():
             at = tapped_at(k)
             if at is not None:
                 x, y = at
+                zoom.trace("tap at %d,%d of %dx%d (%s)" % (x, y, w, rows, how))
                 if zoom.on_mark(x, y, w) or (short and y == 1):
                     zoom.toggle(); continue
                 if short:

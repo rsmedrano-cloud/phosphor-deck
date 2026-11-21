@@ -14,7 +14,7 @@ esc() is the deck's one rule for Esc with nothing left to go back from
 screen opened over something (a card's tap, a menu, a shell) and leaves
 a pane of the tab where it is: only q closes that one.
 """
-import json, os
+import json, os, time
 
 MARK = "⤢"
 SHORT = 6          # a pane with fewer rows than this draws its summary
@@ -64,11 +64,19 @@ def zoomed():
     return False
 
 
+def trace(msg):
+    """A line in `phosphor trace zoom`'s log: what a panel's tap did."""
+    import dlog
+    dlog.trace("zoom", "pane %s: %s" % (os.environ.get("ZELLIJ_PANE_ID", "?"), msg))
+
+
 def toggle():
     """Zoom this pane, or give the tab back: Alt-z. A tap or a key reached
     it, so it's the focused pane, the one zellij toggles."""
     if here():
+        t = time.time()
         zj("toggle-fullscreen")
+        trace("toggle-fullscreen took %.2fs" % (time.time() - t))
 
 
 def tapped():

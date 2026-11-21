@@ -6,6 +6,15 @@ before it updates.
 
 ## Unreleased
 
+## 2.8.14 — a trace for a tap that doesn't zoom
+
+### Added
+
+- **`phosphor trace zoom` (#121).** When a tap on a panel's ⤢ mark doesn't
+  make the pane take the whole tab, turn it on, tap again, and
+  `phosphor logs zoom` says whether the tap reached the panel, where it
+  landed and how long zellij took to zoom.
+
 ## 2.8.13 — two quick copies stay put
 
 ### Fixed

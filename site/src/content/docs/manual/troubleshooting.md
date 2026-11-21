@@ -142,5 +142,9 @@ sidebar:
   it's safe to paste into an issue. Below that: `journalctl --user -u
   deck.service`, `/tmp/zellij-$(id -u)/zellij-log/zellij.log`,
   `~/.cache/phosphor/restart.log`.
+- **A tap on a panel's ⤢ mark doesn't zoom**: `phosphor trace zoom`, tap
+  again, then `phosphor logs zoom`: a `tap at` line means the panel got it
+  (where, in what size of pane), a `toggle-fullscreen took` line how long
+  zellij took. No `tap at` line: the tap never reached the panel.
 - **Never** run `zellij action new-tab` against the deck with nobody attached,
   and don't test against the live session: use a throwaway one.
