@@ -101,8 +101,10 @@ def fetch(name, said=False):
     if "state" not in c or "--json" not in (cli.entries().get(name) or {}).get("options", []):
         return none
     try:
+        # PHOSPHOR_CARD: stats counts a refresh apart from a run (#97)
         r = subprocess.run([sys.executable, PHOSPHOR, name] + argv, stdin=subprocess.DEVNULL,
-                           capture_output=True, text=True, timeout=10)
+                           capture_output=True, text=True, timeout=10,
+                           env=dict(os.environ, PHOSPHOR_CARD="1"))
         v = top = json.loads(r.stdout)
         for k in c["state"].split("."):
             v = v[k]

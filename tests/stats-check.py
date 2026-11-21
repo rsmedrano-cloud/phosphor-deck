@@ -3,7 +3,8 @@
 never its arguments), split by how it started, typed most first; --help, unknown commands
 and hidden plumbing count nothing; a broken stats.json never breaks a
 command; parallel runs don't lose counts; an attach refused for no
-terminal isn't a run (deck.log has it).
+terminal isn't a run (deck.log has it); a card's refresh counts as card,
+apart from runs (#97).
 
     python3 tests/stats-check.py
 
@@ -19,7 +20,7 @@ def need(what, ok):
 cache = tempfile.mkdtemp()
 home = tempfile.mkdtemp()
 env = dict(os.environ, PHOSPHOR_CACHE=cache, HOME=home)
-for k in ("PHOSPHOR_RUN", "ZELLIJ", "ZELLIJ_SESSION_NAME", "ZELLIJ_PANE_ID"):
+for k in ("PHOSPHOR_RUN", "PHOSPHOR_CARD", "ZELLIJ", "ZELLIJ_SESSION_NAME", "ZELLIJ_PANE_ID"):
     env.pop(k, None)
 FILE = os.path.join(cache, "stats.json")
 
@@ -68,6 +69,7 @@ need("24 parallel runs, 24 counts: %r" % counts().get("version"),
 # the summary
 r = run("stats", "--json")
 s = json.loads(r.stdout)
+need("rows have a card column: %r" % s["commands"][0], s["commands"][0].get("card") == 0)
 need("--json has since/commands/never", set(s) == {"since", "commands", "never"})
 top = s["commands"][0]
 need("most run (none typed here) first: %r" % top, top["name"] == "version" and top["runs"] == top["terminal"] + top["pane"] + top["script"])
@@ -88,6 +90,26 @@ out = run("stats").stdout
 need("the panel puts what only panes and scripts run apart, after: %r" % out[:400],
      out.index("doctor") < out.index("fleet") < out.index("run only by panes") < out.index("workspace"))
 need("the terminal column comes first", out.index("terminal") < out.index("pane ") < out.index("runs"))
+
+# a card refreshing its value (card.fetch) counts as card, apart from runs (#97)
+sys.path.insert(0, os.path.join(ROOT, "lib"))
+os.environ.update(PHOSPHOR_CACHE=cache, HOME=home)
+import card
+os.remove(FILE)
+for _ in range(3):
+    card.fetch("mem")
+run("mem", "--json")
+c = counts().get("mem") or {}
+need("card.fetch counts card, not script: %r" % c, c.get("card") == 3 and c.get("script") == 1)
+s = json.loads(run("stats", "--json").stdout)
+m = next((r for r in s["commands"] if r["name"] == "mem"), {})
+need("runs leaves card refreshes out: %r" % m, m.get("runs") == 1 and m.get("card") == 3)
+json.dump({"since": "2026-01-01", "commands": {
+    "workspace": {"card": 9000, "last": "2026-01-02"},
+    "fleet": {"script": 4, "card": 20, "last": "2026-01-02"}}}, open(FILE, "w"))
+out = run("stats").stdout
+need("the panel puts what only cards refresh last, under its own title: %r" % out[:500],
+     out.index("fleet") < out.index("only refreshed by cards") < out.index("workspace"))
 
 # attach with no terminal is refused, not a use: no count, a line in deck.log
 # instead (when, and from what; never an address) -- #96

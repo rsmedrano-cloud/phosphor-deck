@@ -237,13 +237,13 @@ def touch(z, prof):
     """The same edit, with taps and a drag only."""
     import json
     tab = lambda: z.tabs()[0] if z.tabs() else ""
-    count = lambda: len([p for p in json.loads(z.action("list-panes", "-a", "-j"))
+    count = lambda: len([p for p in json.loads(z.action("list-panes", "-a", "-j") or "[]")
                          if not p["is_plugin"] and not p["is_suppressed"]])
     z.keys(ALT_E, 1)
     if not need("touch: start editing is a row to tap", tap(z, "start editing")): return
     if not need("touch: the tab unlocks", z.wait(lambda: tab().startswith("SYS ✎"), 5)): return
     z.action("move-focus", "up")
-    geo = sorted((p["pane_y"], p["pane_rows"]) for p in json.loads(z.action("list-panes", "-a", "-j"))
+    geo = sorted((p["pane_y"], p["pane_rows"]) for p in json.loads(z.action("list-panes", "-a", "-j") or "[]")
                  if not p["is_plugin"] and not p["is_suppressed"])
     border = geo[0][0] + geo[0][1]
     before = open(prof).read()
@@ -262,7 +262,7 @@ def touch(z, prof):
 
 def here(z):
     import json
-    focused = lambda: [p["tab_name"] for p in json.loads(z.action("list-panes", "-a", "-j"))
+    focused = lambda: [p["tab_name"] for p in json.loads(z.action("list-panes", "-a", "-j") or "[]")
                        if p["is_focused"] and not p["is_plugin"] and not p["is_suppressed"]]
     z.action("go-to-tab-name", "SH"); z.pump(1)
     os.makedirs(os.path.join(z.home, "proj/sub"), exist_ok=True)
@@ -347,7 +347,7 @@ def own_keys():
              z.wait(lambda: 'zoom' in open(z.env["PHOSPHOR_PROFILE"]).read() and '"Alt u"' in open(z.env["PHOSPHOR_PROFILE"]).read(), 10))
         need("shortcuts: gen wrote it into config.kdl", z.wait(lambda: 'bind "Alt u" { ToggleFocusFullscreen; }' in open(z.config).read(), 10))
         z.keys(b"q", 1)
-        full = lambda: any(t.get("is_fullscreen_active") for t in json.loads(z.action("list-tabs", "-s", "-j")) if t.get("active"))
+        full = lambda: any(t.get("is_fullscreen_active") for t in json.loads(z.action("list-tabs", "-s", "-j") or "[]") if t.get("active"))
         z.action("go-to-tab-name", "SYS"); z.pump(2)
         z.keys(b"\x1bu", 1.5)
         need("shortcuts: the new key works without a restart", z.wait(full, 8))

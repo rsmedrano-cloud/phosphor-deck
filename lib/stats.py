@@ -15,10 +15,12 @@ same signal as something typed:
     terminal   typed in a shell, or a key that opens it in a pane
     pane       a tab's pane, started by phosphor run
     script     no terminal: a timer, a hook, another program
+    card       a card refreshing its value (card.fetch sets PHOSPHOR_CARD)
 Hidden commands (phosphor run, mention-hook) are plumbing, not counted, and
 neither is an attach refused for having no terminal (deck.log has those).
-The panel reads terminal first: a card refreshing every few seconds runs
-thousands of times, and that says nothing about what people use.
+The panel reads terminal first, and `runs` leaves card refreshes out: a
+card refreshing every 15 seconds runs thousands of times a day, and that
+says nothing about what people use (#97). They have a column of their own.
 """
 import json, os, sys, textwrap, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -26,7 +28,8 @@ import cli, dlog
 from ui import DIM, RST, emit
 
 FILE = os.path.join(dlog.DIR, "stats.json")
-WAYS = ("terminal", "pane", "script")
+WAYS = ("terminal", "pane", "script", "card")
+USES = WAYS[:3]                 # what `runs` adds up: not a card's refresh
 
 
 def _today():
@@ -56,9 +59,12 @@ def _save(d):
 
 
 def way():
-    """terminal, pane or script: how this phosphor was started. phosphor run
-    sets PHOSPHOR_RUN to "PID NAME"; a shell typed into that pane inherits
-    it, but then the parent is the shell, not the run."""
+    """terminal, pane, script or card: how this phosphor was started. A
+    card's refresh (card.fetch) sets PHOSPHOR_CARD. phosphor run sets
+    PHOSPHOR_RUN to "PID NAME"; a shell typed into that pane inherits it,
+    but then the parent is the shell, not the run."""
+    if os.environ.get("PHOSPHOR_CARD"):
+        return "card"
     pid = os.environ.get("PHOSPHOR_RUN", "").partition(" ")[0]
     if pid and pid == str(os.getppid()):
         return "pane"
@@ -107,12 +113,13 @@ def count(cmd):
 
 
 def summary():
-    """{since, commands: [{name, runs, terminal, pane, script, last}], never: [names]}:
-    commands typed most first, then by all their runs."""
+    """{since, commands: [{name, runs, terminal, pane, script, card, last}], never: [names]}:
+    commands typed most first, then by their runs. runs is terminal + pane +
+    script: a card's refreshes are counted apart, in card."""
     d = load()
     rows = []
     for name, c in d["commands"].items():
-        r = {"name": name, "runs": sum(c.get(w, 0) for w in WAYS)}
+        r = {"name": name, "runs": sum(c.get(w, 0) for w in USES)}
         r.update({w: c.get(w, 0) for w in WAYS})
         r["last"] = c.get("last", "")
         rows.append(r)
@@ -138,16 +145,19 @@ def main():
     if not s["commands"]:
         print(DIM + "  nothing counted yet" + RST)
     typed = [r for r in s["commands"] if r["terminal"]]
-    rest = [r for r in s["commands"] if not r["terminal"]]
-    for rows, title in ((typed, None), (rest, "run only by panes and scripts (cards, timers, hooks):")):
+    rest = [r for r in s["commands"] if not r["terminal"] and r["runs"]]
+    cards = [r for r in s["commands"] if not r["runs"]]
+    for rows, title in ((typed, None), (rest, "run only by panes and scripts (timers, hooks):"),
+                        (cards, "only refreshed by cards:")):
         if not rows:
             continue
         if title:
             print("\n" + title)
-        print(DIM + "  %-14s %9s %6s %7s %6s  %s" % ("command", "terminal", "pane", "script", "runs", "last") + RST)
+        print(DIM + "  %-14s %9s %6s %7s %6s %7s  %s" % ("command", "terminal", "pane", "script", "runs",
+                                                       "card", "last") + RST)
         for r in rows:
-            print("  %-14s %9d %6d %7d %6d  %s" % (r["name"], r["terminal"], r["pane"],
-                                                    r["script"], r["runs"], r["last"]))
+            print("  %-14s %9d %6d %7d %6d %7d  %s" % (r["name"], r["terminal"], r["pane"], r["script"],
+                                                     r["runs"], r["card"], r["last"]))
     if s["never"]:
         print("\nnever run since %s:" % s["since"])
         print(textwrap.fill(", ".join(s["never"]), 78, initial_indent="  ", subsequent_indent="  "))

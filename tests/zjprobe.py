@@ -151,7 +151,7 @@ def tap(z, label, timeout=10):
             or [i for i, r in enumerate(rows) if label in r]          # the list, not a preview beside it
         active = [t for t in json.loads(z.action("list-tabs", "-s", "-j") or "[]") if t.get("active")]
         tab_id = active[0].get("tab_id", active[0].get("id")) if active else None
-        me = [p for p in json.loads(z.action("list-panes", "-a", "-j")) if p["is_focused"] and not p["is_plugin"]
+        me = [p for p in json.loads(z.action("list-panes", "-a", "-j") or "[]") if p["is_focused"] and not p["is_plugin"]
               and not p["is_suppressed"] and p["tab_id"] == tab_id]     # every tab has a focused pane
         if hit and me:                  # on the text itself: a row may hold two buttons
             col = max(3, rows[hit[0]].find(label))

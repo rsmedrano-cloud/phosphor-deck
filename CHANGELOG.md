@@ -6,6 +6,15 @@ before it updates.
 
 ## Unreleased
 
+## 2.8.7 — stats counts cards apart
+
+### Changed
+
+- `phosphor stats` counts a card's refresh apart from a run (#97). `runs` no longer
+  includes the DECK tab's and dashboards' refreshes: they show in a new `card` column, and
+  in a group of their own. Counts from before this release are still in `script`, so run
+  `phosphor stats --clear` to start clean.
+
 ## 2.8.6 — restart counts panels right
 
 ### Fixed
