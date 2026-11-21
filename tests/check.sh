@@ -88,6 +88,7 @@ check "deprecated: warns on stderr, goes when it said it would" python3 tests/de
 check "web on: never restarts unattended without --yes" python3 tests/web-check.py
 check "the deck won't start: deck says why and offers the fix" python3 tests/rescue-check.py
 check "new --here: refuses with nobody attached" python3 tests/newtab-attach-check.py
+check "deck: back in after a restart, even if dropped once" python3 tests/reattach-check.py
 check "ask key: the pane it covers goes along, q gives it back" python3 tests/ask-key-check.py
 check "the key bar: in every tab, a tap does what its Alt key does on the pane you were in" python3 tests/bar-check.py
 check "voice in: a screen records, the brain writes it down, the words land at the prompt without Enter" python3 tests/voice-check.py

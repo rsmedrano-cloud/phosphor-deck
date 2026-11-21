@@ -87,6 +87,7 @@
   (session gone from zellij, service stopped, nothing of it left alive); otherwise it names what's
   left, leaves the watchdog off and exits non-zero. From inside the deck it detaches itself.
   Every screen that came in with `deck` (this machine, other computers, phones) waits and goes back in by itself.
+  If zellij drops one of them as too slow right after the restart, its `deck` goes back in too (at most twice).
 - `phosphor down` — bring it down and stop the watchdog timer (`phosphor up` to return); exits non-zero
   if anything of the old deck is still alive.
 

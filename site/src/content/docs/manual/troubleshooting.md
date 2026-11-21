@@ -47,6 +47,11 @@ sidebar:
   itself when its terminal is gone; run the kit again on a phone set up
   before. `phosphor logs attach` shows each refused try with its time: a line
   every few seconds there means a loop that outlived its screen.
+- **"client lost connection ... didn't process server messages quick enough"**:
+  zellij dropped the screen as too slow, which a new deck can do while it draws
+  everything at once (a slow phone or a loaded viewer). Right after a
+  `phosphor restart`, `deck` goes back in by itself (at most twice), and says
+  so. At any other time it leaves you at the shell: type `deck` again.
 - **The deck is gone**: the watchdog brings it back within a minute; `phosphor
   up` if you ran `phosphor down`.
 - **"the old deck isn't fully down"**: a restart (or an update's restart)

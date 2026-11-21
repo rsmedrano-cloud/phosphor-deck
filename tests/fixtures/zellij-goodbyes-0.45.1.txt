@@ -1,0 +1,21 @@
+# zellij 0.45.1's log ($TMPDIR/zellij-UID/zellij-log/zellij.log): a client's goodbye
+# on a detach (Ctrl-q), then on a drop (a pty left unread ~100 s). See #107.
+INFO   |zellij_client            | 2026-11-21 12:50:02.355 [main      ] zellij-client/src/lib.rs:1620: Bye from Zellij! 
+WARN   |zellij_server::os_input_o| 2026-11-21 12:51:04.517 [main      ] zellij-server/src/os_input_output.rs:262: client 1 is processing server messages too slow 
+INFO   |zellij_client            | 2026-11-21 12:51:46.200 [main      ] zellij-client/src/lib.rs:1620: 
+Your zellij client lost connection to the zellij server.
+
+As a safety measure, you have been disconnected from the current zellij session.
+However, the session should still exist and none of your data should be lost.
+
+This usually means that your terminal didn't process server messages quick
+enough. Maybe your system is currently under high load, or your terminal
+isn't performant enough.
+
+There are a few things you can try now:
+    - Reattach to your previous session and see if it works out better this
+      time: `zellij attach probe`
+    - Try using a faster (maybe GPU-accelerated) terminal emulator
+     
+ERROR  |zellij_server::screen    | 2026-11-21 12:51:46.231 [screen    ] zellij-server/src/screen.rs:9496: No client ids in screen found 
+ERROR  |zellij_server::screen    | 2026-11-21 12:51:46.232 [screen    ] zellij-server/src/screen.rs:8565: No client ids in screen found 

@@ -36,6 +36,38 @@ def panel_count(name, procs):
     return sum(1 for _, a in procs if pat.search(a) and " run " not in a)
 
 
+def zlog():
+    """zellij's log, one for every session of this user ($TMPDIR, or /tmp)."""
+    return os.path.join(os.environ.get("TMPDIR") or "/tmp", "zellij-%d" % os.getuid(),
+                        "zellij-log", "zellij.log")
+
+def zlog_size():
+    try: return os.path.getsize(zlog())
+    except OSError: return 0                 # not written yet: all of it will be new
+
+def dropped(sess, since):
+    """The attach that just returned was zellij dropping this client as
+    too slow, not a detach: the last goodbye a client logged since the log
+    was `since` bytes long is "lost connection", naming sess. zellij
+    0.45: 'Bye from Zellij!' on a detach, 'Your zellij client lost
+    connection to the zellij server. ... `zellij attach SESS`' on a drop.
+    No log, or another wording: False, so nobody is pulled back in."""
+    if since is None:
+        return False
+    try:
+        with open(zlog(), "rb") as f:
+            size = f.seek(0, 2)
+            start = since if size >= since else 0     # rotated meanwhile: all of it is new
+            f.seek(max(start, size - 262144))
+            text = f.read().decode("utf-8", "replace")
+    except OSError:
+        return False
+    lost = text.rfind("lost connection to the zellij server")
+    if lost < 0 or text.rfind("Bye from Zellij!") > lost:
+        return False
+    return ("zellij attach %s`" % sess) in text[lost:lost + 2000]
+
+
 def poll_until(check, timeout, interval=0.15):
     """True as soon as `check()` is, sleeping `interval` between tries --
     same worst case as a blind `sleep(timeout)`, usually a lot less: down
@@ -331,10 +363,19 @@ def attach(argv):
         os.kill(os.getpid(), signal.SIGHUP)
     if os.path.exists(mark):
         signal.signal(signal.SIGHUP, hangup)
+    back, drops = False, 0             # back: this attach follows a restart
     while True:
         screen_up()
+        since = zlog_size() if back else None
         rc = _sp.call([zj, "attach", target])
         if not restarting():
+            # A new deck draws a lot at once, and zellij drops a screen
+            # that can't keep up; that client exits 0 just as a detach
+            # does, so only its goodbye in zellij's log tells (#107).
+            if back and drops < 2 and dropped(target, since):
+                drops += 1
+                print("\n  zellij dropped this screen as too slow: going back in...")
+                continue
             if os.path.exists(mark):
                 away.saw()
             return rc
@@ -342,3 +383,4 @@ def attach(argv):
         print("\n  the deck is restarting: you'll be back in by yourself...")
         if not poll_until(lambda: session_live(zj, sess) and not restarting(), 180) and not rescued():
             return 1
+        back = True

@@ -6,6 +6,15 @@ before it updates.
 
 ## Unreleased
 
+## 2.8.9 — back in after a restart, even if dropped once
+
+### Fixed
+
+- **A screen that zellij drops right after a restart goes back in (#107).** A new
+  deck draws a lot at once, and a slow phone could be dropped as "too slow" before
+  it settled. `deck` now notices and goes back in by itself, at most twice. A detach
+  (Alt-x, Ctrl-q) still leaves.
+
 ## 2.8.8 — the store installs on aarch64
 
 ### Fixed
