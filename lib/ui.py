@@ -166,6 +166,8 @@ def getkey(timeout=None, text=False, mouse=False, typeahead=False):
     if typeahead and _ahead:
         s, _ahead = _ahead, ""
     else:
+        if not typeahead:
+            _ahead = ""            # dropped with the rest of what was typed
         fd = sys.stdin.fileno(); old = termios.tcgetattr(fd)
         try:
             tty.setraw(fd, termios.TCSANOW if typeahead else termios.TCSAFLUSH)
@@ -193,6 +195,9 @@ def _first_key(s, text, mouse):
             return ("MOUSE", b, x, y, down), m.end()
         if not down: return None, m.end()
         return {64: "WUP", 65: "WDN"}.get(b) or (("TAP", x, y) if b == 0 else None), m.end()
+    m = re.match(r"\x1b\[[0-9;]*[@-~]", s)
+    if m:                          # the whole sequence: PgUp is \x1b[5~, not \x1b[5 and a stray ~
+        return m.group(0), m.end()
     if s.startswith("\x1b[") or s.startswith("\x1bO"):
         return (s[:3], 3) if len(s) >= 3 else (s, len(s))
     if text and s and s[0] >= " ":

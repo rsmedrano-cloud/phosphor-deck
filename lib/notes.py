@@ -878,7 +878,7 @@ def main():
             out += foot
             sys.stdout.write("\x1b[H" + "\x1b[K\n".join(out[:rows]) + "\x1b[K\x1b[J")
             sys.stdout.flush()
-            k = getkey(1.0, mouse=True)
+            k = getkey(1.0, mouse=True, typeahead=True)   # a key typed while it gathered is for this screen too (#120)
             if k is None: continue
             if isinstance(k, tuple):
                 col, row = k[1], k[2]

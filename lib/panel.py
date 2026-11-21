@@ -449,7 +449,7 @@ def main():
             lines, hit, maxoff = draw(prof, st, cols, rows, off, live=live)
             off = min(off, maxoff)
             sys.stdout.write("\x1b[H" + "\x1b[K\n".join(lines) + "\x1b[K\x1b[J"); sys.stdout.flush()
-            k = getkey(1.0)
+            k = getkey(1.0, typeahead=True)   # a key typed while it gathered is for this screen too (#120)
             if isinstance(k, tuple):
                 if k[0] == "MOUSE" and k[4] and k[1] in (64, 65):     # the wheel, two fingers
                     off = max(0, min(maxoff, off + (3 if k[1] == 65 else -3)))

@@ -196,7 +196,7 @@ def gallery(have, rows=None, cols=None, enter="make the tab", cell=None):
             lines.append(vcut(DIM + " ↑↓ · Space or tap: pick · a: all / none · Enter: %s · Esc: cancel"
                               % enter + RST, w))
             paint(lines, rows_)
-            k = getkey(1.0, mouse=True)
+            k = getkey(1.0, mouse=True, typeahead=True)   # a key typed while it gathered is for this screen too (#120)
             y = tapped(k)
             if y is not None and k[1] > lw:    # a tap on the preview
                 continue
@@ -446,7 +446,7 @@ def main():
             else:
                 lines, hit = (draw_short if short else draw)(names, live, w, rows, msg, removing)
             paint(lines, rows)
-            k = getkey(1.0, mouse=True)
+            k = getkey(1.0, mouse=True, typeahead=True)   # a key typed while it gathered is for this screen too (#120)
             at = tapped_at(k)
             if at is not None:
                 x, y = at

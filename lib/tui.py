@@ -309,7 +309,7 @@ class ListPanel:
             while True:
                 self.update()
                 self.draw()
-                k = getkey(max(0.2, self.INTERVAL - (time.time() - self.last)))
+                k = getkey(max(0.2, self.INTERVAL - (time.time() - self.last)), typeahead=True)   # a key typed while it gathered is for this screen too (#120)
                 if k is not None and not self.key(k):
                     break
         except KeyboardInterrupt:

@@ -6,6 +6,19 @@ before it updates.
 
 ## Unreleased
 
+## 2.8.11 — screens keep the keys you type
+
+### Fixed
+
+- **Screens that refresh on their own keep a key typed while they refresh
+  (#120).** What glance got in 2.8.10, now in fleet, mem, dash and its
+  gallery, home, mentions, notes, the DECK tab, every list panel (services,
+  containers, tunnels...) and the rescue screen: a key that came while the
+  screen gathered or repainted used to be thrown away. The rescue screen still
+  ignores keys typed before it showed, since its keys close processes.
+- **PgUp and PgDn page the DECK tab**, and no longer leave a stray `~`
+  behind: a key like PgUp was read as half of itself.
+
 ## 2.8.10 — glance keeps the keys you type
 
 ### Fixed

@@ -871,7 +871,7 @@ def main():
             sys.stdout.flush()
             if not tty:
                 time.sleep(1); continue
-            k = getkey(1)
+            k = getkey(1, typeahead=True)   # a key typed while it gathered is for this screen too (#120)
             if isinstance(k, tuple):                 # a tap: a card, or a hint on the last line
                 _, btn, x, y, pressed = k
                 if btn != 0 or not pressed:

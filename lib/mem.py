@@ -216,7 +216,7 @@ def main():
             shown.append(DIM + " " + ("j/k scroll · " if maxoff else "") + "q back · ? keys" + RST)
             sys.stdout.write("\x1b[H" + "\x1b[K\n".join(shown) + "\x1b[K\x1b[J")
             sys.stdout.flush()
-            k = getkey(max(0.1, EVERY - (time.time() - last)))
+            k = getkey(max(0.1, EVERY - (time.time() - last)), typeahead=True)   # a key typed while it gathered is for this screen too (#120)
             if k in ("q", "Q", "\x03", "\x04") or (k == "\x1b" and zoom.esc()):
                 break
             if k == "?":

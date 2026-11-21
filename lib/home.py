@@ -492,7 +492,7 @@ def take(it, prof):
 
 ARROWS = {"\x1b[A": "up", "\x1b[B": "down", "\x1b[C": "right", "\x1b[D": "left",
           "\x1bOA": "up", "\x1bOB": "down", "\x1bOC": "right", "\x1bOD": "left"}
-PAGE = {"\x1b[5": -1, "\x1b[6": 1, "[": -1, "]": 1}
+PAGE = {"\x1b[5~": -1, "\x1b[6~": 1, "[": -1, "]": 1}
 
 
 def items_for(prof):
@@ -541,7 +541,7 @@ def main():
             lines, hit = frame(pages, at, w, rows, live, terms, held is not None, typing, found, pick, msg)
             sys.stdout.write(paint(lines, prev)); sys.stdout.flush()
             prev = lines
-            k = getkey(1.0, text=typing is not None, mouse=True)
+            k = getkey(1.0, text=typing is not None, mouse=True, typeahead=True)   # a key typed while it gathered is for this screen too (#120)
             if k is None or k in ("WUP", "WDN"):
                 continue
             msg = None

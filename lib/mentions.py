@@ -323,7 +323,7 @@ def view():
             out = out[:rows - 2] + [bar, foot]
             sys.stdout.write("\x1b[H" + "\x1b[K\n".join(out[:rows]) + "\x1b[K\x1b[J"); sys.stdout.flush()
             bar_row = len(out) - 1                 # 1-based row of the button bar
-            k = getkey(2.0, mouse=True)
+            k = getkey(2.0, mouse=True, typeahead=True)   # a key typed while it gathered is for this screen too (#120)
             act = None
             if isinstance(k, tuple):
                 _, tx, ty = k

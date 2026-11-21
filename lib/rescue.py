@@ -271,7 +271,7 @@ def screen(zj, sess, prof, live):
     """Until the deck is up (True: go in) or q (False). live(): is it up."""
     import form
     web = bool(((prof or {}).get("deck") or {}).get("web")) and can_skip_web(sess)
-    msg = ""
+    msg, first = "", True
     try:
         while True:
             if live():
@@ -283,7 +283,8 @@ def screen(zj, sess, prof, live):
             out, taps = lines(sess, st, pan, held, web, w)
             if msg: out += ["", "  " + AMB + cut(msg, w - 4) + RST]
             form.screen(out)
-            k = getkey(5, mouse=True)
+            k = getkey(5, mouse=True, typeahead=not first)   # kept between polls; not from before it showed (#120)
+            first = False
             if isinstance(k, tuple):
                 k = taps.get(k[2]) if k[0] == "TAP" else None
             if k is None: continue
