@@ -57,7 +57,7 @@ OPENS = {"v": ["screens"], "p": ["phone", "screen"], "s": ["send"], "R": ["recei
          "z": ["workspace"], "x": ["review"], "i": ["store"], "!": [], "k": ["keep"], "b": ["tabs"],
          "a": ["recipe"], "o": ["theme"], "c": ["shortcuts"], "?": ["keys"],
          "n": ["push", "tts", "trace"], "d": ["doctor"], "M": ["mem"], "l": ["logs"],
-         "u": ["update", "version"], "r": ["restart"], "h": ["help"], "P": ["migrate"], "f": ["gen", "restart"]}
+         "u": ["update", "version"], "r": ["restart"], "h": ["help"], "P": ["migrate"], "f": ["apply"]}
 # a key that opens one plain command (no picker or question of the panel's
 # own first) opens it as its card does: card.tap, the same as on a dashboard
 TAPS = {"e", "v", "M", "m", "i", "o", "y", "z", "c", "b", "a", "?", "d", "l", "h", "P", "s", "R", "B"}
@@ -111,6 +111,7 @@ def state(prof):
          "dirty_workspaces": len(workspace.dirty_workspaces()),
          "profile_changed": deckconf.profile_changed(),
          "restart_pending": deckconf.restart_pending(sess),
+         "tabs_pending": deckconf.tabs_pending(sess),
          "version": version.current()["version"], "channel": version.current()["channel"],
          "news": version.news(), "migrate": len(migrate.pending()), "offers": len(migrate.offered())}
     try:
@@ -234,6 +235,9 @@ def draw(prof, st, w, rows, off=0, with_steps=True, live=None):
         hit[len(L)] = [(1, w, "f")]       # a tap on that line applies it too
     elif st.get("restart_pending"):
         L.append(" " + AMB + "applied, the deck hasn't restarted yet: f restarts it" + RST)
+        hit[len(L)] = [(1, w, "f")]
+    elif st.get("tabs_pending"):
+        L.append(vcut(" " + AMB + "applied, " + ", ".join(st["tabs_pending"]) + " not reloaded yet: f" + RST, w))
         hit[len(L)] = [(1, w, "f")]
     elif st["news"]:
         L.append(" " + AMB + st["news"] + ": u" + RST)
@@ -399,31 +403,17 @@ def act(k, st):
             if got:
                 P({"push": "push", "voice": "tts", "trace": "trace"}[got[0]])
         elif k == "f":
-            # a hand edit of deck.toml (or tabs.d) only shows after gen and a
-            # restart; never done behind anyone's back: the restart closes every pane
+            # a hand edit of deck.toml (or tabs.d), or what an earlier apply
+            # left: phosphor apply reloads only the tabs that changed and asks
+            # before anything that loses a pane's state or restarts the deck
             import dlog
             if st.get("profile_changed"):
                 print("  the profile changed since the last " + PH + "phosphor gen" + RST
                       + ": the deck still runs the one before.")
-                go = yes("apply it now? phosphor gen, then a restart (every screen comes back by itself)", False)
-                if go:
-                    rc = P("gen").returncode
-                    dlog.event("PANEL", "apply", "gen rc=%d" % rc)
-                    if rc != 0:
-                        print(AMB + "  gen failed (exit %d): nothing restarted. Fix the profile, then f again." % rc + RST)
-                        go = False
-                    else:
-                        deckconf.mark_applied()   # until the deck restarts, f offers the restart alone
-            else:
-                print("  the profile is applied, but the deck running now started before that:")
-                print("  it shows the change once it restarts.")
-                go = yes("restart now? (every screen comes back by itself)", False)
-            if go:
-                rc = P("restart").returncode
-                dlog.event("PANEL", "apply", "restart rc=%d" % rc)
-                if rc != 0:
-                    print(AMB + "  the restart didn't go through (exit %d): f tries again, "
-                          "phosphor logs says why." % rc + RST)
+            rc = P("apply").returncode
+            dlog.event("PANEL", "apply", "rc=%d" % rc)
+            if rc != 0:
+                print(AMB + "  apply stopped (exit %d): fix what it says, then f again." % rc + RST)
             pause()
     except KeyboardInterrupt:
         print()
@@ -463,7 +453,7 @@ def main():
                 break
             elif k == "\x1b":
                 zoom.back()
-            elif k in keys or (k == "f" and (st.get("profile_changed") or st.get("restart_pending"))) or (k == "P" and (st.get("migrate") or st.get("offers"))):
+            elif k in keys or (k == "f" and (st.get("profile_changed") or st.get("restart_pending") or st.get("tabs_pending"))) or (k == "P" and (st.get("migrate") or st.get("offers"))):
                 act(k, st); last = 0
     except KeyboardInterrupt:
         pass

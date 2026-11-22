@@ -6,6 +6,29 @@ before it updates.
 
 ## Unreleased
 
+## 2.8.15 — apply: reload only the tabs that changed
+
+### Added
+
+- **`phosphor apply` (#124).** Applies a changed profile to the running deck
+  without a full restart. It runs `gen`, then reloads only the tabs whose
+  layout changed, in place. The other tabs keep their panes and programs.
+  Tabs you add to the profile open, tabs you take out close. Fleet mounts and
+  tunnels that changed reload on their own. It restarts the deck only when
+  the change needs one (keys, theme, the bars, the tab order), and asks
+  first. A tab with a shell, an editor, an ssh session or an assistant asks
+  before it reloads, and names those panes. `--dry-run` shows the plan,
+  `--yes` does it all without asking.
+
+### Changed
+
+- **The DECK tab's `f` runs `phosphor apply`.** It used to run `gen` and then
+  a full restart. If some tabs are still waiting (no screen attached, or you
+  said no), the line says which ones: "applied, NAMES not reloaded yet: f".
+- **`phosphor setup`'s "apply" runs `phosphor apply`**, and `gen` says
+  "next: phosphor apply" when the deck is running. Every hint that said
+  `phosphor gen && phosphor restart` now says `phosphor apply`.
+
 ## 2.8.14 — a trace for a tap that doesn't zoom
 
 ### Added

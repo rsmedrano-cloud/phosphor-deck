@@ -101,7 +101,7 @@ def main():
     # Inside `phosphor demo` the profile is the demo's: gen would write the demo's
     # layouts, units and keys over this machine's real ones, and restart/up/down would
     # act on the real deck's service. Alt-r's save and the DECK tab's f both run these.
-    if cmd in ("gen", "up", "restart", "down", "update", "setup") and "--dry-run" not in sys.argv:
+    if cmd in ("gen", "apply", "up", "restart", "down", "update", "setup") and "--dry-run" not in sys.argv:
         prof, _ = deckconf.load()
         if ((prof or {}).get("deck") or {}).get("demo"):
             print("  this is the demo's profile: %s writes nothing here "

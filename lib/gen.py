@@ -726,14 +726,16 @@ def write(path, content, dry, changed):
         raise
     print(row(OK, os.path.basename(path), "written" if old is None else "updated"))
 
-def run(prof, src, dry=False):
+def run(prof, src, dry=False, changed=None):
+    """changed: a list to fill with every path written (phosphor apply reads it)."""
     if not prof:
         print("  no profile"); return 1
     # run from a pane of a screen's own session: write the deck, not that screen
     import kinds
     for k in kinds.ENV:
         os.environ.pop(k, None)
-    ctx, changed = Ctx(prof), []
+    ctx = Ctx(prof)
+    changed = [] if changed is None else changed
     print()
     print(BLOOM + "  phosphor gen" + RST + DIM + ("  (dry-run)" if dry else "") + RST)
     print(DIM + "  source: " + src + RST)
@@ -890,7 +892,7 @@ def run(prof, src, dry=False):
         except OSError:                   # no zellij yet: nothing is running
             live = False
         if live:
-            print("  " + PH + "next: phosphor restart" + RST + DIM + "   applies this to the running deck" + RST)
+            print("  " + PH + "next: phosphor apply" + RST + DIM + "   reloads the tabs that changed, restarts only if it must" + RST)
         else:
             print("  " + PH + "next: phosphor up" + RST + DIM + "   starts the deck, mounts included" + RST)
     print()

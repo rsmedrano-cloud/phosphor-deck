@@ -192,7 +192,7 @@ PANEL_DOCS = {"dash": ("profile", "[[tabs]]"), "home": ("profile", "[home]"),
 MANUAL_CHARS = 3500
 ANSWER_RULE = ("If I'm asking for something the deck could do or show differently, answer from the "
                "manual: if Phosphor can do it, give the exact profile lines to change (then "
-               "`phosphor gen && phosphor restart`); if it can't, say so plainly and end your answer "
+               "`phosphor apply`); if it can't, say so plainly and end your answer "
                "with one last line, `MISSING: ` and the request in a sentence, so I can pass it on.")
 
 
@@ -214,7 +214,7 @@ def deck_context(tab, argv, entry, with_tools=False):
     out = ["You're answering inside Phosphor Deck: a terminal deck (one zellij session) laid out "
            "from my profile, ~/.config/phosphor/deck.toml, its only source of truth: every tab, "
            "pane and dashboard card comes from it, and a change goes there, then "
-           "`phosphor gen && phosphor restart`."]
+           "`phosphor apply`."]
     out.append("The pane I'm asking about is in tab %s and runs: %s." %
                (tab, "`" + " ".join(os.path.basename(prog[0]) if i == 0 else a for i, a in enumerate(prog)) + "`"
                 if prog else "a shell"))

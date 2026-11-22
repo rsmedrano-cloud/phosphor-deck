@@ -37,9 +37,11 @@ sidebar:
   that print and wait say "q · Enter: back", the TUIs take q) -- `tail`'s stream is the one
   exception: it takes over the pane until you Ctrl-C, the same way "a shell here" does.
   After a hand edit of the profile, its status line says "profile changed: f applies it":
-  `f` asks, then runs `phosphor gen` and `phosphor restart`. If gen went through and the deck
-  didn't restart, the line says "applied, the deck hasn't restarted yet: f restarts it" until it
-  does, and `f` offers the restart alone; `phosphor logs panel` shows what each step answered.
+  `f` runs `phosphor apply`, which asks before anything that loses a pane's state or restarts
+  the deck. If some tabs are still waiting (no screen attached, or you said no), the line says
+  "applied, NAMES not reloaded yet: f" until they're done; if only a restart is left, it says
+  "applied, the deck hasn't restarted yet: f restarts it", and `f` offers the restart alone.
+  `phosphor logs panel` shows what each step answered.
 - `phosphor commands` — every phosphor command, browsable by category (also: `e` in the DECK
   tab). Pick a category, then a command: a read-only one runs right there when you pick it, and
   so does one that asks for what it needs (see "Commands that ask" below); anything else shows its usage and copies the invocation to every screen's clipboard instead
@@ -65,6 +67,22 @@ sidebar:
   for trying a new kind of screen (phones, "Trying a screen nobody has tried").
 - `phosphor gen [--dry-run]` — profile → layouts, zellij theme, units, mounts, links, and the color
   of yazi, btop, gping and ctop (see `theme` in profile).
+- `phosphor apply [--dry-run] [--yes] [--json]` — apply a changed profile to the running deck. It runs
+  `gen` (you see only its warnings, or all its output if it fails), then reloads each tab whose layout
+  changed, in place, at the same place. The other tabs keep their panes and programs, and you stay on the
+  tab you were on. A tab added to the profile opens at its place; a tab taken out of it closes (tabs
+  you opened with `+` are never touched). Fleet mounts, tunnels and SolarOS units that changed are
+  reloaded and started on their own. A restart is needed only when the engine changed (config.kdl: the
+  keys and the theme; yazi's and btop's colors and keys; the bars every tab shares; the tabs' order; the
+  deck's own systemd unit; how the session starts). apply names it and asks first, default no. A tab
+  with a shell, an editor, an ssh session or an assistant in it is reloaded only after you say `y`;
+  apply names those panes ("SH holds SHELL (bash)"). A screen kind's own session (`[screens.KIND]`)
+  takes its changes at its next restart: apply names it and doesn't touch it. Without a terminal and
+  without `--yes` (an assistant, a script), apply does the safe part and leaves the rest pending, and
+  says so. `--yes` does everything, restart included. `--dry-run` writes and touches nothing; `--json`
+  prints the plan and what was done. With no screen attached to the deck, tabs stay pending: zellij
+  can't open a tab with no client. Run from inside a tab that itself changed (the DECK tab, say), that
+  tab is reloaded last. The attach command, the `~/fleet` links and rclone.conf need nothing.
 - `phosphor up` — start the deck and enable it at boot (with the fleet mounts).
 - `phosphor attach [--screen KIND]` (alias `phosphor deck`, or just `deck`) — get in from the brain.
   `--screen KIND` goes into that kind's own deck when the profile has a `[screens.KIND]` block
@@ -374,7 +392,7 @@ sidebar:
   what phosphor ships never reaches a profile that already exists, so when a shape changes it
   becomes a step here: each pending one is shown as a diff (the DECK tab in one pane, `[deck] tts`
   into `[tts] enabled`), then one "write it?" writes them all, with `version` in `[deck]`, and
-  keeps the old profile as `deck.toml.bak`; it shows after `phosphor gen && phosphor restart`
+  keeps the old profile as `deck.toml.bak`; it shows after `phosphor apply`
   (`f` in the DECK tab). Then each new default your profile lacks (a row of cards on top of
   SYS) is offered on its own, as a diff: add it, no (it goes into `[deck] declined` and is never
   offered again), or back to be asked next time. `--dry-run` only shows. A profile written by a
@@ -403,9 +421,9 @@ sidebar:
   `revived` (leaner: no CLOUD tab) or `dev` right into the profile from the start.
 - `phosphor theme [NAME | --list]` — the deck's color. With no `NAME`, a picker: arrows, j/k,
   a number or a tap preview each theme as a small deck painted in it, on its own background,
-  before anything is written; Enter keeps it (then `phosphor gen`, and it asks before a
+  before anything is written; Enter keeps it (then `phosphor apply`, which asks before a
   restart), q leaves it as it was. `NAME` (p31, p3, p4, ega, paper) writes it straight away and
-  applies nothing: `phosphor gen && phosphor restart`, or `f` in the DECK tab. `o` in the DECK
+  applies nothing: `phosphor apply`, or `f` in the DECK tab. `o` in the DECK
   tab and `phosphor setup`'s "change the color" open the same picker.
 - `phosphor shortcuts [--kdl]` — the deck's keys, yours to change (also `c` in the DECK tab); `--kdl` prints the block
   for a zellij config of your own.

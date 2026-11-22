@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """A hand edit of the profile says so: gen records what it read, the DECK
 tab and doctor notice when the profile (or tabs.d) no longer matches, and
-the DECK tab's f applies it (gen, then restart) only after asking.
+the DECK tab's f applies it: phosphor apply, which asks before what it
+must (#124). The pending marks apply leaves: tabs, a restart.
 
     python3 tests/profile-changed-check.py
 
@@ -46,7 +47,7 @@ open(prof, "a").write('\n[[tabs]]\nname = "B"\npanes = [ {} ]\n')
 need("a hand edit of deck.toml is noticed", changed() == "True")
 d = phosphor("doctor").stdout
 need("doctor says the profile changed since the last gen", "changed since the last phosphor gen" in d)
-need("doctor says what applies it", "phosphor gen && phosphor restart" in d)
+need("doctor says what applies it", "phosphor apply" in d)
 
 phosphor("gen")
 need("gen again: unchanged", changed() == "False")
@@ -67,37 +68,48 @@ need("a tap on that line is f", panel.at(hit, 5, 2) == "f")
 lines, hit, _ = panel.draw({}, dict(st, profile_changed=False), 100, 60)
 need("unchanged: the status line doesn't mention it", "profile changed" not in lines[1] and all(k != "f" for spots in hit.values() for _, _, k in spots))
 
-ran, rc = [], {"gen": 0}
+ran, rc = [], {"apply": 0}
 panel.subprocess.run = lambda cmd, **kw: ran.append(cmd[-1]) or types.SimpleNamespace(returncode=rc.get(cmd[-1], 0))
 panel.back = lambda *a, **kw: None
-def act(answer):
-    init.yes = lambda *a, **kw: answer
+def act():
     ran.clear()
     saved, sys.stdout = sys.stdout, io.StringIO()
     try: panel.act("f", st)
     finally: sys.stdout = saved
     return list(ran)
-need("f, declined: nothing runs", act(False) == [])
-need("f, confirmed: gen, then restart", act(True) == ["gen", "restart"])
-rc["gen"] = 1
-need("f, gen fails: no restart", act(True) == ["gen"])
+need("f: phosphor apply, which asks for itself", act() == ["apply"])
+rc["apply"] = 1
+need("f, apply fails: nothing else runs", act() == ["apply"])
 
-# gen went through but the restart didn't happen: f still offers it, alone
-rc.update(gen=0, restart=1)
+# what an apply leaves for later: a restart, tabs; a deck started after the mark has it all
 mark = os.path.join(env["PHOSPHOR_DATA"], "apply-pending")
-need("f, confirmed: gen leaves the apply mark", act(True) == ["gen", "restart"] and os.path.exists(mark))
-deckconf.session_started = lambda sess: os.path.getmtime(mark) - 60       # the deck is older than gen
-need("a deck older than the apply: restart pending", deckconf.restart_pending("deck"))
+deckconf.mark_applied(restart=["config.kdl (keys, theme)"])
+need("a restart left for later: the mark", os.path.exists(mark))
+deckconf.session_started = lambda sess: os.path.getmtime(mark) - 60       # the deck is older than the mark
+need("a deck older than the apply: restart pending", deckconf.restart_pending("deck")
+     and not deckconf.tabs_pending("deck"))
 deckconf.session_started = lambda sess: os.path.getmtime(mark) + 5        # it did restart
 need("a deck newer than the apply: nothing pending", not deckconf.restart_pending("deck"))
 deckconf.session_started = lambda sess: None                              # no deck at all
 need("no deck running: nothing pending", not deckconf.restart_pending("deck"))
+open(mark, "w").close()                                                   # an older f's mark: empty
+deckconf.session_started = lambda sess: os.path.getmtime(mark) - 60
+need("an older f's empty mark: a restart pending", deckconf.restart_pending("deck"))
+deckconf.mark_applied(tabs=["NOTES"])
+need("tabs left: pending, no restart", deckconf.tabs_pending("deck") == ["NOTES"]
+     and not deckconf.restart_pending("deck"))
+deckconf.mark_applied()
+need("nothing left: no mark", not os.path.exists(mark))
+
 pend = dict(st, profile_changed=False, restart_pending=True)
 lines, hit, _ = panel.draw({}, pend, 100, 60)
 need("pending: the status line says f restarts", "f restarts it" in lines[1] and panel.at(hit, 5, 2) == "f")
+tabs = dict(st, profile_changed=False, restart_pending=False, tabs_pending=["NOTES"])
+lines, hit, _ = panel.draw({}, tabs, 100, 60)
+need("tabs pending: the status line names them, f", "NOTES not reloaded yet: f" in lines[1] and panel.at(hit, 5, 2) == "f")
 st = pend
-need("f, pending, confirmed: the restart alone", act(True) == ["restart"])
-need("f, pending, declined: nothing", act(False) == [])
+rc["apply"] = 0
+need("f, pending: phosphor apply again", act() == ["apply"])
 
 if fails:
     print("profile-changed-check FAILED:\n  " + "\n  ".join(fails)); sys.exit(1)

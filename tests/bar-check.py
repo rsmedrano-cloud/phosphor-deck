@@ -142,9 +142,9 @@ def bar_of(z):
     tid = active_tab(z).get("tab_id", active_tab(z).get("id"))
     return next((p for p in all_panes(z) if p["tab_id"] == tid and bar.is_bar(p)), None)
 
-def bar_rows(z):
+def bar_rows(z, b=None):
     """The bar's two rows: glyphs (and shortcuts), then words."""
-    b = bar_of(z)
+    b = b or bar_of(z)
     if not b:
         return ["", ""]
     out = os.path.join(z.home, "bar.txt")
@@ -160,9 +160,19 @@ def bar_row(z):
 def tap_key(z, word, row=1):
     """Tap the word's key on this tab's bar, on its word's row (1) or its
     glyph's (0); True when it was there."""
-    if not z.wait(lambda: any(word in r for r in bar_rows(z)), 10):
+    # the bar and its rows read together: under load a second list-panes
+    # can come back empty between them (release 2.8.15's check.sh)
+    seen = {}
+    def found():
+        b = bar_of(z)
+        rows = bar_rows(z, b) if b else ["", ""]
+        if any(word in r for r in rows):
+            seen.update(b=b, rows=rows)
+            return True
         return False
-    b, col = bar_of(z), max(r.find(word) for r in bar_rows(z))
+    if not z.wait(found, 10):
+        return False
+    b, col = seen["b"], max(r.find(word) for r in seen["rows"])
     x, y = b["pane_content_x"] + col + 2, b["pane_content_y"] + 1 + row
     z.keys(b"\x1b[<0;%d;%dM" % (x, y), 0.1)
     z.keys(b"\x1b[<0;%d;%dm" % (x, y), 0.8)

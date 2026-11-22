@@ -4,7 +4,7 @@ Everything that needs to know which machines exist (fleet, path, gen, setup)
 asks here: the profile is the only source of truth, and no host list is
 written into the code.
 """
-import os, re, shutil, subprocess
+import json, os, re, shutil, subprocess
 
 # tomllib is 3.11+. Ubuntu 22.04, Debian 11 and older Raspberry Pi OS ship
 # 3.9/3.10, and that's exactly the hardware this project wants to reuse.
@@ -286,7 +286,7 @@ def mark_generated():
 
 def profile_changed():
     """True when the profile (or tabs.d) changed since the last `phosphor gen`,
-    e.g. a hand edit: it doesn't show until gen and a restart. False when
+    e.g. a hand edit: it doesn't show until phosphor apply. False when
     gen never recorded one (an install older than this), so it never nags
     about nothing."""
     try:
@@ -319,23 +319,50 @@ def session_started(sess):
             continue
     return None
 
-def mark_applied():
-    """The DECK tab's f ran gen: the deck still has to restart to show it."""
+def mark_applied(tabs=(), restart=()):
+    """What `phosphor apply` left for later (#124): tabs it didn't reload
+    (they hold a shell or an editor, or no screen was attached) and why the
+    deck still has to restart. Nothing left: no mark."""
+    try:
+        if not tabs and not restart:
+            os.remove(_apply_mark())
+            return
+    except OSError:
+        return
     try:
         os.makedirs(data_dir(), exist_ok=True)
-        open(_apply_mark(), "w").close()
+        with open(_apply_mark(), "w") as f:
+            json.dump({"tabs": list(tabs), "restart": list(restart)}, f)
     except OSError:
         pass
 
-def restart_pending(sess):
-    """f's gen went through but the deck running now is older than it: the
-    restart never happened (or failed), so f must still offer it."""
+def apply_pending(sess):
+    """{"tabs": [...], "restart": [...]} that an apply left for later, or
+    None. A deck started after the mark has all of it already: a restart
+    rereads everything. An empty mark (an older f: gen without its
+    restart) means a restart."""
     try:
         at = os.path.getmtime(_apply_mark())
+        text = open(_apply_mark()).read()
     except OSError:
-        return False
+        return None
     started = session_started(sess)
-    return started is not None and started < at
+    if started is None or started >= at:
+        return None
+    try:
+        got = json.loads(text) if text.strip() else {"restart": ["an earlier apply"]}
+    except ValueError:
+        got = {"restart": ["an earlier apply"]}
+    return {"tabs": list(got.get("tabs") or []), "restart": list(got.get("restart") or [])}
+
+def restart_pending(sess):
+    """An apply went through but the deck running now still needs the
+    restart it asked for (declined, never happened, or failed)."""
+    return bool((apply_pending(sess) or {}).get("restart"))
+
+def tabs_pending(sess):
+    """Tabs an apply left as they were, still to reload, open or close."""
+    return (apply_pending(sess) or {}).get("tabs") or []
 
 def exe(name):
     """A program's path: ~/.local/bin first (the zellij server's PATH lacks it)."""

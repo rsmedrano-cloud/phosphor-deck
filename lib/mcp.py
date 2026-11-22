@@ -171,7 +171,7 @@ def t_profile(a):
         else:
             outline[k] = "set"
     return {"path": "~/.config/phosphor/deck.toml", "tabs": names, "sections": outline,
-            "how": "edit the profile, then phosphor gen && phosphor restart; the manual's profile page has every key"}
+            "how": "edit the profile, then phosphor apply (reloads only the tabs that changed, asks before a restart); the manual's profile page has every key"}
 
 def _obj(props=None):
     return {"type": "object", "properties": props or {}, "additionalProperties": False}

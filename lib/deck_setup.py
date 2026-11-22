@@ -342,27 +342,9 @@ def apply(added, removed):
         p = os.path.join(UDIR, u)
         if os.path.exists(p):
             os.remove(p); print(row(OK, u, "unmounted and removed"))
-    subprocess.run([sys.executable, PHOSPHOR, "gen"])
-    subprocess.run(["systemctl", "--user", "daemon-reload"], capture_output=True)
-    for n in added:
-        u = "fleet-%s.service" % n
-        if os.path.exists(os.path.join(UDIR, u)):
-            r = subprocess.run(["systemctl", "--user", "enable", "--now", u], capture_output=True)
-            print(row(OK if r.returncode == 0 else BAD, u,
-                      "mounted" if r.returncode == 0 else "failed: journalctl --user -u " + u))
-    inside = bool(os.environ.get("ZELLIJ"))
-    if inside:
-        print(row(WARN, "restart", "you're inside the deck",
-                  note="it closes, and you're back in by yourself in seconds"))
-    if not yes("restart the deck now so everything shows the changes?", True):
-        print("    " + DIM + "later: phosphor restart" + RST); return
-    # Detached: restarting kills the pane this runs in.
-    os.makedirs(os.path.expanduser("~/.cache/phosphor"), exist_ok=True)
-    log = open(os.path.expanduser("~/.cache/phosphor/restart.log"), "w")
-    subprocess.Popen([sys.executable, PHOSPHOR, "restart"], start_new_session=True,
-                     stdin=subprocess.DEVNULL, stdout=log, stderr=log)
-    print(row(OK, "restart", "on its way", note="log: ~/.cache/phosphor/restart.log"))
-    time.sleep(2 if inside else 0)
+    # gen, then only what changed: a new machine's mount started, the tabs
+    # that changed reloaded, a restart only if the engine changed (asked)
+    subprocess.run([sys.executable, PHOSPHOR, "apply"])
 
 def run():
     if deckconf.tomllib is None:
@@ -388,7 +370,7 @@ def run():
         webon = (prof.get("deck") or {}).get("web", False)
         opts = ["add a machine", "remove a machine", "change the color",
                 "connect a phone or tablet",
-                "apply: regenerate and restart" + ("  (changes waiting)" if dirty else ""),
+                "apply: regenerate, reload what changed" + ("  (changes waiting)" if dirty else ""),
                 "quit",
                 "browser access: turn it " + ("off" if webon else "on (only inside your tailnet)"),
                 "tunnels: keep your ssh config's LocalForward tunnels up",

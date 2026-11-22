@@ -3,5 +3,6 @@
   "tests/fleet-keys-check.py": "--live: 4 of 5 saves were the a step timing out (tab or its list), 1 the Esc; since the waits read dump-screen and a's need is split, a save names which half",
   "tests/bar-check.py": "'a tap on the light opens glance over the pane you were in' failed once inside a full check.sh (release 2.8.3), never alone (8 runs, 3 at once); the message now says where the focus and any GLANCE pane were; root cause open in #113",
   "tests/adjutant-width-check.py": "'12 cols with a message: a line 14 wide' failed once on CI (release 2.8.5, pipeline 3095957831), never locally (5 runs); likely the last read ending inside an escape, stripped since",
-  "tests/newtab-attach-check.py": "'--here with no $ZELLIJ at all: no new tab' failed once in a soak of check.sh in a loop (the refusal itself passed; nothing reached the live deck); root cause open in #122"
+  "tests/newtab-attach-check.py": "'--here with no $ZELLIJ at all: no new tab' failed once in a soak of check.sh in a loop (the refusal itself passed; nothing reached the live deck); root cause open in #122",
+  "tests/mirror-check.py": "'a hangup ends it quietly' died by SIGHUP (exit -1) once in the zellij job (dev, dbf04c9), passes alone; root cause open in #128"
 }

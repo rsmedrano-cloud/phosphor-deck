@@ -6,8 +6,8 @@
 
 Moving through the list repaints a small deck in that phosphor, on its own
 background, before anything is written. Enter saves `theme` in [deck] (the
-same one-line edit `phosphor setup` makes, backup included) and offers
-`phosphor gen` and a restart; q leaves the profile as it was.
+same one-line edit `phosphor setup` makes, backup included) and says
+`phosphor apply` shows it everywhere; q leaves the profile as it was.
 """
 import os, re, shutil, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -146,7 +146,7 @@ def main(argv=None):
         if why:
             print("  " + why); return 1
         if set_theme(name):
-            print("    " + DIM + "phosphor gen && phosphor restart shows it everywhere "
+            print("    " + DIM + "phosphor apply shows it everywhere "
                   "(or f in the DECK tab)" + RST)
         return 0
     if not sys.stdin.isatty():

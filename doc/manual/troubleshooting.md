@@ -53,8 +53,10 @@
   found part of the old deck still alive and started nothing new. It lists
   what: kill those pids, or wait for the service to stop, then `phosphor
   restart`. The watchdog stays off until then, on purpose.
-- **A change to the profile doesn't show**: `phosphor gen && phosphor restart`
-  (or `f` in the DECK tab, which says "profile changed" until you do).
+- **A change to the profile doesn't show**: `phosphor apply`
+  (or `f` in the DECK tab, which says "profile changed" until you do). A tab
+  it leaves pending says so in the DECK tab ("NAMES not reloaded yet"): it
+  waits for a screen to attach, or for your y on a tab holding a shell or an editor.
 - **A new version doesn't show**: the panes run the code they started with.
   `phosphor update` restarts the deck for you; after updating any other way,
   `phosphor restart`.
@@ -118,9 +120,10 @@
 - **"This session exists and web clients cannot attach to it"**: your
   config.kdl predates `web_sharing "on"` (see web) or defines its own and
   it's off. `phosphor gen` (a fresh one adds the line; an old one you edited
-  by hand needs it added yourself), then `phosphor restart`.
+  by hand needs it added yourself), then `phosphor apply`, which asks before
+  the restart a config.kdl change needs.
 - **Graphs look like boxes with a hex number**: your font has no Braille.
-  Put `graphs = "blocks"` in `[deck]` (then `phosphor gen && phosphor restart`),
+  Put `graphs = "blocks"` in `[deck]` (then `phosphor apply`),
   or use a font like DejaVu Sans Mono.
 - **doctor says "zellij version ... Phosphor is tested with ..."**: your
   zellij isn't the one in `share/versions.json`. It usually works; if
@@ -129,8 +132,7 @@
   afterwards, since the running deck keeps the old binary).
 - **A setting in the profile does nothing**: `phosphor doctor` (or `phosphor
   gen`) names keys it doesn't know -- "[deck] unknown key thme: theme?" --
-  and values outside their choices. Fix the spelling, then `phosphor gen &&
-  phosphor restart`.
+  and values outside their choices. Fix the spelling, then `phosphor apply`.
 - **Logs**: `phosphor logs` reads `~/.cache/phosphor/deck.log` (crashes with
   their traceback, hangs, exits, restarts; `-f` follows), and `phosphor trace
   TOOL` turns on a verbose one for ~30 minutes. Never note text or hosts, so

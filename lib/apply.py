@@ -1,0 +1,494 @@
+"""phosphor apply - a changed profile, live, without a restart when it can (#124).
+
+`phosphor gen` writes the files; apply decides what the running deck needs
+from what gen just wrote, and does only that:
+
+- a tab whose layout changed (tab-NAME.kdl) is reloaded in place, the way
+  Alt-r's "put it back" does it: a new tab from its layout at the same
+  place, the old one closed. Every other tab keeps its panes and processes.
+- a tab added to the profile is opened at its place; one taken out of it
+  is closed (a tab you opened with + is never in the profile: left alone).
+- what zellij or the deck's service read only when they start (config.kdl:
+  keys and theme; the bars every tab shares; the deck's own unit: PATH,
+  editor, shell; how the session starts) needs a restart: apply says which.
+- fleet mounts, tunnels and SolarOS are units of their own: reloaded and
+  (re)started, the deck isn't.
+- the attach command, ~/fleet's links, rclone.conf: nothing to do now.
+- a kind of screen's session ([screens.KIND]) takes its changes when it
+  restarts: named, not touched.
+
+A tab whose panes hold something a reload loses (a shell, an editor, an
+assistant: anything that isn't a deck tool or a viewer) is reloaded or
+closed only when you say so: apply names those panes and asks once.
+Without a terminal to ask on and without --yes, it leaves them, and any
+restart, pending: the DECK tab's line and f offer them again.
+"""
+import io, contextlib, json, os, re, signal, subprocess, sys, time
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from ui import *
+import deckconf, hotswap, proc
+
+PHOSPHOR = os.path.join(REPO, "phosphor")
+MARK = " ✎"                               # lib/edit.py's: the tab is being edited
+DOT = " ●"                                # mentions/tabmark's: "SYS ●3", unseen notices
+TAB = re.compile(r'^    tab name="([^"]*)"', re.M)
+
+# Programs whose pane loses nothing on a reload: they show, they don't keep.
+VIEWERS = {"btop", "htop", "top", "ctop", "gping", "ping", "mtr", "iftop", "nload", "bmon",
+           "nvtop", "glances", "watch", "sleep", "tail", "journalctl", "less", "yazi",
+           "lazygit", "lazydocker", "k9s", "matterhorn"}
+# deck tools that do keep something of their own on screen
+KEEPS = {"ask", "shell", "voice"}
+
+
+def sname(prof):
+    return ((prof or {}).get("deck") or {}).get("session", "deck")
+
+
+# ── what gen wrote, and what the deck needs from it ────────────
+def tabs_of(layout):
+    """The tab names of a session layout gen wrote, in order."""
+    return TAB.findall(layout or "")
+
+def skeleton(layout):
+    """A session layout without its tabs and its header: the bars and the
+    + tab's template, what every tab shares and only a restart rereads."""
+    out, inside = [], False
+    for l in (layout or "").splitlines():
+        if l.startswith('    tab name="'):
+            inside = True
+        elif inside and l == "    }":
+            inside = False
+        elif not inside and not l.startswith("//"):
+            out.append(l)
+    return "\n".join(out)
+
+def plan(old_layout, new_layout, changed, prof):
+    """What the running deck needs, from the files gen changed and the
+    session layout before and after."""
+    import gen, kinds
+    sess = sname(prof)
+    p = {"reload": [], "add": [], "remove": [], "restart": [], "units": [], "screens": []}
+    new = tabs_of(new_layout)
+    old = tabs_of(old_layout) if old_layout else None
+    byfile = {"tab-%s.kdl" % n.lower(): n for n in new}
+    layouts = {kinds.layout(prof, k): kinds.session(prof, k) for k in kinds.kinds(prof)}
+    themes = os.path.dirname(gen.ZTHEME)
+    for path in changed:
+        b, d = os.path.basename(path), os.path.dirname(path)
+        if path == os.path.join(gen.ZDIR, sess + ".kdl"):
+            continue                                  # compared below, tab by tab
+        if path in layouts:
+            p["screens"].append(layouts[path])
+        elif d == gen.ZDIR and b in byfile:
+            if old is None or byfile[b] in old:       # a new tab is opened below, not reloaded
+                p["reload"].append(byfile[b])
+        elif d == themes and b.startswith("phosphor-"):
+            pass                                      # a kind of screen's theme: its layout says it
+        elif d == gen.UDIR:
+            if b.startswith(sess + "."):
+                p["restart"].append("the deck's service (%s: PATH, editor, shell)" % b)
+            else:
+                p["units"].append(b)
+        elif path == gen.ZCONF:
+            p["restart"].append("config.kdl (keys, theme)")
+        elif path == gen.ZTHEME:
+            p["restart"].append("the theme")
+        elif path in (gen.YAZI_THEME_PATH, gen.YAZI_KEYMAP_PATH, gen.BTOP_THEME_PATH, gen.BTOP_CONF_PATH):
+            p["restart"].append("yazi and btop's colors and keys")
+        elif b == "%s-up.sh" % sess:
+            p["restart"].append("how the session starts (%s)" % b)
+        elif d == os.path.join(gen.HOME, ".local/bin") or b == "rclone.conf" or os.path.islink(path):
+            pass                                      # the next attach / mount / look reads it
+        else:
+            p["restart"].append(b)                    # nothing knows it: the safe answer
+    if old is None:
+        p["restart"].append("no earlier session layout to compare with")
+    else:
+        p["remove"] = [n for n in old if n not in new]
+        p["add"] = [n for n in new if n not in old]
+        if [n for n in old if n in new] != [n for n in new if n in old]:
+            p["restart"].append("the tabs' order")
+        if skeleton(old_layout) != skeleton(new_layout):
+            p["restart"].append("the bars every tab shares")
+    for k in p:
+        p[k] = list(dict.fromkeys(p[k]))
+    p["screens"] = sorted(set(p["screens"]))
+    return p
+
+
+# ── the live session ───────────────────────────────────────────
+def zj(sess, *a):
+    z = proc.zellij()
+    if not z:
+        return ""
+    try:
+        return subprocess.run([z, "-s", sess, "action"] + list(a), capture_output=True,
+                              text=True, timeout=15).stdout
+    except (OSError, subprocess.SubprocessError):
+        return ""
+
+def live(sess):
+    """True when that session is up (not an EXITED one zellij keeps)."""
+    z = proc.zellij()
+    if not z:
+        return False
+    try:
+        out = subprocess.run([z, "list-sessions", "-n"], capture_output=True, text=True, timeout=10).stdout
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return any(l.split()[:1] == [sess] and "EXITED" not in l for l in out.splitlines())
+
+def clients(sess):
+    """The screens attached. Nobody is a real answer, but a busy zellij
+    gives it too: asked again for a few seconds before it's believed."""
+    end = time.time() + 3
+    while True:
+        got = [l for l in zj(sess, "list-clients").splitlines()[1:] if l.strip()]
+        if got or time.time() > end:
+            return got
+        time.sleep(0.3)
+
+def base(name):
+    """A live tab's name as the profile has it: "SYS ●3" and "SYS ✎ Alt r" are SYS."""
+    return name.split(DOT)[0].split(MARK)[0].strip()
+
+def _listed(sess, *what):
+    """A list action's JSON. A live session always has tabs and panes, so
+    an empty or unreadable answer is zellij busy, not the truth: asked
+    again for a few seconds (under load one came back empty, and a tab was
+    taken for gone)."""
+    end = time.time() + 5
+    while True:
+        try:
+            got = json.loads(zj(sess, *what) or "[]")
+        except ValueError:
+            got = []
+        if got or time.time() > end:
+            return got
+        time.sleep(0.3)
+
+def tabs(sess):
+    """[{tab_id, position, name, base, active}] of the session, in order."""
+    got = _listed(sess, "list-tabs", "-j", "-s")
+    for t in got:
+        t["base"] = base(t.get("name") or "")
+    return sorted(got, key=lambda t: t["position"])
+
+def panes(sess):
+    return [p for p in _listed(sess, "list-panes", "-a", "-j") if not p.get("is_plugin")]
+
+def program(argv):
+    """The program a pane runs, past `phosphor run ... --` and an
+    interpreter: ("phosphor", TOOL) for a deck tool, (name, None) else."""
+    if not argv:
+        return None, None
+    if "--" in argv and any(os.path.basename(a) == "phosphor" for a in argv[:argv.index("--")]):
+        argv = argv[argv.index("--") + 1:]
+    for i, a in enumerate(argv[:3]):
+        if os.path.basename(a) == "phosphor":
+            return "phosphor", (argv[i + 1] if i + 1 < len(argv) else None)
+    prog = os.path.basename(argv[0])
+    if re.match(r"python[\d.]*$", prog) and len(argv) > 1:
+        prog = os.path.basename(argv[1])
+    return prog, None
+
+def holds(argv):
+    """What a reload of this pane would lose, in a word, or None."""
+    name, tool = program(argv)
+    if name is None:
+        return None                               # nothing runs there any more
+    if name == "phosphor":
+        return ("phosphor " + tool) if tool in KEEPS else None
+    return None if name in VIEWERS else name
+
+def keeping(sess, tab_id):
+    """["SHELL (bash)", ...]: the panes of a tab that hold something."""
+    out, mine = [], [p for p in panes(sess) if p["tab_id"] == tab_id]
+    if not mine:                          # zellij didn't say: never taken for "nothing to lose"
+        return ["its panes (zellij didn't list them)"]
+    for p in mine:
+        what = holds(hotswap.argv_of(sess, p["id"]))
+        if what:
+            title = (p.get("title") or "").strip()
+            if "/" in title or title.lower() == what:
+                title = ""                # a command line, not a name: never a path on screen
+            out.append("%s (%s)" % (title, what) if title else what)
+    return out
+
+
+# ── doing it ───────────────────────────────────────────────────
+def layout_of(name):
+    import gen
+    return os.path.join(gen.ZDIR, "tab-%s.kdl" % name.lower())
+
+def _pids(sess, tab_id):
+    return [pid for p in panes(sess) if p["tab_id"] == tab_id for pid in hotswap.pane_procs(sess, p["id"])]
+
+def _move_to(sess, pos):
+    """The tab just opened (focused, the last one) to position pos."""
+    n = len(tabs(sess))
+    for _ in range(max(0, n - 1 - pos)):
+        zj(sess, "move-tab", "left")
+
+def reload(sess, name):
+    """Alt-r's "put it back", from outside the tab: its layout as a new tab
+    at the same place, then the old one closed, and whatever was left
+    hidden under a screen in it killed. False if the tab isn't there."""
+    now = tabs(sess)
+    t = next((t for t in now if t["base"] == name), None)
+    if not t or not os.path.exists(layout_of(name)):
+        import dlog
+        dlog.event("APPLY", "reload-missed", "%s among %d tabs" % (name, len(now)))
+        return False
+    old = _pids(sess, t["tab_id"])
+    zj(sess, "new-tab", "--layout", layout_of(name), "--name", name)
+    time.sleep(0.5)
+    _move_to(sess, t["position"])
+    zj(sess, "close-tab-by-id", str(t["tab_id"]))
+    _reap(old)
+    return True
+
+def close(sess, name):
+    t = next((t for t in tabs(sess) if t["base"] == name), None)
+    if not t:
+        return False
+    old = _pids(sess, t["tab_id"])
+    zj(sess, "close-tab-by-id", str(t["tab_id"]))
+    _reap(old)
+    return True
+
+def open_tab(sess, name, after):
+    """A tab new to the profile, right after the profile tab before it
+    that's open (`after`, in profile order), or first."""
+    if not os.path.exists(layout_of(name)):
+        return False
+    names = [t["base"] for t in tabs(sess)]
+    prev = [n for n in after if n in names]
+    pos = names.index(prev[-1]) + 1 if prev else 0
+    zj(sess, "new-tab", "--layout", layout_of(name), "--name", name)
+    time.sleep(0.5)
+    _move_to(sess, pos)
+    return True
+
+def _reap(pids):
+    time.sleep(0.5)
+    for p in pids:                        # a pane hidden under a screen outlives its closed tab
+        try: os.kill(p, signal.SIGKILL)
+        except OSError: pass
+
+def my_tab(sess):
+    """The tab this runs in, if it runs in a pane of that session."""
+    if os.environ.get("ZELLIJ_SESSION_NAME") != sess or not os.environ.get("ZELLIJ_PANE_ID"):
+        return None
+    me = int(os.environ["ZELLIJ_PANE_ID"])
+    p = next((p for p in panes(sess) if p["id"] == me), None)
+    return p and base(p["tab_name"])
+
+def later(argv):
+    """`apply --later reload|close NAME`: the tab apply itself runs in,
+    once apply is done with the rest (closing it ends apply)."""
+    what, name = argv[0], argv[1]
+    sess = sname(deckconf.load()[0])
+    time.sleep(1.0)
+    print(time.strftime("%H:%M:%S"), "apply", what, name, flush=True)
+    (reload if what == "reload" else close)(sess, name)
+    return 0
+
+
+# ── the command ────────────────────────────────────────────────
+def gen_quietly(prof, path, dry, changed):
+    """gen, its warnings shown, the rest of its report only when it fails."""
+    import gen
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        rc = gen.run(prof, path, dry=dry, changed=changed)
+    lines = buf.getvalue().splitlines()
+    if rc:
+        print("\n".join(lines))
+    else:
+        for l in lines:
+            if WARN in l or BAD in l:
+                print(l)
+    return rc
+
+def ask(q, default, yes_all):
+    if yes_all:
+        return True
+    if not (sys.stdin.isatty() and sys.stdout.isatty()):
+        return False                      # nobody to ask: left pending, said so
+    import init
+    return init.yes(q, default)
+
+def run(argv):
+    if argv[:1] == ["--later"]:
+        return later(argv[1:])
+    dry = "--dry-run" in argv or "-n" in argv
+    yes_all = "--yes" in argv or "-y" in argv
+    as_json = "--json" in argv
+    prof, path = deckconf.load()
+    if not prof:
+        print("  no profile: phosphor init writes one"); return 1
+    import gen
+    sess = sname(prof)
+    deck_layout = os.path.join(gen.ZDIR, sess + ".kdl")
+    try:
+        old = open(deck_layout).read()
+    except OSError:
+        old = None
+    changed = []
+    out = sys.stdout
+    if as_json:
+        sys.stdout = io.StringIO()        # only the JSON on stdout
+    try:
+        rc = gen_quietly(prof, path, dry, changed)
+        if rc:
+            if as_json:
+                out.write(json.dumps({"ok": False, "gen": rc}) + "\n")
+            return rc
+        ctx = gen.Ctx(prof)
+        if not ctx.is_brain():
+            print(row(OK, "this machine", "a screen: its deck command is up to date, the brain applies the rest"))
+            if as_json:
+                out.write(json.dumps({"ok": True, "screen": True}) + "\n")
+            return 0
+        new = gen.deck_kdl(prof, ctx, path)
+        p = plan(old, new, changed, prof)
+        res = act(sess, prof, p, dry, yes_all)
+    finally:
+        sys.stdout = out
+    if as_json:
+        print(json.dumps(dict(res, ok=True, plan=p)))
+    return 0
+
+def act(sess, prof, p, dry, yes_all):
+    """Does the plan, or as much of it as it may; says what it did."""
+    res = {"reloaded": [], "opened": [], "closed": [], "units": [], "restarted": False,
+           "pending": {"tabs": [], "restart": []}}
+    pend = deckconf.apply_pending(sess) or {}
+    names = [t["name"] for t in deckconf.effective_tabs(prof)]
+    p["restart"] = list(dict.fromkeys(p["restart"] + pend.get("restart", [])))
+    print("\n" + rule("apply" + (" (dry-run)" if dry else "")))
+
+    if p["units"]:
+        units(p["units"], dry, res)
+    for s in p["screens"]:
+        print(row(DIM + "·" + RST, s, "takes it when it restarts", note="phosphor restart"))
+
+    if not live(sess):
+        print(row(OK, "the deck", "isn't running: it starts with this", note="phosphor up"))
+        if not dry: deckconf.mark_applied()
+        return res
+    if p["restart"]:
+        print(row(WARN, "restart", "needed for " + "; ".join(p["restart"])))
+        if dry:
+            return res
+        if ask("restart the deck now? every pane closes, every screen comes back by itself", False, yes_all):
+            # marked first: a session that starts after the mark has it all
+            deckconf.mark_applied(restart=p["restart"])
+            res["restarted"] = subprocess.run([sys.executable, PHOSPHOR, "restart"]).returncode == 0
+            if not res["restarted"]:
+                print(AMB + "  the restart didn't go through: f tries again, phosphor logs says why" + RST)
+            return res
+        res["pending"] = {"tabs": [], "restart": p["restart"]}
+        deckconf.mark_applied(restart=p["restart"])
+        print("  " + DIM + "left for later: f in the DECK tab, or phosphor apply" + RST)
+        return res
+
+    live_tabs = {}
+    for t in tabs(sess):
+        live_tabs.setdefault(t["base"], t)
+    for n in pend.get("tabs", []):        # what an earlier apply left: reload, close or open
+        (p["reload"] if n in names and n in live_tabs else p["add"] if n in names else p["remove"]).append(n)
+    for k in ("reload", "add", "remove"):
+        p[k] = list(dict.fromkeys(p[k]))
+    work = [("reload", n) for n in p["reload"] if n in live_tabs] + \
+           [("close", n) for n in p["remove"] if n in live_tabs] + \
+           [("open", n) for n in p["add"] if n not in live_tabs]
+    edited = [n for w, n in work if MARK in live_tabs.get(n, {}).get("name", "")]
+    for n in edited:                      # Alt-r's save or put back decides that one
+        print(row(DIM + "·" + RST, n, "being edited: left as it is"))
+    work = [(w, n) for w, n in work if n not in edited]
+    if not work:
+        print(row(OK, "the deck", "already shows it: nothing to reload"))
+        if not dry: deckconf.mark_applied()
+        return res
+    if not clients(sess):
+        # never new-tab into a session nobody is attached to (AGENTS.md)
+        print(row(WARN, "no screen attached", "tabs are reloaded once one is", note="f in the DECK tab"))
+        if not dry:
+            res["pending"]["tabs"] = [n for _, n in work]
+            deckconf.mark_applied(tabs=res["pending"]["tabs"])
+        return res
+
+    risky = {n: keeping(sess, live_tabs[n]["tab_id"]) for w, n in work if w != "open"}
+    risky = {n: k for n, k in risky.items() if k}
+    if risky:
+        for n, k in risky.items():
+            print(row(WARN, n, "holds " + ", ".join(k), note="a reload loses it"))
+        if dry or not ask("reload %s anyway?" % (", ".join(risky) if len(risky) > 1 else "it"), False, yes_all):
+            res["pending"]["tabs"] = list(risky)
+            work = [(w, n) for w, n in work if n not in risky]
+    VERB = {"reload": "reloaded in place", "close": "closed: not in the profile any more", "open": "opened"}
+    if dry:
+        for w, n in work:
+            print(row(AMB, n, "would be " + VERB[w]))
+        return res
+
+    mine = my_tab(sess)
+    focus = next((t["base"] for t in tabs(sess) if t.get("active")), None)
+    for w, n in work:
+        if n == mine:
+            continue
+        done = reload(sess, n) if w == "reload" else close(sess, n) if w == "close" \
+            else open_tab(sess, n, names[:names.index(n)])
+        if done:
+            print(row(OK, n, VERB[w]))
+            res[{"reload": "reloaded", "close": "closed", "open": "opened"}[w]].append(n)
+        else:                             # zellij didn't find it or didn't answer: not done, kept
+            print(row(WARN, n, "not done: zellij didn't answer in time", note="f tries again"))
+            res["pending"]["tabs"].append(n)
+    if focus and focus != mine:           # back where you were, checked: a busy zellij drops it
+        for _ in range(3):
+            now = tabs(sess)
+            back = next((t for t in now if t["base"] == focus), None)
+            if not back or back.get("active"):
+                break
+            zj(sess, "go-to-tab-name", back["name"])
+            time.sleep(0.3)
+    deckconf.mark_applied(tabs=res["pending"]["tabs"])
+    if res["pending"]["tabs"]:
+        print("  " + DIM + "left as they are: f in the DECK tab (or phosphor apply) asks again" + RST)
+    own = next((w for w, n in work if n == mine), None)
+    if own:
+        print("  " + DIM + "this tab goes last: it " + ("reloads" if own == "reload" else "closes") + " in a moment" + RST)
+        log = open(os.path.join(deckconf.cache_dir(), "apply.log"), "a")
+        subprocess.Popen([sys.executable, PHOSPHOR, "apply", "--later", own, mine],
+                         stdin=subprocess.DEVNULL, stdout=log, stderr=log, start_new_session=True)
+        res["reloaded" if own == "reload" else "closed"].append(mine)
+    return res
+
+def units(names, dry, res):
+    """Mounts, tunnels, SolarOS: their own units, reloaded and (re)started
+    on their own; the deck isn't restarted for them."""
+    if dry:
+        for u in names:
+            print(row(AMB, u, "would be (re)started"))
+        return
+    subprocess.run(["systemctl", "--user", "daemon-reload"], capture_output=True)
+    for u in names:
+        if u.endswith(".timer") or not u.endswith(".service"):
+            continue
+        on = subprocess.run(["systemctl", "--user", "is-enabled", u], capture_output=True,
+                            text=True).stdout.strip() == "enabled"
+        r = subprocess.run(["systemctl", "--user"] + (["try-restart", u] if on else ["enable", "--now", u]),
+                           capture_output=True)
+        print(row(OK if r.returncode == 0 else BAD, u, ("restarted" if on else "started") if r.returncode == 0
+                  else "failed: journalctl --user -u " + u))
+        res["units"].append(u)
+
+def main():
+    return run(sys.argv[1:])               # the dispatcher left ["phosphor-apply", args...]
+
+if __name__ == "__main__":
+    sys.exit(main() or 0)

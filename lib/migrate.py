@@ -272,7 +272,7 @@ def main():
     if no:
         print("  " + DIM + "not offered again: %s ([deck] declined)" % ", ".join(no) + RST)
     if steps or taken:
-        print("  " + DIM + "it shows after phosphor gen && phosphor restart (f in the DECK tab)" + RST)
+        print("  " + DIM + "it shows after phosphor apply (f in the DECK tab)" + RST)
     return 0
 
 if __name__ == "__main__":

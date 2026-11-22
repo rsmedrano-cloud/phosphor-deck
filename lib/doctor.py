@@ -37,7 +37,7 @@ def panes_path(unit, login):
     import gen
     have_ = gen.unit_path(unit)
     if have_ is None:
-        return WARN, "systemd's own: no ~/.local/bin", "phosphor gen && phosphor restart"
+        return WARN, "systemd's own: no ~/.local/bin", "phosphor apply"
     inside = have_.split(":")
     miss = [d for d in [LOCALBIN] + (login or "").split(":")
             if os.path.isabs(d) and os.path.isdir(d) and d.rstrip("/") not in inside]
@@ -200,7 +200,7 @@ def run(profile=None):
         if deckconf.profile_changed():
             print(row(WARN, "profile", "changed since the last phosphor gen",
                       note="it doesn't show until then"))
-            issues.append("the profile changed since the last gen: phosphor gen && phosphor restart")
+            issues.append("the profile changed since the last gen: phosphor apply")
         import profcheck
         for where, what in profcheck.problems(profile) + profcheck.tabs_d_problems():
             print(row(WARN, where, what, note="ignored"))

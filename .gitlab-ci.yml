@@ -48,7 +48,7 @@ zellij:
     - python3 tests/flaky.py python3 tests/fleet-keys-check.py --live
     - python3 tests/search-check.py
     - python3 tests/screen-kinds-check.py --live
-    - python3 tests/mirror-check.py
+    - python3 tests/flaky.py python3 tests/mirror-check.py
     - python3 tests/newtab-attach-check.py
     - python3 tests/ask-key-check.py
     - python3 tests/bar-check.py
@@ -56,6 +56,8 @@ zellij:
     - python3 tests/home-check.py
     - python3 tests/dash-check.py
     - python3 tests/zoom-check.py
+    - python3 tests/apply-check.py
+    - python3 tests/zjprobe-check.py
 
 # zellij-latest: the same checks against zellij's newest release. An early
 # warning, never a blocker: when it fails and zellij is pinned, the fix (or a

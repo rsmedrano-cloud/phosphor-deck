@@ -19,7 +19,7 @@ panes = [
 ]
 ```
 
-then `phosphor gen && phosphor restart`. Point `cmd` back at whatever it was
+then `phosphor apply`. Point `cmd` back at whatever it was
 to go back -- nothing else to undo.
 
 On x86_64/aarch64, `install.sh` now fetches a static musl build of this

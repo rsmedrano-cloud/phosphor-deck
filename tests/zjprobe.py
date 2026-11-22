@@ -64,6 +64,16 @@ print(d + "/layouts/deck.kdl"); print(d + "/config.kdl")
                                 "attach", "--create", self.session], self.env)
         fcntl.ioctl(self.fd, termios.TIOCSWINSZ, struct.pack("HHHH", self.rows, self.cols, 0, 0))
         self.out = b""
+        # No zellij command, not even list-sessions, until the session runs
+        # its panes: one that connects and leaves before the attaching
+        # client has made the session panics zellij 0.45's server
+        # (lib.rs:1462, RemoveClient unwraps the session's data, still None)
+        # and the probe dies with no output (#123). A pane's process is seen
+        # in /proc without connecting to anything.
+        if not self.wait(self.panes_up, 20):
+            text = self.text()[-2000:]
+            self.__exit__()
+            raise RuntimeError("zellij didn't start (no pane after 20s):\n" + text)
         # listed isn't ready: zellij 0.46 lists a session before it answers
         # queries (list-tabs comes back empty), so wait for its tabs too
         if not self.wait(lambda: self.session in self.run("list-sessions", "-n", "-s")
@@ -72,6 +82,21 @@ print(d + "/layouts/deck.kdl"); print(d + "/config.kdl")
             self.__exit__()                   # no zellij server or scratch folder left behind
             raise RuntimeError("zellij didn't start:\n" + text)
         return self
+
+    def panes_up(self):
+        """A process of this probe's session runs in a pane: the session
+        exists. Read from /proc, never by asking zellij."""
+        home, pane = ("HOME=%s" % self.home).encode(), b"ZELLIJ_PANE_ID="
+        for d in os.listdir("/proc"):
+            if not d.isdigit():
+                continue
+            try:
+                env = open("/proc/%s/environ" % d, "rb").read().split(b"\0")
+            except OSError:
+                continue
+            if home in env and any(e.startswith(pane) for e in env):
+                return True
+        return False
 
     def __exit__(self, *a):
         subprocess.run([self.zj, "kill-session", self.session], env=self.env, capture_output=True, timeout=10)

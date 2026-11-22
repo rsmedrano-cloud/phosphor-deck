@@ -570,7 +570,7 @@ def install(prof=None):
     lack = missing(prof)
     if lack:
         print("  still missing: " + ", ".join(lack)); return 1
-    print("ready: MIC shows on the bar after phosphor gen && phosphor restart; a phone records once its deck reconnects")
+    print("ready: MIC shows on the bar after phosphor apply; a phone records once its deck reconnects")
     return 0
 
 

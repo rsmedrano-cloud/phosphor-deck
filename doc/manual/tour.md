@@ -150,7 +150,7 @@ for the details; this is the tour.
   lets you resize, split or swap what runs in a pane (a program, or cards),
   and then asks: save it into your profile, or put it back.
 - **Tabs you can share.** Drop a `[[tabs]]` file into `~/.config/phosphor/tabs.d/`
-  and it shows up in the deck, `phosphor gen` away, without touching your own
+  and it shows up in the deck, `phosphor apply` away, without touching your own
   profile -- its content is read-only from Alt-r and `keep`, which point at the file
   instead. `phosphor tabs` can still move it (`K`/`J`) wherever you want it, without
   moving its content out of that file.
@@ -307,7 +307,7 @@ once and it's never offered again. `phosphor doctor`, `gen` and `update` say so 
 - **remove a machine**
 - **change the color** — with a preview of each phosphor
 - **editor and shell** — what files open with and what shell panes run
-- **apply** — regenerates and restarts the deck
+- **apply** — runs `phosphor apply`: regenerates, reloads the tabs that changed, and restarts only if it must (it asks first)
 
 It edits your profile as text, so your comments and custom tabs survive, and
 leaves a `deck.toml.bak` behind. A write either lands whole or not at all.
@@ -315,7 +315,7 @@ leaves a `deck.toml.bak` behind. A write either lands whole or not at all.
 ## The profile
 
 The single source of truth, in `~/.config/phosphor/deck.toml`. A hand edit
-shows after `phosphor gen && phosphor restart`; until then the DECK tab says
+shows after `phosphor apply`; until then the DECK tab says
 "profile changed: f applies it" (and `phosphor doctor` warns). A shortened
 example (the full one is `profiles/example.toml`):
 
@@ -341,7 +341,7 @@ name  = "WORK"
 panes = [ { ssh = "@work", reconnect = true } ]
 ```
 
-Change it, run `phosphor gen`, and the deck rebuilds itself. A misspelled key
+Change it, run `phosphor apply`, and the deck rebuilds itself: only the tabs that changed reload. A misspelled key
 (`thme`, `[tts] enable`) isn't silently ignored: gen and `phosphor doctor` name
 it and guess what you meant.
 
@@ -364,6 +364,7 @@ more depth on every one of these.
 | `phosphor phone` | put a phone or tablet one tap away from the deck |
 | `phosphor screen` | the same kit for a computer without Termux (`--as KIND`: its own deck) |
 | `phosphor gen` | generate layouts, units and mounts |
+| `phosphor apply` | apply a changed profile to the running deck: reloads the tabs that changed, restarts only when it must |
 | `phosphor up` | start the deck (and at every boot) |
 | `phosphor update` | a newer version: pull or copy, install, restart; `--channel nightly` or `stable` |
 | `phosphor version` | this version, whether there's a newer one, and what it brings ([CHANGELOG](https://github.com/rsmedrano-cloud/phosphor-deck/blob/main/CHANGELOG.md)) |

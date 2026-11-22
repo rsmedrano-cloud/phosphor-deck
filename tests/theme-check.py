@@ -68,7 +68,7 @@ with tempfile.TemporaryDirectory() as d:
     check("theme p3 exits 0: " + r.stdout + r.stderr, r.returncode == 0)
     check("theme p3 writes only the theme line", open(p).read() == PROFILE.replace('"p31"', '"p3"'))
     check("theme p3 keeps a backup", open(p + ".bak").read() == PROFILE)
-    check("theme p3 says how to apply it", "phosphor gen && phosphor restart" in r.stdout)
+    check("theme p3 says how to apply it", "phosphor apply" in r.stdout)
     r = ph("amber")
     check("an alias that's already set: nothing written", "already" in r.stdout
           and open(p).read() == PROFILE.replace('"p31"', '"p3"'))
