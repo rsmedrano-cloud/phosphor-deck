@@ -6,6 +6,17 @@ before it updates.
 
 ## Unreleased
 
+## 2.8.16 — zellij 0.46: pending applies found again
+
+### Fixed
+
+- **What an apply left for later shows on zellij 0.46 too (#129).** zellij
+  0.46 names a session's socket by a hash, so the deck couldn't tell when
+  its session started: the DECK tab and `apply --json` said nothing
+  was pending after an apply that left tabs or a restart for later.
+  The deck now finds its zellij server by the session it runs, on 0.45 and
+  0.46 alike.
+
 ## 2.8.15 — apply: reload only the tabs that changed
 
 ### Added

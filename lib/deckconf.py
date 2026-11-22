@@ -299,21 +299,36 @@ def profile_changed():
 def _apply_mark():
     return os.path.join(data_dir(), "apply-pending")
 
+PROC = "/proc"          # a test points it at a fake layout
+
 def session_started(sess):
-    """When the zellij server of that session started (epoch seconds), or None."""
+    """When the zellij server of that session started (epoch seconds), or None.
+    The server is the zellij --server whose own environment names the
+    session: zellij 0.46 names its socket by a hash, not the session (#129);
+    a socket ending in /<session> (0.45) is still taken. With
+    ZELLIJ_SOCKET_DIR set, only a server under it: a probe's session never
+    answers for a live one of the same name."""
     try:
-        boot = next(float(l.split()[1]) for l in open("/proc/stat") if l.startswith("btime"))
+        boot = next(float(l.split()[1]) for l in open(os.path.join(PROC, "stat")) if l.startswith("btime"))
         hz = os.sysconf("SC_CLK_TCK")
     except (OSError, StopIteration, ValueError):
         return None
-    for pid in os.listdir("/proc"):
+    name = sess.encode()
+    sockdir = os.environ.get("ZELLIJ_SOCKET_DIR", "").rstrip("/").encode()
+    for pid in os.listdir(PROC):
         if not pid.isdigit():
             continue
         try:
-            args = open("/proc/%s/cmdline" % pid, "rb").read().split(b"\0")
-            if b"--server" not in args or not any(a.endswith(b"/" + sess.encode()) for a in args):
+            args = open(os.path.join(PROC, pid, "cmdline"), "rb").read().split(b"\0")
+            if b"--server" not in args:
                 continue
-            stat = open("/proc/%s/stat" % pid).read()
+            sock = args[args.index(b"--server") + 1] if args.index(b"--server") + 1 < len(args) else b""
+            if sockdir and not sock.startswith(sockdir + b"/"):
+                continue
+            env = open(os.path.join(PROC, pid, "environ"), "rb").read().split(b"\0")
+            if b"ZELLIJ_SESSION_NAME=" + name not in env and not sock.endswith(b"/" + name):
+                continue
+            stat = open(os.path.join(PROC, pid, "stat")).read()
             return boot + int(stat.rsplit(")", 1)[1].split()[19]) / hz
         except (OSError, IndexError, ValueError):
             continue

@@ -81,6 +81,32 @@ need("f: phosphor apply, which asks for itself", act() == ["apply"])
 rc["apply"] = 1
 need("f, apply fails: nothing else runs", act() == ["apply"])
 
+# when the deck's server started, from a fake /proc (#129): zellij 0.46 names
+# its socket by a hash, so the server's own environment names the session
+fake = os.path.join(home, "proc")
+os.makedirs(fake); open(os.path.join(fake, "stat"), "w").write("cpu 1 2 3\nbtime 1000\n")
+hz = os.sysconf("SC_CLK_TCK")
+def proc(pid, args, envs, ticks):
+    d = os.path.join(fake, str(pid)); os.makedirs(d)
+    open(os.path.join(d, "cmdline"), "wb").write(b"\0".join(a.encode() for a in args) + b"\0")
+    open(os.path.join(d, "environ"), "wb").write(b"\0".join(e.encode() for e in envs) + b"\0")
+    open(os.path.join(d, "stat"), "w").write("%d (zellij) S %s %d 0 0" % (pid, " ".join(["0"] * 18), ticks))
+deckconf.PROC = fake
+started = lambda s, sockdir=None: (os.environ.pop("ZELLIJ_SOCKET_DIR", None),
+    sockdir and os.environ.__setitem__("ZELLIJ_SOCKET_DIR", sockdir), deckconf.session_started(s))[-1]
+need("no server: no start", started("deck") is None)
+proc(11, ["/bin/sh"], ["ZELLIJ_SESSION_NAME=deck", "ZELLIJ_PANE_ID=0"], 50 * hz)      # a pane, not the server
+proc(12, ["zellij", "--server", "/run/z/contract_version_1/other"], ["ZELLIJ_SESSION_NAME=other"], 60 * hz)
+need("a pane or another session's server: no start", started("deck") is None)
+proc(13, ["zellij", "--server", "/run/z/contract_version_1/fad8081f3be8"], ["ZELLIJ=0", "ZELLIJ_SESSION_NAME=deck"], 70 * hz)
+need("0.46, a socket named by a hash: the server whose environment names it", started("deck") == 1070)
+proc(14, ["zellij", "--server", "/tmp/probe/sock/contract_version_1/zl"], [], 80 * hz)
+need("0.45, a socket named by the session: still found", started("zl") == 1080)
+proc(15, ["zellij", "--server", "/tmp/probe/sock/contract_version_1/0123abcd"], ["ZELLIJ_SESSION_NAME=deck"], 90 * hz)
+need("ZELLIJ_SOCKET_DIR: only a server under it", started("deck", "/tmp/probe/sock") == 1090
+     and started("deck", "/run/z/") == 1070 and started("deck", "/elsewhere") is None)
+deckconf.PROC = "/proc"; os.environ.pop("ZELLIJ_SOCKET_DIR", None)
+
 # what an apply leaves for later: a restart, tabs; a deck started after the mark has it all
 mark = os.path.join(env["PHOSPHOR_DATA"], "apply-pending")
 deckconf.mark_applied(restart=["config.kdl (keys, theme)"])
