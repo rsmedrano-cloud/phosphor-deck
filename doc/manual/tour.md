@@ -146,9 +146,10 @@ for the details; this is the tour.
   `receive`, `triage`, `face`, `push`, `tts` and `trace` open a small screen for
   what they need -- a question, hosts to tick, a file to pick, on or off -- all
   by tap on a phone. With their arguments, or piped, nothing changes.
-- **Tabs that stay put.** Tabs are locked; Alt-r unlocks the one you're in,
-  lets you resize, split or swap what runs in a pane (a program, or cards),
-  and then asks: save it into your profile, or put it back.
+- **Tabs that stay put.** Tabs are locked; Alt-r opens the one you're in as a
+  map of its panes. Resize, split, swap what runs in a pane (a program, or
+  cards), or close one there, then save it into your profile, or put it back.
+  Nothing moves until you save.
 - **Tabs you can share.** Drop a `[[tabs]]` file into `~/.config/phosphor/tabs.d/`
   and it shows up in the deck, `phosphor apply` away, without touching your own
   profile -- its content is read-only from Alt-r and `keep`, which point at the file
@@ -427,7 +428,7 @@ more depth on every one of these.
 | `phosphor recipe [NAME]` | starter tab bundles: homelab, dev, bubble, workbench, and the programs they run; `--remove NAME` undoes one |
 | `phosphor shortcuts` | the deck's keys, yours to change; updates never reset them |
 | `phosphor theme` | the deck's color (p31, p3, p4, ega, paper), previewed before it's saved |
-| `phosphor edit` | what Alt-r runs: unlock a tab, change it, save it or put it back |
+| `phosphor edit` | what Alt-r runs: the tab as a map of its panes, change it, save it or put it back |
 | `phosphor mentions` | read-only feed of chat notifications; `--setup` hooks matterhorn |
 | `phosphor clip` | a file or a pipe onto your device's clipboard; `--save` the other way |
 | `phosphor send` | one real file, as a one-time link and QR; any size, gone once it's downloaded |

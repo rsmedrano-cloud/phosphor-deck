@@ -4,7 +4,7 @@
 "always": true,
 "k": [
 ["Alt-n", "new tab (the + menu) in the folder of the pane you're in"],
-["Alt-r", "edit this tab: unlock, change, then save or put it back"],
+["Alt-r", "edit this tab: its panes as a map, change, then save or put it back"],
 ["Alt-j", "a note or todo from here: NOTES shows which tab it came from"],
 ["Alt-q", "ask an assistant about the pane you're in: its screen goes along"],
 ["Alt-m", "talk into the pane you're in: a phone records, the words land at the prompt (phosphor voice)"],

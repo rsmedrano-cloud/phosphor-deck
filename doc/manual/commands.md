@@ -422,7 +422,7 @@
   tab and `phosphor setup`'s "change the color" open the same picker.
 - `phosphor shortcuts [--kdl]` — the deck's keys, yours to change (also `c` in the DECK tab); `--kdl` prints the block
   for a zellij config of your own.
-- `phosphor edit` — what Alt-r runs: unlock the tab you're in, change it, then save it or put it back (see keys).
+- `phosphor edit` — what Alt-r runs: the tab you're in as a map of its panes, change it, then save it or put it back (see keys).
 - `phosphor mentions [--setup]` — the chat feed; `--setup` hooks matterhorn.
 - `phosphor clip FILE` | `cmd | phosphor clip` | `phosphor clip --save FILE [--force]`. With nothing, on a terminal, it asks which file.
 - `phosphor send FILE [--timeout SECONDS]` — one real file (any size or type), as a one-time

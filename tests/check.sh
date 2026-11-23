@@ -47,6 +47,7 @@ check "the docs name every command"        python3 tests/docs-check.py
 check "AGENTS.md matches the manual"       python3 phosphor docs --check
 check "help: an image, not raw markdown"   python3 tests/docs-render-check.py
 check "a live tab reads back"              python3 tests/keep-check.py
+check "Alt-r's map: sizes, splits, closes"  python3 tests/tabmap-check.py
 check "a frozen program is closed"         python3 tests/hang-check.py
 check "a touch screen is never stuck"      python3 tests/touch-check.py
 check "--reconnect backs off instead of hammering a dead link" python3 tests/run-reconnect-check.py

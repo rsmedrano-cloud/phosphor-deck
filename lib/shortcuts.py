@@ -29,7 +29,7 @@ import deckconf
 
 # (id, what it does, default, "key" or "prefix")
 ACTIONS = [
-    ("edit",     "edit this tab: unlock, change, save or put back", "Alt r", "key"),
+    ("edit",     "edit this tab: its panes as a map, change, save or put back", "Alt r", "key"),
     ("new_tab",  "new tab (the + menu) in the pane's folder",       "Alt n", "key"),
     ("note",     "a note or todo from here, tagged with this tab",  "Alt j", "key"),
     ("ask",      "a question about this pane, its screen along",    "Alt q", "key"),

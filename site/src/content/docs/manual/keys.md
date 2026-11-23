@@ -11,7 +11,7 @@ except these.
 | key | action |
 |---|---|
 | Alt-n | new tab (the + menu) in the folder of the pane you're in |
-| Alt-r | edit this tab: unlock, change, then save or put it back |
+| Alt-r | edit this tab: its panes as a map, change, then save or put it back |
 | Alt-j | a note or todo from here: NOTES shows which tab it came from |
 | Alt-q | ask an assistant about the pane you're in: its screen goes along |
 | Alt-m | talk into the pane you're in: a phone records, the words land at the prompt (phosphor voice) |
@@ -40,39 +40,46 @@ Ctrl-g included, goes straight to the tool inside.
 
 ## Editing a tab
 
-While a tab is being edited its name in the tab bar says so, and how to
-finish: `SYS ✎ Alt-r`. The second Alt-r lists what you can do, a key or a
-tap each: save, put it back, swap a pane's program, split, close, and **c**,
-a row of cards under the pane, picked in the gallery (over a row of cards,
-c adds and takes away its cards). In a pane too short for a button a row,
-they come two to a row.
+**Alt-r** (on a phone, the **EDIT** key) opens the whole tab as a map: a box
+for each pane, with its number, what runs in it and its size (`55%`, `auto`,
+`5 rows`). The tab doesn't change until you save. Nothing needs a zellij key.
 
-Tabs are locked: no pane is added or closed by accident. To change one on
-purpose, **Alt-r** (on a phone, the **EDIT** key). Every step works with a
-key, a click or a tap: each action is a row of its own.
+Pick a pane by tapping it, with its number (1 to 9), the arrows or Tab. It
+starts on the pane you were in when you pressed Alt-r. Every action is a key
+and a button along the bottom, so a click or a tap works too:
 
-1. **start editing** unlocks the tab (a ✎ marks it in the tab bar). Resize
-   by dragging a border, or Ctrl-n and the arrows; Ctrl-p n / x add and
-   close panes.
-2. **Alt-r** again shows what changed (`ctop → lazydocker`, `45% → 55%`) and
-   what you can do with the pane under that screen:
-   **s** save the tab into your profile · **d** put it back the way the
-   profile has it · **r** swap the pane's program for anything the + menu or
-   the store has, or for cards (**cards** opens the gallery: pick some,
-   Enter puts them in the pane; beside the list, what's under the cursor
-   at this pane's size; the first few times, its last row says what
-   Enter does) · **b** / **v** split it (a new pane below / beside) ·
-   **x** close it · **e** keep editing.
+- **+** / **-** make the pane bigger or smaller, 10% at a time. Its neighbour
+  takes or gives the difference. A row of cards changes a row at a time. Never
+  under 10% or over 90%.
+- **b** splits below, **v** splits beside. The new pane is a shell, and it is
+  selected.
+- **r** swaps the pane's program: the + menu, the store apps, or cards.
+- **c** on a row of cards changes its cards in the gallery. On any other pane
+  it adds a row of cards under it.
+- **x** closes the pane. Its space goes to the pane before it. The only pane
+  can't be closed.
 
-One thing zellij doesn't let us lock: dragging a border resizes a pane even
-while the tab is locked. `phosphor restart` (or Alt-r, then d) brings back the
-sizes your profile has.
+The strip at the top stays on screen: **s** save, **d** put back, **Esc**
+cancel. The line under it says what changed, in words: `sleep 602: 45% → 50%`,
+`panes: 2 → 3`.
 
-A tab that isn't in the profile yet (opened with +) is added when you save.
-A tab from `tabs.d` (see profile) has no **s**: it names the file instead,
-since saving there would fork it from whoever you got it from. **d** puts it
-back the way that file has it.
-Editing changes the mode for every screen looking at the deck.
+- **s** writes the tab into your profile (a `deck.toml.bak` first), runs gen
+  and reloads the tab as you drew it.
+- **d** reloads the tab the way your profile has it.
+- If a reload would lose something (a shell or an editor, the same thing
+  `phosphor apply` asks about), the first **s** or **d** says what, and a
+  second press does it.
+- **Esc** with unsaved changes asks for a second Esc, then leaves the tab
+  exactly as it was.
+
+Tabs are locked: no pane is added or closed by accident. Dragging a border
+still resizes a pane live, because zellij can't lock that. `phosphor restart`
+(or **d** in the edit screen) brings back the sizes your profile has.
+
+A tab that isn't in the profile yet (opened with +) is added when you save,
+and it has no **d**. A tab from `tabs.d` (see profile) has no **s**: the
+screen names the file instead, since saving there would fork it from whoever
+you got it from. **d** still works there.
 
 ## Your own keys
 

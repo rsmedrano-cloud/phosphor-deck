@@ -5,5 +5,6 @@
   "tests/adjutant-width-check.py": "'12 cols with a message: a line 14 wide' failed once on CI (release 2.8.5, pipeline 3095957831), never locally (5 runs); likely the last read ending inside an escape, stripped since",
   "tests/newtab-attach-check.py": "'--here with no $ZELLIJ at all: no new tab' failed once in a soak of check.sh in a loop (the refusal itself passed; nothing reached the live deck); root cause open in #122",
   "tests/mirror-check.py": "'a hangup ends it quietly' died by SIGHUP (exit -1) once in the zellij job (dev, dbf04c9), passes alone; root cause open in #128",
-  "tests/apply-check.py": "'one tab: you stay on the tab you were on' ended on A once in the zellij job (dev, 439fe39), passes alone; root cause open in #130"
+  "tests/apply-check.py": "'one tab: you stay on the tab you were on' ended on A once in the zellij job (dev, 439fe39), passes alone; root cause open in #130",
+  "tests/ask-key-check.py": "'and nothing is left over it' failed once inside the full check.sh of release 2.8.17 (load ~4.3), passed twice alone right after; one look at the pane count right after q, root cause open in #132"
 }

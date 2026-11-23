@@ -218,7 +218,7 @@ left out keeps its default; `""` turns one off.
 
 | key | default | what |
 |---|---|---|
-| edit | "Alt r" | edit this tab: unlock, change, save or put back |
+| edit | "Alt r" | edit this tab: its panes as a map, change, save or put back |
 | new_tab | "Alt n" | a new tab (the + menu) in the pane's folder |
 | note | "Alt j" | a note or todo from here, tagged with the tab you're in |
 | ask | "Alt q" | a question about the pane you're in, its screen along |

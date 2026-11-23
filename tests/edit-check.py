@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Alt-r in a real zellij: unlock a tab, resize it, save it; put it back;
-swap a pane's program; and all of it again with taps only (a phone's EDIT
-key sends the same Alt-r).
+"""Alt-r in a real zellij: the tab as a map (#125). A whole edit (select,
+resize, split, swap, close, save) with keys only, and again with taps only
+(a phone's EDIT key sends the same Alt-r); put back; cancel; cards.
 
     python3 tests/edit-check.py
 
 Runs a throwaway session (tests/zjprobe.py) with the deck's own config and a
 client attached in a pty. Needs zellij; without it, it says so and passes.
 """
-import os, re, sys, time
+import json, os, re, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import zjprobe
 
@@ -53,12 +53,6 @@ def pure():
         open(os.path.join(bin_, b), "w").write("#!/bin/sh\n"); os.chmod(os.path.join(bin_, b), 0o755)
     sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "lib"))
     import edit
-    # c over a pane: a row of cards is read back from its command line
-    need("dash_of: a profile tab's row", edit.dash_of(
-        ["/usr/bin/python3", "/x/phosphor", "run", "--name", "CARDS", "--", "/usr/bin/python3", "/x/phosphor",
-         "dash", "--tab", "SYS", "version", "screens"]) == ("CARDS", "SYS", ["version", "screens"]))
-    need("dash_of: one opened by hand", edit.dash_of(["phosphor", "dash", "ci"]) == ("CARDS", None, ["ci"]))
-    need("dash_of: anything else isn't one", edit.dash_of(["sleep", "601"]) is None and edit.dash_of(None) is None)
     need("a profile tab can be put back", edit.origin("SYS") == (True, None))
     need("a tabs.d tab can be put back too (gen wrote its layout)",
          edit.origin("BUBBLE")[1] and edit.origin("BUBBLE")[1].endswith("bubble.toml"))
@@ -142,65 +136,66 @@ def main():
         # zellij 0.46's release notes opened floating, focused, and took the keys below
         need("zellij's own popups stay off", "zellij:about" not in z.action("dump-layout"))
 
-        # 1. unlock, resize, save
-        z.keys(ALT_E, 1)
-        if not need("Alt-r shows the edit screen", z.wait(lambda: shows(z, "EDIT SYS", "start editing"), 10)): return
-        ready(z); z.keys(b"\r", 1)
-        if not need("the tab is marked while editing", z.wait(lambda: tab().startswith("SYS ✎"), 5)): return
-        start = sizes()
-        z.keys(CTRL_N, 0.3); z.keys(b"j", 0.3); z.keys(b"j", 0.3); z.keys(ESC, 0.5)
-        if not need("resizing works while editing", z.wait(lambda: sizes() != start, 5)): return
-        edited = sizes()
-        z.keys(ALT_E, 1)
-        need("Alt-r again shows what changed", z.wait(lambda: shows(z, "what changed", "→"), 10))
-        ready(z); z.keys(b"s", 1)
-        need("s saves the new size", z.wait(lambda: edited[0] in open(prof).read(), 10))
-        need("saving locks and unmarks the tab", z.wait(lambda: tab() == "SYS", 5))
-
-        # 2. unlock, resize, put it back
-        saved = sizes()
-        before = len(sleeps(z))
-        z.keys(ALT_E, 1); z.wait(lambda: shows(z, "EDIT SYS", "start editing"), 5); ready(z); z.keys(b"\r", 1)
-        z.wait(lambda: tab().startswith("SYS ✎"), 5)
-        z.keys(CTRL_N, 0.3); z.keys(b"k", 0.3); z.keys(b"k", 0.3); z.keys(b"k", 0.3); z.keys(ESC, 0.5)
-        z.wait(lambda: sizes() != saved, 5)
-        z.keys(ALT_E, 1); z.wait(lambda: shows(z, "what changed"), 10); ready(z)
-        z.keys(b"d", 1)
-        need("d puts the tab back as the profile has it",
-             z.wait(lambda: sizes() == saved and z.tabs() == ["SYS", "SH"], 15))
-        need("putting back leaves the profile alone", edited[0] in open(prof).read())
-        need("putting back leaves nothing of the old tab running", z.wait(lambda: len(sleeps(z)) == before, 10))
-
-        # 3. swap the program of the focused pane, then save
         items = z.py("import edit\nfor i in edit.options(): print(i[0])").splitlines()
         idx = items.index("mytool")
-        z.keys(ALT_E, 1); z.wait(lambda: shows(z, "EDIT SYS", "start editing"), 5); ready(z); z.keys(b"\r", 1)
-        z.wait(lambda: tab().startswith("SYS ✎"), 5)
-        z.keys(ALT_E, 1); z.wait(lambda: shows(z, "what changed"), 10); ready(z)
-        z.keys(b"r", 1); z.wait(lambda: shows(z, "what goes in this pane"), 5); ready(z)
-        for _ in range(idx): ready(z); z.keys(b"j", 0.15)
-        ready(z); z.keys(b"\r", 1)
-        need("r swaps the pane's program", z.wait(lambda: '"903"' in z.action("dump-layout"), 15))
-        need("the swapped-out program is gone", z.wait(lambda: not sleeps(z), 10))
+        fs = lambda: any(p.get("is_fullscreen") for p in json.loads(z.action("list-panes", "-a", "-j") or "[]")
+                         if p.get("title") == "EDIT" or p.get("name") == "EDIT")
+        key = lambda k: (ready(z), z.keys(k, 0.6))
+
+        # 1. keys only: select, resize, split, swap, close, save
         z.keys(ALT_E, 1)
-        need("the swap shows as a change", z.wait(lambda: shows(z, "sleep 601 → sleep 903"), 10))
-        ready(z); z.keys(b"s", 1)
-        need("s saves the swapped program", z.wait(lambda: '"903"' in open(prof).read() and '"601"' not in open(prof).read(), 10))
+        if not need("Alt-r draws the tab as a map", z.wait(lambda: shows(z, "EDIT SYS", "1 sleep 601", "2 sleep 602"), 10)): return
+        need("the map has the whole tab", z.wait(fs, 5))
+        need("every action is on screen", shows(z, "s save", "d put back", "+ bigger", "b split below", "r program", "x close"))
+        need("nothing needs a zellij key", not shows(z, "Ctrl-") and not shows(z, "Alt-"))
+        key(b"2"); key(b"+")
+        need("+ makes the pane bigger, in the map", z.wait(lambda: shows(z, "sleep 602: 45% → 50%"), 5))
+        need("the live tab hasn't moved yet", sizes() == ["55%", "45%"])
+        key(b"b")
+        need("b: a new pane below it, selected", z.wait(lambda: shows(z, "▶ 3 shell"), 5))
+        key(b"r"); z.wait(lambda: shows(z, "what goes in this pane"), 5)
+        for _ in range(idx): key(b"j")
+        key(b"\r")
+        need("r puts another program in the selected pane", z.wait(lambda: shows(z, "▶ 3 sleep 903"), 5))
+        key(b"1"); key(b"x")
+        need("x takes the pane away", z.wait(lambda: shows(z, "▶ 1 sleep 602", "2 sleep 903") and not shows(z, "1 sleep 601"), 5))
+        key(b"s")
+        need("s saves the map into the profile", z.wait(lambda: '"903"' in open(prof).read() and '"601"' not in open(prof).read(), 10))
+        need("saving reloads the tab as it was drawn", z.wait(lambda: '"903"' in z.action("dump-layout")
+                                                              and not sleeps(z) and z.tabs() == ["SYS", "SH"], 15))
+        need("the map is gone, the tab isn't fullscreen", z.wait(lambda: not fs(), 5))
+        settled(z)
+
+        # 2. put back: a change in the map, then d
+        saved = open(prof).read()
+        lay = z.action("dump-layout")
+        z.keys(ALT_E, 1); z.wait(lambda: shows(z, "EDIT SYS"), 10)
+        key(b"1"); key(b"-"); key(b"d")
+        need("d puts the tab back as the profile has it", z.wait(lambda: z.tabs() == ["SYS", "SH"] and not fs(), 15))
+        need("putting back leaves the profile alone", open(prof).read() == saved)
+        settled(z)
+
+        # 3. Esc: nothing happens until a second Esc
+        z.keys(ALT_E, 1); z.wait(lambda: shows(z, "EDIT SYS"), 10)
+        key(b"x"); key(ESC)
+        need("Esc with a change asks again", z.wait(lambda: shows(z, "Esc again"), 5))
+        key(ESC)
+        need("the second Esc leaves the tab as it was", z.wait(lambda: not fs() and '"903"' in z.action("dump-layout"), 10)
+             and open(prof).read() == saved)
 
         # 3b. c: a row of cards under the pane, picked in the gallery, then saved
-        z.keys(ALT_E, 1); z.wait(lambda: shows(z, "EDIT SYS", "start editing"), 5); ready(z); z.keys(b"\r", 1)
-        z.wait(lambda: tab().startswith("SYS ✎"), 5)
-        z.keys(ALT_E, 1); z.wait(lambda: shows(z, "what changed"), 10); ready(z)
-        need("c offers a row of cards", shows(z, "add a row of cards"))
-        z.keys(b"c", 1); z.wait(lambda: shows(z, "put them under this pane"), 10); ready(z)
-        z.keys(b" ", 0.5); ready(z); z.keys(b"\r", 1)
-        need("c puts a row of cards under the pane", z.wait(lambda: "dash" in z.action("dump-layout"), 15))
-        z.keys(ALT_E, 1); z.wait(lambda: shows(z, "what changed"), 10); ready(z)
-        z.keys(b"s", 1)
+        z.keys(ALT_E, 1); z.wait(lambda: shows(z, "EDIT SYS"), 10)
+        need("c offers a row of cards", shows(z, "c cards under it"))
+        key(b"c"); z.wait(lambda: shows(z, "put them under this pane"), 10)
+        key(b" "); key(b"\r")
+        need("c puts a row of cards in the map", z.wait(lambda: shows(z, "cards: "), 5))
+        key(b"s")
         need("s keeps the row of cards in the profile", z.wait(lambda: "dash = [" in open(prof).read(), 10))
+        z.wait(lambda: "dash" in z.action("dump-layout") and not fs(), 15)
+        settled(z)
 
         # 4. taps only
-        touch(z, prof)
+        touch(z, prof, idx)
 
         # 5. Alt-n: a new tab in the folder of the pane you're in; Alt-← crosses tabs
         here(z)
@@ -233,32 +228,28 @@ def drag(z, row0, row1, col=60):
         z.keys(b"\x1b[<32;%d;%dM" % (col, r + 1), 0.1)
     z.keys(b"\x1b[<0;%d;%dm" % (col, row1 + 1), 0.8)
 
-def touch(z, prof):
-    """The same edit, with taps and a drag only."""
+def touch(z, prof, idx):
+    """The same edit with taps only: select, resize, split, swap, close, save."""
     import json
-    tab = lambda: z.tabs()[0] if z.tabs() else ""
-    count = lambda: len([p for p in json.loads(z.action("list-panes", "-a", "-j") or "[]")
-                         if not p["is_plugin"] and not p["is_suppressed"]])
     z.keys(ALT_E, 1)
-    if not need("touch: start editing is a row to tap", tap(z, "start editing")): return
-    if not need("touch: the tab unlocks", z.wait(lambda: tab().startswith("SYS ✎"), 5)): return
-    z.action("move-focus", "up")
-    geo = sorted((p["pane_y"], p["pane_rows"]) for p in json.loads(z.action("list-panes", "-a", "-j") or "[]")
-                 if not p["is_plugin"] and not p["is_suppressed"])
-    border = geo[0][0] + geo[0][1]
-    before = open(prof).read()
-    drag(z, border, border - 4)
-    n = count()
-    z.keys(ALT_E, 1)
-    if not need("touch: split is a row to tap", tap(z, "a new pane below")): return
-    need("touch: split adds a pane", z.wait(lambda: count() == n + 1, 10))
-    z.keys(ALT_E, 1)
-    if not need("touch: close is a row to tap", tap(z, "close this pane")): return
-    need("touch: close takes the new pane away", z.wait(lambda: count() == n, 10))
-    z.keys(ALT_E, 1)
-    if not need("touch: save is a row to tap", tap(z, "save into the profile")): return
-    need("touch: the dragged size is saved", z.wait(lambda: open(prof).read() != before, 10))
-    need("touch: saving locks the tab", z.wait(lambda: tab() == "SYS", 5))
+    if not need("touch: the map shows", z.wait(lambda: shows(z, "EDIT SYS", "+ bigger"), 10)): return
+    if not need("touch: a tap on a pane selects it", tap(z, "1 sleep 602") and z.wait(lambda: shows(z, "▶ 1 sleep 602"), 5)): return
+    tap(z, "bigger")
+    need("touch: bigger is a button", z.wait(lambda: shows(z, "sleep 602: ") and shows(z, "→"), 5))
+    tap(z, "split beside")
+    need("touch: split beside is a button", z.wait(lambda: shows(z, "▶ 2 shell"), 5))
+    tap(z, "program"); z.wait(lambda: shows(z, "what goes in this pane"), 5)
+    ready(z)
+    if not need("touch: the program is a row to tap", tap(z, "mytool")): return
+    need("touch: it goes in the selected pane", z.wait(lambda: shows(z, "▶ 2 sleep 903"), 5))
+    tap(z, "1 sleep 602"); z.wait(lambda: shows(z, "▶ 1 sleep 602"), 5)
+    tap(z, "close")
+    need("touch: close is a button", z.wait(lambda: shows(z, "▶ 1 sleep 903") and not shows(z, "1 sleep 602"), 5))
+    tap(z, "save")
+    need("touch: save is a button", z.wait(lambda: '"602"' not in open(prof).read(), 10))
+    need("touch: the saved tab is back, not fullscreen", z.wait(lambda: z.tabs() == ["SYS", "SH"] and not any(
+        p.get("is_fullscreen") for p in json.loads(z.action("list-panes", "-a", "-j") or "[]")), 15))
+    settled(z)
 
 def here(z):
     import json
@@ -351,6 +342,27 @@ def own_keys():
         z.action("go-to-tab-name", "SYS"); z.pump(2)
         z.keys(b"\x1bu", 1.5)
         need("shortcuts: the new key works without a restart", z.wait(full, 8))
+
+def later(z):
+    """This probe's `phosphor edit --later` helpers still running (a reload
+    after save or put back): the next Alt-r waits for them."""
+    out = []
+    for d in os.listdir("/proc"):
+        if not d.isdigit(): continue
+        try:
+            argv = open("/proc/%s/cmdline" % d).read().split("\0")
+        except OSError:
+            continue
+        if "edit" in argv and "--later" in argv and z.home.encode() in _env(d):
+            out.append(d)
+    return out
+
+def settled(z, timeout=20):
+    end = time.time() + timeout
+    for pid in later(z):
+        while os.path.exists("/proc/" + pid) and time.time() < end:
+            time.sleep(0.2)
+    z.pump(0.5)
 
 def sleeps(z):
     """This probe's `sleep 601` processes."""

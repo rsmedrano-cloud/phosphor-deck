@@ -6,6 +6,18 @@ before it updates.
 
 ## Unreleased
 
+## 2.8.17 — Alt-r: the tab as a map
+
+### Changed
+
+- **Alt-r shows the tab as a map of its panes (#125).** One press opens the
+  whole tab as a box per pane, with its number, what runs in it and its size.
+  Pick a pane, then resize it, split it, swap what runs in it, change its
+  cards or close it. The tab stays as it is until you save: `s` writes it into
+  your profile (a `deck.toml.bak` first) and reloads it as drawn. `d` reloads
+  the tab the way the profile has it, and `Esc` leaves it untouched. The tab
+  no longer unlocks, so no `SYS ✎ Alt-r` label, and you no longer need Ctrl-n or Ctrl-p.
+
 ## 2.8.16 — zellij 0.46: pending applies found again
 
 ### Fixed

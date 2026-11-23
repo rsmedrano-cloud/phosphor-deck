@@ -187,6 +187,13 @@ def over_right(z, title, right):
     f = focused(z) or {}
     return f.get("title") == title and f.get("pane_x") == right["pane_x"]
 
+def over_it(z, title, right):
+    """The focused pane is `title`, the right pane hidden under it: Alt-r's
+    map widens itself to the whole tab (#125), so not at the right pane's place."""
+    f = focused(z) or {}
+    under = [p for p in json.loads(z.action("list-panes", "-a", "-j") or "[]") if p["id"] == right["id"] and not p["is_plugin"]]
+    return f.get("title") == title and under and under[0]["is_suppressed"]
+
 def shows(z, text, timeout=15):
     return z.wait(lambda: any(text in r for r in z.screen()), timeout)
 
@@ -268,8 +275,9 @@ else:
         # last: editing marks the tab's name
         need("EDIT is on the bar", tap_key(z, "EDIT"))
         need("a tap on EDIT edits the tab, over the pane you were in",
-             z.wait(lambda: over_right(z, "EDIT", right), 10))
+             z.wait(lambda: over_it(z, "EDIT", right), 10))
         need("EDIT says how to get back to the pane", shows(z, back))
+        need("EDIT's map starts on the pane you were in (the right one)", shows(z, "▶ 2 "))
 
     with zjprobe.Probe(PROFILE, session="barnarrow", cols=40, rows=16) as z:
         need("40 cols: the deck came up", z.wait(lambda: "ONE" in z.tabs(), 20))

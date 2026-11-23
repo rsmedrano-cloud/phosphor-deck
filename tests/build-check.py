@@ -112,12 +112,8 @@ def existing(z, prof, shown):
     tab = lambda: z.tabs()[0] if z.tabs() else ""
     z.action("go-to-tab-name", "SYS"); z.pump(1)
     z.keys(ALT_E, 1)
-    if not need("edit: Alt-r asks to start", z.wait(lambda: shown("EDIT SYS"), 10)): return
-    z.keys(b"\r", 1)
-    need("edit: the tab unlocks", z.wait(lambda: tab().startswith("SYS ✎"), 5))
-    z.keys(ALT_E, 1)
-    if not need("edit: Alt-r again offers r", z.wait(lambda: shown("what changed"), 10)): return
-    z.keys(b"r", 1)
+    if not need("edit: Alt-r draws the tab, r on screen", z.wait(lambda: shown("EDIT SYS") and shown("r program"), 10)): return
+    z.keys(b"1", 0.5); z.keys(b"r", 1)
     if not need("edit: r asks what goes in this pane", z.wait(lambda: shown("what goes in this pane"), 10)): return
     need("edit: the first time, it says what Enter does", shown("new here? ↑↓ or a tap"))
     need("edit: and this pane's size beside the list", z.wait(lambda: re.search(r"\d+×\d+", "\n".join(z.screen())), 5))
@@ -129,13 +125,12 @@ def existing(z, prof, shown):
     if not tap(z, "the cards you pick"): return
     z.wait(lambda: shown("Enter: put them here"), 10)
     z.keys(b" ", 0.5); z.keys(b"\r", 1)
-    need("edit: the pane becomes cards", z.wait(lambda: '"dash"' in z.action("dump-layout"), 15))
-    need("edit: the old program is gone", z.wait(lambda: '"601"' not in z.action("dump-layout"), 10))
-    z.keys(ALT_E, 1); z.wait(lambda: shown("what changed"), 10)
+    need("edit: the pane becomes cards, in the map", z.wait(lambda: shown("1 cards: "), 10))
     z.keys(b"s", 1)
     need("edit: s keeps it as dash = [...] in SYS, the old program out",       # CARDS has the other one
          z.wait(lambda: open(prof).read().count("dash = [") == 2 and '"601"' not in open(prof).read(), 10))
-    need("edit: saving locks the tab", z.wait(lambda: tab() == "SYS", 5))
+    need("edit: the tab reloads with the cards", z.wait(lambda: '"dash"' in z.action("dump-layout")
+                                                        and '"601"' not in z.action("dump-layout") and tab() == "SYS", 15))
 
 def learned(z, shown):
     """Once it's been seen its few times, the gallery opens with no hint."""
