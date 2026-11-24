@@ -131,14 +131,14 @@ def main():
         apps = os.path.join(z.home, ".config/phosphor/apps.toml")
         open(apps, "w").write('[[apps]]\nname = "mytool"\ncmd = "sleep"\nargs = ["903"]\n')
         tab = lambda: z.tabs()[0] if z.tabs() else ""
-        sizes = lambda: re.findall(r'size="(\d+%)"', z.action("dump-layout").split("new_tab_template")[0])
+        sizes = lambda: re.findall(r'size="(\d+%)"', z.dumped().split("new_tab_template")[0])
         z.pump(2)
         # zellij 0.46's release notes opened floating, focused, and took the keys below
-        need("zellij's own popups stay off", "zellij:about" not in z.action("dump-layout"))
+        need("zellij's own popups stay off", "zellij:about" not in z.dumped())
 
         items = z.py("import edit\nfor i in edit.options(): print(i[0])").splitlines()
         idx = items.index("mytool")
-        fs = lambda: any(p.get("is_fullscreen") for p in json.loads(z.action("list-panes", "-a", "-j") or "[]")
+        fs = lambda: any(p.get("is_fullscreen") for p in z.listing("list-panes", "-a", "-j")
                          if p.get("title") == "EDIT" or p.get("name") == "EDIT")
         key = lambda k: (ready(z), z.keys(k, 0.6))
 
@@ -161,14 +161,14 @@ def main():
         need("x takes the pane away", z.wait(lambda: shows(z, "▶ 1 sleep 602", "2 sleep 903") and not shows(z, "1 sleep 601"), 5))
         key(b"s")
         need("s saves the map into the profile", z.wait(lambda: '"903"' in open(prof).read() and '"601"' not in open(prof).read(), 10))
-        need("saving reloads the tab as it was drawn", z.wait(lambda: '"903"' in z.action("dump-layout")
+        need("saving reloads the tab as it was drawn", z.wait(lambda: '"903"' in z.dumped()
                                                               and not sleeps(z) and z.tabs() == ["SYS", "SH"], 15))
         need("the map is gone, the tab isn't fullscreen", z.wait(lambda: not fs(), 5))
         settled(z)
 
         # 2. put back: a change in the map, then d
         saved = open(prof).read()
-        lay = z.action("dump-layout")
+        lay = z.dumped()
         z.keys(ALT_E, 1); z.wait(lambda: shows(z, "EDIT SYS"), 10)
         key(b"1"); key(b"-"); key(b"d")
         need("d puts the tab back as the profile has it", z.wait(lambda: z.tabs() == ["SYS", "SH"] and not fs(), 15))
@@ -180,7 +180,7 @@ def main():
         key(b"x"); key(ESC)
         need("Esc with a change asks again", z.wait(lambda: shows(z, "Esc again"), 5))
         key(ESC)
-        need("the second Esc leaves the tab as it was", z.wait(lambda: not fs() and '"903"' in z.action("dump-layout"), 10)
+        need("the second Esc leaves the tab as it was", z.wait(lambda: not fs() and '"903"' in z.dumped(), 10)
              and open(prof).read() == saved)
 
         # 3b. c: a row of cards under the pane, picked in the gallery, then saved
@@ -191,7 +191,7 @@ def main():
         need("c puts a row of cards in the map", z.wait(lambda: shows(z, "cards: "), 5))
         key(b"s")
         need("s keeps the row of cards in the profile", z.wait(lambda: "dash = [" in open(prof).read(), 10))
-        z.wait(lambda: "dash" in z.action("dump-layout") and not fs(), 15)
+        z.wait(lambda: "dash" in z.dumped() and not fs(), 15)
         settled(z)
 
         # 4. taps only
@@ -248,12 +248,12 @@ def touch(z, prof, idx):
     tap(z, "save")
     need("touch: save is a button", z.wait(lambda: '"602"' not in open(prof).read(), 10))
     need("touch: the saved tab is back, not fullscreen", z.wait(lambda: z.tabs() == ["SYS", "SH"] and not any(
-        p.get("is_fullscreen") for p in json.loads(z.action("list-panes", "-a", "-j") or "[]")), 15))
+        p.get("is_fullscreen") for p in z.listing("list-panes", "-a", "-j")), 15))
     settled(z)
 
 def here(z):
     import json
-    focused = lambda: [p["tab_name"] for p in json.loads(z.action("list-panes", "-a", "-j") or "[]")
+    focused = lambda: [p["tab_name"] for p in z.listing("list-panes", "-a", "-j")
                        if p["is_focused"] and not p["is_plugin"] and not p["is_suppressed"]]
     z.action("go-to-tab-name", "SH"); z.pump(1)
     os.makedirs(os.path.join(z.home, "proj/sub"), exist_ok=True)
@@ -281,7 +281,7 @@ def shapes(z):
     if not need("shapes to tap", tap(z, "2 columns")): return
     if not need("pane 1: pick a program", tap(z, "mytool")): return
     if not need("pane 2: the same in the rest", tap(z, "the same in the rest")): return
-    body = lambda: z.action("dump-layout").split("new_tab_template")[0]
+    body = lambda: z.dumped().split("new_tab_template")[0]
     need("the layout opens as a tab with both panes",
          z.wait(lambda: "MYTOOL" in z.tabs() and body().count('"903"') >= 2, 10))
     z.keys(b"\x1bn", 1)
@@ -305,7 +305,7 @@ def jot(z):
     need("jot: saved with the tab it came from",
          z.wait(lambda: os.path.exists(book) and "todo · " in open(book).read()
                 and "@SYS · disk almost full" in open(book).read(), 10))
-    need("jot: the screen closes over the pane", z.wait(lambda: 'name="NOTE"' not in z.action("dump-layout"), 10))
+    need("jot: the screen closes over the pane", z.wait(lambda: 'name="NOTE"' not in z.dumped(), 10))
 
 def forget(z):
     prof = z.env["PHOSPHOR_PROFILE"]
@@ -338,7 +338,7 @@ def own_keys():
              z.wait(lambda: 'zoom' in open(z.env["PHOSPHOR_PROFILE"]).read() and '"Alt u"' in open(z.env["PHOSPHOR_PROFILE"]).read(), 10))
         need("shortcuts: gen wrote it into config.kdl", z.wait(lambda: 'bind "Alt u" { ToggleFocusFullscreen; }' in open(z.config).read(), 10))
         z.keys(b"q", 1)
-        full = lambda: any(t.get("is_fullscreen_active") for t in json.loads(z.action("list-tabs", "-s", "-j") or "[]") if t.get("active"))
+        full = lambda: any(t.get("is_fullscreen_active") for t in z.listing("list-tabs", "-s", "-j") if t.get("active"))
         z.action("go-to-tab-name", "SYS"); z.pump(2)
         z.keys(b"\x1bu", 1.5)
         need("shortcuts: the new key works without a restart", z.wait(full, 8))

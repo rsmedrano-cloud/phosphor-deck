@@ -129,8 +129,8 @@ def existing(z, prof, shown):
     z.keys(b"s", 1)
     need("edit: s keeps it as dash = [...] in SYS, the old program out",       # CARDS has the other one
          z.wait(lambda: open(prof).read().count("dash = [") == 2 and '"601"' not in open(prof).read(), 10))
-    need("edit: the tab reloads with the cards", z.wait(lambda: '"dash"' in z.action("dump-layout")
-                                                        and '"601"' not in z.action("dump-layout") and tab() == "SYS", 15))
+    need("edit: the tab reloads with the cards", z.wait(lambda: '"dash"' in z.dumped()
+                                                        and '"601"' not in z.dumped() and tab() == "SYS", 15))
 
 def learned(z, shown):
     """Once it's been seen its few times, the gallery opens with no hint."""

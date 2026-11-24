@@ -184,13 +184,13 @@ panes = [ { cmd = "" } ]
                               start_new_session=True)
         try:
             need("the deck came up", z.wait(lambda: z.tabs()[:1] == ["ONE"], 20))
-            shell = lambda: next((p for p in json.loads(z.action("list-panes", "-a", "-j") or "[]")
+            shell = lambda: next((p for p in z.listing("list-panes", "-a", "-j")
                                   if not p["is_plugin"] and not bar.is_bar(p)), None)
             z.keys("echo MAR''KER-$((6*7))\r", 1.0)
             need("the shell shows the marker", z.wait(lambda: any("MARKER-42" in r for r in z.screen()), 15))
 
             def bar_rows():
-                b = next((p for p in json.loads(z.action("list-panes", "-a", "-j") or "[]") if bar.is_bar(p)), None)
+                b = next((p for p in z.listing("list-panes", "-a", "-j") if bar.is_bar(p)), None)
                 if not b:
                     return b, ["", ""]
                 out = os.path.join(z.home, "bar.txt")

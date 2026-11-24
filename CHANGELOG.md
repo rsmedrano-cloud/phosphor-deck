@@ -6,6 +6,12 @@ before it updates.
 
 ## Unreleased
 
+## 2.8.20 — apply keeps your focus
+
+### Fixed
+
+- **apply no longer moves your focus (#130).** `phosphor apply` used to switch to each tab it reloaded and then back, and under load you could be left on the reloaded tab. Every screen now stays on its tab; if you were on a tab being reloaded, you land on its new copy.
+
 ## 2.8.19 — apply reaches a phone's own deck
 
 ### Changed

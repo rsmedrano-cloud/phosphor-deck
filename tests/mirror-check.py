@@ -137,8 +137,8 @@ def against_zellij():
         env = dict(z.env, TERM="xterm-mono")     # from outside the deck, as over ssh: the profile names the session
         # this process's own zellij calls go through z (the probe's socket), never mirror.find
         def ai_pane():
-            try: ps = json.loads(z.action("list-panes", "-a", "-j"))
-            except ValueError: return None    # listed tabs before panes, once (#119)
+            try: ps = z.listing("list-panes", "-a", "-j")
+            except RuntimeError: return None    # not JSON for 5s (#119)
             return next(("terminal_%d" % p["id"] for p in ps
                          if not p["is_plugin"] and p["tab_name"] == "AI"), None)
         z.wait(ai_pane, 15)

@@ -29,9 +29,9 @@ panes = [ { cmd = "" } ]
 '''
 
 fails = []
-def need(what, ok):
+def need(what, ok, why=None):
     if not ok:
-        fails.append(what)
+        fails.append(what if why is None else "%s: %s" % (what, why))
 
 def shows(z, text, timeout=15):
     return z.wait(lambda: any(text in r for r in z.screen()), timeout)
@@ -53,9 +53,9 @@ with zjprobe.Probe(PROFILE, session="askkey") as z:
 
     z.keys(b"\x1bq", 0.5)                                            # Alt-q
     need("the ask box opens over the pane", shows(z, "phosphor ask"))
-    rows = z.screen()
-    need("it says the pane's lines go to claude", any("go to claude" in r for r in rows))
-    need("it names the tab", any("SYS" in r for r in rows if "phosphor ask" in r))
+    # the box can still be drawing after its first line shows: wait for each, not one look (#133)
+    need("it says the pane's lines go to claude", shows(z, "go to claude", 10))
+    need("it names the tab", z.wait(lambda: any("SYS" in r for r in z.screen() if "phosphor ask" in r), 10))
     z.wait(lambda: zjprobe.reading_keys(z, "--here"), 10)
     z.keys("what is this\r", 0.5)
     need("the answer shows", shows(z, "THE ANSWER IS 42"))
@@ -74,8 +74,10 @@ with zjprobe.Probe(PROFILE, session="askkey") as z:
     z.keys("q", 0.5)
     need("q gives the pane back", z.wait(lambda: any("MARKER-42" in r for r in z.screen())
                                          and not any("THE ANSWER" in r for r in z.screen()), 10))
-    panes = [p for p in json.loads(z.action("list-panes", "-a", "-j") or "[]") if not p["is_plugin"]]
-    need("and nothing is left over it", len(panes) == 1)
+    # the ASK screen's own pane can still be closing right after q (#132): wait for the count
+    panes = lambda: [p for p in z.listing("list-panes", "-a", "-j") if not p["is_plugin"]]
+    need("and nothing is left over it", z.wait(lambda: len(panes()) == 1, 5),
+         [(p.get("title"), p.get("terminal_command")) for p in panes()])
 
     # Phosphor can't: the answer's MISSING line becomes r, the deck writes the note
     open(reply, "w").write("Not today.\nMISSING: two plain buttons, send and receive\n")

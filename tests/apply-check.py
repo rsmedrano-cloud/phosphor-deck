@@ -182,9 +182,10 @@ class Client:
             pass
         self.z.pump(1)
 
-def phosphor(z, *args):
+def phosphor(z, *args, watch=None):
     """phosphor in the probe's HOME, no terminal; the client's output read
-    meanwhile so the session never waits on it."""
+    meanwhile so the session never waits on it. watch(), if given, is
+    called all along while it runs."""
     out = os.path.join(z.home, "out.txt")
     with open(out, "w") as f:
         p = subprocess.Popen([sys.executable, os.path.join(ROOT, "phosphor")] + list(args), env=z.env,
@@ -192,10 +193,31 @@ def phosphor(z, *args):
         t0 = time.time()
         while p.poll() is None and time.time() - t0 < 90:
             z.pump(0.2)
+            if watch:
+                watch()
         if p.poll() is None:
             p.kill()
     z.pump(1)
     return p.returncode, open(out).read()
+
+def go(z, name, timeout=15):
+    """The probe's screen on tab name, read back: under load zellij drops a
+    go-to-tab now and then, and a test that went on from the wrong tab
+    blamed apply for the focus (#130)."""
+    end = time.time() + timeout
+    while time.time() < end:
+        z.action("go-to-tab-name", name); z.pump(0.5)
+        if [t["name"].split()[0] for t in ztabs(z) if t["active"]] == [name]:
+            return True
+    return False
+
+def focused(z, seen):
+    """Adds the tab that has the focus now to seen: a watch for phosphor(),
+    the focus all along while apply runs (#130)."""
+    try:
+        seen.update(t["name"].split()[0] for t in json.loads(z.action("list-tabs", "-j")) if t["active"])
+    except (ValueError, IndexError, KeyError):
+        pass
 
 def pids(z, sess=None):
     """{tab name: sorted pids of its panes}, in the probe's session or another of it."""
@@ -220,17 +242,12 @@ def pids(z, sess=None):
         os.environ.clear(); os.environ.update(env)
 
 def ztabs(z, timeout=10):
-    """list-tabs as JSON; under load zellij can answer late or with a
-    warning mixed in (z.action keeps stderr): asked again until it parses."""
-    t0 = time.time()
-    while True:
-        try:
-            got = json.loads(z.action("list-tabs", "-j", "-s") or "x")
-            if got: return got
-        except ValueError:
-            pass
-        if time.time() - t0 > timeout: return []
-        z.pump(0.3)
+    """list-tabs as JSON; under load zellij can answer late, with nothing or
+    with a warning mixed in: z.listing asks again until it parses."""
+    try:
+        return z.listing("list-tabs", "-j", "-s", timeout=timeout)
+    except RuntimeError:
+        return []
 
 def pids_of_session(home, sess):
     """A pane of that session runs (read from /proc, nothing asks zellij)."""
@@ -270,7 +287,7 @@ def live():
         z.pump(2)
         rc, out = phosphor(z, "gen")             # this probe's HOME gets what a real install has
         if not need("live: gen in the probe", rc == 0, out): return
-        z.action("go-to-tab-name", "B"); z.pump(1)
+        if not need("live: on tab B", go(z, "B"), ztabs(z)): return
         before = pids(z)
         if not need("live: three tabs, each with its process", all(before.get(t) for t in ("A", "B", "SH")), before):
             return
@@ -282,7 +299,7 @@ def live():
                     and not os.path.exists(os.path.join(lays, KIND, "tab-b.kdl")), sorted(os.listdir(lays))):
             return
         phone = Client(z, KIND, os.path.join(lays, KIND + ".kdl"))
-        ktabs = lambda: re.findall(r'^\s*tab name="([^"]*)"', z.run("--session", KIND, "action", "dump-layout"), re.M)
+        ktabs = lambda: re.findall(r'^\s*tab name="([^"]*)"', z.dumped(KIND), re.M)
         attached = lambda: len([l for l in z.run("--session", KIND, "action", "list-clients").splitlines()[1:] if l.strip()])
         # nothing asks that session anything until its panes run (#123's panic, see zjprobe)
         z.wait(lambda: pids_of_session(z.home, KIND), 20)
@@ -295,7 +312,8 @@ def live():
         tid = next((t["tab_id"] for t in ztabs(z) if t["name"] == "A"), None)
         if not need("live: tab A's id", tid is not None, ztabs(z)): return
         z.action("rename-tab-by-id", str(tid), "A ●2"); z.pump(0.5)   # a notice's mark: still A
-        rc, out = phosphor(z, "apply")
+        seen = set()
+        rc, out = phosphor(z, "apply", watch=lambda: focused(z, seen))
         after = pids(z)
         need("one tab: apply exits 0", rc == 0, out)
         need("one tab: it says A was reloaded", "reloaded in place" in out and "restart" not in out.lower(), out)
@@ -306,6 +324,7 @@ def live():
              (before, after))
         focus = [t["name"] for t in ztabs(z) if t["active"]]
         need("one tab: you stay on the tab you were on", focus == ["B"], focus)
+        need("one tab: the focus never left it while apply ran", seen <= {"B"}, seen)
         need("one tab: nothing pending", pending(z) is None, pending(z))
         kafter = pids(z, KIND)
         need("kind: A reloaded in the phone's session too", "sleep 621" in cmdlines(kafter.get("A", []))
@@ -370,15 +389,24 @@ def live():
 
         # a new order (#127): moved live, every pane kept, a + tab stays after its neighbour
         before = after
-        z.action("go-to-tab-name", "A"); z.pump(0.5)
+        if not need("order: on tab A", go(z, "A"), ztabs(z)): return
         z.action("new-tab", "--name", "P"); z.pump(1)       # opens last: moved to right after A
-        z.action("move-tab", "left"); z.pump(0.3); z.action("move-tab", "left"); z.pump(0.5)
+        z.wait(lambda: "P" in z.tabs(), 10)
+        tid = next((t["tab_id"] for t in ztabs(z) if t["name"] == "P"), None)
+        for _ in range(3):                                   # by its id, read back: a busy zellij drops a move
+            now = z.tabs()
+            if "P" not in now or now.index("P") <= 1:
+                break
+            for _ in range(now.index("P") - 1):
+                z.action("move-tab", "-t", str(tid), "left")
+            z.pump(0.5)
         if not need("order: a + tab P right after A", z.tabs() == ["A", "P", "C", "SH"], z.tabs()): return
-        z.action("go-to-tab-name", "SH"); z.pump(0.5)
+        if not need("order: on tab SH", go(z, "SH"), ztabs(z)): return
         tA = '[[tabs]]\nname  = "A"\npanes = [ { cmd = "sleep", args = ["621"] } ]\n'
         tC = '[[tabs]]\nname  = "C"\npanes = [ { cmd = "sleep", args = ["641"] } ]\n'
         edit_profile(z, tA + "\n" + tC, tC + "\n" + tA)
-        rc, out = phosphor(z, "apply")
+        seen = set()
+        rc, out = phosphor(z, "apply", watch=lambda: focused(z, seen))
         after = pids(z)
         need("order: apply exits 0, no restart", rc == 0 and "restart" not in out.lower(), out)
         need("order: the tabs are in the new order, P after A", z.tabs() == ["C", "A", "P", "SH"], (z.tabs(), out))
@@ -386,6 +414,7 @@ def live():
              (before, after))
         focus = [t["name"] for t in ztabs(z) if t["active"]]
         need("order: you stay on the tab you were on", focus == ["SH"], focus)
+        need("order: the focus never left it while the tabs moved", seen <= {"SH"}, seen)
         need("order: nothing pending", pending(z) is None, pending(z))
         edit_profile(z, tC + "\n" + tA, tA + "\n" + tC)
         rc, out = phosphor(z, "apply")
@@ -398,7 +427,7 @@ def live():
         # from a pane of the tab that changed (the DECK tab's f): that tab goes last, detached
         before = after
         edit_profile(z, 'args = ["631"]', 'args = ["632"]')
-        z.action("go-to-tab-name", "SH"); z.pump(1)
+        if not need("own tab: on tab SH", go(z, "SH"), ztabs(z)): return
         z.action("move-focus", "up"); z.pump(0.5)
         # the test's own PATH, or gen in a login shell writes another unit PATH (a restart);
         # never --yes here: a restart would reach systemd's real user manager

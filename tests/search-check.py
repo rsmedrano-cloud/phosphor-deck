@@ -97,7 +97,7 @@ panes = [ { cmd = "" } ]
 
 def active(z):
     import re
-    lay = z.action("dump-layout")
+    lay = z.dumped()
     m = re.search(r'^\s*tab name="([^"]*)"[^\n]*focus=true', lay, re.M)
     return m.group(1) if m else None
 

@@ -168,8 +168,8 @@ panes = [
 
         def panes():
             try:
-                return [p for p in json.loads(z.action("list-panes", "-a", "-j") or "[]") if not p.get("is_plugin")]
-            except ValueError:
+                return [p for p in z.listing("list-panes", "-a", "-j") if not p.get("is_plugin")]
+            except RuntimeError:
                 return None
 
         def pane():

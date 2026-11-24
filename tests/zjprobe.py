@@ -7,7 +7,7 @@ attached in a pty. Nothing it does can reach a live deck.
 
 The deck's layout and config come from gen, as a real install would get them.
 """
-import os, pty, select, shutil, signal, struct, fcntl, subprocess, sys, tempfile, termios, time
+import os, pty, re, select, shutil, signal, struct, fcntl, subprocess, sys, tempfile, termios, time
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def zellij():
@@ -130,6 +130,37 @@ print(d + "/layouts/deck.kdl"); print(d + "/config.kdl")
     def action(self, *args):
         return self.run("--session", self.session, "action", *args)
 
+    def listing(self, *args, timeout=5.0):
+        """A JSON listing (`list-tabs -j`, `list-panes -a -j`), parsed. Under
+        load zellij's CLI now and then answers nothing at all, exit 0 (#113);
+        a running session always has a tab and a pane, so an empty answer is
+        asked again rather than read as "none". So is one that isn't JSON (an
+        error on stderr); the last one is raised with what zellij said."""
+        import json
+        end = time.time() + timeout
+        while True:
+            out = self.action(*args).strip()
+            try:
+                if out:
+                    return json.loads(out)
+            except ValueError:
+                if time.time() >= end:
+                    raise RuntimeError("zellij action %s: %r" % (" ".join(args), out[:300]))
+            if time.time() >= end:
+                return []
+            self.pump(0.2)
+
+    def dumped(self, session=None, timeout=5.0):
+        """`dump-layout`'s text. Like a listing, under load it can come back
+        empty (#133); a running session's layout always has a tab, so one
+        without is asked again, and after `timeout` returned as it came."""
+        end = time.time() + timeout
+        while True:
+            out = self.run("--session", session or self.session, "action", "dump-layout")
+            if re.search(r'^\s*tab\b', out, re.M) or time.time() >= end:
+                return out
+            self.pump(0.2)
+
     def pump(self, t=0.0):
         end = time.time() + t
         while True:
@@ -155,8 +186,7 @@ print(d + "/layouts/deck.kdl"); print(d + "/config.kdl")
 
     def tabs(self):
         """Tab names, in order (from the session's own layout)."""
-        import re
-        return re.findall(r'^\s*tab name="([^"]*)"', self.action("dump-layout"), re.M)
+        return re.findall(r'^\s*tab name="([^"]*)"', self.dumped(), re.M)
 
     def screen(self):
         """What the focused pane shows now (dump-screen), as lines."""
@@ -168,15 +198,14 @@ print(d + "/layouts/deck.kdl"); print(d + "/config.kdl")
 
 def tap(z, label, timeout=10):
     """Tap the row of the focused pane that shows this text."""
-    import json
     end = time.time() + timeout
     while time.time() < end:
         rows = z.screen()
         hit = [i for i, r in enumerate(rows) if 0 <= r.find(label) < 44] \
             or [i for i, r in enumerate(rows) if label in r]          # the list, not a preview beside it
-        active = [t for t in json.loads(z.action("list-tabs", "-s", "-j") or "[]") if t.get("active")]
+        active = [t for t in z.listing("list-tabs", "-s", "-j") if t.get("active")]
         tab_id = active[0].get("tab_id", active[0].get("id")) if active else None
-        me = [p for p in json.loads(z.action("list-panes", "-a", "-j") or "[]") if p["is_focused"] and not p["is_plugin"]
+        me = [p for p in z.listing("list-panes", "-a", "-j") if p["is_focused"] and not p["is_plugin"]
               and not p["is_suppressed"] and p["tab_id"] == tab_id]     # every tab has a focused pane
         if hit and me:                  # on the text itself: a row may hold two buttons
             col = max(3, rows[hit[0]].find(label))

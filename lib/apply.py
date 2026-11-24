@@ -259,11 +259,35 @@ def layout_of(name, where=None):
 def _pids(sess, tab_id):
     return [pid for p in panes(sess) if p["tab_id"] == tab_id for pid in hotswap.pane_procs(sess, p["id"])]
 
-def _move_to(sess, pos):
-    """The tab just opened (focused, the last one) to position pos."""
-    n = len(tabs(sess))
-    for _ in range(max(0, n - 1 - pos)):
-        zj(sess, "move-tab", "left")
+def _new_tab(sess, layout, name):
+    """A tab from that layout, last, without moving anybody's focus (a
+    switch zellij answers late landed after apply had put you back, #130):
+    its tab id, or None if zellij didn't make it."""
+    had = {t["tab_id"] for t in tabs(sess)}
+    out = zj(sess, "new-tab", "--no-focus", "--layout", layout, "--name", name).strip()
+    if out.isdigit():
+        return int(out)
+    end = time.time() + 5                 # a busy zellij makes it and says nothing: found by name
+    while time.time() < end:
+        new = [t["tab_id"] for t in tabs(sess) if t["tab_id"] not in had and t["base"] == name]
+        if new:
+            return new[-1]
+        time.sleep(0.3)
+    return None
+
+def _move_to(sess, tid, pos):
+    """Tab tid to position pos, by its id: nobody's focus moves. Read back
+    after the moves (a busy zellij drops an action) and done again."""
+    for _ in range(3):
+        t = next((t for t in tabs(sess) if t["tab_id"] == tid), None)
+        if t and t["position"] == pos:
+            return
+        if not t:                         # not listed yet
+            time.sleep(0.3)
+            continue
+        for _ in range(abs(t["position"] - pos)):
+            zj(sess, "move-tab", "-t", str(tid), "left" if t["position"] > pos else "right")
+        time.sleep(0.2)
 
 def reload(sess, name, where=None):
     """Alt-r's "put it back", from outside the tab: its layout as a new tab
@@ -276,9 +300,12 @@ def reload(sess, name, where=None):
         dlog.event("APPLY", "reload-missed", "%s among %d tabs" % (name, len(now)))
         return False
     old = _pids(sess, t["tab_id"])
-    zj(sess, "new-tab", "--layout", layout_of(name, where), "--name", name)
-    time.sleep(0.5)
-    _move_to(sess, t["position"])
+    tid = _new_tab(sess, layout_of(name, where), name)
+    if tid is None:
+        return False
+    _move_to(sess, tid, t["position"])
+    if t.get("active"):                   # you were on it: on the new one before the old one goes
+        zj(sess, "go-to-tab-by-id", str(tid))
     zj(sess, "close-tab-by-id", str(t["tab_id"]))
     _reap(old)
     return True
@@ -300,9 +327,10 @@ def open_tab(sess, name, after, where=None):
     names = [t["base"] for t in tabs(sess)]
     prev = [n for n in after if n in names]
     pos = names.index(prev[-1]) + 1 if prev else 0
-    zj(sess, "new-tab", "--layout", layout_of(name, where), "--name", name)
-    time.sleep(0.5)
-    _move_to(sess, pos)
+    tid = _new_tab(sess, layout_of(name, where), name)
+    if tid is None:
+        return False
+    _move_to(sess, tid, pos)
     return True
 
 def target_order(live_tabs, names):
@@ -321,9 +349,8 @@ def target_order(live_tabs, names):
     return lead + [i for _, g in sorted(groups, key=lambda g: g[0]) for i in g]
 
 def reorder(sess, names):
-    """The live tabs moved into the profile's order: move-tab only moves
-    the focused tab, so each one out of place is focused and moved left to
-    its place. Read back from list-tabs after every move (a busy zellij
+    """The live tabs moved into the profile's order: each one out of place
+    moved left to its place by its id, nobody's focus moved (#130). Read back from list-tabs after every move (a busy zellij
     drops an action): the names moved, or None if it didn't get there."""
     moved, now = [], tabs(sess)
     want = target_order(now, names)       # once: a + tab's neighbour is the one it had before any move
@@ -336,12 +363,8 @@ def reorder(sess, names):
         if i is None:
             return moved
         j = ids.index(want[i])
-        zj(sess, "go-to-tab-by-id", str(want[i]))
-        time.sleep(0.2)
-        if not next((t for t in tabs(sess) if t["tab_id"] == want[i]), {}).get("active"):
-            continue                      # not focused yet: moving now would move another tab
         for _ in range(j - i):
-            zj(sess, "move-tab", "left")
+            zj(sess, "move-tab", "-t", str(want[i]), "left")
         time.sleep(0.2)
         if now[j]["base"] not in moved:
             moved.append(now[j]["base"])
@@ -598,7 +621,7 @@ def in_session(sess, names, want, pend, where, label, dry, yes_all):
         elif moved:
             print(row(OK, "the tabs", "moved into the profile's order: " + ", ".join(moved)))
             out["moved"] = moved
-    if focus and (focus != mine or out["moved"]):  # back where you were, checked: a busy zellij drops it
+    if focus:                             # nothing above moves it; checked anyway: a busy zellij drops a switch
         for _ in range(3):
             now = tabs(sess)
             back = next((t for t in now if t["base"] == focus), None)

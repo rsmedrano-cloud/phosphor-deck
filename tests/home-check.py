@@ -131,7 +131,7 @@ panes = [ { cmd = "" } ]
 '''
 
 def active(z):
-    t = [t for t in json.loads(z.action("list-tabs", "-j") or "[]") if t.get("active")]
+    t = [t for t in z.listing("list-tabs", "-j") if t.get("active")]
     return (t[0].get("name") or "") if t else ""
 
 def layout(z):

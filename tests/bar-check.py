@@ -16,7 +16,7 @@ it, HOME goes to the first tab, and a tab whose last pane closes goes,
 bar and all. At 40 columns the whole row still fits.
 Needs zellij for that part; without it, it says so and checks the rest.
 """
-import json, os, sys, time
+import os, sys, time
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.join(os.path.dirname(HERE), "lib"))
@@ -131,15 +131,19 @@ name = "TWO"
 panes = [ { cmd = "" } ]
 '''
 
+# Every listing through z.listing: under load zellij's CLI answers nothing
+# now and then, and a bar read as missing put the #111 step's row at the
+# screen's bottom, the bar's own words (#113)
 def all_panes(z):
-    return [p for p in json.loads(z.action("list-panes", "-a", "-j") or "[]") if not p["is_plugin"]]
+    return [p for p in z.listing("list-panes", "-a", "-j") if not p["is_plugin"]]
 
 def active_tab(z):
-    t = [t for t in json.loads(z.action("list-tabs", "-j") or "[]") if t.get("active")]
+    t = [t for t in z.listing("list-tabs", "-j") if t.get("active")]
     return t[0] if t else {}
 
 def bar_of(z):
-    tid = active_tab(z).get("tab_id", active_tab(z).get("id"))
+    t = active_tab(z)
+    tid = t.get("tab_id", t.get("id"))
     return next((p for p in all_panes(z) if p["tab_id"] == tid and bar.is_bar(p)), None)
 
 def bar_rows(z, b=None):
@@ -191,7 +195,7 @@ def over_it(z, title, right):
     """The focused pane is `title`, the right pane hidden under it: Alt-r's
     map widens itself to the whole tab (#125), so not at the right pane's place."""
     f = focused(z) or {}
-    under = [p for p in json.loads(z.action("list-panes", "-a", "-j") or "[]") if p["id"] == right["id"] and not p["is_plugin"]]
+    under = [p for p in all_panes(z) if p["id"] == right["id"]]
     return f.get("title") == title and under and under[0]["is_suppressed"]
 
 def shows(z, text, timeout=15):
@@ -294,9 +298,16 @@ panes = [ { cmd = "sh", args = ["-c", "i=0; while :; do i=$((i+1)); echo line $i
 '''
     with zjprobe.Probe(LONG, session="barlines", cols=80, rows=20) as z:
         need("lines: the deck came up", z.wait(lambda: "LONG" in z.tabs(), 20))
-        need("lines: the bar is up", z.wait(lambda: bar_of(z) is not None and "HOME" in bar_row(z), 15))
-        b = bar_of(z)
-        top = b["pane_y"] if b else 0
+        got = {}
+        def bar_up():
+            b = bar_of(z)
+            if b and "HOME" in bar_rows(z, b)[1]:
+                got["b"] = b
+                return True
+            return False
+        need("lines: the bar is up", z.wait(bar_up, 15))
+        top = got["b"]["pane_y"] if got else 0
+        need("lines: the bar is under something (pane_y %d)" % top, top > 0)
         z.wait(lambda: any("line 30" in r for r in z.screen()), 15)   # it scrolls by now
         seen = []
         for _ in range(6):

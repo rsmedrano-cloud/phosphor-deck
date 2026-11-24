@@ -304,8 +304,8 @@ panes = [ { cmd = "phosphor", args = ["dash", "version"] }, { cmd = "sleep", arg
     with zjprobe.Probe(prof) as z:
         def pane():
             try:
-                ps = json.loads(z.action("list-panes", "-a", "-j") or "[]")
-            except ValueError:
+                ps = z.listing("list-panes", "-a", "-j")
+            except RuntimeError:
                 return None
             return next(("terminal_%d" % p["id"] for p in ps
                          if not p.get("is_plugin") and "dash" in str(p.get("terminal_command") or "")), None)
@@ -332,8 +332,8 @@ panes = [ { cmd = "phosphor", args = ["dash", "version"] }, { cmd = "sleep", arg
         check("live: Esc back on the boxes", until("\x1b", lambda: "CARDS" not in screen()))
         def full():
             try:
-                ps = json.loads(z.action("list-panes", "-a", "-j") or "[]")
-            except ValueError:
+                ps = z.listing("list-panes", "-a", "-j")
+            except RuntimeError:
                 return None
             return next((p.get("is_fullscreen") for p in ps
                          if not p.get("is_plugin") and "dash" in str(p.get("terminal_command") or "")), None)
