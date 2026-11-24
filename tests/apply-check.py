@@ -55,7 +55,12 @@ def pure():
     swapped = LAYOUT.replace('tab name="A" focus=true', 'tab name="Q"').replace('tab name="B"', 'tab name="A"') \
                     .replace('tab name="Q"', 'tab name="B"')
     p = apply.plan(LAYOUT, swapped, [], prof)
-    need("plan: tabs in another order: a restart, said why", any("order" in r for r in p["restart"]), p)
+    need("plan: tabs in another order: moved live, no restart (#127)",
+         p["order"] == ["B", "A"] and not p["restart"] and not p["reload"], p)
+    T = lambda *b: [{"tab_id": i, "base": n} for i, n in enumerate(b)]
+    need("order: two profile tabs swapped", apply.target_order(T("A", "B", "SH"), ["B", "A", "SH"]) == [1, 0, 2])
+    need("order: a + tab stays after the tab it followed, one before them all stays first",
+         apply.target_order(T("X", "A", "P", "B", "SH"), ["SH", "B", "A"]) == [0, 4, 3, 1, 2])
     p = apply.plan(LAYOUT, LAYOUT.replace("BAR", "BAR2"), [], prof)
     need("plan: the bars every tab shares changed: a restart", any("bars" in r for r in p["restart"]), p)
     p = apply.plan(LAYOUT, LAYOUT, [gen.ZCONF], prof)
@@ -237,6 +242,33 @@ def live():
         need("add/remove: B's process is gone", "sleep 612" not in cmdlines(sum(after.values(), [])))
         need("add/remove: A and SH keep their pids", after.get("A") == before["A"] and after.get("SH") == before["SH"],
              (before, after))
+
+        # a new order (#127): moved live, every pane kept, a + tab stays after its neighbour
+        before = after
+        z.action("go-to-tab-name", "A"); z.pump(0.5)
+        z.action("new-tab", "--name", "P"); z.pump(1)       # opens last: moved to right after A
+        z.action("move-tab", "left"); z.pump(0.3); z.action("move-tab", "left"); z.pump(0.5)
+        if not need("order: a + tab P right after A", z.tabs() == ["A", "P", "C", "SH"], z.tabs()): return
+        z.action("go-to-tab-name", "SH"); z.pump(0.5)
+        tA = '[[tabs]]\nname  = "A"\npanes = [ { cmd = "sleep", args = ["621"] } ]\n'
+        tC = '[[tabs]]\nname  = "C"\npanes = [ { cmd = "sleep", args = ["641"] } ]\n'
+        edit_profile(z, tA + "\n" + tC, tC + "\n" + tA)
+        rc, out = phosphor(z, "apply")
+        after = pids(z)
+        need("order: apply exits 0, no restart", rc == 0 and "restart" not in out.lower(), out)
+        need("order: the tabs are in the new order, P after A", z.tabs() == ["C", "A", "P", "SH"], (z.tabs(), out))
+        need("order: every pane keeps its pid", all(after.get(t) == before[t] for t in ("A", "C", "SH")),
+             (before, after))
+        focus = [t["name"] for t in ztabs(z) if t["active"]]
+        need("order: you stay on the tab you were on", focus == ["SH"], focus)
+        need("order: nothing pending", pending(z) is None, pending(z))
+        edit_profile(z, tC + "\n" + tA, tA + "\n" + tC)
+        rc, out = phosphor(z, "apply")
+        need("order: and back", z.tabs() == ["A", "P", "C", "SH"] and pids(z).get("A") == before["A"],
+             (z.tabs(), out))
+        tid = next((t["tab_id"] for t in ztabs(z) if t["name"] == "P"), None)
+        z.action("close-tab-by-id", str(tid)); z.pump(1)
+        after = pids(z)
 
         # from a pane of the tab that changed (the DECK tab's f): that tab goes last, detached
         before = after

@@ -7,7 +7,7 @@ file it came from.
 
     python3 tests/tabs-d-check.py
 """
-import os, sys, tempfile
+import json, os, sys, tempfile
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "lib"))
 fails = []
@@ -72,6 +72,12 @@ new_text = open(profile).read()
 check("the profile gets a name-only stub, not the tab's content",
       'name = "SHARED"' in new_text and "htop" not in new_text)
 check("pinned() now agrees", tabs.pinned("SHARED"))
+try:
+    mark = json.load(open(deckconf._apply_mark()))
+except (OSError, ValueError):
+    mark = {}
+check("a move leaves the order pending, for f to put in place (#127)",
+      mark.get("order") is True and deckconf._apply_mark().startswith(tmp))
 prof3, _ = deckconf.load()
 check("effective order actually moved: SHARED before WORK",
       [t["name"] for t in deckconf.effective_tabs(prof3)] == ["SHARED", "WORK"])

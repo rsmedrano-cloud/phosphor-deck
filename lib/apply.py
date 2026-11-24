@@ -8,6 +8,8 @@ from what gen just wrote, and does only that:
   place, the old one closed. Every other tab keeps its panes and processes.
 - a tab added to the profile is opened at its place; one taken out of it
   is closed (a tab you opened with + is never in the profile: left alone).
+- tabs in a new order are moved into it (#127), each keeping its panes; a
+  tab you opened with + stays right after the tab it followed.
 - what zellij or the deck's service read only when they start (config.kdl:
   keys and theme; the bars every tab shares; the deck's own unit: PATH,
   editor, shell; how the session starts) needs a restart: apply says which.
@@ -68,7 +70,7 @@ def plan(old_layout, new_layout, changed, prof):
     session layout before and after."""
     import gen, kinds
     sess = sname(prof)
-    p = {"reload": [], "add": [], "remove": [], "restart": [], "units": [], "screens": []}
+    p = {"reload": [], "add": [], "remove": [], "order": [], "restart": [], "units": [], "screens": []}
     new = tabs_of(new_layout)
     old = tabs_of(old_layout) if old_layout else None
     byfile = {"tab-%s.kdl" % n.lower(): n for n in new}
@@ -108,7 +110,7 @@ def plan(old_layout, new_layout, changed, prof):
         p["remove"] = [n for n in old if n not in new]
         p["add"] = [n for n in new if n not in old]
         if [n for n in old if n in new] != [n for n in new if n in old]:
-            p["restart"].append("the tabs' order")
+            p["order"] = new                          # moved into it live, no restart (#127)
         if skeleton(old_layout) != skeleton(new_layout):
             p["restart"].append("the bars every tab shares")
     for k in p:
@@ -271,6 +273,48 @@ def open_tab(sess, name, after):
     _move_to(sess, pos)
     return True
 
+def target_order(live_tabs, names):
+    """The tab ids of the session in the profile's order: each profile tab
+    followed by the tabs that came right after it (a + tab keeps its
+    neighbour), the ones before any profile tab first. live_tabs: tabs()."""
+    lead, groups, seen = [], [], set()
+    for t in live_tabs:
+        if t["base"] in names and t["base"] not in seen:
+            seen.add(t["base"])
+            groups.append((names.index(t["base"]), [t["tab_id"]]))
+        elif groups:
+            groups[-1][1].append(t["tab_id"])
+        else:
+            lead.append(t["tab_id"])
+    return lead + [i for _, g in sorted(groups, key=lambda g: g[0]) for i in g]
+
+def reorder(sess, names):
+    """The live tabs moved into the profile's order: move-tab only moves
+    the focused tab, so each one out of place is focused and moved left to
+    its place. Read back from list-tabs after every move (a busy zellij
+    drops an action): the names moved, or None if it didn't get there."""
+    moved, now = [], tabs(sess)
+    want = target_order(now, names)       # once: a + tab's neighbour is the one it had before any move
+    for _ in range(3 * max(1, len(names))):
+        now = tabs(sess)
+        ids = [t["tab_id"] for t in now]
+        if not now or sorted(ids) != sorted(want):
+            return None
+        i = next((i for i, (a, b) in enumerate(zip(ids, want)) if a != b), None)
+        if i is None:
+            return moved
+        j = ids.index(want[i])
+        zj(sess, "go-to-tab-by-id", str(want[i]))
+        time.sleep(0.2)
+        if not next((t for t in tabs(sess) if t["tab_id"] == want[i]), {}).get("active"):
+            continue                      # not focused yet: moving now would move another tab
+        for _ in range(j - i):
+            zj(sess, "move-tab", "left")
+        time.sleep(0.2)
+        if now[j]["base"] not in moved:
+            moved.append(now[j]["base"])
+    return None
+
 def _reap(pids):
     time.sleep(0.5)
     for p in pids:                        # a pane hidden under a screen outlives its closed tab
@@ -363,8 +407,8 @@ def run(argv):
 
 def act(sess, prof, p, dry, yes_all):
     """Does the plan, or as much of it as it may; says what it did."""
-    res = {"reloaded": [], "opened": [], "closed": [], "units": [], "restarted": False,
-           "pending": {"tabs": [], "restart": []}}
+    res = {"reloaded": [], "opened": [], "closed": [], "moved": [], "units": [], "restarted": False,
+           "pending": {"tabs": [], "restart": [], "order": False}}
     pend = deckconf.apply_pending(sess) or {}
     names = [t["name"] for t in deckconf.effective_tabs(prof)]
     p["restart"] = list(dict.fromkeys(p["restart"] + pend.get("restart", [])))
@@ -390,7 +434,7 @@ def act(sess, prof, p, dry, yes_all):
             if not res["restarted"]:
                 print(AMB + "  the restart didn't go through: f tries again, phosphor logs says why" + RST)
             return res
-        res["pending"] = {"tabs": [], "restart": p["restart"]}
+        res["pending"] = {"tabs": [], "restart": p["restart"], "order": False}
         deckconf.mark_applied(restart=p["restart"])
         print("  " + DIM + "left for later: f in the DECK tab, or phosphor apply" + RST)
         return res
@@ -409,16 +453,20 @@ def act(sess, prof, p, dry, yes_all):
     for n in edited:                      # Alt-r's save or put back decides that one
         print(row(DIM + "·" + RST, n, "being edited: left as it is"))
     work = [(w, n) for w, n in work if n not in edited]
-    if not work:
+    # a new order in the profile, or one an earlier apply left; tabs you moved by hand
+    # are left where you put them until the profile's order changes
+    order = bool(p["order"] or pend.get("order"))
+    if not work and not order:
         print(row(OK, "the deck", "already shows it: nothing to reload"))
         if not dry: deckconf.mark_applied()
         return res
     if not clients(sess):
-        # never new-tab into a session nobody is attached to (AGENTS.md)
+        # never new-tab (or move one) in a session nobody is attached to (AGENTS.md)
         print(row(WARN, "no screen attached", "tabs are reloaded once one is", note="f in the DECK tab"))
         if not dry:
             res["pending"]["tabs"] = [n for _, n in work]
-            deckconf.mark_applied(tabs=res["pending"]["tabs"])
+            res["pending"]["order"] = order
+            deckconf.mark_applied(tabs=res["pending"]["tabs"], order=order)
         return res
 
     risky = {n: keeping(sess, live_tabs[n]["tab_id"]) for w, n in work if w != "open"}
@@ -433,6 +481,8 @@ def act(sess, prof, p, dry, yes_all):
     if dry:
         for w, n in work:
             print(row(AMB, n, "would be " + VERB[w]))
+        if order:
+            print(row(AMB, "the tabs", "would be moved into the profile's order"))
         return res
 
     mine = my_tab(sess)
@@ -448,7 +498,16 @@ def act(sess, prof, p, dry, yes_all):
         else:                             # zellij didn't find it or didn't answer: not done, kept
             print(row(WARN, n, "not done: zellij didn't answer in time", note="f tries again"))
             res["pending"]["tabs"].append(n)
-    if focus and focus != mine:           # back where you were, checked: a busy zellij drops it
+    if order:                             # after the rest: opened and reloaded tabs are in place by then
+        moved = reorder(sess, names)
+        if moved is None:
+            print(row(WARN, "the tabs", "not all in the profile's order: zellij didn't answer in time",
+                      note="f tries again"))
+            res["pending"]["order"] = True
+        elif moved:
+            print(row(OK, "the tabs", "moved into the profile's order: " + ", ".join(moved)))
+            res["moved"] = moved
+    if focus and (focus != mine or res["moved"]):  # back where you were, checked: a busy zellij drops it
         for _ in range(3):
             now = tabs(sess)
             back = next((t for t in now if t["base"] == focus), None)
@@ -456,8 +515,8 @@ def act(sess, prof, p, dry, yes_all):
                 break
             zj(sess, "go-to-tab-name", back["name"])
             time.sleep(0.3)
-    deckconf.mark_applied(tabs=res["pending"]["tabs"])
-    if res["pending"]["tabs"]:
+    deckconf.mark_applied(tabs=res["pending"]["tabs"], order=res["pending"]["order"])
+    if res["pending"]["tabs"] or res["pending"]["order"]:
         print("  " + DIM + "left as they are: f in the DECK tab (or phosphor apply) asks again" + RST)
     own = next((w for w, n in work if n == mine), None)
     if own:

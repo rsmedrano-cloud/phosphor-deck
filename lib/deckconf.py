@@ -334,12 +334,13 @@ def session_started(sess):
             continue
     return None
 
-def mark_applied(tabs=(), restart=()):
+def mark_applied(tabs=(), restart=(), order=False):
     """What `phosphor apply` left for later (#124): tabs it didn't reload
-    (they hold a shell or an editor, or no screen was attached) and why the
-    deck still has to restart. Nothing left: no mark."""
+    (they hold a shell or an editor, or no screen was attached), a new tab
+    order it didn't set (#127) and why the deck still has to restart.
+    Nothing left: no mark."""
     try:
-        if not tabs and not restart:
+        if not tabs and not restart and not order:
             os.remove(_apply_mark())
             return
     except OSError:
@@ -347,7 +348,7 @@ def mark_applied(tabs=(), restart=()):
     try:
         os.makedirs(data_dir(), exist_ok=True)
         with open(_apply_mark(), "w") as f:
-            json.dump({"tabs": list(tabs), "restart": list(restart)}, f)
+            json.dump({"tabs": list(tabs), "restart": list(restart), "order": bool(order)}, f)
     except OSError:
         pass
 
@@ -368,16 +369,26 @@ def apply_pending(sess):
         got = json.loads(text) if text.strip() else {"restart": ["an earlier apply"]}
     except ValueError:
         got = {"restart": ["an earlier apply"]}
-    return {"tabs": list(got.get("tabs") or []), "restart": list(got.get("restart") or [])}
+    return {"tabs": list(got.get("tabs") or []), "restart": list(got.get("restart") or []),
+            "order": bool(got.get("order"))}
 
 def restart_pending(sess):
     """An apply went through but the deck running now still needs the
     restart it asked for (declined, never happened, or failed)."""
     return bool((apply_pending(sess) or {}).get("restart"))
 
+def mark_order(sess):
+    """A new tab order written without apply (phosphor tabs' J/K ran gen,
+    so apply has no old layout left to tell it from): pending, with
+    whatever an earlier apply left, for f to put in place (#127)."""
+    got = apply_pending(sess) or {}
+    mark_applied(got.get("tabs") or [], got.get("restart") or [], order=True)
+
 def tabs_pending(sess):
-    """Tabs an apply left as they were, still to reload, open or close."""
-    return (apply_pending(sess) or {}).get("tabs") or []
+    """Tabs an apply left as they were, still to reload, open or close;
+    "the tabs' order" when it didn't move them into a new one."""
+    got = apply_pending(sess) or {}
+    return (got.get("tabs") or []) + (["the tabs' order"] if got.get("order") else [])
 
 def exe(name):
     """A program's path: ~/.local/bin first (the zellij server's PATH lacks it)."""

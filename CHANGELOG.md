@@ -6,6 +6,17 @@ before it updates.
 
 ## Unreleased
 
+## 2.8.18 — tabs reorder live
+
+### Changed
+
+- **Reordering tabs no longer needs a restart (#127).** When the tabs' order in
+  the profile changes, `phosphor apply` moves the running tabs into it. Every pane keeps its programs, and you stay on your tab. A tab you
+  opened with `+` stays after the tab it followed. Tabs you moved by hand stay
+  where you put them. With no screen attached, the order waits: `f` in the
+  DECK tab, or `phosphor apply`, applies it. `K` and `J` in `phosphor tabs`
+  wait the same way.
+
 ## 2.8.17 — Alt-r: the tab as a map
 
 ### Changed

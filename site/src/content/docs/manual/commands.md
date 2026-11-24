@@ -70,11 +70,12 @@ sidebar:
 - `phosphor apply [--dry-run] [--yes] [--json]` — apply a changed profile to the running deck. It runs
   `gen` (you see only its warnings, or all its output if it fails), then reloads each tab whose layout
   changed, in place, at the same place. The other tabs keep their panes and programs, and you stay on the
-  tab you were on. A tab added to the profile opens at its place; a tab taken out of it closes (tabs
+  tab you were on. A changed order of the tabs is moved into the live deck the same way: every pane keeps
+  what runs in it. A tab added to the profile opens at its place; a tab taken out of it closes (tabs
   you opened with `+` are never touched). Fleet mounts, tunnels and SolarOS units that changed are
   reloaded and started on their own. A restart is needed only when the engine changed (config.kdl: the
-  keys and the theme; yazi's and btop's colors and keys; the bars every tab shares; the tabs' order; the
-  deck's own systemd unit; how the session starts). apply names it and asks first, default no. A tab
+  keys and the theme; yazi's and btop's colors and keys; the bars every tab shares; the deck's own
+  systemd unit; how the session starts). apply names it and asks first, default no. A tab
   with a shell, an editor, an ssh session or an assistant in it is reloaded only after you say `y`;
   apply names those panes ("SH holds SHELL (bash)"). A screen kind's own session (`[screens.KIND]`)
   takes its changes at its next restart: apply names it and doesn't touch it. Without a terminal and
@@ -384,7 +385,7 @@ sidebar:
   and write it into your profile; `--pick` chooses the tab, `--dry-run` only shows it.
   Also `k` in the DECK tab.
 - `phosphor tabs [--list | --forget NAME]` — the tabs your profile brings back after a restart, and which are open now:
-  `f` forgets one (out of the profile, after a y/n; `--forget NAME` does it with no question), `K`/`J` move it, `o` opens a closed one
+  `f` forgets one (out of the profile, after a y/n; `--forget NAME` does it with no question), `K`/`J` move it (the new order waits until `f` in the DECK tab or `apply` puts the live tabs in it, with no restart), `o` opens a closed one
   again; rows and keys answer a tap, and the list refreshes on its own. Also `b` in the DECK tab.
   Lists tabs.d's tabs too: `K`/`J` place one (a name-only stub in your profile marks where,
   its content stays in the file), and `f` on a placed one un-places it instead of deleting it.

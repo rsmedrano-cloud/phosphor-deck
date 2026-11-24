@@ -119,7 +119,11 @@ def move(name, step):
     if new == text: return None
     want = [t.get("name") for t in deckconf.tomllib.loads(text).get("tabs", [])]
     k = want.index(name); want[k], want[k + step] = want[k + step], want[k]
-    return write(new, lambda p: [t.get("name") for t in p.get("tabs", [])] == want, disk)
+    err = write(new, lambda p: [t.get("name") for t in p.get("tabs", [])] == want, disk)
+    if not err:
+        prof = deckconf.load()[0] or {}
+        deckconf.mark_order((prof.get("deck") or {}).get("session", "deck"))
+    return err
 
 # ── the deck ──────────────────────────────────────────────────
 def bare(name):
@@ -221,7 +225,7 @@ class Panel(tui.ListPanel):
             if err:
                 return self.say("✗ " + err, RED)
             self.sel += step
-            self.say("✓ %s moved: in place after a restart" % n, PH)
+            self.say("✓ %s moved: f in the DECK tab puts the deck's tabs in this order" % n, PH)
             self.refresh()
         elif k == "o":
             if o is None:
