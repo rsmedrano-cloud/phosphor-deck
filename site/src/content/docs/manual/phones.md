@@ -123,6 +123,11 @@ block, or a screen that says nothing, gets the deck as always. A kind's
 session runs its own copy of every pane it keeps, so it costs memory of
 its own: `phosphor mem` says how much, tab by tab (`SYS · phone`).
 
+`phosphor apply` reloads a changed tab in each kind's session too, the same way it does
+in the deck. With the phone away, its tabs wait there: `f` in its DECK tab, or the next
+`phosphor apply` once a screen is attached, does them. Only that kind's bars, theme and graphs
+need its restart.
+
 ### A touch screen with no keyboard
 
 A Pi with a 7" touch screen on a desk, a tablet on a stand: everything can

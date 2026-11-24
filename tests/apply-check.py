@@ -73,6 +73,39 @@ def pure():
     p = apply.plan(None, LAYOUT, [], prof)
     need("plan: no earlier layout to compare: a restart", bool(p["restart"]), p)
 
+    # a kind of screen's session (#126): compared like the deck's, its tabs from its own folder
+    import kinds, tempfile
+    kprof = dict(prof, screens={"phone": {"tabs": ["A"]}})
+    KS, KL = "applyck-phone", LAYOUT.replace('    tab name="B" {\n        pane command="y"\n    }\n', '')
+    kdir, klay = kinds.tab_dir(KS, "applyck"), kinds.layout(kprof, "phone")
+    need("kind: its tab layouts in a folder of its own", kdir == os.path.join(Z, KS) and kinds.tab_dir("applyck", "applyck") == Z)
+    p = apply.plan(LAYOUT, LAYOUT, [os.path.join(Z, "tab-a.kdl"), os.path.join(kdir, "tab-a.kdl"), klay], kprof,
+                   {"phone": (KL, KL)})
+    need("plan: a tab changed: reloaded in a kind's session too", p["reload"] == ["A"] and not p["screens"]
+         and p["kinds"] == {KS: {"add": [], "remove": [], "order": [], "reload": ["A"]}}, p)
+    p = apply.plan(LAYOUT, LAYOUT, [os.path.join(kdir, "tab-b.kdl"), klay], kprof, {"phone": (KL, LAYOUT)})
+    need("plan: a tab new to a kind is opened there, not reloaded",
+         p["kinds"].get(KS, {}).get("add") == ["B"] and not p["kinds"][KS]["reload"] and not p["reload"], p)
+    p = apply.plan(LAYOUT, LAYOUT, [klay], kprof, {"phone": (KL, KL.replace("BAR", "BAR2"))})
+    need("plan: a kind's bars changed: that session is named for a restart, the deck isn't",
+         p["screens"] == [KS] and not p["kinds"] and not p["restart"], p)
+    p = apply.plan(LAYOUT, LAYOUT, [], kprof, {"phone": (KL, KL)})
+    need("plan: a kind with nothing changed: nothing", not p["kinds"] and not p["screens"], p)
+    p = apply.plan(LAYOUT, LAYOUT, [klay], kprof)
+    need("plan: a kind's layout changed, nothing to compare it with: named", p["screens"] == [KS], p)
+    saved, d = kinds.made_dir, tempfile.mkdtemp()
+    kinds.made_dir = lambda: d
+    try:
+        open(os.path.join(d, KS), "w").close()
+        need("restyled: a session made before it was recorded: not claimed", not kinds.restyled(kprof, "phone"))
+        json.dump(kinds.look(kprof, "phone"), open(os.path.join(d, KS), "w"))
+        need("restyled: made with the profile's look: no", not kinds.restyled(kprof, "phone"))
+        kprof["screens"]["phone"]["theme"] = "paper"
+        need("restyled: its theme changed since: yes", kinds.restyled(kprof, "phone"))
+    finally:
+        kinds.made_dir = saved
+        import shutil; shutil.rmtree(d, ignore_errors=True)
+
     need("base: a notice's mark and the edit mark aren't the name",
          [apply.base(n) for n in ("SYS ●3", "SYS ✎ Alt r", "SYS")] == ["SYS"] * 3)
     # zellij busy, answering nothing: never "nothing to lose", never "done"
@@ -116,7 +149,38 @@ panes = [ { cmd = "sleep", args = ["612"] } ]
 [[tabs]]
 name  = "SH"
 panes = [ { cmd = "" } ]
+
+[screens.phone]
+tabs = ["A", "SH"]
 '''
+KIND = "applyck-phone"
+
+class Client:
+    """Another screen attached to a session of the probe, in a pty of its
+    own, its output drained all along (a client nobody reads stalls)."""
+    def __init__(self, z, sess, layout=None):
+        import pty, threading
+        self.z, self.sess = z, sess
+        env = dict(z.env, PHOSPHOR_SCREEN="phone")
+        args = [z.zj, "--config", z.config] + (["--layout", layout] if layout else []) + ["attach", "--create", sess]
+        self.pid, self.fd = pty.fork()
+        if self.pid == 0:
+            os.chdir(z.home)
+            os.execve(z.zj, args, env)
+        def drain():
+            while True:
+                try:
+                    if not os.read(self.fd, 65536): return
+                except OSError:
+                    return
+        threading.Thread(target=drain, daemon=True).start()
+
+    def leave(self):
+        try:
+            os.kill(self.pid, 9); os.waitpid(self.pid, 0)
+        except OSError:
+            pass
+        self.z.pump(1)
 
 def phosphor(z, *args):
     """phosphor in the probe's HOME, no terminal; the client's output read
@@ -133,22 +197,24 @@ def phosphor(z, *args):
     z.pump(1)
     return p.returncode, open(out).read()
 
-def pids(z):
-    """{tab name: sorted pids of its panes}."""
+def pids(z, sess=None):
+    """{tab name: sorted pids of its panes}, in the probe's session or another of it."""
     import hotswap
+    sess = sess or z.session
     env = os.environ.copy()
     os.environ["ZELLIJ_SOCKET_DIR"] = z.env["ZELLIJ_SOCKET_DIR"]
     try:
         ps, t0 = [], time.time()          # busy or mid-reload, zellij may answer nothing or an error
         while not ps and time.time() - t0 < 10:
             try:
-                ps = [p for p in json.loads(z.action("list-panes", "-a", "-j") or "[]") if not p["is_plugin"]]
+                ps = [p for p in json.loads(z.run("--session", sess, "action", "list-panes", "-a", "-j") or "[]")
+                      if not p["is_plugin"]]
             except ValueError:
                 ps = []
             if not ps: z.pump(0.3)
         out = {}
         for p in ps:
-            out.setdefault(p["tab_name"], []).extend(hotswap.pane_procs(z.session, p["id"]))
+            out.setdefault(p["tab_name"], []).extend(hotswap.pane_procs(sess, p["id"]))
         return {k: sorted(v) for k, v in out.items()}
     finally:
         os.environ.clear(); os.environ.update(env)
@@ -165,6 +231,20 @@ def ztabs(z, timeout=10):
             pass
         if time.time() - t0 > timeout: return []
         z.pump(0.3)
+
+def pids_of_session(home, sess):
+    """A pane of that session runs (read from /proc, nothing asks zellij)."""
+    want = [("HOME=%s" % home).encode(), ("ZELLIJ_SESSION_NAME=%s" % sess).encode()]
+    for d in os.listdir("/proc"):
+        if not d.isdigit():
+            continue
+        try:
+            env = open("/proc/%s/environ" % d, "rb").read().split(b"\0")
+        except OSError:
+            continue
+        if all(w in env for w in want):
+            return True
+    return False
 
 def cmdlines(pidlist):
     out = []
@@ -194,6 +274,22 @@ def live():
         before = pids(z)
         if not need("live: three tabs, each with its process", all(before.get(t) for t in ("A", "B", "SH")), before):
             return
+        # a phone's session ([screens.phone], #126): A and SH, laid out from its own files
+        import re
+        lays = os.path.join(z.home, ".config/zellij/layouts")
+        if not need("kind: gen wrote its session layout and its own tab layouts",
+                    os.path.exists(os.path.join(lays, KIND + ".kdl")) and os.path.exists(os.path.join(lays, KIND, "tab-a.kdl"))
+                    and not os.path.exists(os.path.join(lays, KIND, "tab-b.kdl")), sorted(os.listdir(lays))):
+            return
+        phone = Client(z, KIND, os.path.join(lays, KIND + ".kdl"))
+        ktabs = lambda: re.findall(r'^\s*tab name="([^"]*)"', z.run("--session", KIND, "action", "dump-layout"), re.M)
+        attached = lambda: len([l for l in z.run("--session", KIND, "action", "list-clients").splitlines()[1:] if l.strip()])
+        # nothing asks that session anything until its panes run (#123's panic, see zjprobe)
+        z.wait(lambda: pids_of_session(z.home, KIND), 20)
+        if not need("kind: its session is up, a screen attached", z.wait(lambda: ktabs() == ["A", "SH"] and attached(), 20),
+                    ktabs()):
+            return
+        kbefore = pids(z, KIND)
 
         edit_profile(z, 'args = ["611"]', 'args = ["621"]')
         tid = next((t["tab_id"] for t in ztabs(z) if t["name"] == "A"), None)
@@ -211,6 +307,35 @@ def live():
         focus = [t["name"] for t in ztabs(z) if t["active"]]
         need("one tab: you stay on the tab you were on", focus == ["B"], focus)
         need("one tab: nothing pending", pending(z) is None, pending(z))
+        kafter = pids(z, KIND)
+        need("kind: A reloaded in the phone's session too", "sleep 621" in cmdlines(kafter.get("A", []))
+             and "sleep 611" not in cmdlines(sum(kafter.values(), [])), (out, cmdlines(kafter.get("A", []))))
+        need("kind: its SH keeps its pids, its tabs their order", kafter.get("SH") == kbefore.get("SH")
+             and ktabs() == ["A", "SH"], (kbefore, kafter, ktabs()))
+
+        phone.leave()                     # the phone goes: its session stays, nobody attached
+        z.wait(lambda: not attached(), 10)
+        edit_profile(z, 'args = ["621"]', 'args = ["622"]')
+        rc, out = phosphor(z, "apply")
+        k2 = pids(z, KIND)
+        need("kind, nobody attached: the deck's A reloaded, the phone's left as it is",
+             "sleep 622" in cmdlines(pids(z).get("A", [])) and k2.get("A") == kafter.get("A"), (out, kafter, k2))
+        need("kind, nobody attached: left pending for that session",
+             ((pending(z) or {}).get("screens") or {}).get(KIND, {}).get("tabs") == ["A"], pending(z))
+        phone = Client(z, KIND)           # it comes back: f (or apply) reloads what was left
+        z.wait(lambda: attached(), 10)
+        rc, out = phosphor(z, "apply")
+        k3 = pids(z, KIND)
+        need("kind, attached again: apply reloads what was left there", "sleep 622" in cmdlines(k3.get("A", []))
+             and k3.get("SH") == kbefore.get("SH"), (out, cmdlines(k3.get("A", []))))
+        need("kind: nothing pending after", pending(z) is None, pending(z))
+        edit_profile(z, 'args = ["622"]', 'args = ["621"]')
+        rc, out = phosphor(z, "apply")
+        need("kind: and back, in both", "sleep 621" in cmdlines(pids(z).get("A", []))
+             and "sleep 621" in cmdlines(pids(z, KIND).get("A", [])), out)
+        phone.leave()
+        z.run("kill-session", KIND); z.pump(1)
+        after = pids(z)
 
         before = after
         edit_profile(z, 'name  = "SH"\npanes = [ { cmd = "" } ]',

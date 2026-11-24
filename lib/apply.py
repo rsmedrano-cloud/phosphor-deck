@@ -16,8 +16,11 @@ from what gen just wrote, and does only that:
 - fleet mounts, tunnels and SolarOS are units of their own: reloaded and
   (re)started, the deck isn't.
 - the attach command, ~/fleet's links, rclone.conf: nothing to do now.
-- a kind of screen's session ([screens.KIND]) takes its changes when it
-  restarts: named, not touched.
+- a kind of screen's session ([screens.KIND], deck-phone) gets the same,
+  from its own tab layouts (gen writes them in a folder named after it):
+  its changed tabs reloaded, its new ones opened, its order set (#126).
+  With nobody attached to it they're pending for it, like the deck's; its
+  bars, theme or graphs changed: it takes those when it restarts, named.
 
 A tab whose panes hold something a reload loses (a shell, an editor, an
 assistant: anything that isn't a deck tool or a viewer) is reloaded or
@@ -65,23 +68,43 @@ def skeleton(layout):
             out.append(l)
     return "\n".join(out)
 
-def plan(old_layout, new_layout, changed, prof):
+def compare(old_layout, new_layout):
+    """Tabs added, taken out, in a new order, and why a restart (the bars),
+    between a session layout before and after."""
+    new = tabs_of(new_layout)
+    if old_layout is None:
+        return {"add": [], "remove": [], "order": [], "restart": ["no earlier session layout to compare with"]}
+    old = tabs_of(old_layout)
+    return {"add": [n for n in new if n not in old], "remove": [n for n in old if n not in new],
+            # moved into it live, no restart (#127)
+            "order": new if [n for n in old if n in new] != [n for n in new if n in old] else [],
+            "restart": [] if skeleton(old_layout) == skeleton(new_layout) else ["the bars every tab shares"]}
+
+def plan(old_layout, new_layout, changed, prof, screens=None):
     """What the running deck needs, from the files gen changed and the
-    session layout before and after."""
+    session layout before and after. screens: {kind: (its session layout
+    before, after)}; each kind's session gets the same in "kinds" (#126),
+    and one that needs a restart is named in "screens"."""
     import gen, kinds
     sess = sname(prof)
-    p = {"reload": [], "add": [], "remove": [], "order": [], "restart": [], "units": [], "screens": []}
+    p = {"reload": [], "add": [], "remove": [], "order": [], "restart": [], "units": [], "screens": [], "kinds": {}}
     new = tabs_of(new_layout)
     old = tabs_of(old_layout) if old_layout else None
     byfile = {"tab-%s.kdl" % n.lower(): n for n in new}
     layouts = {kinds.layout(prof, k): kinds.session(prof, k) for k in kinds.kinds(prof)}
+    dirs = {kinds.tab_dir(kinds.session(prof, k), sess): k for k in kinds.kinds(prof)}
     themes = os.path.dirname(gen.ZTHEME)
+    reload_in = {}
     for path in changed:
         b, d = os.path.basename(path), os.path.dirname(path)
         if path == os.path.join(gen.ZDIR, sess + ".kdl"):
             continue                                  # compared below, tab by tab
         if path in layouts:
-            p["screens"].append(layouts[path])
+            if screens is None:                       # nothing to compare it with: named
+                p["screens"].append(layouts[path])
+            continue
+        if d in dirs:
+            reload_in.setdefault(dirs[d], []).append(b)
         elif d == gen.ZDIR and b in byfile:
             if old is None or byfile[b] in old:       # a new tab is opened below, not reloaded
                 p["reload"].append(byfile[b])
@@ -104,17 +127,25 @@ def plan(old_layout, new_layout, changed, prof):
             pass                                      # the next attach / mount / look reads it
         else:
             p["restart"].append(b)                    # nothing knows it: the safe answer
-    if old is None:
-        p["restart"].append("no earlier session layout to compare with")
-    else:
-        p["remove"] = [n for n in old if n not in new]
-        p["add"] = [n for n in new if n not in old]
-        if [n for n in old if n in new] != [n for n in new if n in old]:
-            p["order"] = new                          # moved into it live, no restart (#127)
-        if skeleton(old_layout) != skeleton(new_layout):
-            p["restart"].append("the bars every tab shares")
+    c = compare(old_layout, new_layout)
+    p["restart"] += c.pop("restart")
+    p.update(c)
+    for k, (was, now) in (screens or {}).items():
+        c = compare(was, now)
+        if was is not None and was == now and not reload_in.get(k):
+            continue
+        if c["restart"]:
+            p["screens"].append(kinds.session(prof, k))
+            continue
+        names = tabs_of(now)
+        byname = {"tab-%s.kdl" % n.lower(): n for n in names}
+        c["reload"] = [byname[b] for b in reload_in.get(k, []) if b in byname and byname[b] not in c["add"]]
+        del c["restart"]
+        if any(c.values()):
+            p["kinds"][kinds.session(prof, k)] = c
     for k in p:
-        p[k] = list(dict.fromkeys(p[k]))
+        if isinstance(p[k], list):
+            p[k] = list(dict.fromkeys(p[k]))
     p["screens"] = sorted(set(p["screens"]))
     return p
 
@@ -220,9 +251,10 @@ def keeping(sess, tab_id):
 
 
 # ── doing it ───────────────────────────────────────────────────
-def layout_of(name):
+def layout_of(name, where=None):
+    """A tab's own layout: the deck's, or in where (a kind's folder, #126)."""
     import gen
-    return os.path.join(gen.ZDIR, "tab-%s.kdl" % name.lower())
+    return os.path.join(where or gen.ZDIR, "tab-%s.kdl" % name.lower())
 
 def _pids(sess, tab_id):
     return [pid for p in panes(sess) if p["tab_id"] == tab_id for pid in hotswap.pane_procs(sess, p["id"])]
@@ -233,18 +265,18 @@ def _move_to(sess, pos):
     for _ in range(max(0, n - 1 - pos)):
         zj(sess, "move-tab", "left")
 
-def reload(sess, name):
+def reload(sess, name, where=None):
     """Alt-r's "put it back", from outside the tab: its layout as a new tab
     at the same place, then the old one closed, and whatever was left
     hidden under a screen in it killed. False if the tab isn't there."""
     now = tabs(sess)
     t = next((t for t in now if t["base"] == name), None)
-    if not t or not os.path.exists(layout_of(name)):
+    if not t or not os.path.exists(layout_of(name, where)):
         import dlog
         dlog.event("APPLY", "reload-missed", "%s among %d tabs" % (name, len(now)))
         return False
     old = _pids(sess, t["tab_id"])
-    zj(sess, "new-tab", "--layout", layout_of(name), "--name", name)
+    zj(sess, "new-tab", "--layout", layout_of(name, where), "--name", name)
     time.sleep(0.5)
     _move_to(sess, t["position"])
     zj(sess, "close-tab-by-id", str(t["tab_id"]))
@@ -260,15 +292,15 @@ def close(sess, name):
     _reap(old)
     return True
 
-def open_tab(sess, name, after):
+def open_tab(sess, name, after, where=None):
     """A tab new to the profile, right after the profile tab before it
     that's open (`after`, in profile order), or first."""
-    if not os.path.exists(layout_of(name)):
+    if not os.path.exists(layout_of(name, where)):
         return False
     names = [t["base"] for t in tabs(sess)]
     prev = [n for n in after if n in names]
     pos = names.index(prev[-1]) + 1 if prev else 0
-    zj(sess, "new-tab", "--layout", layout_of(name), "--name", name)
+    zj(sess, "new-tab", "--layout", layout_of(name, where), "--name", name)
     time.sleep(0.5)
     _move_to(sess, pos)
     return True
@@ -330,13 +362,19 @@ def my_tab(sess):
     return p and base(p["tab_name"])
 
 def later(argv):
-    """`apply --later reload|close NAME`: the tab apply itself runs in,
-    once apply is done with the rest (closing it ends apply)."""
+    """`apply --later reload|close NAME [SESSION]`: the tab apply itself
+    runs in, once apply is done with the rest (closing it ends apply). A
+    kind of screen's session reloads it from its own folder."""
+    import kinds
     what, name = argv[0], argv[1]
-    sess = sname(deckconf.load()[0])
+    deck = sname(deckconf.load()[0])
+    sess = argv[2] if len(argv) > 2 else deck
     time.sleep(1.0)
-    print(time.strftime("%H:%M:%S"), "apply", what, name, flush=True)
-    (reload if what == "reload" else close)(sess, name)
+    print(time.strftime("%H:%M:%S"), "apply", what, name, sess, flush=True)
+    if what == "reload":
+        reload(sess, name, kinds.tab_dir(sess, deck))
+    else:
+        close(sess, name)
     return 0
 
 
@@ -373,13 +411,15 @@ def run(argv):
     prof, path = deckconf.load()
     if not prof:
         print("  no profile: phosphor init writes one"); return 1
-    import gen
+    import gen, kinds
     sess = sname(prof)
-    deck_layout = os.path.join(gen.ZDIR, sess + ".kdl")
-    try:
-        old = open(deck_layout).read()
-    except OSError:
-        old = None
+    def was(path):
+        try:
+            return open(path).read()
+        except OSError:
+            return None
+    old = was(os.path.join(gen.ZDIR, sess + ".kdl"))
+    kold = {k: was(kinds.layout(prof, k)) for k in kinds.kinds(prof)}   # each kind's, before gen (#126)
     changed = []
     out = sys.stdout
     if as_json:
@@ -397,7 +437,9 @@ def run(argv):
                 out.write(json.dumps({"ok": True, "screen": True}) + "\n")
             return 0
         new = gen.deck_kdl(prof, ctx, path)
-        p = plan(old, new, changed, prof)
+        p = plan(old, new, changed, prof, {k: (o, gen.kind_kdl(prof, k, path)) for k, o in kold.items()})
+        # its theme or graphs: in its session's environment, only a restart changes it
+        p["screens"] = sorted(set(p["screens"]) | {kinds.session(prof, k) for k in kold if kinds.restyled(prof, k)})
         res = act(sess, prof, p, dry, yes_all)
     finally:
         sys.stdout = out
@@ -405,11 +447,16 @@ def run(argv):
         print(json.dumps(dict(res, ok=True, plan=p)))
     return 0
 
+VERB = {"reload": "reloaded in place", "close": "closed: not in the profile any more", "open": "opened"}
+
 def act(sess, prof, p, dry, yes_all):
-    """Does the plan, or as much of it as it may; says what it did."""
+    """Does the plan, or as much of it as it may; says what it did: in the
+    deck's session, then in each kind of screen's (#126)."""
+    import kinds
     res = {"reloaded": [], "opened": [], "closed": [], "moved": [], "units": [], "restarted": False,
-           "pending": {"tabs": [], "restart": [], "order": False}}
+           "pending": {"tabs": [], "restart": [], "order": False}, "screens": {}}
     pend = deckconf.apply_pending(sess) or {}
+    kpend = deckconf.screens_pending()    # what an earlier apply left in a kind's session
     names = [t["name"] for t in deckconf.effective_tabs(prof)]
     p["restart"] = list(dict.fromkeys(p["restart"] + pend.get("restart", [])))
     print("\n" + rule("apply" + (" (dry-run)" if dry else "")))
@@ -423,51 +470,96 @@ def act(sess, prof, p, dry, yes_all):
         print(row(OK, "the deck", "isn't running: it starts with this", note="phosphor up"))
         if not dry: deckconf.mark_applied()
         return res
+    later_kinds = {s: {"tabs": (kpend.get(s) or {}).get("tabs", []) + w.get("reload", []) + w.get("add", [])
+                       + w.get("remove", []), "order": bool(w.get("order") or (kpend.get(s) or {}).get("order"))}
+                   for s, w in dict(kpend, **p["kinds"]).items()}
     if p["restart"]:
         print(row(WARN, "restart", "needed for " + "; ".join(p["restart"])))
         if dry:
             return res
         if ask("restart the deck now? every pane closes, every screen comes back by itself", False, yes_all):
             # marked first: a session that starts after the mark has it all
-            deckconf.mark_applied(restart=p["restart"])
+            deckconf.mark_applied(restart=p["restart"], screens=later_kinds)
             res["restarted"] = subprocess.run([sys.executable, PHOSPHOR, "restart"]).returncode == 0
             if not res["restarted"]:
                 print(AMB + "  the restart didn't go through: f tries again, phosphor logs says why" + RST)
             return res
         res["pending"] = {"tabs": [], "restart": p["restart"], "order": False}
-        deckconf.mark_applied(restart=p["restart"])
+        deckconf.mark_applied(restart=p["restart"], screens=later_kinds)
         print("  " + DIM + "left for later: f in the DECK tab, or phosphor apply" + RST)
         return res
 
+    got = in_session(sess, names, p, pend, None, "the deck", dry, yes_all)
+    for k in ("reloaded", "opened", "closed", "moved"):
+        res[k] = got[k]
+    res["pending"]["tabs"], res["pending"]["order"] = got["left"], got["left_order"]
+    own = got["own"] and (sess,) + got["own"]
+    bykind = {kinds.session(prof, k): k for k in kinds.kinds(prof)}
+    left_kinds = {}
+    for ks in sorted(set(p["kinds"]) | set(kpend)):
+        if ks not in bykind:
+            continue                      # its block is gone from the profile: nothing to lay out
+        if not live(ks):
+            if ks in p["kinds"]:
+                print(row(DIM + "·" + RST, ks, "isn't running: it starts with this"))
+            continue
+        knames = [t["name"] for t in kinds.tabs(prof, bykind[ks])]
+        got = in_session(ks, knames, p["kinds"].get(ks) or {}, kpend.get(ks) or {},
+                         kinds.tab_dir(ks, sess), ks, dry, yes_all)
+        res["screens"][ks] = {k: got[k] for k in ("reloaded", "opened", "closed", "moved")}
+        res["screens"][ks]["pending"] = {"tabs": got["left"], "order": got["left_order"]}
+        if got["left"] or got["left_order"]:
+            left_kinds[ks] = {"tabs": got["left"], "order": got["left_order"]}
+        own = own or (got["own"] and (ks,) + got["own"])
+    if dry:
+        return res
+    deckconf.mark_applied(tabs=res["pending"]["tabs"], order=res["pending"]["order"], screens=left_kinds)
+    if res["pending"]["tabs"] or res["pending"]["order"] or left_kinds:
+        print("  " + DIM + "left as they are: f in the DECK tab (or phosphor apply) asks again" + RST)
+    if own:
+        osess, w, mine = own
+        print("  " + DIM + "this tab goes last: it " + ("reloads" if w == "reload" else "closes") + " in a moment" + RST)
+        log = open(os.path.join(deckconf.cache_dir(), "apply.log"), "a")
+        subprocess.Popen([sys.executable, PHOSPHOR, "apply", "--later", w, mine, osess],
+                         stdin=subprocess.DEVNULL, stdout=log, stderr=log, start_new_session=True)
+        if osess == sess:
+            res["reloaded" if w == "reload" else "closed"].append(mine)
+        else:
+            res["screens"][osess]["reloaded" if w == "reload" else "closed"].append(mine)
+    return res
+
+def in_session(sess, names, want, pend, where, label, dry, yes_all):
+    """One live session's tabs: reloaded, opened, closed and moved into the
+    profile's order (names), the tabs' layouts from where. want: the plan's
+    reload/add/remove/order for it; pend: what an earlier apply left. Says
+    what it left (no screen attached, a tab that holds something) and the
+    tab this runs in, if it has to go: that one goes last, by the caller."""
+    out = {"reloaded": [], "opened": [], "closed": [], "moved": [], "left": [], "left_order": False, "own": None}
+    rl, ad, rm = list(want.get("reload") or []), list(want.get("add") or []), list(want.get("remove") or [])
     live_tabs = {}
     for t in tabs(sess):
         live_tabs.setdefault(t["base"], t)
     for n in pend.get("tabs", []):        # what an earlier apply left: reload, close or open
-        (p["reload"] if n in names and n in live_tabs else p["add"] if n in names else p["remove"]).append(n)
-    for k in ("reload", "add", "remove"):
-        p[k] = list(dict.fromkeys(p[k]))
-    work = [("reload", n) for n in p["reload"] if n in live_tabs] + \
-           [("close", n) for n in p["remove"] if n in live_tabs] + \
-           [("open", n) for n in p["add"] if n not in live_tabs]
+        (rl if n in names and n in live_tabs else ad if n in names else rm).append(n)
+    rl, ad, rm = (list(dict.fromkeys(x)) for x in (rl, ad, rm))
+    work = [("reload", n) for n in rl if n in live_tabs] + \
+           [("close", n) for n in rm if n in live_tabs] + \
+           [("open", n) for n in ad if n not in live_tabs]
     edited = [n for w, n in work if MARK in live_tabs.get(n, {}).get("name", "")]
     for n in edited:                      # Alt-r's save or put back decides that one
         print(row(DIM + "·" + RST, n, "being edited: left as it is"))
     work = [(w, n) for w, n in work if n not in edited]
     # a new order in the profile, or one an earlier apply left; tabs you moved by hand
     # are left where you put them until the profile's order changes
-    order = bool(p["order"] or pend.get("order"))
+    order = bool(want.get("order") or pend.get("order"))
     if not work and not order:
-        print(row(OK, "the deck", "already shows it: nothing to reload"))
-        if not dry: deckconf.mark_applied()
-        return res
+        print(row(OK, label, "already shows it: nothing to reload"))
+        return out
     if not clients(sess):
         # never new-tab (or move one) in a session nobody is attached to (AGENTS.md)
-        print(row(WARN, "no screen attached", "tabs are reloaded once one is", note="f in the DECK tab"))
-        if not dry:
-            res["pending"]["tabs"] = [n for _, n in work]
-            res["pending"]["order"] = order
-            deckconf.mark_applied(tabs=res["pending"]["tabs"], order=order)
-        return res
+        print(row(WARN, label, "no screen attached: its tabs are reloaded once one is", note="f in its DECK tab"))
+        out["left"], out["left_order"] = [n for _, n in work], order
+        return out
 
     risky = {n: keeping(sess, live_tabs[n]["tab_id"]) for w, n in work if w != "open"}
     risky = {n: k for n, k in risky.items() if k}
@@ -475,39 +567,38 @@ def act(sess, prof, p, dry, yes_all):
         for n, k in risky.items():
             print(row(WARN, n, "holds " + ", ".join(k), note="a reload loses it"))
         if dry or not ask("reload %s anyway?" % (", ".join(risky) if len(risky) > 1 else "it"), False, yes_all):
-            res["pending"]["tabs"] = list(risky)
+            out["left"] = list(risky)
             work = [(w, n) for w, n in work if n not in risky]
-    VERB = {"reload": "reloaded in place", "close": "closed: not in the profile any more", "open": "opened"}
     if dry:
         for w, n in work:
             print(row(AMB, n, "would be " + VERB[w]))
         if order:
             print(row(AMB, "the tabs", "would be moved into the profile's order"))
-        return res
+        return out
 
     mine = my_tab(sess)
     focus = next((t["base"] for t in tabs(sess) if t.get("active")), None)
     for w, n in work:
         if n == mine:
             continue
-        done = reload(sess, n) if w == "reload" else close(sess, n) if w == "close" \
-            else open_tab(sess, n, names[:names.index(n)])
+        done = reload(sess, n, where) if w == "reload" else close(sess, n) if w == "close" \
+            else open_tab(sess, n, names[:names.index(n)], where)
         if done:
             print(row(OK, n, VERB[w]))
-            res[{"reload": "reloaded", "close": "closed", "open": "opened"}[w]].append(n)
+            out[{"reload": "reloaded", "close": "closed", "open": "opened"}[w]].append(n)
         else:                             # zellij didn't find it or didn't answer: not done, kept
             print(row(WARN, n, "not done: zellij didn't answer in time", note="f tries again"))
-            res["pending"]["tabs"].append(n)
+            out["left"].append(n)
     if order:                             # after the rest: opened and reloaded tabs are in place by then
         moved = reorder(sess, names)
         if moved is None:
             print(row(WARN, "the tabs", "not all in the profile's order: zellij didn't answer in time",
                       note="f tries again"))
-            res["pending"]["order"] = True
+            out["left_order"] = True
         elif moved:
             print(row(OK, "the tabs", "moved into the profile's order: " + ", ".join(moved)))
-            res["moved"] = moved
-    if focus and (focus != mine or res["moved"]):  # back where you were, checked: a busy zellij drops it
+            out["moved"] = moved
+    if focus and (focus != mine or out["moved"]):  # back where you were, checked: a busy zellij drops it
         for _ in range(3):
             now = tabs(sess)
             back = next((t for t in now if t["base"] == focus), None)
@@ -515,17 +606,9 @@ def act(sess, prof, p, dry, yes_all):
                 break
             zj(sess, "go-to-tab-name", back["name"])
             time.sleep(0.3)
-    deckconf.mark_applied(tabs=res["pending"]["tabs"], order=res["pending"]["order"])
-    if res["pending"]["tabs"] or res["pending"]["order"]:
-        print("  " + DIM + "left as they are: f in the DECK tab (or phosphor apply) asks again" + RST)
     own = next((w for w, n in work if n == mine), None)
-    if own:
-        print("  " + DIM + "this tab goes last: it " + ("reloads" if own == "reload" else "closes") + " in a moment" + RST)
-        log = open(os.path.join(deckconf.cache_dir(), "apply.log"), "a")
-        subprocess.Popen([sys.executable, PHOSPHOR, "apply", "--later", own, mine],
-                         stdin=subprocess.DEVNULL, stdout=log, stderr=log, start_new_session=True)
-        res["reloaded" if own == "reload" else "closed"].append(mine)
-    return res
+    out["own"] = own and (own, mine)
+    return out
 
 def units(names, dry, res):
     """Mounts, tunnels, SolarOS: their own units, reloaded and (re)started

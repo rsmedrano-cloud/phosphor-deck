@@ -77,11 +77,12 @@ sidebar:
   keys and the theme; yazi's and btop's colors and keys; the bars every tab shares; the deck's own
   systemd unit; how the session starts). apply names it and asks first, default no. A tab
   with a shell, an editor, an ssh session or an assistant in it is reloaded only after you say `y`;
-  apply names those panes ("SH holds SHELL (bash)"). A screen kind's own session (`[screens.KIND]`)
-  takes its changes at its next restart: apply names it and doesn't touch it. Without a terminal and
+  apply names those panes ("SH holds SHELL (bash)"). A screen kind's own session (`[screens.KIND]`,
+  like `deck-phone`) gets the same: changed tabs reload, new tabs open, removed ones close, and the
+  order moves. Its bars, theme and graphs wait for that kind's restart, and apply names it. Without a terminal and
   without `--yes` (an assistant, a script), apply does the safe part and leaves the rest pending, and
   says so. `--yes` does everything, restart included. `--dry-run` writes and touches nothing; `--json`
-  prints the plan and what was done. With no screen attached to the deck, tabs stay pending: zellij
+  prints the plan and what was done (`kinds` in the plan, `screens` in the result). With no screen attached to the deck, tabs stay pending: zellij
   can't open a tab with no client. Run from inside a tab that itself changed (the DECK tab, say), that
   tab is reloaded last. The attach command, the `~/fleet` links and rclone.conf need nothing.
 - `phosphor up` — start the deck and enable it at boot (with the fleet mounts).

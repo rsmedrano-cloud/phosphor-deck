@@ -126,6 +126,18 @@ need("tabs left: pending, no restart", deckconf.tabs_pending("deck") == ["NOTES"
      and not deckconf.restart_pending("deck"))
 deckconf.mark_applied()
 need("nothing left: no mark", not os.path.exists(mark))
+# a kind of screen's session (#126): its own tabs and order, the deck's restart
+deckconf.mark_applied(tabs=["NOTES"], restart=["the theme"],
+                      screens={"deck-phone": {"tabs": ["SYS"], "order": True}, "deck-eink": {"tabs": []}})
+need("a kind's session: its own tabs and order", deckconf.tabs_pending("deck-phone") == ["SYS", "the tabs' order"])
+need("a kind's session: the deck's restart too", deckconf.restart_pending("deck-phone"))
+need("the deck: its own tabs, not a kind's", deckconf.tabs_pending("deck") == ["NOTES"])
+need("a kind with nothing left isn't kept", "deck-eink" not in open(mark).read())
+deckconf.mark_applied(screens={"deck-phone": {"tabs": ["SYS"]}})
+need("only a kind's tabs left: still a mark", deckconf.tabs_pending("deck-phone") == ["SYS"]
+     and not deckconf.tabs_pending("deck") and not deckconf.restart_pending("deck"))
+deckconf.mark_applied(screens={"deck-phone": {"tabs": [], "order": False}})
+need("a kind with nothing left, nothing else: no mark", not os.path.exists(mark))
 
 pend = dict(st, profile_changed=False, restart_pending=True)
 lines, hit, _ = panel.draw({}, pend, 100, 60)

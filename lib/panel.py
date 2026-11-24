@@ -9,7 +9,7 @@ come back here: no new tabs, no floating panes.
 import os, shutil, subprocess, sys, termios, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
-import card, deckconf, migrate, tips, version, zoom
+import card, deckconf, kinds, migrate, tips, version, zoom
 
 PHOSPHOR = os.path.join(REPO, "phosphor")
 STEPS = os.path.join(deckconf.data_dir(), "steps")
@@ -111,7 +111,8 @@ def state(prof):
          "dirty_workspaces": len(workspace.dirty_workspaces()),
          "profile_changed": deckconf.profile_changed(),
          "restart_pending": deckconf.restart_pending(sess),
-         "tabs_pending": deckconf.tabs_pending(sess),
+         # a kind of screen's DECK tab: its own session's tabs (#126)
+         "tabs_pending": deckconf.tabs_pending(kinds.session(prof, os.environ.get("PHOSPHOR_SCREEN"))),
          "version": version.current()["version"], "channel": version.current()["channel"],
          "news": version.news(), "migrate": len(migrate.pending()), "offers": len(migrate.offered())}
     try:

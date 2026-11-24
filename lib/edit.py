@@ -308,10 +308,13 @@ def run_later(argv, caller):
     ok = wait_gone(caller)
     print(time.strftime("%H:%M:%S"), what, " ".join(argv[1:]), "" if ok else "(the screen didn't close in time)", flush=True)
     if what == "restore":
-        import apply, gen
+        import apply, deckconf, kinds
         tab_id, name = argv[1], argv[3]
         sess = os.environ.get("ZELLIJ_SESSION_NAME", "deck")
-        lay = os.path.join(gen.ZDIR, "tab-%s.kdl" % name.lower())
+        deck = ((deckconf.load()[0] or {}).get("deck") or {}).get("session", "deck")
+        lay = apply.layout_of(name, kinds.tab_dir(sess, deck))   # a kind's session: its own (#126)
+        if not os.path.exists(lay):
+            lay = apply.layout_of(name)
         was = apply.tabs(sess)
         old = next((t for t in was if str(t["tab_id"]) == tab_id), None)
         if not old or not os.path.exists(lay): return

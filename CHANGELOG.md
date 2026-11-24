@@ -6,6 +6,18 @@ before it updates.
 
 ## Unreleased
 
+## 2.8.19 — apply reaches a phone's own deck
+
+### Changed
+
+- **apply reaches a phone's own deck (#126).** `phosphor apply` now updates
+  each screen kind's session (`[screens.KIND]`, like `deck-phone`) too, not
+  only the deck's. A changed tab reloads in place, a new tab opens, a removed
+  tab closes, and a new order moves into place. A tab with a shell or an
+  editor in it asks first, as in the deck. With the phone away, its tabs wait
+  for the next `phosphor apply` or `f` on its DECK tab. Bars, theme and graphs
+  changes still need that kind's restart.
+
 ## 2.8.18 — tabs reorder live
 
 ### Changed

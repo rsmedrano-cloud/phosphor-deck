@@ -218,6 +218,12 @@ def deck_kdl(prof, ctx, src, tabs=None, land=None, floating=True):
     out.append("}")
     return "\n".join(out)
 
+def kind_kdl(prof, kind, src):
+    """A kind of screen's session layout ([screens.KIND])."""
+    import kinds
+    sc = Ctx(dict(prof, deck=kinds.deck(prof, kind)))
+    return deck_kdl(prof, sc, src, kinds.tabs(prof, kind), kinds.land(prof, kind), floating=False)
+
 def tab_kdl(tab, ctx, src):
     """A standalone tab layout, for `zellij action new-tab --layout`."""
     return "\n".join([HEADER % src, "layout {",
@@ -817,8 +823,10 @@ def run(prof, src, dry=False, changed=None):
         print("\n" + rule("screens"))
     for k in kinds.kinds(prof):
         sc = Ctx(dict(prof, deck=kinds.deck(prof, k)))     # its theme and graphs
-        write(kinds.layout(prof, k), deck_kdl(prof, sc, src, kinds.tabs(prof, k),
-                                             kinds.land(prof, k), floating=False), dry, changed)
+        write(kinds.layout(prof, k), kind_kdl(prof, k, src), dry, changed)
+        here = kinds.tab_dir(kinds.session(prof, k), ctx.deck.get("session", "deck"))
+        for tab in kinds.tabs(prof, k):                    # what apply reloads a tab from (#126)
+            write(os.path.join(here, "tab-%s.kdl" % tab["name"].lower()), tab_kdl(tab, sc, src), dry, changed)
         t = kinds.theme(prof, k)
         write(os.path.join(os.path.dirname(ZTHEME), "phosphor-%s.kdl" % t),
               zellij_theme(t, "phosphor-" + t), dry, changed)

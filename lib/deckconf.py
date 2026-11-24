@@ -334,29 +334,36 @@ def session_started(sess):
             continue
     return None
 
-def mark_applied(tabs=(), restart=(), order=False):
+def mark_applied(tabs=(), restart=(), order=False, screens=None):
     """What `phosphor apply` left for later (#124): tabs it didn't reload
     (they hold a shell or an editor, or no screen was attached), a new tab
     order it didn't set (#127) and why the deck still has to restart.
-    Nothing left: no mark."""
+    screens: the same tabs and order for each kind of screen's session,
+    {session: {"tabs": [...], "order": bool}} (#126). Nothing left: no mark."""
+    screens = {k: {"tabs": list(v.get("tabs") or []), "order": bool(v.get("order"))}
+               for k, v in (screens or {}).items() if v.get("tabs") or v.get("order")}
     try:
-        if not tabs and not restart and not order:
+        if not tabs and not restart and not order and not screens:
             os.remove(_apply_mark())
             return
     except OSError:
         return
     try:
         os.makedirs(data_dir(), exist_ok=True)
+        got = {"tabs": list(tabs), "restart": list(restart), "order": bool(order)}
+        if screens:
+            got["screens"] = screens
         with open(_apply_mark(), "w") as f:
-            json.dump({"tabs": list(tabs), "restart": list(restart), "order": bool(order)}, f)
+            json.dump(got, f)
     except OSError:
         pass
 
 def apply_pending(sess):
-    """{"tabs": [...], "restart": [...]} that an apply left for later, or
-    None. A deck started after the mark has all of it already: a restart
-    rereads everything. An empty mark (an older f: gen without its
-    restart) means a restart."""
+    """{"tabs": [...], "restart": [...], "order": bool} that an apply left
+    for later, or None. A session started after the mark has all of it
+    already: a restart rereads everything. A kind of screen's session gets
+    its own tabs and order, and the deck's restart (it restarts them all).
+    An empty mark (an older f: gen without its restart) means a restart."""
     try:
         at = os.path.getmtime(_apply_mark())
         text = open(_apply_mark()).read()
@@ -369,8 +376,27 @@ def apply_pending(sess):
         got = json.loads(text) if text.strip() else {"restart": ["an earlier apply"]}
     except ValueError:
         got = {"restart": ["an earlier apply"]}
-    return {"tabs": list(got.get("tabs") or []), "restart": list(got.get("restart") or []),
-            "order": bool(got.get("order"))}
+    restart = list(got.get("restart") or [])
+    screens = got.get("screens") or {}
+    if sess in screens:
+        got = screens[sess]
+    elif sess in kind_sessions():
+        got = {}
+    return {"tabs": list(got.get("tabs") or []), "restart": restart, "order": bool(got.get("order"))}
+
+def screens_pending():
+    """{session: its apply_pending} for each kind of screen's session with
+    tabs or an order still to set."""
+    out = {}
+    for s in kind_sessions():
+        got = apply_pending(s) or {}
+        if got.get("tabs") or got.get("order"):
+            out[s] = got
+    return out
+
+def kind_sessions():
+    import kinds
+    return kinds.sessions(load()[0] or {})
 
 def restart_pending(sess):
     """An apply went through but the deck running now still needs the
@@ -382,7 +408,8 @@ def mark_order(sess):
     so apply has no old layout left to tell it from): pending, with
     whatever an earlier apply left, for f to put in place (#127)."""
     got = apply_pending(sess) or {}
-    mark_applied(got.get("tabs") or [], got.get("restart") or [], order=True)
+    mark_applied(got.get("tabs") or [], got.get("restart") or [], order=True,
+                 screens=screens_pending())
 
 def tabs_pending(sess):
     """Tabs an apply left as they were, still to reload, open or close;

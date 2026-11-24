@@ -21,7 +21,7 @@ without a block, or no kind at all, gets the deck's own session, as always.
 The session is made when that screen first comes in, never by the
 watchdog, and `phosphor restart` / `down` take them all along.
 """
-import os, re, subprocess, sys
+import json, os, re, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import deckconf
 
@@ -174,6 +174,14 @@ def layout(prof, kind):
     return os.path.expanduser("~/.config/zellij/layouts/%s.kdl" % session(prof, kind))
 
 
+def tab_dir(sess, deck_sess):
+    """Where a session's per-tab layouts are (what apply and Alt-r reload a
+    tab from): the deck's beside its own, a kind's in a folder named after
+    its session (#126)."""
+    d = os.path.expanduser("~/.config/zellij/layouts")
+    return d if sess == deck_sess else os.path.join(d, sess)
+
+
 def made_dir():
     return os.path.join(deckconf.cache_dir(), "screens")
 
@@ -211,13 +219,31 @@ def create(zj, prof, kind):
                        env=env(prof, kind), capture_output=True, text=True, timeout=30)
     if r.returncode == 0:
         os.makedirs(made_dir(), exist_ok=True)
-        open(os.path.join(made_dir(), s), "w").close()
+        with open(os.path.join(made_dir(), s), "w") as f:   # its look: apply sees it change (#126)
+            json.dump(look(prof, kind), f)
         try:
             import hotswap
             hotswap.record(s)               # what its panes start with (see update)
         except Exception:
             pass
     return r.returncode == 0
+
+
+def look(prof, kind):
+    """What a kind's session takes from the profile only when it's made:
+    its theme and graphs, through its environment."""
+    e = env(prof, kind)
+    return {k: e.get(k) for k in ENV}
+
+
+def restyled(prof, kind):
+    """True when its running session was made with another look than the
+    profile's now (a restart gives it the new one). Unknown is False."""
+    try:
+        was = json.load(open(os.path.join(made_dir(), session(prof, kind))))
+    except (OSError, ValueError):
+        return False
+    return isinstance(was, dict) and was != look(prof, kind)
 
 
 def arg(argv):
