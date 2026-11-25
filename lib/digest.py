@@ -184,7 +184,7 @@ def main():
     print(DIM + "  asking " + chosen + "..." + RST, file=sys.stderr)
     full = ask.prompt([QUESTION], triage.fenced(text, GUARD.format(hours=hours), "DIGEST"))
     try:
-        r = subprocess.run(ask.command(chosen, full, readonly=True), stdout=subprocess.PIPE,
+        r = ask.run(chosen, full, readonly=True, stdout=subprocess.PIPE,
                            text=True, errors="replace")
     except OSError as e:
         print(BAD + " couldn't run %s: %s" % (chosen, e) + RST); return 1

@@ -182,6 +182,42 @@ try:
 finally:
     newtab.BIN, os.environ["PATH"] = _bin, _path
 
+# gemini headless refuses a folder it doesn't trust (#118): it runs in an
+# empty folder of the deck's, trusted for that run only; never the pane's
+_cache, _env_cache = tempfile.mkdtemp(), os.environ.get("PHOSPHOR_CACHE")
+os.environ["PHOSPHOR_CACHE"] = _cache
+calls, _run = [], ask.subprocess.run
+ask.subprocess.run = lambda argv, **kw: calls.append((argv, kw)) or "done"
+try:
+    here = os.getcwd()
+    for readonly in (True, False):
+        calls.clear()
+        os.makedirs(os.path.join(_cache, "ask", "gemini"), exist_ok=True)
+        open(os.path.join(_cache, "ask", "gemini", "left.txt"), "w").write("x")
+        ask.run("gemini", "hi", readonly=readonly, stdout=-1)
+        argv, kw = calls[0]
+        tag = "gemini%s: " % (" readonly" if readonly else "")
+        check(tag + "argv as command() builds it", argv == ask.command("gemini", "hi", readonly=readonly))
+        check(tag + "runs in the deck's own folder", kw.get("cwd") == os.path.join(_cache, "ask", "gemini")
+              and kw["cwd"] != here and os.path.isdir(kw["cwd"]))
+        check(tag + "that folder starts empty", os.listdir(kw["cwd"]) == [])
+        check(tag + "trusted for this run, by the variable", (kw.get("env") or {}).get(
+              "GEMINI_CLI_TRUST_WORKSPACE") == "true" and "--skip-trust" not in argv)
+        check(tag + "the rest of the environment goes along", (kw.get("env") or {}).get("PATH") == os.environ["PATH"])
+        check(tag + "the caller's own options pass through", kw.get("stdout") == -1)
+    check("gemini: the trust stays in the child", "GEMINI_CLI_TRUST_WORKSPACE" not in os.environ)
+    calls.clear()
+    ask.run("claude", "hi", readonly=True)
+    check("claude: runs where it's asked from, environment untouched",
+          calls[0][1].get("cwd") is None and calls[0][1].get("env") is None)
+    check("every caller asks through ask.run", not [f for f in ("ask", "triage", "digest", "read")
+          if "subprocess.run(" + ("" if f == "ask" else "ask.") + "command(" in
+          open(os.path.join(ROOT, "lib", f + ".py")).read().replace("subprocess.run(command(assistant", "")])
+finally:
+    ask.subprocess.run = _run
+    if _env_cache is None: os.environ.pop("PHOSPHOR_CACHE", None)
+    else: os.environ["PHOSPHOR_CACHE"] = _env_cache
+
 # MENTIONS draws a notification whose notes are being prepared (it crashed: STATE_TXT)
 import mentions
 cache = tempfile.mkdtemp()

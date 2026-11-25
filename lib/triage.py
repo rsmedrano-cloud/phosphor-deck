@@ -184,7 +184,7 @@ def run_host(host, assistant):
     print(DIM + "  asking " + chosen + "..." + RST)
     full = ask.prompt([QUESTION], fenced(text))
     try:
-        r = subprocess.run(ask.command(chosen, full, readonly=True), stdout=subprocess.PIPE, text=True,
+        r = ask.run(chosen, full, readonly=True, stdout=subprocess.PIPE, text=True,
                            errors="replace")
     except OSError as e:
         print(BAD + " couldn't run %s: %s" % (chosen, e) + RST); return 1

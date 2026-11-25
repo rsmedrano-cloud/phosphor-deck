@@ -104,6 +104,30 @@ def command(assistant, question, readonly=False, tools=False):
     return [found if isinstance(found, str) else argv[0]] + argv[1:]
 
 
+def runs_in(assistant):
+    """(cwd, env) for a run: None, None (here, as is) for every assistant
+    but gemini. Headless gemini refuses a folder it doesn't trust (#118), so
+    it runs in an empty folder the deck owns, trusted for that run only. The
+    pane's own folder is never trusted for it: that would load its
+    .gemini/settings.json. The variable, not --skip-trust: an older gemini
+    rejects a flag it doesn't know and ignores the variable."""
+    if assistant != "gemini":
+        return None, None
+    import deckconf
+    where = os.path.join(deckconf.cache_dir(), "ask", "gemini")
+    shutil.rmtree(where, ignore_errors=True)        # empty every time: nothing a run left is read by the next
+    os.makedirs(where, exist_ok=True)
+    return where, dict(os.environ, GEMINI_CLI_TRUST_WORKSPACE="true")
+
+
+def run(assistant, question, readonly=False, tools=False, **kw):
+    """subprocess.run of command(), where runs_in() says: every caller
+    (ask, ask --here, triage, digest, read) asks through this."""
+    cwd, env = runs_in(assistant)
+    return subprocess.run(command(assistant, question, readonly=readonly, tools=tools),
+                          cwd=cwd, env=env, **kw)
+
+
 NOTE_KINDS = ("decision", "summary")
 NOTE_COUNT = 5
 NOTE_CHARS = 1500      # per note: one long summary shouldn't crowd out the rest
@@ -316,7 +340,7 @@ def interactive_here(assistant):
     context = deck_context(tab, argv, mcp.profile_tab(tab), with_tools=tools) + "\n\n" + \
         screen_context(tab, title, text)
     try:
-        r = subprocess.run(command(chosen, prompt([q], context), readonly=True, tools=tools),
+        r = run(chosen, prompt([q], context), readonly=True, tools=tools,
                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     except OSError as e:
         print(BAD + " couldn't run %s: %s" % (chosen, e) + RST); return 1
@@ -357,7 +381,7 @@ def interactive(assistant, with_notes):
     form.leave()
     print(DIM + "  asking " + chosen + "..." + RST)
     try:
-        r = subprocess.run(command(chosen, prompt([q], "", notes_text)),
+        r = run(chosen, prompt([q], "", notes_text),
                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     except OSError as e:
         print(BAD + " couldn't run %s: %s" % (chosen, e) + RST); return 1
@@ -396,7 +420,7 @@ def main():
     if chosen is None:
         return no_assistant(assistant)
     try:
-        return subprocess.run(command(chosen, question)).returncode
+        return run(chosen, question).returncode
     except OSError as e:
         print(BAD + " couldn't run %s: %s" % (chosen, e) + RST); return 1
 

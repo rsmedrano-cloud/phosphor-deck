@@ -6,6 +6,12 @@ before it updates.
 
 ## Unreleased
 
+## 2.8.23 — gemini asks from its own folder
+
+### Fixed
+
+- **`phosphor ask` works with gemini from any folder again (#118).** Gemini 0.42 refuses to answer from a folder it doesn't trust, so ask, the ask key, triage, digest and `phosphor read` failed. Gemini now runs from an empty folder the deck keeps for it, trusted for that one run, so it can't see the folder you ask from.
+
 ## 2.8.22 — every listing checked
 
 ### Fixed

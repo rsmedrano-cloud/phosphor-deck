@@ -121,7 +121,8 @@
   list `phosphor workspace` knows, tried in that order) with a headless, single-answer flag of
   its own (`claude -p`, `gemini -p`, `codex exec`, `opencode run`, `aider --message`, `agy -p`)
   and prints the answer. With no question and nothing piped, on a terminal, it asks for one (see
-  "Commands that ask").
+  "Commands that ask"). Gemini runs from an empty folder the deck keeps (`~/.cache/phosphor/ask/gemini`),
+  trusted for that run only, so it doesn't see the folder you ask from; the others run where you are.
   `--assistant` picks one by name instead of the first installed. For "what was that command
   again" -- not a replacement for a workspace or a chat tab. Piped input is context, not a
   replacement for the question: `git diff | phosphor ask "what changed here"` sends both
