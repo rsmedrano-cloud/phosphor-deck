@@ -23,7 +23,7 @@ The pane keeps its own size: a line wider than the screen wraps (a rule
 of box lines is cut instead), and the screen shows the bottom of it,
 where a prompt is. Ctrl-] leaves (also q and Ctrl-C with --view).
 """
-import json, os, re, select, shutil, signal, subprocess, sys, termios, time, unicodedata
+import os, re, select, shutil, signal, subprocess, sys, termios, time, unicodedata
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import deckconf
 import dlog
@@ -57,12 +57,9 @@ def zj(sess, *a, timeout=8):
 
 def panes(sess):
     """The session's terminal panes, as list-panes says them."""
-    try:
-        import bar
-        return [p for p in json.loads(zj(sess, "list-panes", "-a", "-j") or "[]")
-                if not p.get("is_plugin") and not bar.is_bar(p)]
-    except ValueError:
-        return []
+    import bar
+    return [p for p in proc.listing(sess, "list-panes", "-a", "-j")
+            if not p.get("is_plugin") and not bar.is_bar(p)]
 
 
 def tab_name(p):

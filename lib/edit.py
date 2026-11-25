@@ -39,10 +39,8 @@ def zj(*a):
     return newtab.zj(*a)
 
 def panes():
-    try:
-        return json.loads(zj("list-panes", "-a", "-j") or "[]")
-    except ValueError:
-        return []
+    import proc
+    return proc.listing(None, "list-panes", "-a", "-j")
 
 def state_path(tab_id):
     d = os.path.join(deckconf.cache_dir(), "edit")
@@ -117,7 +115,8 @@ def unmask(node, argv):
 
 def tab_now(name, covered=None):
     """The tab as zellij has it now, in profile shape: (specs, split)."""
-    layout = keep.parse(zj("dump-layout"))
+    import proc
+    layout = keep.parse(proc.layout())
     unmask(layout, argv_of(covered) if covered is not None else None)
     for n in (editing(name), name + MARK, name):
         got, specs, split = keep.tab_specs(layout, n)

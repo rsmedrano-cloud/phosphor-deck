@@ -125,10 +125,7 @@ def unread():
 # ── the tab marker ───────────────────────────────────────────
 def chat_tab(sess):
     """(tab id, tab name, {pane ids}) of the tab running the chat app."""
-    try:
-        panes = json.loads(zj(sess, "list-panes", "-t", "-c", "-j") or "[]")
-    except ValueError:
-        return None
+    panes = proc.listing(sess, "list-panes", "-t", "-c", "-j")
     named = lambda p: (p.get("tab_name") or "").split(MARK)[0].strip() == CHAT
     for p in sorted(panes, key=lambda p: not named(p)):        # a COMMS tab first
         cmd = (p.get("terminal_command") or "").split()

@@ -467,10 +467,8 @@ def remove(name):
         done.append("tab out of the profile")
     if os.environ.get("ZELLIJ"):
         me, _ = tabs.mine()
-        try:
-            open_tabs = json.loads(zj("list-tabs", "-j") or "[]")
-        except ValueError:
-            open_tabs = []
+        import proc
+        open_tabs = proc.listing(None, "list-tabs", "-j")
         for t in open_tabs:
             if tabs.bare(t.get("name")) == tab:
                 if me == tab:

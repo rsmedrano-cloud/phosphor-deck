@@ -14,7 +14,7 @@ esc() is the deck's one rule for Esc with nothing left to go back from
 screen opened over something (a card's tap, a menu, a shell) and leaves
 a pane of the tab where it is: only q closes that one.
 """
-import json, os, time
+import os, time
 
 MARK = "⤢"
 SHORT = 6          # a pane with fewer rows than this draws its summary
@@ -56,7 +56,8 @@ def zoomed():
         return False
     try:
         me = int(os.environ["ZELLIJ_PANE_ID"])
-        for p in json.loads(zj("list-panes", "-a", "-j") or "[]"):
+        import proc
+        for p in proc.listing(None, "list-panes", "-a", "-j"):
             if p.get("id") == me and not p.get("is_plugin"):
                 return bool(p.get("is_fullscreen"))
     except (ValueError, TypeError):

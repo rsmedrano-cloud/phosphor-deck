@@ -151,11 +151,9 @@ def render(its, sel, keep, w, msg=None, tip=None):
 
 def open_tabs():
     """[(tab id, name)] of the session, in order."""
-    out = []
-    for l in zj("list-tabs").splitlines()[1:]:
-        f = l.split(None, 2)
-        if len(f) == 3: out.append((f[0], f[2].strip()))
-    return out
+    import proc
+    return [(str(t["tab_id"]), t.get("name") or "")
+            for t in sorted(proc.listing(None, "list-tabs", "-j"), key=lambda t: t["position"])]
 
 def taken_names():
     return {name for _, name in open_tabs()}
@@ -167,11 +165,10 @@ def unique(name, names):
     return "%s%d" % (name, i)
 
 def my_tab_id():
-    pid = "terminal_%s" % os.environ.get("ZELLIJ_PANE_ID", "")
-    for l in zj("list-panes", "-t").splitlines()[1:]:
-        f = l.split()
-        if pid in f: return f[0]
-    return None
+    import proc
+    me = os.environ.get("ZELLIJ_PANE_ID", "")
+    return next((str(p["tab_id"]) for p in proc.listing(None, "list-panes", "-a", "-j")
+                 if not p["is_plugin"] and str(p.get("id")) == me), None)
 
 def toml(v):
     if isinstance(v, bool): return "true" if v else "false"

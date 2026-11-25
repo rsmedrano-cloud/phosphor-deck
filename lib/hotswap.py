@@ -192,15 +192,7 @@ def tool_of_argv(argv):
 def live_panes(session):
     """[(pane_id, argv)] for this session's real panes (not plugins,
     zellij's own UI), each with the argv it was actually started with."""
-    zj = proc.zellij()
-    if not zj:
-        return []
-    try:
-        out = subprocess.run([zj, "-s", session, "action", "list-panes", "-a", "-j"],
-                             capture_output=True, text=True, timeout=15).stdout
-        panes = json.loads(out or "[]")
-    except (ValueError, subprocess.SubprocessError, OSError):
-        return []
+    panes = proc.listing(session, "list-panes", "-a", "-j")
     out = []
     for p in panes:
         if p.get("is_plugin"):

@@ -16,7 +16,7 @@ its optional Rust rewrite in rust/run has no Python to import, so it shells
 out to these same two flags instead of reimplementing the profile edit.
 Forgetting edits the profile as text (comments stay) and keeps deck.toml.bak.
 """
-import json, os, re, subprocess, sys
+import os, re, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
 import deckconf, tui
@@ -137,17 +137,13 @@ def zj(*a):
 def open_now():
     """{bare tab name} open in the session, when inside the deck."""
     if not os.environ.get("ZELLIJ"): return None
-    try:
-        return {bare(t.get("name")) for t in json.loads(zj("list-tabs", "-j") or "[]")}
-    except ValueError:
-        return None
+    import proc
+    return {bare(t.get("name")) for t in proc.listing(None, "list-tabs", "-j")} or None
 
 def mine():
     """(my tab's bare name, how many panes it has) for the pane this runs in."""
-    try:
-        ps = json.loads(zj("list-panes", "-a", "-j") or "[]")
-    except ValueError:
-        return None, 0
+    import proc
+    ps = proc.listing(None, "list-panes", "-a", "-j")
     me = int(os.environ.get("ZELLIJ_PANE_ID", "-1"))
     p = next((p for p in ps if not p["is_plugin"] and p["id"] == me), None)
     if not p: return None, 0

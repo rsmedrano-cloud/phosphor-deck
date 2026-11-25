@@ -220,7 +220,7 @@ def updown(cmd):
     tabs, t0 = 0, _t.time()
     while _t.time() - t0 < 60:
         if session_live(zj, sess):
-            tabs = R(zj, "-s", sess, "action", "dump-layout").stdout.count("    tab name=")
+            tabs = proc.layout(sess, wait=0).count("    tab name=")
             if tabs: break
         _t.sleep(0.3)
     _t.sleep(2)

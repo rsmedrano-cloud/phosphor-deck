@@ -79,10 +79,7 @@ def zj(*args):
 
 def live_tabs():
     """[{name, tab_id, active}] from zellij itself; [] if it didn't answer."""
-    try:
-        return json.loads(zj("list-tabs", "--state", "--json") or "[]")
-    except ValueError:
-        return []
+    return proc.listing(os.environ.get("ZELLIJ_SESSION_NAME") or None, "list-tabs", "--state", "--json")
 
 
 def snapshot(tabs=None):

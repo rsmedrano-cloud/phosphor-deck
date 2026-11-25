@@ -34,6 +34,8 @@ def fake_zj(*a):
         return json.dumps([{"id": 7, "is_plugin": False, "is_fullscreen": fullscreen[0]}])
     return ""
 zoom.zj = fake_zj
+import proc, subprocess                     # listings go through proc (#134)
+proc.action = lambda sess, args, timeout=15: subprocess.CompletedProcess(args, 0, fake_zj(*args), "")
 
 class Panel(tui.ListPanel):
     TITLE, SUB = "UNITS", "a test"

@@ -98,6 +98,8 @@ def keys_vs_failed_reads(mode, tmp):
                     return ""
                 return None
             mirror.zj, mirror.EVERY, mirror.dlog.LOG = zj, 0.3, log
+            mirror.proc.action = lambda sess, args, timeout=15: \
+                subprocess.CompletedProcess(args, 0, zj(sess, *args) or "", "")   # listings (#134)
             os._exit(mirror.watch("probe", {"tab": "AI"}, False) or 0)
         except BaseException:
             os._exit(3)

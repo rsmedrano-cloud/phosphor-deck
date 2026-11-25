@@ -181,33 +181,15 @@ def base(name):
     """A live tab's name as the profile has it: "SYS ●3" and "SYS ✎ Alt r" are SYS."""
     return name.split(DOT)[0].split(MARK)[0].strip()
 
-def _listed(sess, key, *what):
-    """A list action's JSON, each item carrying `key`. A live session always
-    has tabs and panes, so an empty or unreadable answer is zellij busy, not
-    the truth; and with two `zellij action`s at once, zellij 0.45 now and
-    then hands one the other's answer (#122: list-panes got the tabs). Both
-    are asked again for a few seconds."""
-    end = time.time() + 5
-    while True:
-        try:
-            got = json.loads(zj(sess, *what) or "[]")
-            if not (isinstance(got, list) and all(isinstance(x, dict) and key in x for x in got)):
-                got = []
-        except ValueError:
-            got = []
-        if got or time.time() > end:
-            return got
-        time.sleep(0.3)
-
 def tabs(sess):
     """[{tab_id, position, name, base, active}] of the session, in order."""
-    got = _listed(sess, "position", "list-tabs", "-j", "-s")
+    got = proc.listing(sess, "list-tabs", "-j", "-s")
     for t in got:
         t["base"] = base(t.get("name") or "")
     return sorted(got, key=lambda t: t["position"])
 
 def panes(sess):
-    return [p for p in _listed(sess, "is_plugin", "list-panes", "-a", "-j") if not p.get("is_plugin")]
+    return [p for p in proc.listing(sess, "list-panes", "-a", "-j") if not p.get("is_plugin")]
 
 def program(argv):
     """The program a pane runs, past `phosphor run ... --` and an

@@ -6,6 +6,12 @@ before it updates.
 
 ## Unreleased
 
+## 2.8.22 — every listing checked
+
+### Fixed
+
+- **Everything that reads the deck's tabs and panes asks again when zellij is busy (#134).** 2.8.21 taught `phosphor apply` to check zellij's answers; the rest of the deck still took an empty answer, or another question's answer, at face value. The bar, zoom, the edit screen, the + menu, the chat tab's mark, notes' "this tab", workspaces, mirror, the memory panel, hotswap, `phosphor keep` and the tour now all read through one reader that checks each answer's shape and asks again for a few seconds, so a loaded deck no longer looks like one with no panes or tabs.
+
 ## 2.8.21 — a busy deck isn't an empty one
 
 ### Fixed

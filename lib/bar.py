@@ -232,10 +232,8 @@ def zj(*a):
 
 
 def panes():
-    try:
-        return json.loads(zj("list-panes", "-a", "-j") or "[]")
-    except ValueError:
-        return []
+    import proc
+    return proc.listing(None, "list-panes", "-a", "-j")
 
 
 def me():

@@ -272,9 +272,8 @@ def save(name, blk):
     return True
 
 def dump():
-    import proc, subprocess
-    r = subprocess.run([proc.zellij() or "zellij", "action", "dump-layout"], capture_output=True, text=True, timeout=20)
-    return r.stdout if r.returncode == 0 else ""
+    import proc
+    return proc.layout()
 
 def main():
     from init import ask, pick, yes

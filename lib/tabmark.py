@@ -35,10 +35,7 @@ def find_tab(sess, base):
     """(tab id, current name, {pane ids}) for the open tab named `base`
     (its mark stripped first), or None -- nothing to rename if it isn't
     open right now."""
-    try:
-        panes = json.loads(mentions.zj(sess, "list-panes", "-t", "-c", "-j") or "[]")
-    except ValueError:
-        return None
+    panes = mentions.proc.listing(sess, "list-panes", "-t", "-c", "-j")
     for p in panes:
         if p.get("is_plugin"):
             continue

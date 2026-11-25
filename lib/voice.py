@@ -412,10 +412,10 @@ def covered():
 def type_later(pane, text):
     """Type text into pane once this one is gone: zellij drops what's
     written to a hidden pane, so a child of its own waits for it to show."""
-    code = ("import sys, time; sys.path.insert(0, %r); import voice, json\n"
+    code = ("import sys, time; sys.path.insert(0, %r); import voice, proc\n"
             "t = sys.stdin.read(); pane = %r\n"
             "for _ in range(50):\n"
-            "    ps = json.loads(voice.zj('list-panes', '-a', '-j') or '[]')\n"
+            "    ps = proc.listing(None, 'list-panes', '-a', '-j', wait=1)\n"
             "    p = next((p for p in ps if not p.get('is_plugin') and 'terminal_%%d' %% p.get('id', -1) == pane), None)\n"
             "    if p is None: sys.exit(0)\n"
             "    if not p.get('is_suppressed'): break\n"

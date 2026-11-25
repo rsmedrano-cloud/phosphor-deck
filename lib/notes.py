@@ -588,13 +588,10 @@ def compose(kind="note", tab="", project=""):
 
 def this_tab():
     """The name of the tab this pane is in (without edit's pencil), or ""."""
-    import json, newtab
+    import proc
     me = os.environ.get("ZELLIJ_PANE_ID")
     if not me: return ""
-    try:
-        ps = json.loads(newtab.zj("list-panes", "-a", "-j") or "[]")
-    except ValueError:
-        return ""
+    ps = proc.listing(None, "list-panes", "-a", "-j")
     mine = next((p for p in ps if not p.get("is_plugin") and str(p.get("id")) == me), None)
     return (mine or {}).get("tab_name", "").split(" ✎")[0].strip()   # "SYS ✎ Alt-r" while edited
 

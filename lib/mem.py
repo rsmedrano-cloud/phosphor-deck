@@ -18,7 +18,7 @@ holds instead of counting the same python twice. A kernel without
 smaps_rollup gets RSS, which overcounts shared pages. Read-only: it never
 touches a pane or a process.
 """
-import json, os, re, shutil, subprocess, sys, time
+import os, re, shutil, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import FG, DIM, MUTE, PH, AMB, RED, RULE, RST, BLOOM, getkey, pad, vcut, cut, topbar, HEAD, emit
 import deckconf, proc, reap, zoom
@@ -94,15 +94,7 @@ def group(sessions, ps):
 def layout(session):
     """{pane_id: (tab position, tab name, pane title)} from zellij itself;
     {} when it doesn't answer (the counts still show, by pane number)."""
-    zj = proc.zellij()
-    if not zj:
-        return {}
-    try:
-        out = subprocess.run([zj, "-s", session, "action", "list-panes", "-a", "-j"],
-                             capture_output=True, text=True, timeout=10).stdout
-        rows = json.loads(out or "[]")
-    except (ValueError, subprocess.SubprocessError, OSError):
-        return {}
+    rows = proc.listing(session, "list-panes", "-a", "-j")
     return {p["id"]: (p.get("tab_position", 99), MARK.sub("", p.get("tab_name") or "?"), p.get("title") or "")
             for p in rows if not p.get("is_plugin")}
 

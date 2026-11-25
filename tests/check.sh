@@ -110,6 +110,7 @@ check "card: the widget, its value, line and tap" python3 tests/card-check.py
 check "dash: a dashboard of your own, its gallery, kept in its tab" python3 tests/dash-check.py
 check "build: the pickers' first-time hint (--live in CI: the whole path)" python3 tests/build-check.py
 check "zoom: a tap on a title, a summary in a short pane" python3 tests/zoom-check.py
+check "every zellij listing read through one checked reader" python3 tests/listing-check.py
 check "apply: a changed tab reloads alone, a restart only for the engine" python3 tests/apply-check.py
 check "the probe asks its zellij nothing before the session runs" python3 tests/zjprobe-check.py
 check "Esc steps back, q closes, ? lists the keys, on every screen" python3 tests/exit-keys-check.py
