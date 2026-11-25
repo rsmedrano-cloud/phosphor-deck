@@ -8,7 +8,7 @@ by itself; then Ctrl-q (detach) and check the deck is still running.
 
 Uses the image from Containerfile.test and the committed tree (git archive).
 """
-import os, pty, re, select, subprocess, sys, time
+import os, pty, re, select, subprocess, sys, tempfile, time
 
 C = "phosphor-tester-sim"
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -99,7 +99,7 @@ def run():
             restart = subprocess.Popen(["docker", "exec", "-u", "deck", "-e", "HOME=/home/deck",
                                         "-e", "XDG_RUNTIME_DIR=/run/user/1000", C,
                                         "/home/deck/.local/bin/phosphor", "restart"],
-                                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                                       stdout=RESTART_OUT, stderr=subprocess.STDOUT)
             looked = len(s.text)
         if restart is not None and back_at is None:
             # look at the new text only, a word's length back for one split across reads
@@ -117,10 +117,14 @@ def run():
             break
     if restart is not None:
         try: restart.wait(timeout=90)
-        except subprocess.TimeoutExpired: restart.kill()
+        except subprocess.TimeoutExpired: restart.kill(); restart.wait()
+        RESTART_OUT.write(b"\n(phosphor restart exit %s)\n" % str(restart.returncode).encode())
     try: os.kill(pid, 9); os.waitpid(pid, 0)
     except OSError: pass
     return bytes(s.raw), answered, inside_at is not None, back_at is not None
+
+# what the restart from outside says: on a failure, whether it went cleanly (#136)
+RESTART_OUT = tempfile.TemporaryFile()
 
 def main():
     os.chdir(HERE)
@@ -140,6 +144,10 @@ def main():
     if not ok:
         print("== the last screen, as text:")
         print("\n".join("   " + l[:110] for l in text.splitlines()[-40:]))
+        RESTART_OUT.seek(0)
+        said = ANSI.sub(b"", RESTART_OUT.read()).decode("utf-8", "ignore")
+        print("== what phosphor restart said:")
+        print("\n".join("   " + l[:110] for l in said.splitlines()[-30:]) or "   (it never ran)")
     print("\n%s" % ("PASS: one command, from nothing to inside the deck" if ok else "FAIL"))
     if not os.environ.get("KEEP"): sh("docker", "rm", "-f", C)
     return 0 if ok else 1

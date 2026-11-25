@@ -176,8 +176,27 @@ def put(s):
         b = b[os.write(fd, b):]
 
 
-def hangup(*_):
-    raise SystemExit("hangup")
+def signals():
+    """SIGTERM ends a screen's loop (SystemExit); a SIGHUP does nothing,
+    the terminal that hung up ends the loop at its next read. A pty whose
+    other end closed wakes its reader before the kernel sends the SIGHUP
+    (#128): raised on, a SIGHUP landing after the loop crashed the cleanup,
+    and in Python's own exit (its handlers back to default) it killed.
+    Returns the call that ignores both, first thing once the loop is over."""
+    def term(*_):
+        raise SystemExit("terminated")
+    signal.signal(signal.SIGHUP, lambda *_: None)   # not SIG_IGN: children inherit that
+    signal.signal(signal.SIGTERM, term)
+    def over():
+        signal.signal(signal.SIGHUP, signal.SIG_IGN)
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
+    return over
+
+
+def gone(tty):
+    """Why a screen's loop ends when its input does: on a terminal, it
+    hung up (a read of 0 bytes, or EIO)."""
+    return "hangup" if tty else "end of input"
 
 
 def watch(sess, target, watch_only):
@@ -187,8 +206,7 @@ def watch(sess, target, watch_only):
     dlog.event("MIRROR", "start", "%s TERM=%s %dx%d%s" % (
         target.get("tab") or target.get("pane"), os.environ.get("TERM", "?"),
         size.columns, size.lines, " view" if watch_only else ""))
-    signal.signal(signal.SIGHUP, hangup)
-    signal.signal(signal.SIGTERM, hangup)
+    over, tty = signals(), sys.stdin.isatty()     # once hung up, it says no
     undo = raw_input()
     put("\x1b[?1049h\x1b[?25l\x1b[2J")
     prev, last_size, why, due = None, None, "?", 0.0
@@ -213,9 +231,10 @@ def watch(sess, target, watch_only):
             r = select.select([sys.stdin], [], [], max(0.0, due - time.time()))[0]
             if not r:
                 continue
-            data = os.read(sys.stdin.fileno(), 4096)
+            try: data = os.read(sys.stdin.fileno(), 4096)
+            except OSError: data = b""
             if not data:
-                why = "end of input"; break
+                why = gone(tty); break
             if LEAVE in data or (watch_only and data[:1] in (b"q", b"\x03")):
                 why = "key"; break
             if not watch_only:
@@ -233,6 +252,7 @@ def watch(sess, target, watch_only):
         dlog.crash("MIRROR")
         raise
     finally:
+        over()
         dlog.event("MIRROR", "end", why)
         undo()
         try: put("\x1b[?1049l\x1b[?25h\n")

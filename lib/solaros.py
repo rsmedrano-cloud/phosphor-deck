@@ -766,7 +766,7 @@ class Deck:
         that changed reach it (ui.paint), however often the screen behind
         them redraws."""
         self.show(self.current())
-        painted = 0.0
+        painted, tty = 0.0, sys.stdin.isatty()     # once hung up, it says no
         while True:
             if time.time() - self.listed > REREAD:
                 self.reread()
@@ -775,9 +775,11 @@ class Deck:
             fds = [sys.stdin] + ([o.fd] if o and o.code is None else [])
             r = select.select(fds, [], [], max(0.0, painted + PACE - time.time()))[0]
             if sys.stdin in r:
-                keys = os.read(sys.stdin.fileno(), 4096)
+                try: keys = os.read(sys.stdin.fileno(), 4096)
+                except OSError: keys = b""
                 if not keys:
-                    raise SystemExit("end of input")
+                    import mirror
+                    raise SystemExit(mirror.gone(tty))
                 self.typed(keys)
             if o and o.code is None:
                 if o.fd in r:
@@ -798,7 +800,7 @@ def session():
     a time, in this ssh session. EXIT on the panel ends it."""
     if not sys.stdin.isatty():
         print("phosphor solaros session: needs the panel's terminal"); return 2
-    import mirror, signal
+    import mirror
     os.environ.setdefault("TERM", "xterm-mono")
     local = os.path.expanduser("~/.local/bin")     # a forced ssh command's PATH: where yazi and the rest are
     if local not in os.environ.get("PATH", "").split(":"):
@@ -809,9 +811,7 @@ def session():
     if first == "note":
         sys.stdout.write("\x1b[?1049h\x1b[?25l")
         write_note()
-    def hangup(*_): raise SystemExit("hangup")
-    signal.signal(signal.SIGHUP, hangup)
-    signal.signal(signal.SIGTERM, hangup)
+    over = mirror.signals()
     deck, why = Deck(), "?"
     deck.goto(first)
     undo = mirror.raw_input()
@@ -825,6 +825,7 @@ def session():
     except OSError as e:
         why = "screen gone (%s)" % type(e).__name__
     finally:
+        over()
         dlog.event("SOLAROS", "end", why)
         deck.stop()
         undo()

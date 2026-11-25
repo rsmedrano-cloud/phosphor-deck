@@ -73,11 +73,12 @@ class Screen:
         os.kill(self.pid, signal.SIGKILL); os.waitpid(self.pid, 0)
         return None
 
-def keys_vs_failed_reads(mode, tmp):
+def fake_watch(mode, tmp):
     """watch() in a pty of its own against a fake zellij, whose reads fail:
     'flaky' after the first frame (dump-screen), 'late' for the first two
-    (list-panes). What's typed meanwhile must still reach the pane (#119).
-    Returns (what the pane got, the screen's output, deck.log)."""
+    (list-panes); 'hangup' never, and once watch() is over the kernel's
+    SIGHUP lands (#128). Returns the Screen, and the files where the pane's
+    writes and deck.log go."""
     got, log = os.path.join(tmp, mode + ".writes"), os.path.join(tmp, mode + ".log")
     pid, fd = pty.fork()
     if pid == 0:
@@ -100,11 +101,24 @@ def keys_vs_failed_reads(mode, tmp):
             mirror.zj, mirror.EVERY, mirror.dlog.LOG = zj, 0.3, log
             mirror.proc.action = lambda sess, args, timeout=15: \
                 subprocess.CompletedProcess(args, 0, zj(sess, *args) or "", "")   # listings (#134)
-            os._exit(mirror.watch("probe", {"tab": "AI"}, False) or 0)
+            rc = mirror.watch("probe", {"tab": "AI"}, mode == "hangup") or 0
+            if mode == "hangup":
+                # a pty whose other end closed wakes its reader before the kernel
+                # sends the SIGHUP: it can land after the loop, or in Python's exit
+                os.kill(os.getpid(), signal.SIGHUP)
+                time.sleep(0.3)
+            os._exit(rc)
         except BaseException:
             os._exit(3)
     s = Screen.__new__(Screen); s.pid, s.fd, s.out = pid, fd, b""
     fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", 10, 50, 0, 0))
+    return s, got, log
+
+
+def keys_vs_failed_reads(mode, tmp):
+    """What's typed while the fake zellij's reads fail must still reach the
+    pane (#119). Returns (what the pane got, the screen's output, deck.log)."""
+    s, got, log = fake_watch(mode, tmp)
     seen = lambda: open(got).read() if os.path.exists(got) else ""
     if mode == "flaky":
         s.wait(lambda: b"can't read" in s.out, 5)     # the first frame painted, the next read failed
@@ -124,6 +138,14 @@ def main():
         w, out, _ = keys_vs_failed_reads("late", tmp)
         need("a key typed before the pane is found waits for it (#119; screen saw %r)"
              % out[-120:], w == "terminal_7 abc\n")
+        s, _, log = fake_watch("hangup", tmp)
+        s.wait(lambda: b"hello" in s.out, 5)
+        os.close(s.fd); s.fd = None
+        code = s.done()
+        log = open(log).read() if os.path.exists(log) else ""
+        need("a SIGHUP after the loop ended changes nothing (#128; exit %s)" % code, code == 0)
+        need("a hangup is logged as one, no crash (#128)",
+             "MIRROR     end    hangup" in log and "crash" not in log)
     if not zjprobe.zellij():
         print("no zellij here: the rest skipped")
     else:

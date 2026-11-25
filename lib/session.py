@@ -376,6 +376,15 @@ def attach(argv):
                 drops += 1
                 print("\n  zellij dropped this screen as too slow: going back in...")
                 continue
+            # The new deck can be listed a moment before zellij's own
+            # attach finds it: exit 1, "No session with the name ... found"
+            # (#136). Wait for it again instead of leaving.
+            if back and rc != 0 and drops < 2:
+                drops += 1
+                print("\n  the new deck isn't ready for this screen yet: going back in...")
+                poll_until(lambda: session_live(zj, sess), 30)
+                _t.sleep(1)
+                continue
             if os.path.exists(mark):
                 away.saw()
             return rc

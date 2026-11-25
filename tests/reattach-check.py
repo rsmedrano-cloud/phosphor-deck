@@ -65,6 +65,8 @@ if a[:1] == ["attach"]:
     open(H + "/steps", "w").write(" ".join(steps))
     open(H + "/attaches", "a").write(step + "\n")
     os.makedirs(os.path.dirname(log), exist_ok=True)
+    if step == "nosession":                            # listed, and yet zellij's attach misses it (#136)
+        print("No session with the name '%%s' found!" %% a[1]); sys.exit(1)
     if step == "restart":                              # phosphor restart kicks everyone out
         os.makedirs(os.path.dirname(marker), exist_ok=True); open(marker, "w").close()
     elif step.startswith("drop"):
@@ -144,6 +146,15 @@ case("a detach right after a restart stays out", ["restart", "detach"], ["restar
 case("a screen that's always too slow: two tries back, then out",
      ["restart", "drop", "drop", "drop", "detach"], ["restart", "drop", "drop", "drop"])
 case("a drop with no restart before it: out, as before", ["drop", "detach"], ["drop"])
+out = case("the new deck not there yet for zellij's attach: back in (#136)",
+           ["restart", "nosession", "detach"], ["restart", "nosession", "detach"])
+need("it says why it goes back in (#136)", "isn't ready" in out)
+attaches, rc, _ = run(["restart", "nosession", "nosession", "nosession", "detach"])
+need("never there for the attach: two tries back, then out with zellij's error (#136; %s, exit %s)"
+     % (attaches, rc), attaches == ["restart", "nosession", "nosession", "nosession"] and rc == 1)
+attaches, rc, _ = run(["nosession", "detach"])
+need("no session with no restart before it: out, as before (%s, exit %s)" % (attaches, rc),
+     attaches == ["nosession"] and rc == 1)
 case("another session's drop: out", ["restart", "drop:other", "detach"], ["restart", "drop:other"])
 
 if fails:

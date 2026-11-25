@@ -312,7 +312,9 @@ os.close(s.fd); s.fd = None
 need("session: the panel's EXIT (a hangup) ends it, nothing upgraded",
      s.done() == 0 and b"Enter runs it" not in s.out)
 log = open(os.path.join(home, ".cache/phosphor/deck.log")).read()
-need("session: ended by the hangup, no crash", "end    hangup" in log and "Traceback" not in log)
+ends = [l for l in log.splitlines() if "SOLAROS" in l and " end " in l]
+need("session: ended by the hangup, no crash (%s)" % (ends[-1:] or "no end logged"),
+     ends and ends[-1].endswith("end    hangup") and "Traceback" not in log)
 
 r = subprocess.run([sys.executable, os.path.join(ROOT, "phosphor"), "solaros", "session"],
                    stdin=subprocess.DEVNULL, capture_output=True, text=True, env=ENV, timeout=20)

@@ -6,6 +6,13 @@ before it updates.
 
 ## Unreleased
 
+## 2.8.24 — a hangup ends a screen cleanly
+
+### Fixed
+
+- **A screen comes back in after `phosphor restart` even when the new deck is a moment late (#136).** `deck` saw the new session listed and went in, but zellij answered "No session with the name 'deck' found" and `deck` gave up, leaving you at the shell. It now waits for the deck and goes back in, twice at most.
+- **A screen that hangs up no longer kills `phosphor mirror` or a SolarOS panel's session on its way out (#128).** When the other end of a terminal closes, Linux wakes the program reading it before it sends the hangup signal, so the signal could land after mirror had already finished, while Python was exiting, and end it with a death by SIGHUP instead of a clean exit (now and then, on a loaded machine). The hangup now only lets the dead terminal end the loop at its next read, and once the screen is over both the hangup and SIGTERM are ignored. deck.log says `hangup` for a screen that went away, `terminated` for a SIGTERM.
+
 ## 2.8.23 — gemini asks from its own folder
 
 ### Fixed
