@@ -737,11 +737,11 @@ class Deck:
             if o.code is not None:
                 lines = lines[:rows - 1] + [INV + (" %s ended · Enter starts it again" % v.title)[:cols] + RST]
             return lines
-        import mirror
+        import mirror, proc
         if time.time() >= self.mirror_due:
             sess = mirror.session()
             hit = mirror.find(sess, pane=v.pane) if v.pane else mirror.find(sess, tab=v.tab)
-            text = mirror.zj(sess, "dump-screen", "-p", hit[0]) if hit else None
+            text = proc.screen(sess, hit[0]) if hit else None
             self.mirror_pid = hit[0] if hit else None
             self.mirror_lines = mirror.view(text, cols, rows) if text is not None else \
                 [ui.cut("%s isn't in the deck right now: waiting for it" % v.tab, cols)]

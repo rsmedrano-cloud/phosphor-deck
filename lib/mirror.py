@@ -137,7 +137,7 @@ def frame(sess, target, w, rows, watching):
         return [head(str(target.get("tab") or target.get("pane")), w, watching),
                 ui.cut("no %s in session %s: waiting for it" % (what, sess), w)], None
     pid, name = hit
-    text = zj(sess, "dump-screen", "-p", pid)
+    text = proc.screen(sess, pid)
     if text is None:
         return [head(name, w, watching), ui.cut("can't read %s: waiting" % pid, w)], None
     return [head(name, w, watching)] + view(text, w, rows - 1), pid

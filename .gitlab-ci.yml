@@ -48,7 +48,7 @@ zellij:
     - python3 tests/flaky.py python3 tests/fleet-keys-check.py --live
     - python3 tests/search-check.py
     - python3 tests/screen-kinds-check.py --live
-    - python3 tests/flaky.py python3 tests/mirror-check.py
+    - python3 tests/mirror-check.py
     - python3 tests/newtab-attach-check.py
     - python3 tests/ask-key-check.py
     - python3 tests/bar-check.py

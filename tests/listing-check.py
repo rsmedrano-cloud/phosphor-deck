@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Every zellij listing in lib/ is read through proc.listing/proc.layout,
-which ask again on an empty, unreadable or crossed answer (#134; zellij
-0.45 hands one action another's answer, #122). Against a fake zellij:
+and every pane's screen through proc.screen, which ask again on an empty,
+unreadable or crossed answer (#134, #135; zellij 0.45 hands one action
+another's answer, #122). Against a fake zellij:
     python3 tests/listing-check.py
 """
 import glob, os, re, subprocess, sys, time
@@ -60,10 +61,38 @@ try:
     check("dump-layout: busy and crossed answers asked again", proc.layout() == LAYOUT and len(asked) == 3)
     answers((0, TABS))
     check("dump-layout never real: ''", proc.layout(wait=0.3) == "")
+
+    SCREEN = "$ ls\nhidden-42\n$ \n"
+    asked = answers((0, SCREEN))
+    check("dump-screen: a screen is read at once", proc.screen("s", "terminal_3") == SCREEN and len(asked) == 1)
+    check("dump-screen: the session, pane and flags reach zellij",
+          asked[0] == ("s", "dump-screen", "-p", "terminal_3"))
+    asked = answers((0, SCREEN))
+    proc.screen(None, "terminal_3", "--full")
+    check("dump-screen: --full reaches zellij", asked[0] == (None, "dump-screen", "-p", "terminal_3", "--full"))
+    asked = answers((0, ""), (0, SCREEN))
+    check("dump-screen: an empty answer (busy) is asked again (#135)",
+          proc.screen("s", "terminal_3") == SCREEN and len(asked) == 2)
+    asked = answers((0, PANES), (0, LAYOUT), (0, "CLIENT_ID ZELLIJ_PANE_ID\n1 terminal_0\n"), (0, SCREEN))
+    check("dump-screen: another action's answer is asked again, never the screen",
+          proc.screen("s", "terminal_3") == SCREEN and len(asked) == 4)
+    asked = answers((0, "\n"))
+    check("dump-screen: a blank pane (a newline) is believed at once", proc.screen("s", "terminal_3") == "\n"
+          and len(asked) == 1)
+    asked = answers((0, '$ cat x.json\n{"a": 1}\n$ \n'))
+    check("dump-screen: JSON on a screen with more on it is the screen",
+          proc.screen("s", "terminal_3").startswith("$ cat") and len(asked) == 1)
+    answers((0, ""))
+    t0 = time.time()
+    check("dump-screen never answered: '' once the wait is up", proc.screen("s", "terminal_3", wait=0.4) == "")
+    check("... not before it", time.time() - t0 >= 0.4)
+    asked = answers((1, ""))
+    check("dump-screen: zellij failing (no such pane) is None at once",
+          proc.screen("s", "terminal_9") is None and len(asked) == 1)
 finally:
     proc.action = real
 
-# nothing in lib/ asks zellij for a listing by itself
+# nothing in lib/ asks zellij for a listing or a screen by itself
 LISTS = re.compile(r"""["'](list-tabs|list-panes|dump-layout)["']""")
 for f in sorted(glob.glob(os.path.join(ROOT, "lib", "*.py"))):
     if os.path.basename(f) == "proc.py":
@@ -71,6 +100,10 @@ for f in sorted(glob.glob(os.path.join(ROOT, "lib", "*.py"))):
     for n, line in enumerate(open(f), 1):
         if LISTS.search(line) and not re.search(r"\b(listing|layout)\(", line):
             check("%s:%d reads a zellij listing itself; use proc.listing/proc.layout"
+                  % (os.path.relpath(f, ROOT), n), False)
+        # dump-screen to a file (--path) leaves the text to whoever reads the file
+        if re.search(r"""["']dump-screen["']""", line) and "--path" not in line:
+            check("%s:%d reads a pane's screen itself; use proc.screen"
                   % (os.path.relpath(f, ROOT), n), False)
 
 for f in fails:

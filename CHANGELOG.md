@@ -6,6 +6,12 @@ before it updates.
 
 ## Unreleased
 
+## 2.8.25 — a busy deck never paints an empty pane
+
+### Fixed
+
+- **A mirrored pane no longer flashes empty on a busy deck (#135).** When zellij was busy it now and then answered a request for a pane's screen with nothing, or with another request's answer, and `phosphor mirror`, a SolarOS panel, HOME's tab cards and the ask key took that for what the pane showed. An answer like that is now asked again; a pane that really is blank still shows blank at once.
+
 ## 2.8.24 — a hangup ends a screen cleanly
 
 ### Fixed

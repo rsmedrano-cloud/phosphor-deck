@@ -99,8 +99,12 @@ def fake_watch(mode, tmp):
                     return ""
                 return None
             mirror.zj, mirror.EVERY, mirror.dlog.LOG = zj, 0.3, log
-            mirror.proc.action = lambda sess, args, timeout=15: \
-                subprocess.CompletedProcess(args, 0, zj(sess, *args) or "", "")   # listings (#134)
+            def action(sess, args, timeout=15):        # listings (#134) and screens (#135)
+                out = zj(sess, *args)
+                # a screen that can't be read is zellij failing; a listing's None, busy
+                rc = 1 if out is None and args[0] == "dump-screen" else 0
+                return subprocess.CompletedProcess(args, rc, out or "", "")
+            mirror.proc.action = action
             rc = mirror.watch("probe", {"tab": "AI"}, mode == "hangup") or 0
             if mode == "hangup":
                 # a pty whose other end closed wakes its reader before the kernel
@@ -121,7 +125,7 @@ def keys_vs_failed_reads(mode, tmp):
     s, got, log = fake_watch(mode, tmp)
     seen = lambda: open(got).read() if os.path.exists(got) else ""
     if mode == "flaky":
-        s.wait(lambda: b"can't read" in s.out, 5)     # the first frame painted, the next read failed
+        need("a read of the pane that fails says so", s.wait(lambda: b"can't read" in s.out, 5))
     else:
         s.wait(lambda: b"no tab AI" in s.out, 5)      # nothing found yet
     s.type("abc")
@@ -198,7 +202,10 @@ def against_zellij():
         # a screen that stops reading: mirror waits on its write, nothing piles up
         z.action("write-chars", "-p", ai,
                  "i=0; while [ $i -lt 400 ]; do i=$((i+1)); echo flood-$i; sleep 0.02; done; echo flood-over\n")
-        time.sleep(10)                                   # the screen reads nothing meanwhile
+        time.sleep(10)                                   # the screen reads nothing meanwhile...
+        # ...until the pane is done: what it shows after that is the pane now,
+        # not lines still coming (under load the loop outlasts the 10 s)
+        need("the flood ends in the pane", z.wait(lambda: "flood-over" in (dump() or ""), 60))
         before = len(s.out)
         s.pump(1.5)
         need("a stalled screen gets no backlog", len(s.out) - before < 16000)

@@ -217,7 +217,7 @@ class Terms:
             time.sleep(self.EVERY)
 
     def read(self):
-        import mirror
+        import mirror, proc
         sess = mirror.session()
         ps = mirror.panes(sess)
         for tab in self.tabs:
@@ -227,7 +227,7 @@ class Terms:
                 self.got[tab] = None
                 continue
             p = hit[0]
-            text = mirror.zj(sess, "dump-screen", "-p", "terminal_%d" % p["id"]) or ""
+            text = proc.screen(sess, "terminal_%d" % p["id"]) or ""
             last = next((l.strip() for l in reversed(text.splitlines()) if l.strip()), "")
             if self.seen.get(tab, (None,))[0] != text:
                 self.seen[tab] = (text, time.time())

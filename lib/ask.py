@@ -41,6 +41,7 @@ import os, shutil, subprocess, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import BAD, DIM, RST
 import newtab
+import proc
 
 # argv prefix that runs the assistant non-interactively: send one question,
 # print the answer to stdout, exit. Distinct from workspace.py's FIRST,
@@ -298,7 +299,7 @@ def covered_pane():
         return None
     _, _, tab, covered = here
     title = next((p.get("title", "") for p in edit.panes() if p["id"] == covered and not p["is_plugin"]), "")
-    text = last_lines(key_dump() or newtab.zj("dump-screen", "--full", "--pane-id", "terminal_%d" % covered))
+    text = last_lines(key_dump() or (proc.screen(None, "terminal_%d" % covered, "--full") or ""))
     return tab, title, text, edit.argv_of(covered)
 
 

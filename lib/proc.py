@@ -106,6 +106,42 @@ def layout(sess=None, wait=5.0):
         time.sleep(0.3)
 
 
+def crossed(text):
+    """Whether a dump-screen answer is another action's (#122): a JSON
+    listing, a layout or list-clients' table, never a screen's text."""
+    import json
+    s = text.lstrip()
+    if s.startswith(("layout {", "CLIENT_ID")):
+        return True
+    if s.startswith(("[", "{")):
+        try:
+            return isinstance(json.loads(s), (list, dict))
+        except ValueError:
+            return False
+    return False
+
+
+def screen(sess, pane, *flags, wait=2.0):
+    """What pane (a `terminal_N` id) shows, zellij's dump-screen (`flags`:
+    --full); None when zellij fails (no such pane or session). A screen,
+    even a blank one, is at least a newline: an empty answer is zellij busy
+    (#122), and so is another action's answer (#134). Those are asked again
+    for `wait` seconds, then "": never painted as the pane (#135). Every
+    reader of dump-screen's text in lib/ goes through here."""
+    import time
+    end = time.time() + wait
+    while True:
+        r = action(sess, ("dump-screen", "-p", pane) + flags, 8)
+        if r.returncode != 0:
+            return None
+        out = r.stdout or ""
+        if out and not crossed(out):
+            return out
+        if time.time() >= end:
+            return ""
+        time.sleep(0.2)
+
+
 def sh(cmd, t=10, err=False):
     """(exit code, output stripped): stdout, plus stderr with err=True."""
     r = run(cmd, timeout=t)
