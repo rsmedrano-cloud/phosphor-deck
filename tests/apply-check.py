@@ -13,7 +13,7 @@ Live, in a throwaway zellij (tests/zjprobe.py, its own HOME and socket):
   it's left pending: never a real restart here (it would reach the live
   deck's service through systemctl).
 """
-import json, os, shlex, subprocess, sys, time
+import json, os, re, shlex, subprocess, sys, time
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "tests")); sys.path.insert(0, os.path.join(ROOT, "lib"))
 import zjprobe
@@ -157,9 +157,11 @@ KIND = "applyck-phone"
 
 class Client:
     """Another screen attached to a session of the probe, in a pty of its
-    own, its output drained all along (a client nobody reads stalls)."""
+    own, its output drained all along by a process of its own: zellij drops
+    a client that doesn't read its messages in time, and a thread here,
+    sharing the GIL with a test scanning /proc under load, didn't (#122)."""
     def __init__(self, z, sess, layout=None):
-        import pty, threading
+        import pty
         self.z, self.sess = z, sess
         env = dict(z.env, PHOSPHOR_SCREEN="phone")
         args = [z.zj, "--config", z.config] + (["--layout", layout] if layout else []) + ["attach", "--create", sess]
@@ -167,20 +169,69 @@ class Client:
         if self.pid == 0:
             os.chdir(z.home)
             os.execve(z.zj, args, env)
-        def drain():
-            while True:
-                try:
-                    if not os.read(self.fd, 65536): return
-                except OSError:
-                    return
-        threading.Thread(target=drain, daemon=True).start()
+        self.log = os.path.join(z.home, "client-%d.out" % self.pid)   # what it showed: why it ended, if it did
+        self.drainer = os.fork()
+        if self.drainer == 0:
+            out = os.open(self.log, os.O_WRONLY | os.O_CREAT | os.O_APPEND)
+            try:
+                while True:
+                    got = os.read(self.fd, 65536)
+                    if not got: break
+                    os.write(out, got)
+            except OSError:
+                pass
+            os._exit(0)
+        os.close(self.fd)
+
+    def alive(self):
+        if self.pid is None: return False
+        try:
+            if os.waitpid(self.pid, os.WNOHANG) == (0, 0): return True
+        except OSError:
+            pass
+        self.pid = None
+        return False
+
+    def shown(self):
+        return re.sub(r"\x1b\[[0-9;?]*[A-Za-z]", "", self.tail.decode("utf-8", "replace"))[-400:]
+
+    @property
+    def tail(self):
+        try:
+            with open(self.log, "rb") as f:
+                f.seek(0, 2); f.seek(max(0, f.tell() - 2000))
+                return f.read()
+        except OSError:
+            return b""
 
     def leave(self):
+        if self.alive():
+            try:
+                os.kill(self.pid, 9); os.waitpid(self.pid, 0)
+            except OSError:
+                pass
+            self.pid = None
         try:
-            os.kill(self.pid, 9); os.waitpid(self.pid, 0)
+            os.waitpid(self.drainer, 0)
         except OSError:
             pass
         self.z.pump(1)
+
+def come_in(z, sess, ready, layout=None):
+    """A Client in sess once ready() says so: (client, ok). Under load zellij
+    drops a client that can't keep up with it ("didn't process server
+    messages quick enough", #122); a real screen's `deck` goes back in by
+    itself, and so does this one, up to three times, saying so."""
+    for n in range(3):
+        c = Client(z, sess, layout)
+        z.wait(lambda: not c.alive() or ready(), 30)
+        if c.alive() and ready():
+            return c, True
+        if c.alive() or "quick" not in c.shown():
+            return c, False
+        print("note %s: zellij dropped the screen under load, it goes back in (%d)" % (sess, n + 1))
+        c.leave()
+    return c, False
 
 def phosphor(z, *args, watch=None):
     """phosphor in the probe's HOME, no terminal; the client's output read
@@ -231,7 +282,7 @@ def pids(z, sess=None):
             try:
                 ps = [p for p in json.loads(z.run("--session", sess, "action", "list-panes", "-a", "-j") or "[]")
                       if not p["is_plugin"]]
-            except ValueError:
+            except (ValueError, KeyError, TypeError):   # half an answer: a pane without its fields (#122)
                 ps = []
             if not ps: z.pump(0.3)
         out = {}
@@ -250,7 +301,10 @@ def ztabs(z, timeout=10):
         return []
 
 def pids_of_session(home, sess):
-    """A pane of that session runs (read from /proc, nothing asks zellij)."""
+    """A pane of that session runs (read from /proc, nothing asks zellij).
+    A pane's process, not the zellij server's: the server carries the
+    session's name too, from before the session exists (#122: asked then,
+    it panicked like #123)."""
     want = [("HOME=%s" % home).encode(), ("ZELLIJ_SESSION_NAME=%s" % sess).encode()]
     for d in os.listdir("/proc"):
         if not d.isdigit():
@@ -259,7 +313,7 @@ def pids_of_session(home, sess):
             env = open("/proc/%s/environ" % d, "rb").read().split(b"\0")
         except OSError:
             continue
-        if all(w in env for w in want):
+        if all(w in env for w in want) and any(e.startswith(b"ZELLIJ_PANE_ID=") for e in env):
             return True
     return False
 
@@ -298,13 +352,14 @@ def live():
                     os.path.exists(os.path.join(lays, KIND + ".kdl")) and os.path.exists(os.path.join(lays, KIND, "tab-a.kdl"))
                     and not os.path.exists(os.path.join(lays, KIND, "tab-b.kdl")), sorted(os.listdir(lays))):
             return
-        phone = Client(z, KIND, os.path.join(lays, KIND + ".kdl"))
         ktabs = lambda: re.findall(r'^\s*tab name="([^"]*)"', z.dumped(KIND), re.M)
-        attached = lambda: len([l for l in z.run("--session", KIND, "action", "list-clients").splitlines()[1:] if l.strip()])
+        attached = lambda: z.clients(KIND)       # [] nobody, None no answer (#122)
         # nothing asks that session anything until its panes run (#123's panic, see zjprobe)
-        z.wait(lambda: pids_of_session(z.home, KIND), 20)
-        if not need("kind: its session is up, a screen attached", z.wait(lambda: ktabs() == ["A", "SH"] and attached(), 20),
-                    ktabs()):
+        up = lambda: pids_of_session(z.home, KIND) and ktabs() == ["A", "SH"] and attached()
+        phone, ok = come_in(z, KIND, up, os.path.join(lays, KIND + ".kdl"))
+        if not need("kind: its session is up, a screen attached", ok,
+                    dict(panes_ran=pids_of_session(z.home, KIND), tabs=ktabs(), clients=attached(),
+                         client="alive" if phone.alive() else "gone", shown=phone.shown())):
             return
         kbefore = pids(z, KIND)
 
@@ -333,7 +388,8 @@ def live():
              and ktabs() == ["A", "SH"], (kbefore, kafter, ktabs()))
 
         phone.leave()                     # the phone goes: its session stays, nobody attached
-        z.wait(lambda: not attached(), 10)
+        if not need("kind: the phone's gone from its session", z.wait(lambda: attached() == [], 10), attached()):
+            return
         edit_profile(z, 'args = ["621"]', 'args = ["622"]')
         rc, out = phosphor(z, "apply")
         k2 = pids(z, KIND)
@@ -341,8 +397,10 @@ def live():
              "sleep 622" in cmdlines(pids(z).get("A", [])) and k2.get("A") == kafter.get("A"), (out, kafter, k2))
         need("kind, nobody attached: left pending for that session",
              ((pending(z) or {}).get("screens") or {}).get(KIND, {}).get("tabs") == ["A"], pending(z))
-        phone = Client(z, KIND)           # it comes back: f (or apply) reloads what was left
-        z.wait(lambda: attached(), 10)
+        phone, ok = come_in(z, KIND, attached)   # it comes back: f (or apply) reloads what was left
+        if not need("kind: the phone's back in its session", ok,
+                    (attached(), "client alive" if phone.alive() else "client gone", phone.shown())):
+            return
         rc, out = phosphor(z, "apply")
         k3 = pids(z, KIND)
         need("kind, attached again: apply reloads what was left there", "sleep 622" in cmdlines(k3.get("A", []))

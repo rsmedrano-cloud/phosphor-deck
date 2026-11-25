@@ -6,6 +6,12 @@ before it updates.
 
 ## Unreleased
 
+## 2.8.21 — a busy deck isn't an empty one
+
+### Fixed
+
+- **A busy deck is no longer taken for an empty one (#122).** Under load zellij sometimes answers "who's attached?" with nothing at all. `phosphor apply` read that as "no screen attached" and left a phone's reload pending, and `phosphor new --here` refused to open a tab. Both now ask again; "nobody attached" is believed only when zellij actually says so. zellij can also hand one question another's answer when two arrive at once (the tab list in reply to "which panes?"); `phosphor apply` checks every answer has the right shape before it acts on it.
+
 ## 2.8.20 — apply keeps your focus
 
 ### Fixed

@@ -161,6 +161,19 @@ print(d + "/layouts/deck.kdl"); print(d + "/config.kdl")
                 return out
             self.pump(0.2)
 
+    def clients(self, session=None, timeout=5.0):
+        """The screens attached (list-clients' lines, header aside). Nobody
+        is the header alone; an answer without it is zellij busy (#122),
+        asked again, and after `timeout` None."""
+        end = time.time() + timeout
+        while True:
+            lines = self.run("--session", session or self.session, "action", "list-clients").splitlines()
+            if lines and lines[0].startswith("CLIENT_ID"):
+                return [l for l in lines[1:] if l.strip()]
+            if time.time() >= end:
+                return None
+            self.pump(0.2)
+
     def pump(self, t=0.0):
         end = time.time() + t
         while True:

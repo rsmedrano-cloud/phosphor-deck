@@ -4,6 +4,7 @@ path, a command that never raises, an ssh that never asks for anything.
     proc.zellij()                    # zellij's path, or None
     proc.run(argv, timeout=20)       # CompletedProcess, text, output captured
     proc.sh("uname -m")              # (exit code, stdout stripped)
+    proc.clients("deck")             # the screens attached, or None: no answer
     proc.ssh("db-box", "sh -s")      # the argv of a BatchMode ssh
 """
 import os, subprocess
@@ -25,6 +26,27 @@ def run(cmd, timeout=None, **kw):
                               text=True, timeout=timeout, **kw)
     except (OSError, subprocess.SubprocessError) as e:
         return subprocess.CompletedProcess(cmd, -1, "", str(e))
+
+
+def clients(sess=None, wait=5.0):
+    """The screens attached to a zellij session, one list-clients line
+    each (`sess` None: the session this runs in). Nobody attached is the
+    header alone, a real answer believed at once; under load zellij can
+    answer nothing at all, exit 0 (#122): asked again for `wait` seconds,
+    then None (no answer, not "nobody")."""
+    import time
+    zj = zellij()
+    if not zj:
+        return None
+    end = time.time() + wait
+    while True:
+        r = run([zj] + (["--session", sess] if sess else []) + ["action", "list-clients"], timeout=8)
+        lines = (r.stdout or "").splitlines()
+        if r.returncode == 0 and lines and lines[0].startswith("CLIENT_ID"):
+            return [l for l in lines[1:] if l.strip()]
+        if time.time() >= end:
+            return None
+        time.sleep(0.3)
 
 
 def sh(cmd, t=10, err=False):

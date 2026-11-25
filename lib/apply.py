@@ -173,28 +173,26 @@ def live(sess):
     return any(l.split()[:1] == [sess] and "EXITED" not in l for l in out.splitlines())
 
 def clients(sess):
-    """The screens attached. Nobody is a real answer, but a busy zellij
-    gives it too: asked again for a few seconds before it's believed."""
-    end = time.time() + 3
-    while True:
-        got = [l for l in zj(sess, "list-clients").splitlines()[1:] if l.strip()]
-        if got or time.time() > end:
-            return got
-        time.sleep(0.3)
+    """The screens attached: nobody, or no answer from a busy zellij (an
+    empty one, asked again first: proc.clients), both come back empty."""
+    return proc.clients(sess) or []
 
 def base(name):
     """A live tab's name as the profile has it: "SYS ●3" and "SYS ✎ Alt r" are SYS."""
     return name.split(DOT)[0].split(MARK)[0].strip()
 
-def _listed(sess, *what):
-    """A list action's JSON. A live session always has tabs and panes, so
-    an empty or unreadable answer is zellij busy, not the truth: asked
-    again for a few seconds (under load one came back empty, and a tab was
-    taken for gone)."""
+def _listed(sess, key, *what):
+    """A list action's JSON, each item carrying `key`. A live session always
+    has tabs and panes, so an empty or unreadable answer is zellij busy, not
+    the truth; and with two `zellij action`s at once, zellij 0.45 now and
+    then hands one the other's answer (#122: list-panes got the tabs). Both
+    are asked again for a few seconds."""
     end = time.time() + 5
     while True:
         try:
             got = json.loads(zj(sess, *what) or "[]")
+            if not (isinstance(got, list) and all(isinstance(x, dict) and key in x for x in got)):
+                got = []
         except ValueError:
             got = []
         if got or time.time() > end:
@@ -203,13 +201,13 @@ def _listed(sess, *what):
 
 def tabs(sess):
     """[{tab_id, position, name, base, active}] of the session, in order."""
-    got = _listed(sess, "list-tabs", "-j", "-s")
+    got = _listed(sess, "position", "list-tabs", "-j", "-s")
     for t in got:
         t["base"] = base(t.get("name") or "")
     return sorted(got, key=lambda t: t["position"])
 
 def panes(sess):
-    return [p for p in _listed(sess, "list-panes", "-a", "-j") if not p.get("is_plugin")]
+    return [p for p in _listed(sess, "is_plugin", "list-panes", "-a", "-j") if not p.get("is_plugin")]
 
 def program(argv):
     """The program a pane runs, past `phosphor run ... --` and an
@@ -265,9 +263,9 @@ def _new_tab(sess, layout, name):
     its tab id, or None if zellij didn't make it."""
     had = {t["tab_id"] for t in tabs(sess)}
     out = zj(sess, "new-tab", "--no-focus", "--layout", layout, "--name", name).strip()
-    if out.isdigit():
+    if out.isdigit() and any(t["tab_id"] == int(out) and t["base"] == name for t in tabs(sess)):
         return int(out)
-    end = time.time() + 5                 # a busy zellij makes it and says nothing: found by name
+    end = time.time() + 5                 # a busy zellij makes it and says nothing (or another's answer): found by name
     while time.time() < end:
         new = [t["tab_id"] for t in tabs(sess) if t["tab_id"] not in had and t["base"] == name]
         if new:

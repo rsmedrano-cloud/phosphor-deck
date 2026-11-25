@@ -53,34 +53,30 @@ def main():
         need("attached() true with a real client", out == ["True"])
         need("--here exits 0 while attached", rc == 0)
         z.pump(1)
-        need("--here added a tab while attached", len(z.tabs()) == before + 1)
+        need("--here added a tab while attached", z.wait(lambda: len(z.tabs()) == before + 1, 10))
 
         # no pane context at all (no $ZELLIJ): must refuse outright, never fall
         # back to zellij's own "only one session running" default -- this is
         # the exact real mistake a bare, out-of-band `phosphor new --here`
         # invocation (no env, on a box with one real session up) can make.
-        after_first = len(z.tabs())
+        first = z.tabs()
         r = subprocess.run([sys.executable, "-c",
                             "import sys; sys.path.insert(0, %r)\n"
                             "import newtab; sys.exit(newtab.here())" % os.path.join(ROOT, "lib")],
                            env={k: v for k, v in z.env.items() if not k.startswith("ZELLIJ")},
                            capture_output=True, text=True, timeout=30)
         need("--here with no $ZELLIJ at all: refuses", r.returncode != 0)
-        need("--here with no $ZELLIJ at all: no new tab", len(z.tabs()) == after_first)
+        then = z.tabs()
+        need("--here with no $ZELLIJ at all: no new tab %r -> %r" % (first, then), len(then) == len(first))
 
         # detach: kill the pty client, leave the server running (same as a dropped ssh link)
         try:
             os.kill(z.pid, signal.SIGKILL); os.waitpid(z.pid, 0)
         except OSError:
             pass
-        deadline = time.time() + 10
-        while time.time() < deadline:
-            n = len([l for l in z.action("list-clients").splitlines() if l.strip()])
-            if n <= 1:
-                break
-            time.sleep(0.3)
+        gone = z.wait(lambda: z.clients() == [], 10)      # [] nobody, None no answer (#122)
         need("session survives the client dying", z.session in z.run("list-sessions", "-n"))
-        need("really nobody attached now", n <= 1)
+        need("really nobody attached now", gone)
 
         after = len(z.tabs())
         out, rc = call_here(z)

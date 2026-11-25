@@ -10,7 +10,7 @@ import json, os, select, shutil, subprocess, sys, termios, time, tty
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ui import *
 from ui import getkey
-import deckconf, apps
+import deckconf, apps, proc
 
 HOME = os.path.expanduser("~")
 BIN  = os.path.join(HOME, ".local/bin")
@@ -484,13 +484,8 @@ def attached():
     guards the one path that doesn't, `--here` called out of band (a script,
     an assistant), which is exactly the "zellij action new-tab with no
     client attached" case AGENTS.md warns against."""
-    try:
-        r = subprocess.run([ZJ, "action", "list-clients"], capture_output=True, text=True, timeout=8)
-    except Exception:
-        return True
-    if r.returncode != 0:
-        return True
-    return len([l for l in r.stdout.splitlines() if l.strip()]) > 1     # header + at least one client
+    got = proc.clients()               # an empty answer is zellij busy, asked again (#122)
+    return got is None or bool(got)
 
 def here():
     """Alt-n: a new tab in the folder of the pane you're in. It runs in place
