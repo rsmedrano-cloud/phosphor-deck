@@ -6,6 +6,12 @@ before it updates.
 
 ## Unreleased
 
+## 2.8.27 — a busy deck still reloads the tab you changed
+
+### Fixed
+
+- **`phosphor apply` no longer leaves a tab un-reloaded, or calls the deck stopped, because zellij was busy (#137).** Under load, zellij sometimes answered "Session 'deck' not found" about a session it listed as active in the same breath, and the new tab was never made: apply said "not done: zellij didn't answer in time" and left the tab for later. It also sometimes left a running session out of its list, and apply said "the deck isn't running". Phosphor now sends an action again when zellij contradicts itself like that (as it already did for the session it runs in, #113), and asks again about a session whose server is still running before believing it's gone.
+
 ## 2.8.26 — a busy deck still says how to get back
 
 ### Fixed

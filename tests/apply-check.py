@@ -129,6 +129,27 @@ def pure():
         got = apply.holds(argv)
         need("holds: %s -> %s" % ((argv or ["(gone)"])[-2:], want), got == want, got)
 
+    # #137: under load list-sessions leaves out a session that's there
+    import deckconf, proc, subprocess as sp
+    saved = proc.run, proc.zellij, deckconf.session_started
+    try:
+        proc.zellij = lambda: "zellij"
+        for name, seq, server, want, n in [
+                ("listed: up at once", ["deck [Created 1s ago]\n"], 1.0, True, 1),
+                ("left out while its server runs: asked again", ["", "deck [Created 1s ago]\n"], 1.0, True, 2),
+                ("no server: down at once", [""], None, False, 1),
+                ("EXITED: down", ["deck [Created 1s ago] (EXITED - attach to resurrect)\n"], None, False, 1)]:
+            asked = []
+            def run(cmd, timeout=None, **kw):
+                asked.append(cmd)
+                return sp.CompletedProcess(cmd, 0, seq[min(len(asked), len(seq)) - 1], "")
+            proc.run = run
+            deckconf.session_started = lambda s, v=server: v
+            got = apply.live("deck", wait=1)
+            need("live: " + name, got == want and len(asked) == n, (got, len(asked)))
+    finally:
+        proc.run, proc.zellij, deckconf.session_started = saved
+
 PROFILE = '''
 [deck]
 session = "applyck"
@@ -220,16 +241,19 @@ class Client:
 def come_in(z, sess, ready, layout=None):
     """A Client in sess once ready() says so: (client, ok). Under load zellij
     drops a client that can't keep up with it ("didn't process server
-    messages quick enough", #122); a real screen's `deck` goes back in by
-    itself, and so does this one, up to three times, saying so."""
+    messages quick enough", #122) or misses the session that's there and
+    tries to make it ("already exists", #137); a real screen's `deck`
+    goes back in by itself, and so does this one, up to three times, saying so."""
     for n in range(3):
         c = Client(z, sess, layout)
         z.wait(lambda: not c.alive() or ready(), 30)
         if c.alive() and ready():
             return c, True
-        if c.alive() or "quick" not in c.shown():
+        shown = c.shown()
+        if c.alive() or not ("quick" in shown or "already exists" in shown):
             return c, False
-        print("note %s: zellij dropped the screen under load, it goes back in (%d)" % (sess, n + 1))
+        print("note %s: zellij %s under load, it goes back in (%d)"
+              % (sess, "dropped the screen" if "quick" in shown else "missed the session", n + 1))
         c.leave()
     return c, False
 
@@ -267,7 +291,7 @@ def focused(z, seen):
     the focus all along while apply runs (#130)."""
     try:
         seen.update(t["name"].split()[0] for t in json.loads(z.action("list-tabs", "-j")) if t["active"])
-    except (ValueError, IndexError, KeyError):
+    except (ValueError, IndexError, KeyError, TypeError):   # another action's answer (#122)
         pass
 
 def pids(z, sess=None):
@@ -330,6 +354,14 @@ def edit_profile(z, old, new):
     assert old in text, old
     open(path, "w").write(text.replace(old, new, 1))
 
+def applylog(z):
+    """deck.log's APPLY lines in the probe: why apply left a tab (#137)."""
+    try:
+        return "\n".join("    " + l.rstrip() for l in open(os.path.join(z.home, ".cache/phosphor/deck.log"))
+                         if " APPLY " in l)[-3000:]
+    except OSError:
+        return "    (no deck.log)"
+
 def pending(z):
     try:
         return json.load(open(os.path.join(z.home, ".local/share/phosphor/apply-pending")))
@@ -372,6 +404,11 @@ def live():
         after = pids(z)
         need("one tab: apply exits 0", rc == 0, out)
         need("one tab: it says A was reloaded", "reloaded in place" in out and "restart" not in out.lower(), out)
+        if "not done" in out:                     # #137: which zellij call a busy zellij failed
+            print("  apply's log:\n" + applylog(z))
+            tl = lambda: [(t["tab_id"], t["name"]) for t in ztabs(z)]
+            print("  tabs right after: %s" % tl()); z.pump(10)
+            print("  tabs 10 s later: %s" % tl())
         need("one tab: the tabs keep their order", z.tabs() == ["A", "B", "SH"], (z.tabs(), out))
         need("one tab: A runs its new program", "sleep 621" in cmdlines(after.get("A", [])), cmdlines(after.get("A", [])))
         need("one tab: A's old process is gone", "sleep 611" not in cmdlines(sum(after.values(), [])))
@@ -404,7 +441,7 @@ def live():
         rc, out = phosphor(z, "apply")
         k3 = pids(z, KIND)
         need("kind, attached again: apply reloads what was left there", "sleep 622" in cmdlines(k3.get("A", []))
-             and k3.get("SH") == kbefore.get("SH"), (out, cmdlines(k3.get("A", []))))
+             and k3.get("SH") == kbefore.get("SH"), (out, cmdlines(k3.get("A", [])), kbefore, k3, applylog(z)))
         need("kind: nothing pending after", pending(z) is None, pending(z))
         edit_profile(z, 'args = ["622"]', 'args = ["621"]')
         rc, out = phosphor(z, "apply")
@@ -473,7 +510,7 @@ def live():
         focus = [t["name"] for t in ztabs(z) if t["active"]]
         need("order: you stay on the tab you were on", focus == ["SH"], focus)
         need("order: the focus never left it while the tabs moved", seen <= {"SH"}, seen)
-        need("order: nothing pending", pending(z) is None, pending(z))
+        need("order: nothing pending", pending(z) is None, (pending(z), applylog(z)))
         edit_profile(z, tC + "\n" + tA, tA + "\n" + tC)
         rc, out = phosphor(z, "apply")
         need("order: and back", z.tabs() == ["A", "P", "C", "SH"] and pids(z).get("A") == before["A"],
@@ -506,7 +543,7 @@ def live():
         own = open(log).read() if os.path.exists(log) else ""
         need("own tab: it goes last, detached", "apply reload SH" in own, own)
         need("own tab: reloaded once apply is done with the rest", "sleep 632" in cmdlines(after.get("SH", []))
-             and "sleep 631" not in cmdlines(sum(after.values(), [])), (own, after))
+             and "sleep 631" not in cmdlines(sum(after.values(), [])), (own, after, applylog(z)))
         need("own tab: at its place, the others untouched",
              z.tabs() == ["A", "C", "SH"] and after.get("A") == before["A"] and after.get("C") == before["C"],
              (z.tabs(), before, after))

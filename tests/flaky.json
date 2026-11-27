@@ -3,6 +3,6 @@
   "tests/fleet-keys-check.py": "--live: 4 of 5 saves were the a step timing out (tab or its list), 1 the Esc; since the waits read dump-screen and a's need is split, a save names which half",
   "tests/adjutant-width-check.py": "'12 cols with a message: a line 14 wide' failed once on CI (release 2.8.5, pipeline 3095957831), never locally (5 runs); likely the last read ending inside an escape, stripped since",
   "tests/ask-key-check.py": "#132's step ('nothing is left over it') waits for the count now and never failed in 32 runs at ~3x check.sh's load; there (16 at once on 8 cores + 4 CPU burners, 26/32) the ASK screen and its answers still time out now and then, as #113's tap screens",
-  "tests/apply-check.py": "'one tab': apply said 'A not done: zellij didn't answer in time' once inside release 2.8.26's check.sh, so the reload's checks failed; 4 of 4 alone. Cause open in #137",
-  "tests/dash-check.py": "'live: a card's key zooms the pane' failed once inside release 2.8.26's check.sh (load ~4); 3 of 3 alone, 24 of 24 at 12 at once + 6 burners. Cause open in #138"
+  "tests/dash-check.py": "'live: a card's key zooms the pane' failed once inside release 2.8.26's check.sh (load ~4); 3 of 3 alone, 24 of 24 at 12 at once + 6 burners. Cause open in #138",
+  "tests/away-check.py": "'the mark moved: nothing new since' failed once inside #137's check.sh; 3 of 3 alone, 48 of 48 under load. Cause open in #139"
 }

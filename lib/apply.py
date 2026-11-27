@@ -152,25 +152,25 @@ def plan(old_layout, new_layout, changed, prof, screens=None):
 
 # ── the live session ───────────────────────────────────────────
 def zj(sess, *a):
-    z = proc.zellij()
-    if not z:
-        return ""
-    try:
-        return subprocess.run([z, "-s", sess, "action"] + list(a), capture_output=True,
-                              text=True, timeout=15).stdout
-    except (OSError, subprocess.SubprocessError):
-        return ""
+    """One action on that session, its stdout: sent again when zellij
+    said it isn't there while it is (proc.busy, #137)."""
+    return proc.act(*a, sess=sess, timeout=15)
 
-def live(sess):
-    """True when that session is up (not an EXITED one zellij keeps)."""
+def live(sess, wait=3.0):
+    """True when that session is up (not an EXITED one zellij keeps).
+    Under load list-sessions leaves out one that's there (#137): missing
+    while its server runs, it's asked again for `wait` seconds."""
     z = proc.zellij()
     if not z:
         return False
-    try:
-        out = subprocess.run([z, "list-sessions", "-n"], capture_output=True, text=True, timeout=10).stdout
-    except (OSError, subprocess.SubprocessError):
-        return False
-    return any(l.split()[:1] == [sess] and "EXITED" not in l for l in out.splitlines())
+    end = time.time() + wait
+    while True:
+        out = proc.run([z, "list-sessions", "-n"], timeout=10).stdout or ""
+        if any(l.split()[:1] == [sess] and "EXITED" not in l for l in out.splitlines()):
+            return True
+        if time.time() >= end or deckconf.session_started(sess) is None:
+            return False
+        time.sleep(0.3)
 
 def clients(sess):
     """The screens attached: nobody, or no answer from a busy zellij (an
@@ -247,12 +247,16 @@ def _new_tab(sess, layout, name):
     out = zj(sess, "new-tab", "--no-focus", "--layout", layout, "--name", name).strip()
     if out.isdigit() and any(t["tab_id"] == int(out) and t["base"] == name for t in tabs(sess)):
         return int(out)
-    end = time.time() + 5                 # a busy zellij makes it and says nothing (or another's answer): found by name
+    end, now = time.time() + 5, []        # a busy zellij makes it and says nothing (or another's answer): found by name
     while time.time() < end:
-        new = [t["tab_id"] for t in tabs(sess) if t["tab_id"] not in had and t["base"] == name]
+        now = tabs(sess)
+        new = [t["tab_id"] for t in now if t["tab_id"] not in had and t["base"] == name]
         if new:
             return new[-1]
         time.sleep(0.3)
+    import dlog
+    dlog.event("APPLY", "new-tab-missed", "%s in %s: new-tab said %r, tabs now %s"
+               % (name, sess, out[:80], [(t["tab_id"], t["name"]) for t in now]))
     return None
 
 def _move_to(sess, tid, pos):
@@ -286,7 +290,15 @@ def reload(sess, name, where=None):
     _move_to(sess, tid, t["position"])
     if t.get("active"):                   # you were on it: on the new one before the old one goes
         zj(sess, "go-to-tab-by-id", str(tid))
-    zj(sess, "close-tab-by-id", str(t["tab_id"]))
+    for _ in range(3):                    # read back: a busy zellij drops a close now and then (#137)
+        zj(sess, "close-tab-by-id", str(t["tab_id"]))
+        end = time.time() + 2
+        while time.time() < end and any(x["tab_id"] == t["tab_id"] for x in tabs(sess)):
+            time.sleep(0.3)
+        if time.time() < end:
+            break
+        import dlog
+        dlog.event("APPLY", "close-again", "%s's old tab %s in %s still listed" % (name, t["tab_id"], sess))
     _reap(old)
     return True
 
@@ -295,7 +307,15 @@ def close(sess, name):
     if not t:
         return False
     old = _pids(sess, t["tab_id"])
-    zj(sess, "close-tab-by-id", str(t["tab_id"]))
+    for _ in range(3):                    # read back: a busy zellij drops a close now and then (#137)
+        zj(sess, "close-tab-by-id", str(t["tab_id"]))
+        end = time.time() + 2
+        while time.time() < end and any(x["tab_id"] == t["tab_id"] for x in tabs(sess)):
+            time.sleep(0.3)
+        if time.time() < end:
+            break
+        import dlog
+        dlog.event("APPLY", "close-again", "%s's old tab %s in %s still listed" % (name, t["tab_id"], sess))
     _reap(old)
     return True
 
@@ -338,6 +358,8 @@ def reorder(sess, names):
         now = tabs(sess)
         ids = [t["tab_id"] for t in now]
         if not now or sorted(ids) != sorted(want):
+            import dlog
+            dlog.event("APPLY", "reorder-lost", "%s: want %s, listed %s" % (sess, want, ids))
             return None
         i = next((i for i, (a, b) in enumerate(zip(ids, want)) if a != b), None)
         if i is None:
@@ -348,6 +370,8 @@ def reorder(sess, names):
         time.sleep(0.2)
         if now[j]["base"] not in moved:
             moved.append(now[j]["base"])
+    import dlog
+    dlog.event("APPLY", "reorder-gave-up", "%s: want %s, listed %s" % (sess, want, [t["tab_id"] for t in tabs(sess)]))
     return None
 
 def _reap(pids):

@@ -65,24 +65,39 @@ def action(sess, args, timeout=15):
 
 def busy(sess, r):
     """Whether a failed action is zellij busy, not a session that's gone:
-    asked about the session this runs in (`sess` None, inside zellij), its
-    CLI says "There is no active session!" (exit 1) now and then under
-    load (#113). The session is there; the caller asks again."""
-    return (r.returncode > 0 and not sess and bool(os.environ.get("ZELLIJ_SESSION_NAME"))
-            and "no active session" in (r.stderr or ""))
+    under load zellij's CLI misses a session that's there and the action
+    never reaches it. About the session this runs in (`sess` None, inside
+    zellij) it says "There is no active session!" (exit 1, #113); about a
+    named one, "Session 'X' not found. The following sessions are
+    active:" while X's server runs, often X among them (#137). The
+    caller asks again."""
+    err = r.stderr or ""
+    if not sess:
+        return (r.returncode > 0 and bool(os.environ.get("ZELLIJ_SESSION_NAME"))
+                and "no active session" in err)
+    if "not found" not in err:
+        return False
+    import re
+    names = re.sub(r"\x1b\[[0-9;]*m", "", (r.stdout or "") + "\n" + err)
+    return (any(l.split()[:1] == [sess] for l in names.splitlines())
+            or deckconf.session_started(sess) is not None)
 
 
-def act(*args, wait=2.0, timeout=8):
-    """One zellij action on the session this runs in, its stdout ("" when
-    it fails). A failure that's busy() never reached the server, so it's
-    sent again for `wait` seconds (#113: a tap on the bar did nothing)."""
+def act(*args, wait=2.0, timeout=8, sess=None):
+    """One zellij action on `sess` (None: the session this runs in), its
+    stdout ("" when it fails). A failure that's busy() never reached the
+    server, so it's sent again for `wait` seconds (#113: a tap on the bar
+    did nothing; #137: apply's new tab never made)."""
     import time
     end = time.time() + wait
     while True:
-        r = action(None, args, timeout)
-        if r.returncode == 0:
+        r = action(sess, args, timeout)
+        if r.returncode == 0 and not busy(sess, r):
             return r.stdout or ""
-        if not busy(None, r) or time.time() >= end:
+        if not busy(sess, r) or time.time() >= end:
+            import dlog                   # what a busy zellij answered, for the next flake (#137)
+            dlog.event("ZELLIJ", "act-failed", "%s %s: exit %d %s" % (sess or "(this)", args[0] if args else "",
+                       r.returncode, (r.stderr or "").strip().splitlines()[:1]))
             return ""
         time.sleep(0.2)
 

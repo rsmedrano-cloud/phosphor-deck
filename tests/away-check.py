@@ -110,7 +110,8 @@ need("a long section: the latest few, and how many before", "+%d before these" %
 os.remove(glance.CACHE)
 away.saw(now)
 need("fleet not running: saw() keeps what it knew", "vault disk" in away.load()["problems"])
-need("the mark moved: nothing new since", away.sections(away.load(), now + 1) == [])
+left = away.sections(away.load(), now + 1)
+need("the mark moved: nothing new since" + ("" if left == [] else ", yet: %r" % (left,))[:600], left == [])
 
 # ── the screen in a pty: any key closes it, then you're here ─
 away.saw(now - 7200)

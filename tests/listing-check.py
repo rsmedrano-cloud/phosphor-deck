@@ -8,7 +8,10 @@ another's answer, #122). Against a fake zellij:
 import glob, os, re, subprocess, sys, time
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "lib"))
-import proc
+import tempfile
+os.environ["PHOSPHOR_CACHE"] = tempfile.mkdtemp(prefix="listing-check-")   # act's log, never the deck's
+import deckconf, proc
+deckconf.session_started = lambda sess: None   # no zellij server here, whatever runs on this machine
 
 fails = []
 def check(what, ok):
@@ -85,6 +88,32 @@ try:
     check("outside a session, 'no active session' is believed at once",
           proc.listing(None, "list-tabs", "-j") == [] and len(asked) == 1 and time.time() - t0 < 0.5)
 
+    # #137: under load, about a named session that's there, zellij's CLI says
+    # it isn't (exit 0), listing it among the active ones: the action never got there
+    MISSED = (0, "\x1b[32;1mdeck-phone\x1b[m [Created 5s ago] \n\x1b[32;1mdeck\x1b[m [Created 9s ago] \n",
+              "Session 'deck' not found. The following sessions are active:\n")
+    asked = answers(MISSED, (0, "7\n"))
+    check("a named session that's there but 'not found' gets the action again (#137)",
+          proc.act("new-tab", sess="deck") == "7\n" and len(asked) == 2 and asked[1][0] == "deck")
+    asked = answers(MISSED, (0, TABS))
+    check("... and its listing is asked again", len(proc.listing("deck", "list-tabs", "-j")) == 1 and len(asked) == 2)
+    asked = answers((1, "", "Session 'gone' not found. The following sessions are active:\ndeck\n"))
+    check("... one that really isn't among them is believed at once",
+          proc.act("new-tab", sess="gone") == "" and len(asked) == 1)
+    asked = answers((1, "", "Session 'dec' not found. The following sessions are active:\ndeck\n"))
+    check("... a name only the start of another's is not there", proc.act("new-tab", sess="dec") == "" and len(asked) == 1)
+    asked = answers((1, "", "Session 'deck' not found. The following sessions are active:\n"), (0, "7\n"))
+    deckconf.session_started = lambda sess: 1.0 if sess == "deck" else None
+    check("... left out of that list too, while its server runs: sent again",
+          proc.act("new-tab", sess="deck") == "7\n" and len(asked) == 2)
+    asked = answers((1, "", "Session 'gone' not found. The following sessions are active:\n"))
+    check("... no server of that name: believed at once", proc.act("new-tab", sess="gone") == "" and len(asked) == 1)
+    deckconf.session_started = lambda sess: None
+    asked = answers(MISSED)
+    t0 = time.time()
+    check("... never reached: '' once the wait is up", proc.act("new-tab", sess="deck", wait=0.5) == ""
+          and 0.5 <= time.time() - t0 < 2)
+
     asked = answers((0, ""), (0, TABS), (0, LAYOUT))
     check("dump-layout: busy and crossed answers asked again", proc.layout() == LAYOUT and len(asked) == 3)
     answers((0, TABS))
@@ -119,6 +148,8 @@ try:
           proc.screen("s", "terminal_9") is None and len(asked) == 1)
 finally:
     proc.action = real
+    import shutil
+    shutil.rmtree(os.environ["PHOSPHOR_CACHE"], ignore_errors=True)
 
 # nothing in lib/ asks zellij for a listing or a screen by itself
 LISTS = re.compile(r"""["'](list-tabs|list-panes|dump-layout)["']""")
