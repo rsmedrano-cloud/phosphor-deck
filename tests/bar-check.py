@@ -282,6 +282,12 @@ else:
              z.wait(lambda: over_it(z, "EDIT", right), 10))
         need("EDIT says how to get back to the pane", shows(z, back))
         need("EDIT's map starts on the pane you were in (the right one)", shows(z, "▶ 2 "))
+        if fails:      # what each tap did, by the bar's own account (#113)
+            try:
+                log = open(os.path.join(z.home, ".cache/phosphor/deck.log")).read().splitlines()
+            except OSError:
+                log = []
+            fails.append("the bar's log: %r" % [l for l in log if " BAR " in l][-12:])
 
     with zjprobe.Probe(PROFILE, session="barnarrow", cols=40, rows=16) as z:
         need("40 cols: the deck came up", z.wait(lambda: "ONE" in z.tabs(), 20))

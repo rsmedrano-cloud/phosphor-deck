@@ -148,7 +148,7 @@ if not zjprobe.zellij():
 else:
     with zjprobe.Probe(PROFILE, session="homecheck", cols=100, rows=30) as z:
         need("the grid came up", shows(z, "1 web", 20) and shows(z, "3 term@CHAT"))
-        z.wait(lambda: zjprobe.reading_keys(z, "home"), 5)
+        need("home reads keys", z.wait(lambda: zjprobe.reading_keys(z, "home"), 10))
         z.keys("m", 0.3); z.keys("\x1b[C", 0.3); z.keys("\r", 0.5)
         need("m, an arrow, Enter: the tile moved later", shows(z, "1 screens") and shows(z, "2 web"))
         need("only on screen: the profile is as it was", layout(z) == "web,screens,term@CHAT")
@@ -163,9 +163,14 @@ else:
         need("it says so", shows(z, "kept in your profile"))
         need("a tap on the term tile goes to its tab", zjprobe.tap(z, "term@CHAT")
              and z.wait(lambda: active(z) == "CHAT", 10))
-        z.action("go-to-tab-name", "HOME"); z.pump(0.8)
-        z.wait(lambda: zjprobe.reading_keys(z, "home"), 5)
-        z.keys("/", 0.4); z.keys("CHAT", 0.8)
+        z.action("go-to-tab-name", "HOME")
+        # #114: a key typed before HOME has the focus and reads keys, or
+        # before the command line is open, isn't the command line's
+        need("back on HOME, reading keys", z.wait(lambda: active(z) == "HOME", 10)
+             and z.wait(lambda: zjprobe.reading_keys(z, "home"), 10))
+        z.keys("/", 0.2)
+        need("/ opens the command line", z.wait(lambda: any(r.strip().startswith("› _") for r in z.screen()), 10))
+        z.keys("CHAT", 0.3)
         need("the command line suggests the tab", shows(z, "open tab: go there"))
         z.keys("\r", 0.8)
         need("Enter on it goes there", z.wait(lambda: active(z) == "CHAT", 10))

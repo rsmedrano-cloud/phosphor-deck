@@ -224,11 +224,7 @@ def took(child):
 # ── zellij ────────────────────────────────────────────────────
 def zj(*a):
     import proc
-    z = proc.zellij() or "zellij"
-    try:
-        return subprocess.run([z, "action"] + list(a), capture_output=True, text=True, timeout=8).stdout
-    except (OSError, subprocess.SubprocessError):
-        return ""
+    return proc.act(*a)
 
 
 def panes():
@@ -258,24 +254,31 @@ def alone():
     return None if rest else tab
 
 
-def target():
-    """The pane the key acts on: the focused one of my tab, once the focus is back."""
-    ps = panes()
-    tab = my_tab(ps)
-    p = next((p for p in ps if p.get("tab_id") == tab and p.get("is_focused") and not p.get("is_plugin")
-              and not p.get("is_floating") and not is_bar(p)), None)
-    return "terminal_%d" % p["id"] if p else None
+def target(wait=2.0):
+    """The pane the key acts on: the focused one of my tab, once the focus is
+    back. Under load the listing can still show the bar focused right after
+    focus-last-pane (#113): asked again for `wait` seconds."""
+    end = time.time() + wait
+    while True:
+        ps = panes()
+        tab = my_tab(ps)
+        p = next((p for p in ps if p.get("tab_id") == tab and p.get("is_focused") and not p.get("is_plugin")
+                  and not p.get("is_floating") and not is_bar(p)), None)
+        if p or time.time() >= end:
+            return "terminal_%d" % p["id"] if p else None
+        time.sleep(0.2)
 
 
 def act(key):
     """What the key's Alt shortcut does, on the pane you were in."""
     import dlog
-    dlog.event("BAR", key)
     zj("focus-last-pane")
     if key == "home":
+        dlog.event("BAR", key)
         zj("go-to-tab", "1")
         return
     pane = target()
+    dlog.event("BAR", key, pane or "no pane to act on")
     if not pane:
         return
     if key == "zoom":

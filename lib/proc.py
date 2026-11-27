@@ -63,21 +63,46 @@ def action(sess, args, timeout=15):
     return run([zj] + (["--session", sess] if sess else []) + ["action"] + list(args), timeout=timeout)
 
 
+def busy(sess, r):
+    """Whether a failed action is zellij busy, not a session that's gone:
+    asked about the session this runs in (`sess` None, inside zellij), its
+    CLI says "There is no active session!" (exit 1) now and then under
+    load (#113). The session is there; the caller asks again."""
+    return (r.returncode > 0 and not sess and bool(os.environ.get("ZELLIJ_SESSION_NAME"))
+            and "no active session" in (r.stderr or ""))
+
+
+def act(*args, wait=2.0, timeout=8):
+    """One zellij action on the session this runs in, its stdout ("" when
+    it fails). A failure that's busy() never reached the server, so it's
+    sent again for `wait` seconds (#113: a tap on the bar did nothing)."""
+    import time
+    end = time.time() + wait
+    while True:
+        r = action(None, args, timeout)
+        if r.returncode == 0:
+            return r.stdout or ""
+        if not busy(None, r) or time.time() >= end:
+            return ""
+        time.sleep(0.2)
+
+
 def listing(sess, what, *flags, wait=5.0):
     """A zellij list action's JSON (`flags` include -j), [] when there's no
     answer (`sess` None: the session this runs in). A live session always
     has tabs and panes, so an empty or unreadable answer is zellij busy;
     and with two `zellij action`s at once, zellij 0.45 now and then hands
     one the other's answer (#122: list-panes got the tabs), so every item
-    must carry its list's key. Those are asked again for `wait` seconds; a
-    zellij that fails (no such session) is believed at once. Every reader
+    must carry its list's key. Those are asked again for `wait` seconds,
+    and so is zellij failing busy(); any other failure (no such session) is
+    believed at once. Every reader
     of a listing in lib/ goes through here (#134)."""
     import json, time
     key = LISTED[what]
     end = time.time() + wait
     while True:
         r = action(sess, (what,) + flags, 15)
-        if r.returncode > 0:
+        if r.returncode > 0 and not busy(sess, r):
             return []
         try:
             got = json.loads(r.stdout or "[]")
@@ -97,7 +122,7 @@ def layout(sess=None, wait=5.0):
     end = time.time() + wait
     while True:
         r = action(sess, ("dump-layout",), 20)
-        if r.returncode > 0:
+        if r.returncode > 0 and not busy(sess, r):
             return ""
         if "tab name=" in (r.stdout or ""):
             return r.stdout
@@ -125,16 +150,17 @@ def screen(sess, pane, *flags, wait=2.0):
     """What pane (a `terminal_N` id) shows, zellij's dump-screen (`flags`:
     --full); None when zellij fails (no such pane or session). A screen,
     even a blank one, is at least a newline: an empty answer is zellij busy
-    (#122), and so is another action's answer (#134). Those are asked again
+    (#122), and so is another action's answer (#134) or zellij failing
+    busy() (#113). Those are asked again
     for `wait` seconds, then "": never painted as the pane (#135). Every
     reader of dump-screen's text in lib/ goes through here."""
     import time
     end = time.time() + wait
     while True:
         r = action(sess, ("dump-screen", "-p", pane) + flags, 8)
-        if r.returncode != 0:
+        if r.returncode != 0 and not busy(sess, r):
             return None
-        out = r.stdout or ""
+        out = (r.stdout or "") if r.returncode == 0 else ""
         if out and not crossed(out):
             return out
         if time.time() >= end:

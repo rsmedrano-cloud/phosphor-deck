@@ -6,6 +6,12 @@ before it updates.
 
 ## Unreleased
 
+## 2.8.26 — a busy deck still says how to get back
+
+### Fixed
+
+- **A busy deck no longer makes a pane's screen think its session is gone (#113).** Under load, zellij sometimes answered "There is no active session!" about the session the command ran in. The bar's light, ASK, NOTE and EDIT (and their Alt keys) took that for a dead deck: the screen opened without "Esc: back to …", ASK could miss the pane, and a tap on the bar could do nothing. Inside the deck the answer is now asked again, the bar's actions are sent again when they never reached zellij, and a tap waits a moment for the focus to return to the pane before it acts. A failure about a session with another name is still believed at once.
+
 ## 2.8.25 — a busy deck never paints an empty pane
 
 ### Fixed

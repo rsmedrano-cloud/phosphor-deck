@@ -25,8 +25,8 @@ def answers(*seq):
     asked = []
     def action(sess, args, timeout=15):
         asked.append((sess,) + tuple(args))
-        rc, out = seq[min(len(asked), len(seq)) - 1]
-        return subprocess.CompletedProcess(args, rc, out, "")
+        rc, out, *err = seq[min(len(asked), len(seq)) - 1]
+        return subprocess.CompletedProcess(args, rc, out, err[0] if err else "")
     proc.action = action
     return asked
 
@@ -56,6 +56,34 @@ try:
     asked = answers((1, ""))
     check("zellij failing (no such session) is believed at once",
           proc.listing("gone", "list-tabs", "-j") == [] and len(asked) == 1)
+
+    # #113: inside a session, under load, zellij's CLI says it isn't there
+    GONE = (1, "", "There is no active session!\n")
+    os.environ["ZELLIJ_SESSION_NAME"] = "probe"
+    asked = answers(GONE, (0, PANES))
+    check("inside a session, 'no active session' about it is asked again (#113)",
+          len(proc.listing(None, "list-panes", "-a", "-j")) == 1 and len(asked) == 2)
+    asked = answers(GONE)
+    check("... the same about a session named is believed at once",
+          proc.listing("gone", "list-tabs", "-j") == [] and len(asked) == 1)
+    asked = answers((1, "", "some other error\n"))
+    check("... another failure is believed at once", proc.listing(None, "list-tabs", "-j") == [] and len(asked) == 1)
+    asked = answers(GONE, (0, LAYOUT))
+    check("... dump-layout asks again", proc.layout() == LAYOUT and len(asked) == 2)
+    asked = answers(GONE, (0, "$ \n"))
+    check("... dump-screen asks again", proc.screen(None, "terminal_3") == "$ \n" and len(asked) == 2)
+    asked = answers(GONE)
+    check("... dump-screen never answering: '' (no answer), not None (no pane)",
+          proc.screen(None, "terminal_3", wait=0.3) == "")
+    asked = answers(GONE, (0, "done"))
+    check("an action that didn't reach zellij is sent again", proc.act("focus-last-pane") == "done" and len(asked) == 2)
+    asked = answers((1, "", "no pane\n"))
+    check("... one that failed there is not", proc.act("close-pane") == "" and len(asked) == 1)
+    del os.environ["ZELLIJ_SESSION_NAME"]
+    asked = answers(GONE)
+    t0 = time.time()
+    check("outside a session, 'no active session' is believed at once",
+          proc.listing(None, "list-tabs", "-j") == [] and len(asked) == 1 and time.time() - t0 < 0.5)
 
     asked = answers((0, ""), (0, TABS), (0, LAYOUT))
     check("dump-layout: busy and crossed answers asked again", proc.layout() == LAYOUT and len(asked) == 3)
